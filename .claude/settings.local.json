@@ -128,7 +128,15 @@
       "Bash(git init *)",
       "Bash(git remote *)",
       "Bash(git branch *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(gh auth *)",
+      "Bash(gh repo *)",
+      "Bash(git push *)",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__get_page_text",
+      "mcp__Claude_in_Chrome__javascript_tool",
+      "Bash(git checkout *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
