@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Data (keep structure, ignore contents)
+data/raw/*
+data/parsed/*
+data/db/*
+!data/raw/.gitkeep
+!data/parsed/.gitkeep
+!data/db/.gitkeep
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# India PDFs (large binary files)
+data/india/pdfs/
+data/india/*.pdf
+
+# Secrets / credentials
+.env
+*.env
+config/secrets.yaml

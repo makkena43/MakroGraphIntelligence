@@ -1,0 +1,13 @@
+[theme]
+base = "dark"
+primaryColor     = "#818cf8"        # indigo-400  — buttons, accents
+backgroundColor  = "#0f172a"        # slate-950   — main page background
+secondaryBackgroundColor = "#1e293b" # slate-800  — sidebar, cards, dataframe cells
+textColor        = "#e2e8f0"        # slate-200   — all body text (incl. dataframe cells)
+font             = "sans serif"
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false

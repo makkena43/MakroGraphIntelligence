@@ -1,0 +1,729 @@
+# MakroGraph Intelligence - Configuration
+# Incremental Batch Document Acquisition Pipeline
+#
+# Philosophy: Simple, Reliable, Incremental, Historical-first,
+#             Low-maintenance, Laptop-friendly
+#
+# NO daemons. NO polling. NO always-on services.
+# Run → Fetch new since last checkpoint → Process → Exit.
+
+project:
+  name: "MakroGraph Intelligence"
+  version: "0.2.0"
+
+# Target market / country (ISO-2 code).
+# Controls which country tag is stamped on ingested documents and themes.
+# Switch to "IN" to run the India market pipeline.
+market:
+  country: "US"          # US | IN | GB | SG | ...
+
+# Fetcher settings
+fetcher:
+  max_concurrent_requests: 10
+  request_timeout_seconds: 30
+  retry_attempts: 3
+  retry_delay_seconds: 2
+  user_agent: "MakroGraph/0.2 (Document Research Pipeline)"
+  rate_limit_per_second: 5
+  download_dir: "data/raw"
+
+# PDF parser settings
+parser:
+  engine: "pdfplumber"           # pdfplumber | pymupdf
+  fallback_engine: "pymupdf"
+  max_pages: 500
+  output_dir: "data/parsed"
+  extract_tables: true
+  extract_images: false
+
+# Deduplication settings
+dedup:
+  hash_algorithm: "xxhash"       # xxhash | sha256
+  similarity_threshold: 0.95     # for near-duplicate detection
+  check_url: true
+  check_content_hash: true
+
+# Text normalization settings
+normalizer:
+  lowercase: false
+  strip_extra_whitespace: true
+  fix_encoding: true
+  remove_headers_footers: true
+  min_text_length: 50            # skip documents with less text
+
+# Storage settings
+storage:
+  db_path: "data/db/makrograph.db"
+  enable_fts: true               # Full-text search via SQLite FTS5
+  batch_size: 100
+  vacuum_interval_hours: 24
+
+# Pipeline settings (batch mode)
+pipeline:
+  log_level: "INFO"
+  log_file: "logs/pipeline.log"
+  checkpoint_interval: 50        # log progress every N documents
+
+# Source registry (document acquisition)
+sources: []
+
+# ============================================================
+# INTELLIGENCE SYSTEM CONFIGURATION
+# ============================================================
+
+# PostgreSQL (metadata + signals + themes)
+postgresql:
+  host: "localhost"
+  port: 5432
+  dbname: "makrograph"
+  user: "postgres"
+  password: ""             # Set via MAKROGRAPH_PG_PASSWORD env var in production
+  pool_size: 5
+
+# Neo4j (knowledge graph)
+neo4j:
+  enabled: true             # Neo4j running locally on bolt://localhost:7687
+  uri: "bolt://localhost:7687"
+  user: "neo4j"
+  password: "makrograph"   # Set via MAKROGRAPH_NEO4J_PASSWORD env var in production
+
+# SEC EDGAR fetcher
+edgar:
+  filing_types:
+    - "10-K"
+    - "10-Q"
+    - "8-K"
+
+  # fetch_mode controls which companies are ingested:
+  #   "selected"  — only the tickers in ticker_list below (fast, curated)
+  #   "all_us"    — full NYSE + NASDAQ universe (~5 000–7 000 companies)
+  fetch_mode: "selected"
+
+  # When fetch_mode = "all_us", process at most this many companies per run.
+  # Increase between runs to walk through the full universe incrementally.
+  max_companies_per_run: 200
+
+  ticker_list:
+    - "NVDA"
+    - "MSFT"
+    - "AMZN"
+    - "AMD"
+    - "TSLA"
+    - "AAPL"
+    - "META"
+    - "GOOGL"
+  cik_list: []               # Or CIK numbers directly
+  max_filings_per_company: 100
+  max_results_per_run: 500
+  api_delay_seconds: 0.3     # EDGAR rate limit: 10 req/sec
+  user_agent: "MakroGraph/0.2 (Research Pipeline; contact@example.com)"
+
+# NLP extraction
+nlp:
+  use_spacy: true
+  use_finbert: false         # Set true for higher quality financial NER (slow)
+  spacy_model: "en_core_web_sm"
+  min_entity_len: 3
+  max_entities_per_doc: 300  # Reduced from 500 — most useful entities are top 300
+  min_confidence: 0.65
+  context_window_chars: 200
+  # Performance tuning — key speedup levers:
+  max_spacy_chars: 40000     # spaCy NER only on first 40k chars. A full 10-K (500k chars)
+                             # would take 30-60s; 40k chars takes <1s. MD&A + risk factors
+                             # are always in the first 40k.
+  max_text_chars_for_signals: 80000  # Signal regex runs on first 80k chars (fast, regex-based)
+
+# Semantic embeddings
+embeddings:
+  enabled: true
+  embedding_model: "all-MiniLM-L6-v2"   # Fast, 384-dim
+  embedding_dim: 384
+  embedding_batch_size: 32
+  max_seq_length: 512
+  normalize_embeddings: true
+
+# Topic modeling (BERTopic)
+topics:
+  min_topic_size: 5
+  nr_topics: "auto"          # or integer e.g. 50
+  n_gram_range: [1, 3]
+  model_save_path: "data/models/bertopic_model"
+  low_memory: false
+
+# Theme detection
+themes:
+  # ── Canonicalization / merge engine ──────────────────────────────────────
+  # Similarity threshold for merging similar themes into one canonical parent.
+  # 0.55 = surface merge candidates for human review (recommended — human approves/dismisses)
+  # 0.72+ = auto-merge without human review (use only with embedding engine loaded)
+  theme_merge_threshold: 0.45
+
+  # Company breadth filter: ignore micro-themes discussed by only 1-2 companies.
+  # Real macro themes are discussed by 3+ companies across multiple sectors.
+  # Set to 10+ once the universe runs at scale (all US companies).
+  min_companies_for_theme: 3
+  min_docs_for_theme: 3
+  # Minimum number of distinct sectors required (avoids single-sector noise).
+  min_sectors_for_theme: 2
+  # Signal lookback window in days.
+  # US full-text filings: 365 days gives dense signal coverage.
+  # India NSE/BSE title-only filings: lower signal density (~0.06 signals/doc),
+  # so use 730 days (2 years) to get enough signals for meaningful theme clustering.
+  # The auto-extend is now ONLY active during historical replay, not live mode.
+  signal_window_days: 730
+  # use_seed_themes: false = purely data-driven (recommended for large universes)
+  use_seed_themes: false
+  use_graph_detection: true
+  use_graph_for_beneficiaries: true
+  # Minimum signals required for a company to qualify as a theme beneficiary.
+  # Use 1 for small universes (<20 tickers); raise to 2-3 at full US scale.
+  min_signals_for_beneficiary: 1
+  min_relevance_score: 8.0
+  max_beneficiaries_per_theme: 30
+  # Composite score: only surface High and Critical themes (≥30 for High, ≥60 for Critical).
+  # Low: 0-29, Medium: 30-59, High: 60-79, Critical: 80-100
+  min_composite_score: 20.0
+  # Six-factor eligibility gate (0–1). Themes scoring below this are excluded from ranking.
+  # Factors: demand_acceleration, supply_constraint, capex_commitment,
+  #          company_proxy, persistence (Q1=0.3/Q2=0.7/Q3+=1.0), bottleneck_flag
+  # 0.75 = production threshold — only themes with strong multi-factor evidence survive.
+  # 0.50 = recommended for small universes (< 20 tickers) so auto-detected themes
+  #         can surface alongside downstream constraint themes.
+  # Denominators in _compute_eligibility_score scale automatically with universe size.
+  min_eligibility_score: 0.50
+  ranking_weights:
+    signal: 0.35
+    breadth: 0.30
+    momentum: 0.35
+
+# Ontology evolution tracking
+evolution:
+  window_days: 30            # Recent window for momentum calculation
+  compare_days: 90           # Prior window for comparison
+  min_cross_sectors: 3       # Min sectors for cross-sector signal flag
+
+# Graphiti temporal knowledge graph (bi-temporal edge tracking)
+# Requires: pip install graphiti-core  +  Neo4j running
+graphiti:
+  enabled: false             # Set true to enable bi-temporal graph
+  # Inherits neo4j.uri / user / password from [neo4j] block above
+  graphiti_llm_enabled: false   # Let Graphiti use LLM for entity extraction
+  graphiti_llm_model: "gpt-4o-mini"
+
+# BERTrend temporal trend acceleration
+bertrend:
+  trend_granularity: "monthly"     # monthly | quarterly | weekly
+  min_periods_for_trend: 3
+  emerging_velocity_threshold: 0.15
+  emerging_acceleration_threshold: 0.10
+  min_docs_per_period: 3
+  smoothing_window: 2
+
+# GraphRAG: graph-augmented reasoning
+graph_rag:
+  graph_rag_mode: "hybrid"          # local | global | hybrid
+  graph_rag_max_hops: 2
+  graph_rag_context_chars: 3000
+
+# Selective LLM (disabled by default - costs money)
+# Supported providers: anthropic | openai | deepseek
+# DeepSeek: set DEEPSEEK_API_KEY env var
+#   deepseek-chat     = DeepSeek-V3  (fast, cheap, ~$0.00027/1K tokens)
+#   deepseek-reasoner = DeepSeek-R1  (chain-of-thought, higher cost)
+llm:
+  llm_enabled: false         # Set true to generate hypotheses
+  llm_provider: "deepseek"   # anthropic | openai | deepseek
+  llm_model: "deepseek-chat" # claude-3-haiku-20240307 | gpt-4o-mini | deepseek-chat | deepseek-reasoner
+  llm_max_tokens: 600
+  llm_temperature: 0.3
+  llm_daily_cost_cap_usd: 2.0
+  llm_cost_per_1k_tokens: 0.00027  # DeepSeek-V3 pricing
+
+# ============================================================
+# MACRO & POLICY DATA LAYER
+# ============================================================
+# Placement in pipeline: AFTER graph + theme detection.
+# Macro data enriches themes with economic context rather than
+# being used to detect themes (avoids look-ahead bias).
+
+macro:
+  start_date: "2018-01-01"   # Default historical start for all macro fetchers
+  # end_date defaults to today (or replay_date in historical mode)
+
+# FRED API (St. Louis Federal Reserve)
+# Free API key: https://fred.stlouisfed.org/docs/api/fred/
+# Set FRED_API_KEY environment variable or api_key below.
+fred:
+  api_key: "a99afafeaecaf4a498d0f8ad583a41dd"
+  use_alfred: false          # true = vintage values (first-published), prevents look-ahead in replay
+  start_date: "2018-01-01"
+  api_delay_seconds: 0.6    # FRED allows 120 req/min
+  # series_ids: []           # Leave empty to fetch all DEFAULT_SERIES (20 key series)
+
+# EIA Open Data API (U.S. Energy Information Administration)
+# Free API key: https://www.eia.gov/opendata/
+# Set EIA_API_KEY environment variable or api_key below.
+eia:
+  api_key: "7HCxWjvSRFLI0raJ6NHxhrID3gc8guELaLbSZq8E"
+  start_date: "2018-01-01"
+  api_delay_seconds: 0.5
+
+# Congress.gov API (U.S. legislation & bills)
+# Free API key: https://api.congress.gov/sign-up/
+# Set CONGRESS_API_KEY environment variable or api_key below.
+congress:
+  api_key: "uitSzaHQbvEx1ozaa0lLerarjserTY0GlovwLYVh"
+  bill_types:
+    - "hr"                   # House Resolution
+    - "s"                    # Senate Bill
+  start_date: "2020-01-01"
+  max_results: 200
+  # keywords: []             # Optional keyword filter (applied to bill titles)
+
+# Federal Register API (U.S. federal regulations, executive orders)
+# No API key required. Public API.
+federal_register:
+  start_date: "2020-01-01"
+  max_results: 200
+  # doc_types: [RULE, PRULE, EXEC_ORDER, NOTICE]  # defaults
+  keywords:
+    - "semiconductor"
+    - "critical mineral"
+    - "clean energy"
+    - "export control"
+    - "carbon"
+    - "electricity"
+    - "data center"
+    - "artificial intelligence"
+    - "supply chain"
+    - "tariff"
+    - "subsidy"
+    - "infrastructure"
+    - "CHIPS Act"
+    - "Inflation Reduction Act"
+    - "IRA"
+
+# World Bank Open Data (country-level macro indicators)
+# No API key required. Public API.
+world_bank:
+  start_year: 2018
+  # countries: []            # Leave empty for DEFAULT_COUNTRIES (G20 + key partners)
+  # indicators: []           # Leave empty for DEFAULT_INDICATORS (15 key series)
+  api_delay_seconds: 0.5
+
+# ============================================================
+# INDIA MARKET SOURCES  (market.country == "IN")
+# ============================================================
+#
+# Two distinct layers — both active when country is IN:
+#
+#   LAYER 1 — Company Filings  (run_ingest_india)
+#     NSE, BSE, Screener.in → mg_documents (same table as SEC EDGAR for US)
+#     Fetched with date-range awareness; stored as structured documents.
+#
+#   LAYER 2 — India Macro / Policy Context  (run_macro → Stage 6)
+#     PIB, SEBI, RBI, InvestIndia, Commerce/DGFT → mg_policy_events
+#     with country='IN' (same table as US Congress / Federal Register).
+#     These are "latest-only" sources (RSS / web scraping, no date-range API).
+#     run_macro() runs AFTER graph + theme detection, enriching themes with
+#     India government & regulatory context.
+#
+# Each source is independently enabled/disabled via `enabled: true/false`.
+# ============================================================
+
+# ------------------------------------------------------------
+# LAYER 1 — INDIA COMPANY FILING SOURCES  (→ mg_documents)
+# ------------------------------------------------------------
+
+# NSE India — corporate announcements and filings
+# No API key required. Session-cookie based (auto-managed).
+nse:
+  enabled: true
+  announcement_type: "equities"   # equities | debt | sme
+  start_date: "2020-01-01"
+  # end_date: "2020-12-31"        # Uncomment + set for historical quarterly/yearly runs.
+                                  # Leave commented out for weekly incremental runs (defaults to today).
+  max_results_per_run: 0          # 0 = unlimited; filtered by important_categories/keywords
+  api_delay_seconds: 0.5          # Delay between monthly-chunk API calls (bulk = 1 call/month).
+  symbol_list: []                 # Optional ticker filter. Empty = all ~2 400 companies.
+
+  # ── Announcement importance filter ───────────────────────────────────────
+  # NSE API field: `desc` is the announcement TYPE (verified from live API).
+  # An item is kept if (desc matches important_categories) OR
+  #                    (attchmntText contains an important_keyword).
+  #
+  # Strategy: WHITELIST only high-signal categories.  "Updates" (89K docs) and
+  # other broad catch-alls are excluded — they contribute 47% of corpus with ~0%
+  # signal density.  Keywords are kept precise to avoid false positives.
+  #
+  # High-signal categories kept (verified from production data):
+  #   "Outcome of Board Meeting"                                (56K) ← board decisions
+  #   "Financial Result Updates"                                (35K) ← quarterly results
+  #   "Analysts/Institutional Investor Meet/Con. Call Updates"  (23K) ← concalls
+  #   "Press Release"                                           (15K) ← orders, capex, results
+  #   "Investor Presentation"                                   (3.5K)
+  #   "Acquisition"                                             (3.5K)
+  #   "Reply to Clarification- Financial results"               (3K)
+  #   "Amalgamation/Merger"                                     (907)
+  #   "Scheme of Arrangement"                                   (790)
+  #   "Bagging/Receiving of orders/contracts"                   (633)
+  #   "Transcript of Analysts/Institutional Investor Meet"      (494)
+  #   "Recording of Analysts/Institutional Investor Meet"       (401)
+  #   "Capacity addition"                                       (252)
+  #   "Buyback"                                                 (368)
+  #   "Rights Issue"                                            (527)
+  #   "Demerger"                                                (118)
+  #   "Open Offer"                                              (65)
+  #   "Memorandum of Understanding/Agreements"                  (476)
+  #   "Agreements"                                              (675)
+  #   "Awarding of order(s)/contract(s)"                        (167)
+  #   "Awarding orders/contract"                                (142)
+  #   "Bagging orders/contract"                                 (104)
+  #   "Qualified Institutional Placement"                       (36)
+  #   "Financial Results Updates"                               (1.2K) ← alternate spelling
+  important_categories:
+    # Financial performance
+    - "outcome of board meeting"
+    - "financial result updates"
+    - "financial results updates"
+    - "reply to clarification- financial results"
+    - "reply to clarification sought- financial results"
+    - "integrated filing- financial"
+    # Management commentary
+    - "analysts/institutional investor meet/con. call updates"
+    - "schedule of analysts/institutional investor meet/con. call"
+    - "transcript of analysts/institutional investor meet/con. call"
+    - "recording of analysts/institutional investor meet/con. call"
+    - "investor presentation"
+    - "press release"
+    # M&A / restructuring
+    - "acquisition"
+    - "amalgamation/merger"
+    - "scheme of arrangement"
+    - "demerger"
+    - "open offer"
+    - "public announcement-open offer"
+    # Capital market events
+    - "buyback"
+    - "rights issue"
+    - "qualified institutional placement"
+    - "stock split"
+    - "offer for sale"
+    # Order wins / capacity
+    - "bagging/receiving of orders/contracts"
+    - "bagging orders/contract"
+    - "awarding of order(s)/contract(s)"
+    - "awarding orders/contract"
+    - "capacity addition"
+    - "capacity addition/product launch"
+    - "commencement of commercial production/operations"
+    # Agreements
+    - "memorandum of understanding/agreements"
+    - "agreements"
+    # Insolvency / distress signals
+    - "corporate insolvency resolution process"
+    - "defaults on payment of interest/principal"
+    - "strikes/lockouts/disturbances"
+    - "disruption of operations"
+    - "disruption of operations"
+
+  # Hard exclude — ALWAYS dropped even if a keyword matches in their text.
+  # "Updates" (89K) and friends are zero-signal compliance notices.
+  excluded_categories:
+    # Generic catch-alls with near-zero signal
+    - "updates"
+    - "general updates"
+    - "general updates"
+    # Admin / compliance notices
+    - "trading window"
+    - "closure of trading window"
+    - "record date"
+    - "revised record date"
+    - "cancellation of record date"
+    - "book closure"
+    - "revised book closure"
+    - "cancellation of book closure"
+    - "board meeting intimation"
+    - "board meeting cancelled"
+    - "board meeting adjourned"
+    - "board meeting rescheduled"
+    - "board meeting deferred"
+    - "board meeting postponed"
+    - "dividend"
+    - "dividend updates"
+    - "date of payment of dividend"
+    - "cancellation of dividend"
+    # Regulatory / SEBI filings with no price-relevant content
+    - "disclosure under sebi takeover regulations"
+    - "disclosure under sebi (pit) reg 2015"
+    - "disc. under reg.30 of sebi (sast) reg.2011"
+    - "code of conduct under sebi(pit) reg., 2015"
+    - "code of conduct under sebi (pit) regulations"
+    - "trading plan under pit"
+    - "trading plan under sebi (pit) regulations"
+    - "statement of deviation(s) or variation(s) under reg. 32"
+    - "quarterly compliance report on corporate governance - within 21 days from the end of the quarter"
+    - "annual secretarial compliance report"
+    - "certificate under sebi (depositories and participants) regulations, 2018"
+    - "esop/esos/esps"
+    - "esop/esps/sbeb scheme"
+    # Exchange-generated noise
+    - "copy of newspaper publication"
+    - "newspaper advertisements"
+    - "price movement"
+    - "spurt in volume"
+    - "loss of share certificates"
+    - "loss of share certificate"
+    - "news verification"
+    - "news clarification"
+    - "structural digital database"
+    - "e-mail id for investor's grievance redressal"
+    - "registrar & share transfer agent update"
+    - "clarification"
+    - "reply to clarification sought"
+
+  # Keyword filter — applied to attchmntText for categories NOT in the whitelist.
+  # Kept precise: broad words like "revenue", "board meeting", "agm" caused 89K
+  # "Updates" docs to slip through.  Only genuinely distinctive phrases kept.
+  important_keywords:
+    - "order win"
+    - "order received"
+    - "work order"
+    - "contract win"
+    - "contract awarded"
+    - "letter of award"
+    - "letter of intent"
+    - "capex"
+    - "capital expenditure"
+    - "capacity addition"
+    - "new plant"
+    - "new facility"
+    - "acquisition"
+    - "merger"
+    - "joint venture"
+    - "concall"
+    - "conference call"
+    - "investor presentation"
+    - "fund raise"
+    - "fundraise"
+    - "qip"
+    - "rights issue"
+    - "demerger"
+    - "open offer"
+    - "buyback"
+
+# BSE India — announcements, order wins, capex updates, board decisions
+#
+# BSE uses Akamai JS bot protection.  The fetcher tries strategies in order:
+#   1. curl_cffi TLS spoof         — no browser, zero cost, automatic future-proofing
+#   2. Disk-cached Akamai cookies  — reuse cookies from last browser warm-up (~6 h TTL)
+#   3. Playwright (recommended)    — lightweight, auto-downloads Chromium, no ChromeDriver
+#      Install: pip install playwright && playwright install chromium
+#   4. Selenium (legacy)           — set use_selenium: true
+#   5. BSE scrip list              — company metadata only (always works, no cookies needed)
+bse:
+  # BSE uses the same curl_cffi Chrome-fingerprint strategy as NSE (no Playwright needed).
+  # Provides supplemental filings not always present on NSE, and adds redundancy.
+  # curl_cffi is the primary strategy; falls back to Playwright or Selenium if needed.
+  enabled: true
+  start_date: "2020-01-01"
+  max_results_per_run: 0          # 0 = unlimited; filtered by important_categories/keywords
+  api_delay_seconds: 0.5
+  scrip_list: []                  # Leave empty for all companies; or add BSE scrip codes
+  # categories: ["-1"]            # -1 = all categories (default)
+  use_selenium: false             # Set true to fall back to Selenium if Playwright fails
+  selenium_headless: true
+  cookie_ttl_hours: 6             # How long to trust cached Akamai cookies (hours)
+  # cookie_cache_path: ~/.makrograph/bse_cookies.json  # Override cookie cache location
+
+  # ── Announcement importance filter (same logic as NSE above) ─────────────
+  # BSE CATEGORYNAME values seen in practice:
+  #   "Board Meeting"        "Results"               "AGM/EGM"
+  #   "Corp. Action"         "Investors Meet"         "Acquisition"
+  #   "Shareholding"         "Insider Trading / SAST" "Compliances"
+  #   "Agreements"           "Updates"                "Merger"
+  important_categories:
+    - "board meeting"
+    - "results"
+    - "agm/egm"
+    - "corp. action"
+    - "investors meet"
+    - "acquisition"
+    - "agreements"
+    - "updates"
+    - "merger"
+    - "annual report"
+    - "investor presentation"
+
+  important_keywords:
+    - "order"
+    - "contract"
+    - "win"
+    - "capex"
+    - "capital expenditure"
+    - "expansion"
+    - "acquisition"
+    - "merger"
+    - "joint venture"
+    - "concall"
+    - "conference call"
+    - "investor presentation"
+    - "quarterly results"
+    - "annual results"
+    - "q1"
+    - "q2"
+    - "q3"
+    - "q4"
+    - "revenue"
+    - "profit"
+    - "capacity"
+    - "plant"
+    - "factory"
+    - "fund raise"
+    - "ipo"
+    - "qip"
+    - "rights issue"
+    - "demerger"
+    - "dividend"
+
+# Screener.in — annual reports, presentations, concall transcript links
+# No API key required. Scrapes public company pages.
+screener:
+  # Disabled: NSE and BSE fetchers already retrieve the same annual reports,
+  # presentations, and concall transcripts from exchange attachment URLs.
+  # Screener pages simply re-link to bseindia.com / nsearchives.nseindia.com,
+  # which the deduplicator would reject anyway — at the cost of ~1 hr of scraping.
+  # Enable only if you need documents hosted exclusively on screener.in itself
+  # (rare — most companies file directly with the exchanges).
+  enabled: false
+  start_date: "2020-01-01"
+  max_results_per_run: 0          # 0 = unlimited — scrapes all companies, all docs found
+  api_delay_seconds: 1.5
+  use_selenium: false             # Set true if Selenium is installed and needed
+  selenium_headless: true
+  extract_peers: false
+  symbol_list: []                 # Empty = auto-discover all NSE-listed companies (~2 400) via EQUITY_L.csv
+
+# ------------------------------------------------------------
+# LAYER 2 — INDIA MACRO / POLICY SOURCES  (→ mg_policy_events, country='IN')
+# Fetched by run_macro() Stage 6.  Stored as policy events alongside
+# US Congress / Federal Register — queryable by country='IN'.
+# ------------------------------------------------------------
+
+# Press Information Bureau (PIB) India
+# No API key required. Public RSS feeds.
+# NOTE: ModId=6 RSS is Hindi-only from outside India.
+# For English press releases, set use_selenium: true (needs selenium + chromedriver),
+# or override rss_feeds with confirmed English ministry-specific feed URLs.
+pib:
+  enabled: true
+  start_date: "2020-01-01"
+  max_results_per_run: 300
+  api_delay_seconds: 0.5
+  fetch_full_text: true
+  rss_feeds:
+    - "https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=3"
+  keywords:
+    - "PLI"
+    - "production linked incentive"
+    - "semiconductor"
+    - "chip"
+    - "fab"
+    - "solar"
+    - "renewable energy"
+    - "green hydrogen"
+    - "wind"
+    - "railway"
+    - "metro"
+    - "vande bharat"
+    - "defence"
+    - "HAL"
+    - "BEL"
+    - "DRDO"
+    - "electric vehicle"
+    - "EV"
+    - "battery"
+    - "infrastructure"
+    - "capex"
+    - "5G"
+    - "telecom"
+    - "startup"
+    - "digital india"
+
+# Invest India — sector reports and investment announcements
+# No API key required. Public web scraping.
+invest_india:
+  enabled: true
+  start_date: "2020-01-01"
+  max_results_per_run: 200
+  api_delay_seconds: 1.0
+  sections:
+    - "sector-reports"            # crawls /sectors index -> each sector sub-page for PDFs
+    - "brochures"                 # crawls /brochure listing for sector brochure PDFs
+  keywords: []                    # Empty = fetch all; add keywords to narrow scope
+
+# Ministry of Commerce & Industry India + DGFT
+# No API key required. Public web scraping.
+commerce_india:
+  enabled: true
+  start_date: "2020-01-01"
+  max_results_per_run: 200
+  api_delay_seconds: 1.0
+  sources:
+    - "dgft"                      # https://www.dgft.gov.in  (commerce.gov.in is JS-rendered)
+  keywords:
+    - "PLI"
+    - "tariff"
+    - "export"
+    - "import"
+    - "FTP"
+    - "foreign trade policy"
+    - "SEZ"
+    - "manufacturing"
+    - "semiconductor"
+    - "electronics"
+    - "textile"
+    - "steel"
+    - "pharma"
+
+# SEBI (Securities and Exchange Board of India) — circulars and press releases
+# No API key required. Public web scraping.
+sebi:
+  enabled: true
+  start_date: "2020-01-01"
+  max_results_per_run: 200
+  api_delay_seconds: 1.0
+  doc_types:
+    - "press_release"             # SEBI press release listing
+    - "circular"                  # SEBI circulars listing
+  keywords: []                    # Empty = fetch all; add keywords to narrow scope
+
+# RBI (Reserve Bank of India) — monetary policy and press releases via RSS
+# No API key required. Public RSS feed.
+rbi:
+  enabled: true
+  start_date: "2020-01-01"
+  max_results_per_run: 200
+  api_delay_seconds: 0.5
+  fetch_full_text: false          # true = fetch full article HTML for tighter keyword check (slower)
+  rss_feeds:
+    - "https://rbi.org.in/scripts/rss_RBI.aspx"
+  keywords:
+    - "repo rate"
+    - "monetary policy"
+    - "inflation"
+    - "CPI"
+    - "GDP"
+    - "forex"
+    - "foreign exchange"
+    - "liquidity"
+    - "credit"
+    - "NBFC"
+    - "interest rate"
+    - "MPC"
+    - "rupee"
+    - "CBDC"
+    - "UPI"
+    - "financial stability"
+    - "balance of payments"
+    - "current account"
