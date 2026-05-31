@@ -724,9 +724,9 @@ class IntelligencePipeline:
         # cause the loop to re-query already-processed docs, emptying the batch after 1 pass.
         # Live mode: fetch docs without a local file on disk.
         _path_clause = (
-            "AND (raw_text IS NULL OR raw_text = '')"
+            "AND (raw_text IS NULL OR raw_text = '') AND processing_status != 'unsupported'"
             if store_text_to_db
-            else "AND (local_path IS NULL OR local_path = '')"
+            else "AND (local_path IS NULL OR local_path = '') AND processing_status != 'unsupported'"
         )
 
         # Track already-attempted doc IDs to avoid re-fetching failed docs on retry
