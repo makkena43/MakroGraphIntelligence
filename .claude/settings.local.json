@@ -149,7 +149,8 @@
       "Bash(echo \"All-quarters worker PID: $!\")",
       "Bash(awk '{print \"PID:\",$2,\"CPU:\",$3\"%\",\"MEM:\",$4\"%\"}')",
       "Bash(kill 19704 19762)",
-      "Bash(awk '{print \"PID:\",$2,\"CPU:\",$3\"%\",$12,\"--from-date\",$14}')"
+      "Bash(awk '{print \"PID:\",$2,\"CPU:\",$3\"%\",$12,\"--from-date\",$14}')",
+      "Bash(awk '{print \"PID:\",$2,\"CPU:\",$3\"%\",\"--from\",$14}')"
     ]
   }
 }

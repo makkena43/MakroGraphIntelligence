@@ -126,6 +126,25 @@ def _capture_logs():
         root.removeHandler(handler)
 
 
+def _call_gemini_api(prompt: str, api_key: str, model: str = "gemini-flash-latest") -> str:
+    """POST a prompt to the Google Gemini REST API and return the response text."""
+    import requests as _req
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.4, "maxOutputTokens": 1200},
+    }
+    resp = _req.post(
+        url,
+        headers={"Content-Type": "application/json", "X-goog-api-key": api_key},
+        json=payload,
+        timeout=60,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    return data["candidates"][0]["content"]["parts"][0]["text"]
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # DATA LOADERS  (cached per query so the Themes tab is fast)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2923,6 +2942,80 @@ with tab_shortlisted:
                     },
                 )
 
+        # ── Gemini AI Analysis ────────────────────────────────────────────────
+        st.markdown("---")
+        _sl_gemini_key   = cfg.get("gemini", {}).get("api_key", "")
+        _sl_gemini_model = cfg.get("gemini", {}).get("model", "gemini-flash-latest")
+
+        st.markdown(
+            '<div style="background:#0f172a;border-left:3px solid #a855f7;border-radius:8px;'
+            'padding:8px 16px;margin-bottom:12px">'
+            '<span style="font-size:0.92rem;font-weight:700;color:#f1f5f9">🤖 Gemini AI Analysis</span>'
+            f'<span style="font-size:0.75rem;color:#64748b;margin-left:10px">'
+            f'Google Gemini Flash · {COUNTRY_LABEL} · {len(sl_themes)} shortlisted themes</span>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+        if not _sl_gemini_key:
+            st.caption("💡 Set `gemini.api_key` in `config/settings.yaml` to enable Gemini analysis.")
+        else:
+            _sl_gcol1, _sl_gcol2 = st.columns([1, 5])
+            with _sl_gcol1:
+                _sl_run_gem = st.button(
+                    "✨ Run Gemini Analysis",
+                    key="sl_gemini_run",
+                    type="primary",
+                    help="Send shortlisted themes to Google Gemini Flash for investment analysis",
+                )
+            with _sl_gcol2:
+                if st.session_state.get("sl_gemini_analysis"):
+                    if st.button("🗑  Clear", key="sl_gemini_clear"):
+                        st.session_state.pop("sl_gemini_analysis", None)
+                        st.rerun()
+
+            if _sl_run_gem:
+                with st.spinner("Calling Google Gemini API…"):
+                    try:
+                        _sl_theme_lines = []
+                        for _si, _st_t in enumerate(sl_themes[:15], 1):
+                            _sl_theme_lines.append(
+                                f"{_si}. {_st_t.get('theme_name','')} "
+                                f"[{(_st_t.get('conviction') or '').upper()}] "
+                                f"| Score: {float(_st_t.get('strength_score') or 0):.0f} "
+                                f"| {int(_st_t.get('confirmed_quarters') or 0)} quarters "
+                                f"| {int(_st_t.get('company_count') or 0)} companies"
+                            )
+                        _sl_themes_block = "\n".join(_sl_theme_lines) or "No themes available."
+                        _sl_market = "India (NSE/BSE)" if COUNTRY_CODE == "IN" else "USA (NYSE/NASDAQ)"
+                        _sl_prompt = (
+                            f"You are an expert macro investment analyst. The following investment themes "
+                            f"were auto-detected from {_sl_market} market company filings and earnings data.\n\n"
+                            f"SHORTLISTED THEMES ({len(sl_themes)} themes):\n{_sl_themes_block}\n\n"
+                            "Provide a concise investment analysis covering:\n"
+                            "1. Top 3 themes with the strongest multi-year investment case (2-3 sentences each)\n"
+                            "2. Cross-theme connections and amplifying factors\n"
+                            "3. Key macro risks to monitor\n"
+                            "4. Sector rotation implications\n\n"
+                            "Be specific, data-driven, and actionable. Write for a professional equity investor."
+                        )
+                        st.session_state["sl_gemini_analysis"] = _call_gemini_api(
+                            _sl_prompt, _sl_gemini_key, _sl_gemini_model
+                        )
+                    except Exception as _sl_ge:
+                        st.error(f"Gemini API error: {_sl_ge}")
+
+            if st.session_state.get("sl_gemini_analysis"):
+                st.markdown(
+                    '<div style="border-left:3px solid #a855f7;background:#1e0a3b;'
+                    'border-radius:0 8px 8px 0;padding:6px 14px 2px 14px;margin-bottom:4px">'
+                    '<span style="font-size:0.70rem;font-weight:700;color:#a855f7;'
+                    'text-transform:uppercase;letter-spacing:.08em">🤖 Gemini Flash — Investment Analysis</span>'
+                    '</div>',
+                    unsafe_allow_html=True,
+                )
+                st.markdown(st.session_state["sl_gemini_analysis"])
+
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # TAB — STOCK RANKINGS
@@ -3356,6 +3449,92 @@ with tab_ranking:
                         use_container_width=True,
                         hide_index=True,
                     )
+
+            # ━━ Section F: Gemini AI Analysis ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            st.markdown("---")
+            _rk_gemini_key   = cfg.get("gemini", {}).get("api_key", "")
+            _rk_gemini_model = cfg.get("gemini", {}).get("model", "gemini-flash-latest")
+
+            st.markdown(
+                '<div style="background:#0f172a;border-left:3px solid #a855f7;border-radius:8px;'
+                'padding:8px 16px;margin-bottom:12px">'
+                '<span style="font-size:0.92rem;font-weight:700;color:#f1f5f9">🤖 Gemini AI Analysis</span>'
+                f'<span style="font-size:0.75rem;color:#64748b;margin-left:10px">'
+                f'Google Gemini Flash · {COUNTRY_LABEL} · {len(rk_themes_res)} themes · '
+                f'{len(_display_stocks)} stocks</span>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+
+            if not _rk_gemini_key:
+                st.caption("💡 Set `gemini.api_key` in `config/settings.yaml` to enable Gemini analysis.")
+            else:
+                _rk_gcol1, _rk_gcol2 = st.columns([1, 5])
+                with _rk_gcol1:
+                    _rk_run_gem = st.button(
+                        "✨ Run Gemini Analysis",
+                        key="rk_gemini_run",
+                        type="primary",
+                        help="Send ranked themes + stocks to Google Gemini Flash for portfolio analysis",
+                    )
+                with _rk_gcol2:
+                    if st.session_state.get("rk_gemini_analysis"):
+                        if st.button("🗑  Clear", key="rk_gemini_clear"):
+                            st.session_state.pop("rk_gemini_analysis", None)
+                            st.rerun()
+
+                if _rk_run_gem:
+                    with st.spinner("Calling Google Gemini API…"):
+                        try:
+                            _rk_theme_lines = []
+                            for _ri, _rt in enumerate(rk_themes_res[:15], 1):
+                                _rk_theme_lines.append(
+                                    f"{_ri}. {_rt.theme_name} [{_rt.conviction.upper()}] "
+                                    f"| RankScore: {_rt.rank_score_pct:.1f} "
+                                    f"| Momentum: {_rt.momentum:.3f} "
+                                    f"| {getattr(_rt, 'company_count', 0)} companies"
+                                )
+                            _rk_themes_block = "\n".join(_rk_theme_lines) or "No themes ranked yet."
+
+                            _rk_stock_lines = []
+                            for _rs in _display_stocks[:20]:
+                                _rk_stock_lines.append(
+                                    f"  #{_rs.rank} {_rs.ticker} ({_rs.company_name}) "
+                                    f"| {_rs.company_role} | Score: {_rs.final_score:.4f} "
+                                    f"| Themes: {', '.join(_rs.themes[:3])}"
+                                )
+                            _rk_stocks_block = "\n".join(_rk_stock_lines) or "No stocks ranked yet."
+
+                            _rk_market = "India (NSE/BSE)" if COUNTRY_CODE == "IN" else "USA (NYSE/NASDAQ)"
+                            _rk_prompt = (
+                                f"You are an expert thematic portfolio manager. The following stocks were "
+                                f"ranked using multi-factor thematic analysis of {_rk_market} company filings.\n\n"
+                                f"ACTIVE THEMES ({len(rk_themes_res)} themes):\n{_rk_themes_block}\n\n"
+                                f"TOP RANKED STOCKS:\n{_rk_stocks_block}\n\n"
+                                "Provide:\n"
+                                "1. Top 5 high-conviction positions with brief rationale (1-2 sentences each)\n"
+                                "2. Portfolio construction guidance (supply chain vs end beneficiary vs direct plays)\n"
+                                "3. Key theme concentration risks to hedge\n"
+                                "4. One contrarian view worth considering\n\n"
+                                "Be concise and actionable. Write for a professional portfolio manager."
+                            )
+                            st.session_state["rk_gemini_analysis"] = _call_gemini_api(
+                                _rk_prompt, _rk_gemini_key, _rk_gemini_model
+                            )
+                        except Exception as _rk_ge:
+                            st.error(f"Gemini API error: {_rk_ge}")
+
+                if st.session_state.get("rk_gemini_analysis"):
+                    st.markdown(
+                        '<div style="border-left:3px solid #a855f7;background:#1e0a3b;'
+                        'border-radius:0 8px 8px 0;padding:6px 14px 2px 14px;margin-bottom:4px">'
+                        '<span style="font-size:0.70rem;font-weight:700;color:#a855f7;'
+                        'text-transform:uppercase;letter-spacing:.08em">'
+                        '🤖 Gemini Flash — Portfolio Analysis</span>'
+                        '</div>',
+                        unsafe_allow_html=True,
+                    )
+                    st.markdown(st.session_state["rk_gemini_analysis"])
 
     else:
         # Pre-run placeholder

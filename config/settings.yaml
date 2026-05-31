@@ -225,8 +225,19 @@ graph_rag:
   graph_rag_max_hops: 2
   graph_rag_context_chars: 3000
 
+# Google Gemini AI — post-pipeline analysis of shortlisted themes + ranked stocks
+# Called as the FINAL stage of run_full() for both US and India pipelines.
+# Also available on-demand via the "🤖 Gemini Analysis" button in the UI.
+# Model: gemini-flash-latest (fast, low-cost flash tier)
+# Override key via GEMINI_API_KEY env var.
+gemini:
+  api_key: ""  # Set via GEMINI_API_KEY environment variable
+  model: "gemini-flash-latest"
+  max_tokens: 1200
+  temperature: 0.4
+
 # Selective LLM (disabled by default - costs money)
-# Supported providers: anthropic | openai | deepseek
+# Supported providers: anthropic | openai | deepseek | gemini
 # DeepSeek: set DEEPSEEK_API_KEY env var
 #   deepseek-chat     = DeepSeek-V3  (fast, cheap, ~$0.00027/1K tokens)
 #   deepseek-reasoner = DeepSeek-R1  (chain-of-thought, higher cost)
