@@ -150,7 +150,12 @@
       "Bash(awk '{print \"PID:\",$2,\"CPU:\",$3\"%\",\"MEM:\",$4\"%\"}')",
       "Bash(kill 19704 19762)",
       "Bash(awk '{print \"PID:\",$2,\"CPU:\",$3\"%\",$12,\"--from-date\",$14}')",
-      "Bash(awk '{print \"PID:\",$2,\"CPU:\",$3\"%\",\"--from\",$14}')"
+      "Bash(awk '{print \"PID:\",$2,\"CPU:\",$3\"%\",\"--from\",$14}')",
+      "Bash(git commit *)",
+      "Bash(sed -n '75,90p' /Users/makkenasrinivas/PycharmProjects/MakroGraphIntelligence/config/settings.yaml)",
+      "Bash(sed -n '84,89p' /Users/makkenasrinivas/PycharmProjects/MakroGraphIntelligence/config/settings.yaml)",
+      "Bash(sed -n '260,295p' /Users/makkenasrinivas/PycharmProjects/MakroGraphIntelligence/config/settings.yaml)",
+      "Bash(grep -q \"^\\\\.env$\" /Users/makkenasrinivas/PycharmProjects/MakroGraphIntelligence/.gitignore)"
     ]
   }
 }
