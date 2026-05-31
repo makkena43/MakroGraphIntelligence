@@ -28,18 +28,13 @@ def setup_logging(level: str = "INFO", log_file: str = ""):
 
 
 def load_config(config_path: str = "config/settings.yaml") -> dict:
-    """Load configuration from YAML file with environment variable overrides.
+    """Load configuration from YAML + merge secrets from config/secrets.json.
 
-    API keys and passwords in settings.yaml can be left blank ("") and set
-    via environment variables instead. Mapping:
-        neo4j.password        ← MAKROGRAPH_NEO4J_PASSWORD
-        postgresql.password   ← MAKROGRAPH_PG_PASSWORD
-        gemini.api_key        ← GEMINI_API_KEY
-        fred.api_key          ← FRED_API_KEY
-        eia.api_key           ← EIA_API_KEY
-        congress.api_key      ← CONGRESS_API_KEY
+    Secrets (API keys, passwords) are stored in config/secrets.json which is
+    gitignored. Copy config/secrets.json.example to config/secrets.json and
+    fill in your values. Environment variables override secrets.json if set.
     """
-    import os
+    import os, json
     path = Path(config_path)
     if not path.exists():
         print(f"Config file not found: {config_path}")
@@ -47,7 +42,20 @@ def load_config(config_path: str = "config/settings.yaml") -> dict:
     with open(path) as f:
         cfg = yaml.safe_load(f)
 
-    # Resolve secrets from environment variables (env var wins over yaml value)
+    # Merge secrets.json (gitignored) — deep merge into cfg
+    secrets_path = Path(config_path).parent / "secrets.json"
+    if secrets_path.exists():
+        with open(secrets_path) as f:
+            secrets = json.load(f)
+        for section, values in secrets.items():
+            if section.startswith("_"):
+                continue  # skip comments
+            if isinstance(values, dict):
+                cfg.setdefault(section, {}).update(
+                    {k: v for k, v in values.items() if v}  # only non-empty values
+                )
+
+    # Environment variables override secrets.json (highest priority)
     _env_overrides = {
         ("neo4j",       "password"):  "MAKROGRAPH_NEO4J_PASSWORD",
         ("postgresql",  "password"):  "MAKROGRAPH_PG_PASSWORD",

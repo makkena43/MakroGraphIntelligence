@@ -60,10 +60,22 @@ for _mod_name in [
 # ── load config ──────────────────────────────────────────────────────────────
 @st.cache_resource(show_spinner=False)
 def load_config():
-    import os
+    import os, json
     with open(ROOT / "config" / "settings.yaml") as f:
         cfg = yaml.safe_load(f)
-    # Resolve secrets from environment variables (env var wins over yaml value)
+    # Merge secrets.json (gitignored) — deep merge into cfg
+    secrets_path = ROOT / "config" / "secrets.json"
+    if secrets_path.exists():
+        with open(secrets_path) as f:
+            secrets = json.load(f)
+        for section, values in secrets.items():
+            if section.startswith("_"):
+                continue
+            if isinstance(values, dict):
+                cfg.setdefault(section, {}).update(
+                    {k: v for k, v in values.items() if v}
+                )
+    # Environment variables override secrets.json (highest priority)
     _env_overrides = {
         ("neo4j",       "password"):  "MAKROGRAPH_NEO4J_PASSWORD",
         ("postgresql",  "password"):  "MAKROGRAPH_PG_PASSWORD",
