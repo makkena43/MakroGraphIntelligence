@@ -60,8 +60,23 @@ for _mod_name in [
 # ── load config ──────────────────────────────────────────────────────────────
 @st.cache_resource(show_spinner=False)
 def load_config():
+    import os
     with open(ROOT / "config" / "settings.yaml") as f:
-        return yaml.safe_load(f)
+        cfg = yaml.safe_load(f)
+    # Resolve secrets from environment variables (env var wins over yaml value)
+    _env_overrides = {
+        ("neo4j",       "password"):  "MAKROGRAPH_NEO4J_PASSWORD",
+        ("postgresql",  "password"):  "MAKROGRAPH_PG_PASSWORD",
+        ("gemini",      "api_key"):   "GEMINI_API_KEY",
+        ("fred",        "api_key"):   "FRED_API_KEY",
+        ("eia",         "api_key"):   "EIA_API_KEY",
+        ("congress",    "api_key"):   "CONGRESS_API_KEY",
+    }
+    for (section, key), env_var in _env_overrides.items():
+        val = os.environ.get(env_var)
+        if val:
+            cfg.setdefault(section, {})[key] = val
+    return cfg
 
 cfg = load_config()
 
@@ -603,6 +618,9 @@ with st.sidebar:
 🚀 <b>Pipeline Runner</b> — run ingest + NLP + themes<br>
 📞 <b>Concall Analysis</b> — browse filings by date<br>
 🗺️ <b>Themes & Companies</b> — detected macro themes<br>
+⭐ <b>Shortlisted Themes</b> — persisted multi-quarter themes<br>
+🏆 <b>Stock Rankings</b> — thematic stock ranking<br>
+🤖 <b>AI Analysis</b> — Gemini: themes + bottlenecks + stocks<br>
 🌐 <b>Macro & Policy</b> — FRED, EIA, Congress data<br>
 🏢 <b>Company Explorer</b> — per-ticker deep-dive
 </div>""",
@@ -646,12 +664,13 @@ with st.sidebar:
 # TABS  (5 tabs)
 # ─────────────────────────────────────────────────────────────────────────────
 
-tab_run, tab_concall, tab_themes, tab_shortlisted, tab_ranking, tab_macro, tab_company = st.tabs([
+tab_run, tab_concall, tab_themes, tab_shortlisted, tab_ranking, tab_ai, tab_macro, tab_company = st.tabs([
     "🚀  Pipeline Runner",
     "📞  Concall & Filings",
     "🗺️  Themes & Companies",
     "⭐  Shortlisted Themes",
     "🏆  Stock Rankings",
+    "🤖  AI Analysis",
     "🌐  Macro & Policy",
     "🏢  Company Explorer",
 ])

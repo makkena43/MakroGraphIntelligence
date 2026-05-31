@@ -85,7 +85,7 @@ neo4j:
   enabled: true             # Neo4j running locally on bolt://localhost:7687
   uri: "bolt://localhost:7687"
   user: "neo4j"
-  password: "makrograph"   # Set via MAKROGRAPH_NEO4J_PASSWORD env var in production
+  password: ""             # Set via MAKROGRAPH_NEO4J_PASSWORD env var in production
 
 # SEC EDGAR fetcher
 edgar:
@@ -265,7 +265,7 @@ macro:
 # Free API key: https://fred.stlouisfed.org/docs/api/fred/
 # Set FRED_API_KEY environment variable or api_key below.
 fred:
-  api_key: "a99afafeaecaf4a498d0f8ad583a41dd"
+  api_key: ""              # Set via FRED_API_KEY env var
   use_alfred: false          # true = vintage values (first-published), prevents look-ahead in replay
   start_date: "2018-01-01"
   api_delay_seconds: 0.6    # FRED allows 120 req/min
@@ -275,7 +275,7 @@ fred:
 # Free API key: https://www.eia.gov/opendata/
 # Set EIA_API_KEY environment variable or api_key below.
 eia:
-  api_key: "7HCxWjvSRFLI0raJ6NHxhrID3gc8guELaLbSZq8E"
+  api_key: ""              # Set via EIA_API_KEY env var
   start_date: "2018-01-01"
   api_delay_seconds: 0.5
 
@@ -283,7 +283,7 @@ eia:
 # Free API key: https://api.congress.gov/sign-up/
 # Set CONGRESS_API_KEY environment variable or api_key below.
 congress:
-  api_key: "uitSzaHQbvEx1ozaa0lLerarjserTY0GlovwLYVh"
+  api_key: ""              # Set via CONGRESS_API_KEY env var
   bill_types:
     - "hr"                   # House Resolution
     - "s"                    # Senate Bill
