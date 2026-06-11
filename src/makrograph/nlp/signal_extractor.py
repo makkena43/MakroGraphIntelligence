@@ -266,6 +266,58 @@ _MONEY_INR_RE = re.compile(
     re.IGNORECASE,
 )
 
+# ── Theme-entity extractor for India signals ──────────────────────────────────
+# When a signal fires, scan its context for known TECHNOLOGY/SECTOR keywords.
+# The first match becomes entity_text so the signal is linked to the theme
+# entity rather than just the filer company.
+# Order matters: longer/more specific matches are listed first so they win
+# over generic overlapping terms (e.g. "data center" before "data").
+_THEME_ENTITY_PATTERNS: list[tuple[re.Pattern, str]] = [
+    (re.compile(r"\bdata\s+cent(?:er|re)s?\b",          re.I), "Data Center"),
+    (re.compile(r"\bartificial\s+intelligence\b",        re.I), "Artificial Intelligence"),
+    (re.compile(r"\bgenerative\s+ai\b",                  re.I), "Generative AI"),
+    (re.compile(r"\bmachine\s+learning\b",               re.I), "Machine Learning"),
+    (re.compile(r"\belectric\s+vehicle|ev\s+(?:charging|manufactur|segment)\b", re.I), "Electric Vehicle"),
+    (re.compile(r"\bvande\s+bharat\b",                   re.I), "Vande Bharat"),
+    (re.compile(r"\bspecialty\s+chem(?:ical)?s?\b",      re.I), "Specialty Chemicals"),
+    (re.compile(r"\bsemiconductor\b",                    re.I), "Semiconductor"),
+    (re.compile(r"\breal\s+estate\b",                    re.I), "Real Estate"),
+    (re.compile(r"\brenewable\s+energy\b",               re.I), "Renewable Energy"),
+    (re.compile(r"\bcybersecurit\w+\b",                  re.I), "Cybersecurity"),
+    (re.compile(r"\bagrochemic(?:al)?s?\b",              re.I), "Agrochemicals"),
+    (re.compile(r"\bherbicid\w+\b",                      re.I), "Herbicides"),
+    (re.compile(r"\baerospace\b",                        re.I), "Aerospace"),
+    (re.compile(r"\bdefence|defense\b",                  re.I), "Defense"),
+    (re.compile(r"\bautomotive\b",                       re.I), "Automotive"),
+    (re.compile(r"\btextile\b",                          re.I), "Textiles"),
+    (re.compile(r"\bpharmaceut\w+|pharma\b",             re.I), "Pharma"),
+    (re.compile(r"\bhealthcare|hospital\b",              re.I), "Healthcare"),
+    (re.compile(r"\bsolar\b",                            re.I), "Solar"),
+    (re.compile(r"\bwind\s+(?:energy|power|turbine|farm|project)\b", re.I), "Wind"),
+    (re.compile(r"\bbattery\b",                          re.I), "Battery"),
+    (re.compile(r"\blithium\b",                          re.I), "Lithium"),
+    (re.compile(r"\bcement\b",                           re.I), "Cement"),
+    (re.compile(r"\bsteel\b",                            re.I), "Steel"),
+    (re.compile(r"\bcloud\b",                            re.I), "Cloud"),
+    (re.compile(r"\brobotics?\b",                        re.I), "Robotics"),
+    (re.compile(r"\bfoundr(?:y|ies)\b",                  re.I), "Foundry"),
+    (re.compile(r"\btransformer\b",                      re.I), "Transformer"),
+    (re.compile(r"\bwafer\b",                            re.I), "Wafer"),
+    (re.compile(r"\bbiotech\b",                          re.I), "Biotech"),
+    (re.compile(r"\bnbfc\b",                             re.I), "NBFC"),
+]
+
+def _extract_theme_entity(context: str) -> str:
+    """Find the most relevant theme entity in a signal's context window.
+
+    Scans left-to-right through ordered patterns (specific → generic).
+    Returns the canonical entity name or empty string if none found.
+    """
+    for pattern, entity_name in _THEME_ENTITY_PATTERNS:
+        if pattern.search(context):
+            return entity_name
+    return ""
+
 
 class SignalExtractor:
     """Extracts investment signals from financial document text using pre-compiled pattern rules."""
@@ -299,6 +351,10 @@ class SignalExtractor:
                 context = scan_text[ctx_start:ctx_end].strip()
 
                 value, unit = self._extract_amount(context)
+                # Extract the theme entity (technology/sector keyword) from context.
+                # This links the signal to WHAT it's about, not just WHO filed it.
+                # e.g. "50% capacity expansion in Solar Glass" → entity_text="Solar"
+                theme_entity = _extract_theme_entity(context)
                 signals.append(InvestmentSignal(
                     signal_type=signal_type,
                     direction=direction,
@@ -306,6 +362,7 @@ class SignalExtractor:
                     signal_value=value,
                     signal_unit=unit,
                     context_text=context,
+                    entity_text=theme_entity,
                     extracted_by="rule",
                     position=start,
                 ))

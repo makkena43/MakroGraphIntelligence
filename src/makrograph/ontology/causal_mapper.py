@@ -221,22 +221,24 @@ class CausalMapper:
     def discover_chains_from_data(self, pg_store, as_of_date=None, lookback_days: int = 730) -> list[CausalChain]:
         """Auto-discover causal chains from actual signal sequences in the database.
 
-        Algorithm — mines three causal patterns from signal data:
+        Algorithm — mines five causal patterns from signal data:
 
-        Pattern 1 — Demand → Supply Constraint (core investment signal)
-            Entity with strong demand_surge signals that is ALSO showing
-            supply_bottleneck signals = something scarce that people urgently need.
-            These are the highest-quality investable themes.
+        Pattern 1 — Demand → Supply Constraint (company filings)
+            Entity with demand_surge AND supply_bottleneck across ≥3 companies.
 
-        Pattern 2 — Demand Surge → Capex Response (second-order)
-            Entity with demand_surge signals followed (lag 1-3 quarters) by
-            capex_increase from companies in the same sector = capital being
-            deployed to solve a shortage. Classic 2-hop chain.
+        Pattern 2 — Demand Surge → Capex Response (company filings)
+            Demand surge followed by capex_increase in the same sector.
 
-        Pattern 3 — Technology Adoption → Infrastructure Buildout (third-order)
-            Entity with technology_adoption signals (companies adopting it) driving
-            demand_surge in downstream infrastructure entities (e.g., AI adoption
-            → data center demand → power demand → copper demand).
+        Pattern 3 — Technology Adoption → Infrastructure Buildout (company filings)
+            Tech adoption signals driving downstream demand surge.
+
+        Pattern 4 — Policy/Macro Source Demand+Supply Tension
+            Same as Pattern 1 but from RBI/PIB/Invest India/SEBI documents,
+            counted by document count (≥2 docs) instead of company count.
+
+        Pattern 5 — Policy-Confirmed + Company-Corroborated Demand
+            Entities with regulatory_tailwind or demand_surge in policy docs
+            AND demand_surge in company filings — highest cross-source confidence.
 
         All discovered chains are added to self._chains, scored, and returned.
         """
@@ -249,6 +251,11 @@ class CausalMapper:
 
         discovered: list[CausalChain] = []
         existing_ids = {c.chain_id for c in self._chains}
+        tension_pairs = []
+        demand_capex_pairs = []
+        tech_downstream = []
+        policy_tension = []
+        policy_company_confirmed = []
 
         try:
             with pg_store._conn() as conn:
@@ -298,7 +305,7 @@ class CausalMapper:
                         FROM demand_entities d
                         JOIN supply_entities s ON lower(d.canonical_name) = lower(s.canonical_name)
                         ORDER BY (d.demand_signals + s.supply_signals) DESC
-                        LIMIT 20
+                        LIMIT 40
                     """, (floor, as_of_date, floor, as_of_date))
                     tension_pairs = cur.fetchall()
 
@@ -351,7 +358,7 @@ class CausalMapper:
                         FROM demand_ents d
                         JOIN capex_ents c ON lower(d.canonical_name) = lower(c.canonical_name)
                         ORDER BY d.n_demand DESC
-                        LIMIT 15
+                        LIMIT 30
                     """, (floor, as_of_date, floor, as_of_date))
                     demand_capex_pairs = cur.fetchall()
 
@@ -375,7 +382,7 @@ class CausalMapper:
                             GROUP BY e.canonical_name
                             HAVING COUNT(DISTINCT d.company) >= 4
                             ORDER BY COUNT(*) DESC
-                            LIMIT 10
+                            LIMIT 25
                         ),
                         downstream_demand AS (
                             SELECT e.canonical_name AS downstream,
@@ -398,9 +405,118 @@ class CausalMapper:
                         CROSS JOIN downstream_demand d
                         WHERE lower(t.tech) != lower(d.downstream)
                         ORDER BY t.n_adopt DESC, d.n_demand DESC
-                        LIMIT 20
+                        LIMIT 60
                     """, (floor, as_of_date, floor, as_of_date))
                     tech_downstream = cur.fetchall()
+
+                    # ─── Pattern 4: Policy/macro source demand+supply tension ─────
+                    # Same as Pattern 1 but for macro/policy documents (RBI, PIB,
+                    # Invest India, SEBI) which have no company field.
+                    # Counts by document instead of by distinct company.
+                    cur.execute("""
+                        WITH policy_sources AS (
+                            SELECT id FROM mg_documents
+                            WHERE source_name IN (
+                                'rbi_india','pib_india','invest_india','sebi_india'
+                            )
+                            AND filed_at BETWEEN %s AND %s
+                        ),
+                        policy_demand AS (
+                            SELECT e.canonical_name,
+                                   COUNT(DISTINCT s.document_id) AS n_docs,
+                                   COUNT(*)                      AS n_signals,
+                                   MIN(s.filed_at)               AS first_seen
+                            FROM mg_signals s
+                            JOIN policy_sources ps ON ps.id = s.document_id
+                            JOIN mg_document_entities de ON de.document_id = s.document_id
+                            JOIN mg_entities e ON e.id = de.entity_id
+                            WHERE s.signal_type = 'demand_surge'
+                              AND e.entity_type IN ('TECHNOLOGY','PRODUCT','SECTOR','CONCEPT')
+                              AND length(e.canonical_name) >= 3
+                            GROUP BY e.canonical_name
+                            HAVING COUNT(DISTINCT s.document_id) >= 2
+                        ),
+                        policy_supply AS (
+                            SELECT e.canonical_name,
+                                   COUNT(DISTINCT s.document_id) AS n_docs,
+                                   COUNT(*)                      AS n_signals,
+                                   MIN(s.filed_at)               AS first_seen
+                            FROM mg_signals s
+                            JOIN policy_sources ps ON ps.id = s.document_id
+                            JOIN mg_document_entities de ON de.document_id = s.document_id
+                            JOIN mg_entities e ON e.id = de.entity_id
+                            WHERE s.signal_type = 'supply_bottleneck'
+                              AND e.entity_type IN ('TECHNOLOGY','PRODUCT','SECTOR','CONCEPT')
+                              AND length(e.canonical_name) >= 3
+                            GROUP BY e.canonical_name
+                            HAVING COUNT(DISTINCT s.document_id) >= 1
+                        )
+                        SELECT d.canonical_name,
+                               d.n_docs  AS demand_docs,
+                               d.n_signals AS demand_signals,
+                               d.first_seen AS demand_first,
+                               s.n_docs  AS supply_docs,
+                               s.n_signals AS supply_signals,
+                               s.first_seen AS supply_first
+                        FROM policy_demand d
+                        JOIN policy_supply s ON lower(d.canonical_name) = lower(s.canonical_name)
+                        ORDER BY (d.n_signals + s.n_signals) DESC
+                        LIMIT 40
+                    """, (floor, as_of_date))
+                    policy_tension = cur.fetchall()
+
+                    # ─── Pattern 5: Regulatory tailwind from policy docs → demand ─
+                    # Entities mentioned with regulatory_tailwind in policy sources
+                    # and demand_surge in company filings = policy-confirmed demand theme.
+                    cur.execute("""
+                        WITH policy_sources AS (
+                            SELECT id FROM mg_documents
+                            WHERE source_name IN (
+                                'rbi_india','pib_india','invest_india','sebi_india'
+                            )
+                            AND filed_at BETWEEN %s AND %s
+                        ),
+                        policy_tailwind AS (
+                            SELECT e.canonical_name,
+                                   COUNT(DISTINCT s.document_id) AS n_docs,
+                                   MIN(s.filed_at)               AS first_seen
+                            FROM mg_signals s
+                            JOIN policy_sources ps ON ps.id = s.document_id
+                            JOIN mg_document_entities de ON de.document_id = s.document_id
+                            JOIN mg_entities e ON e.id = de.entity_id
+                            WHERE s.signal_type IN ('regulatory_tailwind','demand_surge')
+                              AND e.entity_type IN ('SECTOR','CONCEPT','PRODUCT','TECHNOLOGY')
+                              AND length(e.canonical_name) >= 3
+                            GROUP BY e.canonical_name
+                            HAVING COUNT(DISTINCT s.document_id) >= 2
+                        ),
+                        company_demand AS (
+                            SELECT e.canonical_name,
+                                   COUNT(DISTINCT d.company) AS n_cos,
+                                   COUNT(*)                  AS n_signals
+                            FROM mg_signals s
+                            JOIN mg_documents d ON d.id = s.document_id
+                            JOIN mg_document_entities de ON de.document_id = s.document_id
+                            JOIN mg_entities e ON e.id = de.entity_id
+                            WHERE s.signal_type = 'demand_surge'
+                              AND s.filed_at BETWEEN %s AND %s
+                              AND d.company IS NOT NULL AND d.company != ''
+                              AND e.entity_type IN ('SECTOR','CONCEPT','PRODUCT','TECHNOLOGY')
+                              AND length(e.canonical_name) >= 3
+                            GROUP BY e.canonical_name
+                            HAVING COUNT(DISTINCT d.company) >= 2
+                        )
+                        SELECT pt.canonical_name,
+                               pt.n_docs   AS policy_docs,
+                               pt.first_seen AS policy_first,
+                               cd.n_cos    AS company_cos,
+                               cd.n_signals AS company_signals
+                        FROM policy_tailwind pt
+                        JOIN company_demand cd ON lower(pt.canonical_name) = lower(cd.canonical_name)
+                        ORDER BY pt.n_docs DESC, cd.n_cos DESC
+                        LIMIT 30
+                    """, (floor, as_of_date, floor, as_of_date))
+                    policy_company_confirmed = cur.fetchall()
 
         except Exception as e:
             logger.warning(f"discover_chains_from_data query failed: {e}")
@@ -408,9 +524,19 @@ class CausalMapper:
 
         # ── Build CausalChain objects from query results ──────────────────────
 
+        # Lazy-import noise filter so it's applied at chain-build time too.
+        # This catches entities that slipped through NLP ingestion (e.g. old
+        # DB rows, SEBI boilerplate) before they become permanent chains.
+        try:
+            from ..themes.theme_detector import _is_noise_entity as _noise_check
+        except Exception:
+            _noise_check = lambda _: False  # noqa: E731
+
         # Pattern 1: Demand-Supply Tension chains
         for row in tension_pairs:
             entity = row["canonical_name"]
+            if _noise_check(entity):
+                continue
             chain_id = "data-tension-" + _re.sub(r"[^a-z0-9]+", "-", entity.lower())[:30]
             if chain_id in existing_ids:
                 continue
@@ -467,6 +593,8 @@ class CausalMapper:
         # Pattern 2: Demand → Capex Response chains
         for row in demand_capex_pairs:
             entity = row["demand_entity"]
+            if _noise_check(entity):
+                continue
             chain_id = "data-demand-capex-" + _re.sub(r"[^a-z0-9]+", "-", entity.lower())[:25]
             if chain_id in existing_ids:
                 continue
@@ -527,11 +655,20 @@ class CausalMapper:
             tech = row["tech"]
             tech_groups.setdefault(tech, []).append(row)
 
-        for tech, rows in list(tech_groups.items())[:8]:  # top 8 techs
-            # Pick the strongest downstream entity
+        for tech, rows in list(tech_groups.items())[:20]:  # top 20 techs
+            if _noise_check(tech):
+                continue
+            # Pick strongest downstream that passes the noise filter.
+            # Must iterate — the top-signal downstream is often a noise entity
+            # (e.g. "SEBI" with 20k signals swamps all real entities).
             rows_sorted = sorted(rows, key=lambda r: r["n_demand"], reverse=True)
-            downstream = rows_sorted[0]["downstream"] if rows_sorted else None
-            if not downstream or downstream.lower() == tech.lower():
+            downstream = None
+            for candidate_row in rows_sorted:
+                candidate = candidate_row["downstream"]
+                if candidate and candidate.lower() != tech.lower() and not _noise_check(candidate):
+                    downstream = candidate
+                    break
+            if not downstream:
                 continue
 
             chain_id = "data-tech-" + _re.sub(r"[^a-z0-9]+", "-", tech.lower())[:25]
@@ -557,26 +694,146 @@ class CausalMapper:
                     CausalLink(
                         cause=tech,
                         cause_type=NodeType.TECHNOLOGY,
-                        effect=downstream,
+                        effect=f"{tech} Adoption Surge",
                         effect_type=NodeType.CONCEPT,
-                        mechanism=f"Adoption of {tech} by {tech_cos} companies creates downstream demand for {downstream}",
+                        mechanism=f"{tech_cos} companies adopting '{tech}' ({n_adopt} signals) — broad-based technology pull-through",
                         probability=p1,
                         lag_days=60,
                         relation=RelationType.ENABLES,
                     ),
                     CausalLink(
-                        cause=downstream,
+                        cause=f"{tech} Adoption Surge",
                         cause_type=NodeType.CONCEPT,
-                        effect=f"{downstream} Infrastructure Build",
+                        effect=f"{downstream} Demand",
                         effect_type=NodeType.CONCEPT,
-                        mechanism=f"Growing {downstream} demand drives infrastructure investment and capacity expansion",
+                        mechanism=f"{tech} adoption drives incremental demand for {downstream} across {down_cos} companies",
                         probability=p2,
+                        lag_days=120,
+                        relation=RelationType.ENABLES,
+                    ),
+                    CausalLink(
+                        cause=f"{downstream} Demand",
+                        cause_type=NodeType.CONCEPT,
+                        effect=f"{downstream} Capacity / Infrastructure Constraint",
+                        effect_type=NodeType.PRODUCT,
+                        mechanism=f"Rising {downstream} demand from {tech} pull-through strains existing capacity",
+                        probability=round(p2 * 0.85, 2),
                         lag_days=180,
                         relation=RelationType.ENABLES,
                     ),
                 ],
             )
             chain.activation_score = round(min(p1 * p2 * 100, 100.0), 1)
+            discovered.append(chain)
+            existing_ids.add(chain_id)
+
+        # ── Pattern 4: Policy/macro source demand+supply tension ─────────────
+        for row in policy_tension:
+            entity = row["canonical_name"]
+            if _noise_check(entity):
+                continue
+            chain_id = "policy-tension-" + _re.sub(r"[^a-z0-9]+", "-", entity.lower())[:30]
+            if chain_id in existing_ids:
+                continue
+
+            demand_docs = row["demand_docs"] or 0
+            supply_docs = row["supply_docs"] or 0
+            p_demand = min(0.92, 0.65 + demand_docs * 0.06)
+            p_supply = min(0.90, 0.60 + supply_docs * 0.08)
+
+            lag = 90
+            if row.get("supply_first") and row.get("demand_first"):
+                try:
+                    lag = max(30, abs((row["supply_first"] - row["demand_first"]).days))
+                    lag = min(lag, 365)
+                except Exception:
+                    lag = 90
+
+            chain = CausalChain(
+                chain_id=chain_id,
+                name=f"{entity} — Policy Demand → Supply Constraint",
+                description=(
+                    f"Policy-detected: {demand_docs} macro/policy documents (RBI/PIB/Invest India/SEBI) "
+                    f"report surging demand for '{entity}' while {supply_docs} flag supply constraints. "
+                    f"Auto-discovered from India macro/policy signal data."
+                ),
+                links=[
+                    CausalLink(
+                        cause=entity,
+                        cause_type=NodeType.SECTOR,
+                        effect=f"{entity} Demand Surge",
+                        effect_type=NodeType.CONCEPT,
+                        mechanism=f"Policy sources signal demand acceleration for {entity} across {demand_docs} documents",
+                        probability=p_demand,
+                        lag_days=lag,
+                        relation=RelationType.ENABLES,
+                    ),
+                    CausalLink(
+                        cause=f"{entity} Demand Surge",
+                        cause_type=NodeType.CONCEPT,
+                        effect=f"{entity} Supply Constraint",
+                        effect_type=NodeType.CONCEPT,
+                        mechanism=f"Supply bottleneck flagged in {supply_docs} policy documents alongside demand surge",
+                        probability=p_supply,
+                        lag_days=lag,
+                        relation=RelationType.ENABLES,
+                    ),
+                ],
+                first_detected=row.get("demand_first"),
+            )
+            chain.activation_score = round(min(p_demand * p_supply * 100, 100.0), 1)
+            chain.metadata = {"source": "policy_discovery", "country": "IN"}
+            discovered.append(chain)
+            existing_ids.add(chain_id)
+
+        # ── Pattern 5: Policy-confirmed + company-corroborated demand ────────
+        for row in policy_company_confirmed:
+            entity = row["canonical_name"]
+            if _noise_check(entity):
+                continue
+            chain_id = "policy-co-" + _re.sub(r"[^a-z0-9]+", "-", entity.lower())[:30]
+            if chain_id in existing_ids:
+                continue
+
+            policy_docs = row["policy_docs"] or 0
+            company_cos = row["company_cos"] or 0
+            p1 = min(0.95, 0.70 + policy_docs * 0.05)
+            p2 = min(0.92, 0.65 + company_cos * 0.04)
+
+            chain = CausalChain(
+                chain_id=chain_id,
+                name=f"{entity} — Policy Mandate → Company Demand Confirmation",
+                description=(
+                    f"Cross-source confirmation: {policy_docs} macro/policy docs signal regulatory "
+                    f"tailwind or demand for '{entity}', corroborated by {company_cos} companies "
+                    f"reporting demand surge in filings. High-conviction policy-to-market chain."
+                ),
+                links=[
+                    CausalLink(
+                        cause=f"{entity} Policy Signal",
+                        cause_type=NodeType.SECTOR,
+                        effect=f"{entity} Demand",
+                        effect_type=NodeType.CONCEPT,
+                        mechanism=f"Regulatory tailwind / demand signal across {policy_docs} policy documents",
+                        probability=p1,
+                        lag_days=180,
+                        relation=RelationType.ENABLES,
+                    ),
+                    CausalLink(
+                        cause=f"{entity} Demand",
+                        cause_type=NodeType.CONCEPT,
+                        effect=f"{entity} — Market Opportunity",
+                        effect_type=NodeType.PRODUCT,
+                        mechanism=f"{company_cos} companies corroborate demand surge in earnings filings",
+                        probability=p2,
+                        lag_days=90,
+                        relation=RelationType.ENABLES,
+                    ),
+                ],
+                first_detected=row.get("policy_first"),
+            )
+            chain.activation_score = round(min(p1 * p2 * 100, 100.0), 1)
+            chain.metadata = {"source": "policy_company_confirmed", "country": "IN"}
             discovered.append(chain)
             existing_ids.add(chain_id)
 
@@ -589,7 +846,7 @@ class CausalMapper:
 
         return discovered
 
-    def persist(self, pg_store, as_of_date=None) -> int:
+    def persist(self, pg_store, as_of_date=None, country: str = "US") -> int:
         """Write all scored chains to mg_causal_chains in PostgreSQL.
 
         Args:
@@ -635,6 +892,7 @@ class CausalMapper:
                     "links": links_json,
                     "first_detected": first_det,
                     "last_scored_at": scored_at,
+                    "country": country,
                 })
                 saved += 1
             except Exception as e:

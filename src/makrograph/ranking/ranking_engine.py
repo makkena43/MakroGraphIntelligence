@@ -189,14 +189,22 @@ CQ_FLOOR        = 0.45      # any theme above this CQ enters regardless of rank_
                             # ensures specific bottleneck themes are never excluded by
                             # momentum-dominated top-N sorting
 
-# ── Theme scoring weights (rank_score, kept for display) ──────────────────────
+# ── Theme scoring weights (rank_score) ────────────────────────────────────────
+# theme_cq (constraint quality) is now the dominant factor.
+# Rationale: broad evergreen themes (power, energy, materials — 100+ companies,
+# detected since 2020) used to rank above specific bottleneck themes (wafer,
+# semiconductor — 9-30 companies) purely because they have more persistence and
+# momentum. But their companies (large conglomerates) should NOT dominate stock
+# rankings. Strong specific themes must drive stock selection.
+# theme_cq = 0.40 ensures high-quality focused themes always enter the pool.
 _TW = {
-    "momentum":         0.30,
-    "persistence":      0.20,
-    "novelty":          0.15,
-    "acceleration":     0.15,
-    "signal_intensity": 0.15,
-    "bottleneck":       0.05,
+    "theme_cq":         0.40,   # NEW: constraint quality — specific > broad
+    "momentum":         0.20,   # reduced from 0.30
+    "persistence":      0.10,   # reduced from 0.20 (broad themes were over-rewarded)
+    "novelty":          0.12,
+    "acceleration":     0.10,
+    "signal_intensity": 0.05,
+    "bottleneck":       0.03,
 }
 
 
@@ -224,6 +232,7 @@ class ThemeScore:
     @property
     def rank_score(self) -> float:
         return (
+            self.theme_cq         * _TW["theme_cq"]         +
             self.momentum         * _TW["momentum"]         +
             self.persistence      * _TW["persistence"]      +
             self.novelty          * _TW["novelty"]          +
@@ -369,8 +378,22 @@ class RankingEngine:
         company_map: dict[str, dict] = {}
 
         for b in top_bene:
-            ticker = (b.get("ticker") or "").strip().upper()
-            if not ticker:
+            raw_ticker   = (b.get("ticker") or "").strip().upper()
+            company_name = (b.get("company_name") or "").strip()
+
+            # Use ticker as primary key; fall back to normalised company_name.
+            # This allows supply-constraint companies without a stored ticker
+            # (e.g. mentioned in peer filings but not directly in our corpus)
+            # to still appear in rankings instead of being silently dropped.
+            if raw_ticker:
+                ticker = raw_ticker
+            elif company_name:
+                # Normalise: upper-case, strip punctuation, cap at 20 chars
+                import re as _re
+                ticker = _re.sub(r"[^A-Z0-9]", "", company_name.upper())[:20]
+                if not ticker:
+                    continue
+            else:
                 continue
 
             theme_id = b["theme_id"]
@@ -403,6 +426,7 @@ class RankingEngine:
                 continue
 
             # v6: EdgeCQ = theme_cq × role-distance decay × bottleneck signal factor
+            #             × thematic specificity boost
             # theme_cq is the constraint quality of the THEME — companies inherit it.
             # "AI Critical Shortage" theme_cq=0.77 propagates to all its companies.
             # "Materials: Constraint from AI" theme_cq=0.12 propagates to all of its.
@@ -411,7 +435,23 @@ class RankingEngine:
             # Floor at 0.40: no bottleneck signals → 40% of theme CQ passes through.
             # Prevents over-penalising infrastructure cos that file generic calls.
             signal_factor = 0.40 + 0.60 * bn_sig_ratio
-            edge_cq       = ts.theme_cq * role_dist * signal_factor
+
+            # Thematic specificity: focused companies outrank conglomerates.
+            # Shakti Pumps (65% solar-focused) >> JSW Energy (15% solar-focused).
+            # specificity = theme_signals / company_total_signals.
+            # Multiplier: 0.70 (0% thematic) → 1.30 (100% thematic).
+            # This boosts focused pure-plays and penalises diversified conglomerates
+            # that appear in themes only because they are large.
+            _co_total = int(b.get("company_total_signals") or 0)
+            _th_sigs  = int(b.get("signal_count") or 0)
+            if _co_total > 0 and _th_sigs > 0:
+                _specificity_ratio = min(1.0, _th_sigs / _co_total)
+                # 0.70 + 0.60×ratio: specificity=0 → 0.70, specificity=1.0 → 1.30
+                _specificity_mult = 0.70 + 0.60 * _specificity_ratio
+            else:
+                _specificity_mult = 1.0   # no info → neutral
+
+            edge_cq = ts.theme_cq * role_dist * signal_factor * _specificity_mult
 
             # Gate 2: minimum edge_cq (true noise filter, replaces the aggressive
             # edge threshold).  Entries below this are genuine graph noise.
@@ -423,6 +463,7 @@ class RankingEngine:
             if ticker not in company_map:
                 company_map[ticker] = {
                     "company_name":  b.get("company_name") or ticker,
+                    "raw_ticker":    raw_ticker,   # real exchange ticker (may be empty)
                     "roles":         {},
                     "theme_entries": [],
                     "signal_count":  0,
@@ -440,17 +481,18 @@ class RankingEngine:
                 if cm["first_seen_at"] is None or b_first_seen < cm["first_seen_at"]:
                     cm["first_seen_at"] = b_first_seen
             cm["theme_entries"].append({
-                "theme_id":      theme_id,
-                "theme_ts":      ts,
-                "edge":          edge,
-                "edge_cq":       edge_cq,
-                "role_conf":     role_conf,
-                "role":          role,
-                "hop":           hop,
-                "rank_pos":      rank_pos,
-                "relevance":     float(b.get("relevance_score") or 0),
-                "sig_count":     int(b.get("signal_count") or 0),
-                "signal_factor": signal_factor,
+                "theme_id":        theme_id,
+                "theme_ts":        ts,
+                "edge":            edge,
+                "edge_cq":         edge_cq,
+                "role_conf":       role_conf,
+                "role":            role,
+                "hop":             hop,
+                "rank_pos":        rank_pos,
+                "relevance":       float(b.get("relevance_score") or 0),
+                "sig_count":       int(b.get("signal_count") or 0),
+                "signal_factor":   signal_factor,
+                "specificity_mult": round(_specificity_mult, 3),
             })
             cm["signal_count"] += int(b.get("signal_count") or 0)
 
@@ -521,20 +563,30 @@ class RankingEngine:
                 "Conf Bonus":    round(confluence_bonus, 3),
             }
 
-            # ── Final score: BEST-EDGE DOMINANT ──────────────────────────────
-            # This is the correct architecture: a company's score is primarily
-            # how good its BEST constraint-quality connection is, not how many
-            # themes it appears in.
+            # ── Supplier quality cap: theme-quality gated ────────────────────
+            # A company with many filings gets supplier_quality ≈ 1.0 regardless
+            # of theme quality.  When edge_cq = 0.031, supplier_q × 0.15 = 0.145
+            # which is 7× more than edge × 0.65 = 0.020.  Filing volume should NOT
+            # override theme quality.
             #
-            # (0.55 × best_edge_cq)      ← best bottleneck quality
-            # (0.25 × avg_top3)          ← corroborating evidence from top-3 edges
-            # (0.20 × supplier_q)        ← structural supply-chain positioning
-            # × (1 + confluence_bonus)   ← small bonus for independent constraints
-            # × cat_weight               ← supply > beneficiary > direct
+            # Cap: supplier_quality ≤ best_edge_cq × CAP_MULT
+            #   CAP_MULT=10 keeps a gentle gradient for broad-theme years (2024/25)
+            #   while strongly rewarding focused-theme companies (2026):
+            #     edge=0.031 → cap=0.310 (was 0.97 → now 0.310)
+            #     edge=0.450 → cap=4.50  → no cap (pure-play wins on edge)
+            _supp_cap = best_edge_cq * 10.0
+            capped_supplier_q = min(supplier_q, _supp_cap)
+
+            # ── Final score: THEME-QUALITY DOMINANT ──────────────────────────
+            # (0.65 × best_edge_cq)          ← best theme-quality connection
+            # (0.20 × avg_top3)              ← corroborating evidence from top-3
+            # (0.15 × capped_supplier_q)     ← filing-volume capped by theme quality
+            # × (1 + confluence_bonus)       ← bonus for INDEPENDENT constraints
+            # × cat_weight                   ← supply > beneficiary > direct
             final_score = (
-                0.55 * best_edge_cq +
-                0.25 * avg_top3     +
-                0.20 * supplier_q
+                0.65 * best_edge_cq    +
+                0.20 * avg_top3        +
+                0.15 * capped_supplier_q
             ) * (1.0 + confluence_bonus) * cat_weight
 
             if final_score < min_final_score:
@@ -559,7 +611,8 @@ class RankingEngine:
             )
 
             rankings.append(StockRanking(
-                ticker             = ticker,
+                # Prefer the real exchange ticker; fall back to synthetic key.
+                ticker             = cm.get("raw_ticker") or ticker,
                 company_name       = cm["company_name"],
                 themes             = uniq_names,
                 theme_slugs        = uniq_slugs,
@@ -706,7 +759,13 @@ class RankingEngine:
             bn_base       = self._theme_bn_base(theme_name)
             raw_scarcity  = 1.0 - company_count / 60.0
             scarcity_cq   = max(0.05, raw_scarcity)
-            breadth_penalty = max(0.25, min(1.0, 60.0 / max(1, company_count)))
+            # Sharper breadth penalty: broad themes (80+ companies) are evergreen
+            # structural noise — their company beneficiaries should NOT dominate
+            # stock rankings over focused specific-theme companies.
+            # Old: max(0.25, 60/cos)  → 100-cos theme keeps 0.60 weight
+            # New: max(0.10, (30/cos)^1.5) → 100-cos theme gets 0.095 weight
+            #      30-cos theme: 1.0, 50-cos: 0.52, 80-cos: 0.24, 100-cos: 0.17
+            breadth_penalty = max(0.10, min(1.0, (30.0 / max(1, company_count)) ** 1.5))
             # momentum × conviction: only high-momentum confirmed themes persist
             persist_cq    = min(1.0, momentum * _CONVICTION_SCORE.get(conviction, 0.25))
             theme_cq = min(1.0, max(0.02, (

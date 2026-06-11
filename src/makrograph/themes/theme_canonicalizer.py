@@ -278,6 +278,22 @@ class ThemeCanonicalizer:
         self._use_llm = bool(
             config.get("llm", {}).get("llm_enabled", False)
         ) and llm_reasoner is not None
+        self._llm_enabled = self._use_llm   # alias used in auto-merge path
+
+        # When sentence-transformer embeddings are NOT loaded, the canonicalizer
+        # falls back to token Jaccard similarity which is much coarser than cosine
+        # distance on dense vectors.  At MERGE_THRESHOLD=0.45, Jaccard merges
+        # thematically distinct India themes that share generic tokens (e.g.
+        # "Solar Capex Surge" vs "Wind Energy Capex Surge" → Jaccard ≈ 0.60).
+        # Fix: use a stricter fallback threshold (0.65) when embeddings are absent.
+        # The embedding path is unaffected — it still uses _merge_threshold.
+        _no_embed_threshold = float(config.get(
+            "theme_merge_threshold_no_embed", 0.65
+        ))
+        self._jaccard_threshold = (
+            self._merge_threshold if embedding_engine is not None
+            else _no_embed_threshold
+        )
 
         # Cache of cluster_id → approved_name loaded once per run
         self._approved_names: dict[str, str] | None = None
@@ -499,7 +515,15 @@ class ThemeCanonicalizer:
                 sc = self._score_pair(
                     themes[i], themes[j], embeddings, theme_companies
                 )
-                if sc.combined >= self._merge_threshold:
+                # When embeddings are available use _merge_threshold (e.g. 0.45).
+                # Without embeddings, fall back to the stricter _jaccard_threshold
+                # (default 0.65) so that India themes sharing only generic tokens
+                # like "capex" or "energy" are not incorrectly merged.
+                active_threshold = (
+                    self._merge_threshold if self._emb is not None
+                    else self._jaccard_threshold
+                )
+                if sc.combined >= active_threshold:
                     logger.debug(
                         f"Merge candidate: '{themes[i].theme_name}' ↔ "
                         f"'{themes[j].theme_name}'  score={sc.combined:.3f} "
@@ -559,11 +583,150 @@ class ThemeCanonicalizer:
                 aggregate_companies=max(t.company_count for t in member_themes),
             ))
 
-        # ── Persist pending reviews to DB (non-blocking best-effort) ─────────
-        if pending_reviews and self._pg:
+        # ── Auto-resolve pending reviews if LLM is enabled ───────────────────
+        if pending_reviews and self._llm_enabled and self._llm_reasoner:
+            logger.info(f"Auto-resolving {len(pending_reviews)} theme clusters with Gemini...")
+            self._auto_resolve_clusters(pending_reviews)
+        elif pending_reviews and self._pg:
+            # Queue for manual review if LLM not available
             self._save_pending_reviews(pending_reviews)
 
         return clusters
+
+    def _auto_resolve_clusters(self, pending_reviews: list[dict]) -> None:
+        """Automatically resolve theme clusters using Gemini LLM."""
+        from makrograph.storage.pg_store import PGStore
+        import time
+        
+        resolved_count = 0
+        failed_count = 0
+        
+        # Check if we should process individually (large prompt) or together
+        combined_prompt = PGStore.build_combined_canonical_prompt(pending_reviews)
+        
+        if len(combined_prompt) > 8000:
+            # Process clusters individually to avoid token limits
+            logger.info("Large prompt detected - processing clusters individually...")
+            
+            for i, review in enumerate(pending_reviews, 1):
+                try:
+                    single_prompt = PGStore.build_single_canonical_prompt(review)
+                    
+                    # Extract theme names for canonical name generation
+                    theme_names = review.get("member_names", [])
+                    theme_descs = review.get("member_descriptions", [])
+                    description = " | ".join(theme_descs[:2]) if theme_descs else ""  # Combine first 2 descriptions
+                    
+                    if theme_names:
+                        response = self._llm_reasoner.generate_canonical_name(
+                            strongest_theme_name=theme_names[0],
+                            all_theme_names=theme_names,
+                            description=description
+                        )
+                        clean_name = response.strip() if response else ""
+                    else:
+                        clean_name = ""
+                    
+                    if clean_name and self._pg:
+                        # Auto-approve the canonical name
+                        cluster_id = review["cluster_id"]
+                        self._pg.bulk_approve_canonical_reviews({cluster_id: clean_name})
+                        resolved_count += 1
+                        logger.debug(f"Auto-resolved cluster {i}/{len(pending_reviews)}: {clean_name}")
+                    
+                    # Small delay to avoid rate limits
+                    time.sleep(1)
+                    
+                except Exception as e:
+                    failed_count += 1
+                    logger.warning(f"Failed to auto-resolve cluster {i}: {e}")
+                    # Queue for manual review as fallback
+                    if self._pg:
+                        try:
+                            self._pg.upsert_canonical_review(review)
+                        except Exception:
+                            pass
+        else:
+            # Process clusters individually (batch processing not available with LLMReasoner)
+            logger.info("Processing clusters individually for batch resolution...")
+            
+            for i, review in enumerate(pending_reviews, 1):
+                try:
+                    # Extract theme names for canonical name generation
+                    theme_names = review.get("member_names", [])
+                    theme_descs = review.get("member_descriptions", [])
+                    description = " | ".join(theme_descs[:2]) if theme_descs else ""  # Combine first 2 descriptions
+                    
+                    if theme_names:
+                        response = self._llm_reasoner.generate_canonical_name(
+                            strongest_theme_name=theme_names[0],
+                            all_theme_names=theme_names,
+                            description=description
+                        )
+                        clean_name = response.strip() if response else ""
+                        
+                        if clean_name and self._pg:
+                            # Auto-approve the canonical name
+                            cluster_id = review["cluster_id"]
+                            self._pg.bulk_approve_canonical_reviews({cluster_id: clean_name})
+                            resolved_count += 1
+                            logger.debug(f"Auto-resolved cluster {i}/{len(pending_reviews)}: {clean_name}")
+                    
+                    # Small delay to avoid rate limits
+                    time.sleep(1)
+                    
+                except Exception as e:
+                    failed_count += 1
+                    logger.warning(f"Failed to auto-resolve cluster {i}: {e}")
+                    # Queue for manual review as fallback
+                    if self._pg:
+                        try:
+                            self._pg.upsert_canonical_review(review)
+                        except Exception:
+                            pass
+        
+        logger.info(
+            f"Auto-resolution complete: {resolved_count} resolved, "
+            f"{failed_count} failed"
+        )
+    
+    def _extract_canonical_name(self, response: str) -> str:
+        """Extract canonical name from single-cluster response."""
+        if not response:
+            return ""
+        
+        # Take first line, remove numbering/bullets
+        first_line = response.strip().split('\n')[0]
+        
+        # Remove common prefixes
+        prefixes = ['1.', '1)', '•', '-', '*', '1. ', '1) ', '• ', '- ', '* ']
+        for prefix in prefixes:
+            if first_line.startswith(prefix):
+                return first_line[len(prefix):].strip()
+        
+        return first_line.strip()
+    
+    def _parse_numbered_response(self, response: str, pending_reviews: list[dict]) -> dict[str, str]:
+        """Parse numbered response and map cluster_id -> canonical_name."""
+        import re
+        
+        parsed: dict[str, str] = {}
+        lines = [line.strip() for line in response.strip().splitlines() if line.strip()]
+        
+        for line in lines:
+            # Match patterns like "1. Name" or "1) Name"
+            match = re.match(r'^(\d+)[.)]\s+(.+)$', line)
+            if match:
+                num = int(match.group(1))
+                name = match.group(2).strip()
+                
+                # Map by position to cluster_id
+                idx = num - 1
+                if 0 <= idx < len(pending_reviews):
+                    cluster_id = pending_reviews[idx]["cluster_id"]
+                    parsed[cluster_id] = name
+        
+        return parsed
 
     def _save_pending_reviews(self, reviews: list[dict]) -> None:
         """Persist pending canonical reviews to mg_theme_canonical_reviews."""

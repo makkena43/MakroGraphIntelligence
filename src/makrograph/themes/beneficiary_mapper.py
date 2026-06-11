@@ -7,6 +7,7 @@ Maps investment themes to:
 """
 
 import logging
+import math
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -17,6 +18,21 @@ from ..ontology.ontology_model import ThemeBeneficiary
 from ..intelligence.company_classifier import CompanyClassifier, CompanyRole
 
 logger = logging.getLogger(__name__)
+
+# ── Ambiguous keyword disambiguation ─────────────────────────────────────────
+# For keywords that are common English words, require at least one of these
+# disambiguating context terms to appear in the company's signal context,
+# otherwise the match is likely incidental (e.g. "wafer" biscuit vs wafer fab).
+_KEYWORD_CONTEXT_REQUIRED: dict[str, list[str]] = {
+    "wafer":      ["semiconductor", "fab", "silicon", "chip", "solar", "photovoltaic", "monocrystalline"],
+    "hospital":   ["healthcare infra", "construction", "epc", "medical infra", "beds", "greenfield hospital"],
+    "board":      ["circuit board", "pcb", "display", "panel"],
+    "sharp":      ["display", "electronics", "lcd", "panel"],
+    "award":      ["contract award", "order award", "project award", "epc award", "tender award"],
+    "discovery":  ["drug discovery", "clinical", "r&d", "molecule", "research pipeline"],
+    "complex":    ["petrochemical complex", "industrial complex", "chemical complex"],
+    "classic":    ["classical", "vehicle model"],  # very unlikely to match — effectively blocks
+}
 
 # ── Noise-filter constants ────────────────────────────────────────────────────
 
@@ -155,6 +171,9 @@ class BeneficiaryMapper:
         graph_store=None,
         theme_keywords: list[str] = None,
         as_of_date=None,
+        pg_store=None,
+        since_date=None,
+        country: str = None,
     ) -> BeneficiaryResult:
         """Identify all beneficiaries for a single theme.
 
@@ -177,12 +196,62 @@ class BeneficiaryMapper:
         )
         result.direct.extend(entity_beneficiaries)
 
+        # Strategy 4: Entity-extraction matching (DB query)
+        # Catches companies whose documents have the theme entity extracted but the
+        # keyword doesn't appear in the 200-char signal context window.
+        # Example: Shakti Pumps has "Solar" extracted (18 docs) + demand_surge signals
+        # but signal context says "PM Kusum scheme" not "solar" directly.
+        if pg_store and since_date and as_of_date and theme_keywords:
+            try:
+                entity_match_rows = pg_store.get_companies_by_theme_entity(
+                    entity_keywords=theme_keywords,
+                    since_date=since_date,
+                    as_of_date=as_of_date,
+                    country=country,
+                    min_mentions=2,
+                )
+                for row in entity_match_rows:
+                    company = row.get("company") or ""
+                    ticker  = row.get("ticker") or ""
+                    if not company:
+                        continue
+                    key = ticker or company
+                    # Only add if not already captured by Strategies 1 or 2
+                    existing_keys = {
+                        (b.ticker or b.company_name or b.entity_name).upper()
+                        for b in result.direct
+                    }
+                    if key.upper() in existing_keys:
+                        continue
+                    mentions  = int(row.get("entity_mentions") or 0)
+                    sig_count = int(row.get("signal_count") or 0)
+                    relevance = min(math.log1p(mentions) * 18.0 + math.log1p(sig_count) * 8.0, 100.0)
+                    if relevance >= self.min_relevance:
+                        result.direct.append(ThemeBeneficiary(
+                            theme_slug=theme_slug,
+                            entity_name=company,
+                            ticker=ticker,
+                            company_name=company,
+                            beneficiary_type="direct",
+                            relevance_score=relevance,
+                            signal_count=sig_count,
+                            first_seen_at=_as_of,
+                            last_seen_at=row.get("filed_at_max") or _as_of,
+                            reasoning=f"Entity '{', '.join(theme_keywords)}' extracted "
+                                      f"from {mentions} docs with {sig_count} investment signals.",
+                        ))
+            except Exception as _e:
+                logger.debug(f"Strategy 4 entity-match query failed for {theme_slug}: {_e}")
+
         # Strategy 3: Graph supply chain (indirect)
         if self.use_graph and graph_store:
             indirect = self._from_graph(theme_slug, graph_store, as_of_date=_as_of)
             result.indirect.extend(indirect)
 
-        # Deduplicate across categories
+        # Sort by relevance_score DESC before truncating so high-relevance companies
+        # from any strategy (incl. Strategy 4 entity-match) are not cut by
+        # low-relevance entries that happened to be appended first.
+        result.direct.sort(key=lambda b: b.relevance_score, reverse=True)
         result.direct = self._deduplicate(result.direct)[:self.max_beneficiaries]
         result.indirect = self._deduplicate_against(result.indirect, result.direct)[:10]
 
@@ -306,6 +375,9 @@ class BeneficiaryMapper:
         seed_themes: list[dict] = None,
         graph_store=None,
         as_of_date=None,
+        pg_store=None,
+        since_date=None,
+        country: str = None,
     ) -> list[BeneficiaryResult]:
         """Map beneficiaries for all themes.
 
@@ -334,6 +406,9 @@ class BeneficiaryMapper:
                 graph_store=graph_store,
                 theme_keywords=keywords,
                 as_of_date=as_of_date,
+                pg_store=pg_store,
+                since_date=since_date,
+                country=country,
             )
             results.append(result)
 
@@ -443,6 +518,17 @@ class BeneficiaryMapper:
             ):
                 continue
 
+            # Gate 1b: ambiguous-keyword disambiguation.
+            # For words that are common in non-investment contexts (e.g. "wafer"
+            # the biscuit), require at least one domain-specific context term.
+            for kw in kw_lower:
+                required_ctx = _KEYWORD_CONTEXT_REQUIRED.get(kw)
+                if required_ctx and not any(term in ctx for term in required_ctx):
+                    company = ""   # invalidate this signal
+                    break
+            if not company:
+                continue
+
             # Gate 2: keyword must appear alongside economic indicator words in the
             # same sentence — filters out brand lists, ministry names, ESG boilerplate.
             if kw_lower:
@@ -504,9 +590,13 @@ class BeneficiaryMapper:
             ) else 10.0 if primary_role == CompanyRole.SUPPLIER else 0.0
 
             # Capex signals are the strongest forward signal — extra weight
-            capex_boost = min(data["capex_signals"] * 8.0, 25.0)
+            capex_boost = min(data["capex_signals"] * 5.0, 20.0)
 
-            relevance = min(data["signal_count"] * 8.0 + role_boost + capex_boost, 100.0)
+            # Log-scale base score: differentiates companies across the full range.
+            # Linear (signal_count * 8) collapses everyone ≥13 signals into 100.
+            # log1p(n) * 22: 1sig→15, 5→36, 10→50, 20→66, 50→87, 100→100
+            base_score = math.log1p(data["signal_count"]) * 22.0
+            relevance = min(base_score + role_boost + capex_boost, 100.0)
 
             # Build reasoning summary
             reasoning_parts = [f"Role: {role_icon} {role_str.replace('_', ' ').title()}"]
@@ -587,7 +677,7 @@ class BeneficiaryMapper:
 
         beneficiaries = []
         for key, data in company_scores.items():
-            relevance = min(data["score"], 60.0)
+            relevance = min(data["score"], 100.0)
             if relevance < self.min_relevance:
                 continue
             beneficiaries.append(ThemeBeneficiary(
@@ -645,7 +735,8 @@ class BeneficiaryMapper:
             if (b.ticker or b.company_name or b.entity_name).upper() not in existing_keys
         ]
 
-    def persist(self, results: list[BeneficiaryResult], pg_store, theme_id_map: dict):
+    def persist(self, results: list[BeneficiaryResult], pg_store, theme_id_map: dict,
+                window_start=None, window_end=None):
         """Write all beneficiaries to PostgreSQL.
 
         Two-pass batch approach:
@@ -684,11 +775,23 @@ class BeneficiaryMapper:
             except Exception as e:
                 logger.warning(f"Entity upsert failed for {key}: {e}")
 
+        # Verify which theme_ids still exist in the DB (guard against post-run cleanup deletes)
+        all_theme_ids = {tid for tid in theme_id_map.values() if tid}
+        valid_theme_ids: set[int] = set()
+        if all_theme_ids and pg_store:
+            try:
+                valid_theme_ids = pg_store.get_existing_theme_ids(all_theme_ids)
+            except Exception:
+                valid_theme_ids = all_theme_ids  # assume all valid if check fails
+
         # Pass 2: upsert beneficiaries using pre-built entity id map
         total = 0
         for result in results:
             theme_id = theme_id_map.get(result.theme_slug)
             if not theme_id:
+                continue
+            if valid_theme_ids and theme_id not in valid_theme_ids:
+                logger.debug(f"Skipping beneficiaries for deleted theme {result.theme_slug} (id={theme_id})")
                 continue
 
             for b in result.all_beneficiaries:
@@ -712,6 +815,8 @@ class BeneficiaryMapper:
                         "last_seen_at": b.last_seen_at,
                         "rank_in_theme": b.rank_in_theme,
                         "reasoning": b.reasoning,
+                        "window_start": window_start,
+                        "window_end": window_end,
                     })
                     total += 1
                 except Exception as e:
