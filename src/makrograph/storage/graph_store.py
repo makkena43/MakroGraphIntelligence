@@ -21,7 +21,12 @@ class GraphStore:
         user = config.get("user", "neo4j")
         password = config.get("password", "makrograph")
 
-        self._driver = GraphDatabase.driver(uri, auth=(user, password))
+        self._driver = GraphDatabase.driver(
+            uri, auth=(user, password),
+            # Suppress INFO/WARNING notifications for missing properties/relationship
+            # types — these are non-fatal schema queries that produce noise in logs.
+            notifications_min_severity="OFF",
+        )
         # Verify connectivity immediately so callers can catch the error at init
         # time rather than silently holding a broken driver that fails on every query.
         self._driver.verify_connectivity()
@@ -92,6 +97,65 @@ class GraphStore:
         """
         rows = self._run(cypher, {"name": name, "props": props, "today": str(date.today())})
         return rows[0]["name"] if rows else name
+
+    def batch_upsert_nodes_and_edges(
+        self,
+        nodes: list[dict],
+        edges: list[dict],
+    ) -> None:
+        """Write all nodes and edges for a batch of docs in ONE session using UNWIND.
+
+        Fixes two inefficiencies vs the per-node approach:
+          1. Single session open/close instead of one per node/edge (no Bolt overhead).
+          2. UNWIND lets Neo4j process all items in one query plan execution.
+
+        nodes: list of {node_type, name, props}
+        edges: list of {src_type, src_name, rel_type, tgt_type, tgt_name, props}
+        """
+        if not nodes and not edges:
+            return
+        today = str(date.today())
+
+        # Group nodes by type so we can use a typed MERGE per label
+        from collections import defaultdict
+        nodes_by_type: dict[str, list[dict]] = defaultdict(list)
+        for n in nodes:
+            nodes_by_type[n["node_type"]].append(n)
+
+        with self._driver.session() as session:
+            # Upsert all nodes — one UNWIND per node type (label must be literal in Cypher)
+            for node_type, batch in nodes_by_type.items():
+                cypher = f"""
+                    UNWIND $items AS item
+                    MERGE (n:{node_type} {{name: item.name}})
+                    SET n += item.props, n.last_seen_at = $today
+                """
+                session.run(cypher, {
+                    "items": [{"name": n["name"], "props": n.get("props", {})} for n in batch],
+                    "today": today,
+                })
+
+            # Upsert all edges — group by (src_type, rel_type, tgt_type)
+            edges_by_type: dict[tuple, list[dict]] = defaultdict(list)
+            for e in edges:
+                key = (e["src_type"], e["rel_type"], e["tgt_type"])
+                edges_by_type[key].append(e)
+
+            for (src_type, rel_type, tgt_type), batch in edges_by_type.items():
+                cypher = f"""
+                    UNWIND $items AS item
+                    MATCH (a:{src_type} {{name: item.src}})
+                    MATCH (b:{tgt_type} {{name: item.tgt}})
+                    MERGE (a)-[r:{rel_type}]->(b)
+                    SET r += item.props, r.last_seen_at = $today,
+                        r.weight = COALESCE(r.weight, 0) + item.weight
+                """
+                session.run(cypher, {
+                    "items": [{"src": e["src_name"], "tgt": e["tgt_name"],
+                               "props": e.get("props", {}),
+                               "weight": e.get("weight", 1.0)} for e in batch],
+                    "today": today,
+                })
 
     def upsert_node(self, node_type: str, name: str, properties: dict = None) -> str:
         """Generic node upsert for any node type."""

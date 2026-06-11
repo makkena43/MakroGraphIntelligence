@@ -1,3 +1,6 @@
+# IDE session files (may contain secrets in shell history)
+.claude/
+
 # Python
 __pycache__/
 *.py[cod]
@@ -37,6 +40,19 @@ Thumbs.db
 # India PDFs (large binary files)
 data/india/pdfs/
 data/india/*.pdf
+
+# Node dependencies
+node_modules/
+frontend/node_modules/
+
+# Backup archives
+backups/
+
+# Runtime data / cache / checkpoints
+data/ai_analysis_cache.json
+data/pib_scan_checkpoint.txt
+data/*.json
+data/*.txt
 
 # Secrets / credentials
 .env

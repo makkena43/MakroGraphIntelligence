@@ -39,18 +39,39 @@ INVESTINDIA_BASE = "https://www.investindia.gov.in"
 INVESTINDIA_STATIC = "https://static.investindia.gov.in"
 INVESTINDIA_STATIC2 = "https://www.investindia.gov.in/s3fs-public"
 
-# Confirmed working pages (verified 2025-05)
+# Direct sector opportunity pages — highest-signal content from InvestIndia.
+# These pages contain investment opportunity summaries, FDI figures, policy context,
+# and sector-specific data that are directly relevant to India macro intelligence.
+_SECTOR_OPPORTUNITY_PAGES = [
+    ("renewable-energy",          "Renewable Energy Investment Opportunities"),
+    ("solar-energy",              "Solar Energy Investment Opportunities"),
+    ("defence-manufacturing",     "Defence Manufacturing Investment"),
+    ("electric-mobility",         "Electric Mobility Investment Opportunities"),
+    ("railways",                  "Railways Investment Opportunities"),
+    ("semiconductors",            "Semiconductor Investment Opportunities"),
+    ("electronics-system-design-and-manufacturing", "Electronics Manufacturing (ESDM)"),
+    ("chemicals",                 "Chemicals & Petrochemicals"),
+    ("pharmaceuticals",           "Pharmaceuticals & MedTech"),
+    ("telecommunications",        "Telecommunications & 5G"),
+    ("green-hydrogen",            "Green Hydrogen Investment"),
+    ("data-centers",              "Data Centers Investment"),
+    ("new-and-renewable-energy",  "New & Renewable Energy"),
+    ("power",                     "Power Sector Investment"),
+    ("fdi-statistics",            "FDI Statistics India"),
+]
+
 _DEFAULT_SECTIONS = [
-    "sector-reports",   # crawls /sectors index → each sector sub-page
-    "brochures",        # crawls /brochure listing
+    "sector-pages",  # scrape direct sector opportunity pages (recommended)
+    "investment-announcements",
 ]
 
 _SECTION_URLS = {
-    "sector-reports":           f"{INVESTINDIA_BASE}/sectors",
-    "brochures":                f"{INVESTINDIA_BASE}/brochure",
-    "investment-announcements": f"{INVESTINDIA_BASE}/investment-announcements",
-    "success-stories":          f"{INVESTINDIA_BASE}/success-stories",
-    "fdi-statistics":           f"{INVESTINDIA_BASE}/sector/fdi-statistics",
+    "sector-pages":              f"{INVESTINDIA_BASE}/sector",  # base — not used directly
+    "sector-reports":            f"{INVESTINDIA_BASE}/sectors",
+    "brochures":                 f"{INVESTINDIA_BASE}/brochure",
+    "investment-announcements":  f"{INVESTINDIA_BASE}/investment-announcements",
+    "success-stories":           f"{INVESTINDIA_BASE}/success-stories",
+    "fdi-statistics":            f"{INVESTINDIA_BASE}/sector/fdi-statistics",
 }
 
 _INVEST_HEADERS = {
@@ -188,14 +209,93 @@ class InvestIndiaFetcher(SourceAdapter):
             ))
         return docs
 
+    def _scrape_sector_opportunity_page(self, slug: str, label: str) -> list[SourceDocument]:
+        """Scrape a single InvestIndia sector opportunity page.
+
+        These pages (e.g. /sector/renewable-energy) contain investment opportunity
+        summaries, FDI inflow figures, policy highlights, and sector statistics —
+        the highest-signal macro content on InvestIndia.
+        Each page is returned as one SourceDocument with the page title + key text.
+        """
+        url = f"{INVESTINDIA_BASE}/sector/{slug}"
+        try:
+            self._throttle()
+            resp = self.session.get(url, headers=_INVEST_HEADERS, timeout=self.timeout)
+            if resp.status_code == 404:
+                logger.debug(f"[invest_india] Sector page not found: {url}")
+                return []
+            resp.raise_for_status()
+        except Exception as exc:
+            logger.debug(f"[invest_india] Sector page fetch failed ({url}): {exc}")
+            return []
+
+        soup = BeautifulSoup(resp.text, "lxml")
+
+        # Extract meaningful content — title + key stats paragraph
+        # Use the descriptive label as primary title — sector pages have generic h1s
+        # like "Energy" or "Manufacturing" which lose the investment context.
+        # Fallback: h1 if it's more descriptive than the label.
+        h1 = soup.find("h1")
+        h1_text = h1.get_text(strip=True) if h1 else ""
+        title = label  # use our descriptive label by default
+        if h1_text and len(h1_text) > len(label):
+            title = h1_text  # h1 has more info — use it
+
+        # Pull key statistics / investment highlights (first 600 chars of body text)
+        body_text = ""
+        for sel in ["main", "article", "#main-content", ".field-items", ".node__content"]:
+            node = soup.select_one(sel)
+            if node:
+                body_text = node.get_text(" ", strip=True)[:600]
+                break
+        if not body_text:
+            body_text = soup.get_text(" ", strip=True)[:400]
+
+        # Try to extract an FDI / investment figure for context
+        import re as _re
+        fdi_match = _re.search(
+            r"(?:USD|US\$|\$|INR|₹)\s*[\d,\.]+\s*(?:billion|million|crore|lakh|Bn|Mn|Cr)",
+            body_text, _re.I
+        )
+        if fdi_match:
+            body_text = fdi_match.group(0) + " — " + body_text
+
+        # Date: use today since sector pages don't have publication dates
+        from datetime import date as _date
+        pub_dt = None  # no reliable date on sector pages
+
+        return [SourceDocument(
+            url=url,
+            title=title[:500],
+            doc_type="html",
+            source_name=self.source_name,
+            published_at=pub_dt,
+            company="",
+            ticker="",
+            filing_type="sector_opportunity",
+            metadata={
+                "country":  "IN",
+                "source":   "InvestIndia",
+                "sector":   slug,
+                "body_snippet": body_text[:400],
+            },
+        )]
+
     def _fetch_section(self, section_key: str) -> list[SourceDocument]:
         """Collect documents for a given section using the correct URL strategy."""
         index_url = _SECTION_URLS.get(section_key, f"{INVESTINDIA_BASE}/{section_key}")
 
-        if section_key == "sector-reports":
+        if section_key == "sector-pages":
+            # Scrape direct sector opportunity pages — high-signal macro content
+            docs: list[SourceDocument] = []
+            for slug, label in _SECTOR_OPPORTUNITY_PAGES:
+                docs.extend(self._scrape_sector_opportunity_page(slug, label))
+                if len(docs) >= self.max_results:
+                    break
+        elif section_key == "sector-reports":
             # Crawl /sectors index → each sector sub-page for PDFs
             sub_urls = self._get_sector_sub_urls(index_url)
-            docs: list[SourceDocument] = []
+            docs = []
             for sub_url in sub_urls[: min(20, len(sub_urls))]:
                 docs.extend(self._extract_pdfs_from_page(sub_url, section_key))
                 if len(docs) >= self.max_results:

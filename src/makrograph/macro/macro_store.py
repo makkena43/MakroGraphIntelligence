@@ -361,20 +361,23 @@ class MacroStore:
         series_id: str,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
+        country: Optional[str] = None,
     ) -> list[dict]:
-        """Return ordered time series for charting."""
+        """Return ordered time series for charting (one row per observation date)."""
         conn = self._get_conn()
         sql = """
-        SELECT observation_date, value, series_name, units, source, country
+        SELECT DISTINCT ON (observation_date)
+            observation_date, value, series_name, units, source, country
         FROM mg_macro_series
         WHERE series_id = %s
           AND (%s IS NULL OR observation_date >= %s)
           AND (%s IS NULL OR observation_date <= %s)
-        ORDER BY observation_date ASC
+          AND (%s IS NULL OR country = %s)
+        ORDER BY observation_date ASC, vintage_date DESC
         """
         try:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-                cur.execute(sql, [series_id, start_date, start_date, end_date, end_date])
+                cur.execute(sql, [series_id, start_date, start_date, end_date, end_date, country, country])
                 return [dict(r) for r in cur.fetchall()]
         except Exception as e:
             logger.error(f"MacroStore.get_series_history failed: {e}")
@@ -408,8 +411,9 @@ class MacroStore:
         as_of_date: Optional[date] = None,
         sectors: Optional[list[str]] = None,
         limit: int = 50,
+        country: Optional[str] = None,
     ) -> list[dict]:
-        """Return recent policy events, optionally filtered by sector."""
+        """Return recent policy events, optionally filtered by sector and country."""
         conn = self._get_conn()
         ceiling = as_of_date or date.today()
         sql = """
@@ -420,6 +424,9 @@ class MacroStore:
         WHERE COALESCE(enacted_date, introduced_date) <= %s
         """
         params: list = [ceiling]
+        if country:
+            sql += " AND COALESCE(country, 'US') = %s"
+            params.append(country)
         if sectors:
             sql += " AND sectors_affected && %s::text[]"
             params.append(sectors)

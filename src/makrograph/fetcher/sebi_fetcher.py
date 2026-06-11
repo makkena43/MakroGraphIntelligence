@@ -48,7 +48,11 @@ _LISTING_URLS = {
         f"{SEBI_BASE}/sebiweb/other/OtherAction.do"
         "?doPressRelease=yes&type=1"
     ),
-    "circular": f"{SEBI_BASE}/legal/circulars.html",
+    # /legal/circulars.html returned 404 after SEBI's SPA migration.
+    # New approach: fetch sitemap.xml and extract /legal/circulars/* and
+    # /legal/master-circulars/* URLs — titles come from the <title> tag on
+    # each page (static HTML, no JS needed).
+    "circular": f"{SEBI_BASE}/sitemap.xml",
 }
 
 _SEBI_HEADERS = {
@@ -102,11 +106,24 @@ class SEBIFetcher(SourceAdapter):
         return "sebi_india"
 
     def _scrape_listing(self, doc_type: str) -> list[SourceDocument]:
-        """Scrape a SEBI listing page and extract document links."""
+        """Scrape a SEBI listing page and extract document links.
+
+        For 'circular': SEBI's /legal/circulars.html returned 404 after their
+        SPA migration.  New approach: parse sitemap.xml for /legal/circulars/*
+        and /legal/master-circulars/* URLs, then fetch each page's <title> tag
+        (static HTML, no JS) to get the circular title + derive date from path.
+
+        For 'press_release': original OtherAction.do URL still works.
+        """
         listing_url = _LISTING_URLS.get(doc_type)
         if not listing_url:
             logger.warning(f"[sebi] Unknown doc_type: {doc_type!r}")
             return []
+
+        # ── Circular: sitemap-based approach ─────────────────────────────────
+        if doc_type == "circular":
+            return self._scrape_circulars_from_sitemap(listing_url)
+
         if not _BS4_AVAILABLE:
             return []
 
@@ -122,8 +139,6 @@ class SEBIFetcher(SourceAdapter):
         docs: list[SourceDocument] = []
         start_dt = _parse_iso_date(self.start_date)
 
-        # SEBI listing pages contain <table> rows or <ul>/<li> blocks.
-        # Each row typically has: date column | title column with a link.
         for row in soup.find_all(["tr", "li"]):
             a_tags = row.find_all("a", href=True)
             if not a_tags:
@@ -142,16 +157,13 @@ class SEBIFetcher(SourceAdapter):
                 if not abs_url.startswith("http"):
                     continue
 
-                # Accept PDFs hosted on SEBI or any SEBI sub-page
                 is_sebi_domain = "sebi.gov.in" in abs_url
                 is_pdf = abs_url.lower().endswith(".pdf")
                 if not (is_sebi_domain or is_pdf):
                     continue
 
                 title = (
-                    a_tag.get("title")
-                    or a_tag.get_text(strip=True)
-                    or ""
+                    a_tag.get("title") or a_tag.get_text(strip=True) or ""
                 ).strip()[:500]
 
                 if not title or len(title) < 5:
@@ -164,23 +176,86 @@ class SEBIFetcher(SourceAdapter):
                     continue
 
                 docs.append(SourceDocument(
-                    url=abs_url,
-                    title=title,
+                    url=abs_url, title=title,
                     doc_type="pdf" if is_pdf else "html",
-                    source_name=self.source_name,
-                    published_at=pub_dt,
-                    company="",
-                    ticker="",
-                    filing_type=doc_type,
-                    metadata={
-                        "country": "IN",
-                        "source": "SEBI",
-                        "doc_type_label": doc_type,
-                        "source_page": listing_url,
-                    },
+                    source_name=self.source_name, published_at=pub_dt,
+                    company="", ticker="", filing_type=doc_type,
+                    metadata={"country": "IN", "source": "SEBI",
+                              "doc_type_label": doc_type},
                 ))
 
         logger.debug(f"[sebi] {doc_type}: {len(docs)} docs from listing")
+        return docs
+
+    def _scrape_circulars_from_sitemap(self, sitemap_url: str) -> list[SourceDocument]:
+        """Fetch SEBI circulars via sitemap.xml.
+
+        Each /legal/circulars/mon-yyyy/slug URL has:
+          - Date derivable from the path segment (e.g. jun-2024)
+          - Title available in the static <title> tag (no JS needed)
+        """
+        import re as _re
+        start_dt = _parse_iso_date(self.start_date)
+        docs: list[SourceDocument] = []
+
+        # 1. Fetch sitemap and extract circular URLs
+        try:
+            self._throttle()
+            r = self.session.get(sitemap_url, headers=_SEBI_HEADERS, timeout=self.timeout)
+            r.raise_for_status()
+        except Exception as exc:
+            logger.error(f"[sebi] Sitemap fetch failed: {exc}")
+            return []
+
+        # Extract all URLs matching /legal/circulars/ or /legal/master-circulars/
+        circular_urls = _re.findall(
+            r'<loc>(https://www\.sebi\.gov\.in/legal/(?:master-)?circulars/[^<]+)</loc>',
+            r.text
+        )
+        logger.info(f"[sebi] Sitemap: {len(circular_urls)} circular URLs found")
+
+        for url in circular_urls:
+            # Parse date from URL path: /legal/circulars/jun-2024/title-slug
+            pub_dt = _date_from_sebi_url(url)
+            if start_dt and pub_dt and pub_dt < start_dt:
+                continue
+
+            # Derive human-readable title from URL slug
+            slug = url.rstrip("/").split("/")[-1]
+            title = slug.replace("-", " ").title()
+
+            # Optionally fetch <title> tag for cleaner title (throttled)
+            if _BS4_AVAILABLE:
+                try:
+                    self._throttle()
+                    rp = self.session.get(url, headers=_SEBI_HEADERS, timeout=self.timeout)
+                    soup = BeautifulSoup(rp.text, "lxml")
+                    title_tag = soup.find("title")
+                    if title_tag:
+                        raw = title_tag.text.strip()
+                        # Strip "SEBI | " prefix
+                        title = raw.replace("SEBI | ", "").replace("SEBI |", "").strip()
+                except Exception:
+                    pass  # use slug-derived title
+
+            if self.keywords and not any(k in title.lower() for k in self.keywords):
+                continue
+
+            is_mc = "/master-circulars/" in url
+            docs.append(SourceDocument(
+                url=url, title=title[:500],
+                doc_type="html",
+                source_name=self.source_name,
+                published_at=pub_dt,
+                company="", ticker="",
+                filing_type="master_circular" if is_mc else "circular",
+                metadata={"country": "IN", "source": "SEBI",
+                          "doc_type_label": "circular"},
+            ))
+            if len(docs) >= self.max_results:
+                break
+
+        logger.info(f"[sebi] Circulars from sitemap: {len(docs)}")
         return docs
 
     def discover(self, since: Optional[datetime] = None, until: Optional[datetime] = None) -> list[SourceDocument]:
@@ -275,3 +350,23 @@ def _parse_iso_date(date_str: str) -> Optional[datetime]:
         return datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
     except Exception:
         return None
+
+
+_MONTH_MAP = {
+    "jan":1,"feb":2,"mar":3,"apr":4,"may":5,"jun":6,
+    "jul":7,"aug":8,"sep":9,"oct":10,"nov":11,"dec":12,
+}
+
+def _date_from_sebi_url(url: str) -> Optional[datetime]:
+    """Parse a date from SEBI URL path like /legal/circulars/jun-2024/..."""
+    import re as _re
+    m = _re.search(r'/([a-z]{3})-(\d{4})/', url)
+    if m:
+        month = _MONTH_MAP.get(m.group(1).lower())
+        year  = int(m.group(2))
+        if month:
+            try:
+                return datetime(year, month, 1, tzinfo=timezone.utc)
+            except Exception:
+                pass
+    return None

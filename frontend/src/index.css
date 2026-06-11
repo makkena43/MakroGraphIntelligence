@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #0f172a;
+    color: #e2e8f0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #1e293b; }
+  ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #475569; }
+}
+
+@layer components {
+  .card { @apply bg-slate-800 border border-slate-700 rounded-xl p-4; }
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold;
+  }
+  .btn-primary {
+    @apply bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2
+           rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-200
+           font-medium px-3 py-1.5 rounded-lg transition-colors text-sm;
+  }
+  .input {
+    @apply bg-slate-800 border border-slate-600 rounded-lg px-3 py-1.5 text-sm
+           text-slate-200 focus:outline-none focus:border-indigo-500 w-full;
+  }
+  .select {
+    @apply bg-slate-800 border border-slate-600 rounded-lg px-3 py-1.5 text-sm
+           text-slate-200 focus:outline-none focus:border-indigo-500;
+  }
+  .kpi-card {
+    @apply bg-slate-800 border border-slate-700 rounded-xl p-4 text-center;
+  }
+  .tab-active {
+    @apply border-b-2 border-indigo-500 text-indigo-400 font-semibold;
+  }
+  .tab-inactive {
+    @apply border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-colors;
+  }
+  .log-box {
+    @apply bg-slate-950 border border-slate-800 rounded-lg p-3 font-mono text-xs
+           text-sky-300 max-h-96 overflow-y-auto;
+  }
+}

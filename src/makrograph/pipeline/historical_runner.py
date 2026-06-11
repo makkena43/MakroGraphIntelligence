@@ -555,6 +555,10 @@ class HistoricalRunner:
           3. Pre-filter noise entities before touching DB (dates, form labels, CIK numbers).
           4. Combined NLP + Events pass: file is read ONCE per doc; events extracted in
              the same loop so _events_month can be skipped for this window.
+          5. [India] IndiaEntityInjector: after signal extraction, scan signal contexts
+             for India tech-theme keywords and inject synthetic TECHNOLOGY entities so the
+             theme detector can cluster "optical fiber", "power grid", etc. from short
+             NSE/BSE announcements that spaCy never tags as named entities.
         """
         from ..themes.theme_detector import _is_noise_entity
 
@@ -577,9 +581,24 @@ class HistoricalRunner:
         ))
 
         _country = self.config.get("market", {}).get("country", "US")
+
+        # India entity injector: active only for IN market.
+        # Injects TECHNOLOGY entities from signal context so short NSE/BSE
+        # announcements contribute investable entities to the theme-detection
+        # cluster query — not just company names extracted by spaCy.
+        _india_injector = None
+        if _country == "IN":
+            try:
+                from ..nlp.india_entity_injector import IndiaEntityInjector
+                _india_injector = IndiaEntityInjector(self.config.get("nlp", {}))
+                logger.info("IndiaEntityInjector active for IN market NLP pass")
+            except Exception as e:
+                logger.warning(f"IndiaEntityInjector unavailable: {e}")
+
         CHUNK = 500
         stats = {"docs_processed": 0, "entities_found": 0, "signals_found": 0,
-                 "events_extracted": 0, "noise_filtered": 0}
+                 "events_extracted": 0, "noise_filtered": 0,
+                 "india_entities_injected": 0}
 
         while True:
             docs = self._pg_store.get_documents_for_replay(
@@ -675,6 +694,52 @@ class HistoricalRunner:
                     for sd in signal_dicts:
                         self._pg_store.insert_signal(sd)
                 stats["signals_found"] += len(signal_dicts)
+
+                # ── India entity injection ────────────────────────────────────────
+                # For IN-market docs: scan signal context_text (and raw_text when
+                # signals are sparse) for India investment-theme keywords.
+                # Injects synthetic TECHNOLOGY entities so the theme-detection
+                # cluster query can group "optical fiber", "power grid", etc.
+                # across companies — these are never extracted by spaCy from
+                # short NSE/BSE board-meeting announcements.
+                if _india_injector is not None:
+                    try:
+                        synthetic = _india_injector.extract_from_signals(signals)
+                        # Fall back to scanning raw_text when signals produced no
+                        # entity keywords (very short announcement title-only docs)
+                        if not synthetic and raw_text:
+                            synthetic = _india_injector.extract_from_text(raw_text[:2000])
+                        if synthetic:
+                            synthetic_dicts = [
+                                {
+                                    "entity_text": e.entity_text,
+                                    "entity_type": e.entity_type,
+                                    "canonical_name": e.canonical_name,
+                                    "confidence": e.confidence,
+                                    "metadata": e.metadata,
+                                }
+                                for e in synthetic
+                            ]
+                            try:
+                                self._pg_store.batch_upsert_entities_and_links(
+                                    doc_id, synthetic_dicts, doc_filed_at
+                                )
+                            except Exception as e2:
+                                logger.debug(f"India entity injection fallback doc {doc_id}: {e2}")
+                                for sd in synthetic_dicts:
+                                    try:
+                                        eid = self._pg_store.upsert_entity({
+                                            **sd,
+                                            "first_seen_at": doc_filed_at,
+                                            "last_seen_at": doc_filed_at,
+                                        })
+                                        if eid:
+                                            self._pg_store.link_document_entity(doc_id, eid)
+                                    except Exception:
+                                        pass
+                            stats["india_entities_injected"] += len(synthetic)
+                    except Exception as e:
+                        logger.debug(f"IndiaEntityInjector failed doc {doc_id}: {e}")
 
                 # ── Events — extracted in the SAME pass (file already in memory) ──
                 if has_events:

@@ -302,8 +302,7 @@ class CausalChain:
     first_detected: Optional[date] = None
 
     def __post_init__(self):
-        if self.first_detected is None:
-            self.first_detected = date.today()
+        pass  # first_detected stays None until explicitly set by discovery logic
 
     @property
     def depth(self) -> int:

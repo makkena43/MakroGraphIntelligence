@@ -99,6 +99,120 @@ _NOISE_RE = re.compile(
     r"|^(?:second|third|fourth|first)\s+fiscal"
     r"|^the\s+year\b|^the\s+quarter\b|^the\s+period\b|^the\s+month\b"
     r"|^(?:year|quarter|month|period|week)\s+\d"
+    # India-specific temporal boilerplate (board meeting outcomes, quarterly results)
+    r"|^(?:this|next|last|current|previous)\s+(?:year|quarter|month|financial\s+year|fy)\b"
+    r"|^(?:the\s+)?(?:current|previous|last|next)\s+(?:year|quarter|financial)\b"
+    r"|^(?:this|the)\s+(?:current\s+)?(?:financial\s+)?(?:year|quarter)\b"
+    r"|^(?:h1|h2|q[1-4])\s+(?:fy)?\d*\b"
+    # India regulatory/exchange boilerplate
+    r"|^(?:sebi|rbi|nclt|nclat|cci|nse|bse)\b"
+    r"|dalal.{0,3}street"    # BSE address — appears in hundreds of OCR variants (Dalalstreet, Dalal Street, etc.)
+    r"|^(?:listing\s+(?:regulations?|obligations?)|lodr)\b"
+    r"|^pursuant\s+to\b|^regulation\s+30\b"
+    r"|^(?:standalone|consolidated)\b"
+    r"|^(?:interim\s+)?financials?\b"
+    r"|^indian?\b"    # too generic ("Indian" "india" as theme name)
+    r"|^(?:secondly|firstly|thirdly)\b"
+    r"|^g\s+block\b|^g-block\b"      # NSE G-Block address
+    r"|bandra.kurla|bkc\b"            # Mumbai financial district address
+    r"|^inter\s+alia\b"               # Latin legal boilerplate
+    r"|^equity\s+share\s+capital\b"
+    r"|^plant\s+and\s+equipment\b"
+    r"|^audit\s+committee\b|^the\s+audit\s+committee\b"
+    r"|^statutory\s+auditors?\b|^the\s+statutory\s+auditors?\b"
+    r"|^(?:the\s+)?companies\s+act\b"
+    r"|^(?:the\s+)?standards?\s+on\s+auditing\b"
+    r"|^(?:the\s+)?institute\s+of\s+chartered\b"
+    r"|^basis\s+(?:for|of)\s+opinion\b"
+    r"|^(?:the\s+)?audited\s+financial\s+results?\b"
+    r"|^(?:the\s+)?regulation\s+\d+\b"    # Regulation 30, 33 etc
+    r"|^covid.19?\b|^coronavirus\b"        # too broad
+    r"|^(?:the\s+)?listing\s+(?:regulations?|obligations?)\b"
+    r"|^disclosure\s+requirements?\)?\s*regulations?\b"
+    r"|^sebi\s+(?:listing|circular|regulation)\b"
+    r"|^lodr\b"                                        # SEBI LODR abbreviation
+    r"|^(?:nclt|nclat|cci|drt|rera)\b"                # regulatory tribunals
+    r"|^financials?\b"                                 # generic "financials" entity
+    r"|^(?:this|last|next|current)\s+(?:year|quarter|month|fy|financial\s+year)\b"
+    r"|^(?:last|previous)\s+year\b"
+    r"|^(?:iso\s+)?(?:9001|14001|45001|27001|22000)(?::\d{4})?\b"  # ISO cert numbers
+    r"|^(?:dahej|calcutta|madhapur|surat|mundra)\b"    # industrial zone/city names
+    r"|^(?:rajesh|suresh|mahesh|ramesh|dinesh)\b"      # common personal names
+    r"|^(?:youtube|google|facebook|twitter|linkedin)\b" # social media platforms
+    r"|^(?:award|awards|prize)\b"                      # generic achievement terms
+    r"|^(?:discovery|findings?|study)\b"               # research boilerplate
+    r"|^(?:sharp|severe|critical|complex|simple)\s*$"  # bare adjectives
+    r"|^(?:scope\s+[1-3]|scope\s+one|scope\s+two|scope\s+three)\b"  # ESG reporting scopes
+    r"|^(?:cy|fy)\s*\d{2,4}\b"                        # calendar/fiscal year labels
+    r"|^(?:vande\s+bharat)\b"                          # specific train brand, not macro theme
+    r"|^(?:boards?)\s*$"                               # bare "boards" or "board"
+    # Finance-sector category labels — not investable supply/demand themes
+    r"|^(?:nbfc|hfc|mfi|aif|pms|fia|ncd|debenture)\b"  # NBFC, HFC, MFI etc. are sector codes
+    r"|^(?:newspapers?|print\s+media|news\s+media)\b"   # media format, not capex theme
+    r"|^(?:mutual\s+fund|insurance|banking|bank)\b"     # generic finance categories
+    r"|^(?:fmcg|sme|msme|large.?cap|mid.?cap|small.?cap)\b"  # market-cap/segment labels
+    r"|^(?:it\s+services?|bpo|ites?)\b"                # generic IT sector labels
+    r"|^(?:afternoon|morning|evening)\b"   # time-of-day OCR artifacts
+
+    # India audit / quarterly-results boilerplate (appears in EVERY BSE/NSE filing)
+    r"|^year.on.year\b"                                      # time ratio, not theme
+    r"|^(?:a\s+)?landmark\s+year\b"                         # "a landmark year" boilerplate
+    r"|^our\s+(?:full|half)\s+year\b"                       # "our full year" boilerplate
+    r"|^labour\s+codes?\b"                                   # regulatory compliance phrase
+    r"|^auditors?\s+report\b"                               # catches "auditor's report" and "auditors report"
+    r"|^inr\s*[0-9]"                                        # INR amount entities (INR700, INR3 etc.)
+    r"|^tier.?[0-9]\b"                                      # Tier-1, Tier-2, Tier-3 city references
+    r"|^excel\b"                                            # Microsoft Excel references
+    r"|^slide\s+[0-9]"                                      # Presentation slide numbers
+    r"|^founder\b|^founders\b"                              # too generic
+    r"|^gene\s+therapy\b"                                   # too niche/one-off for India themes
+    r"|^redeemable\b"                                       # financial instrument term
+    r"|^as\s+[0-9]+\b"                                      # Accounting Standard numbers (AS 19, AS 34 etc.)
+    r"|^(?:the\s+)?auditors\s+report\b"
+    r"|^bank\b"                                              # single word "bank" — too generic alone
+    r"|^(?:the\s+)?limited\s+review\s+report\b"         # auditor phrase in every quarterly result
+    r"|^(?:the\s+)?limited\s+review\b"
+    r"|^(?:the\s+)?unaudited\s+(?:financial\s+)?results?\b"  # standard quarterly filing header
+    r"|^ind\s+as\b"                                      # Ind AS, Ind AS 34, Ind AS 116 etc.
+    r"|^(?:the\s+)?holding\s+company\b"                  # generic corporate structure term
+    r"|^(?:the\s+)?company.s\s+management\b"             # boilerplate phrase
+    r"|^phiroze\s+jeejeebhoy"                            # BSE tower address
+    r"|^listing\s+department\b"                          # BSE Listing Dept (filing address)
+    r"|^(?:the\s+)?code\s+of\s+ethics\b"
+    r"|^equity\s+share\b"                                # also catches "equity share capital" variants
+    r"|^year.to.date\b"
+    r"|^(?:earlier\s+years?|the\s+years?|the\s+published\s+year)\b"
+    r"|^(?:q[1-4]fy\d+|fy\d{2,4})\b"                   # Q3FY20, FY18 etc.
+    r"|^regd\b"                                          # "regd." = registered (address boilerplate)
+    r"|^(?:the\s+)?circular\b"                           # SEBI/RBI circular reference
+    r"|^ebidta\b"                                        # mis-spelled EBITDA
+    r"|^zero\b"
+    r"|^house\b"                                         # BSE/NSE address fragment
+    r"|^profit\b|^profits\b"                             # too generic — not an investable theme alone
+    r"|^profit\s+(?:before|after)\s+tax\b"
+    r"|^scheme\b|^schemes\b"                             # regulatory scheme references
+    r"|^presentation\b"
+    r"|^(?:the\s+)?government\s+of\s+india\b"           # policy actor, not investable theme
+    r"|^the\s+years?\b"
+    # Auditor / financial statement phrases (India annual/quarterly reports)
+    r"|^(?:the\s+)?independent\s+auditor.s\s+report\b"
+    r"|^(?:the\s+)?auditor.s\s+report\b"
+    r"|^(?:the\s+)?auditor.s\s+responsibilities\b"
+    r"|^(?:the\s+)?internal\s+auditors?\b"
+    r"|^(?:the\s+)?(?:audited\s+)?standalone\b"         # "audited standalone", "standalone"
+    r"|^(?:the\s+)?consolidated\s+financial\b"          # "consolidated financial results"
+    r"|^(?:the\s+)?standalone\s+financial\b"
+    r"|^the\s+(?:indian\s+)?accounting\s+standards\b"  # "the Indian accounting standards"
+    r"|^particulars\s+year\b"
+    r"|^(?:the\s+)?group\b"                             # "the group" = holding company structure
+    # Time-period phrases that slip past the temporal blocklist
+    r"|^(?:the\s+)?(?:full|last|next|previous)\s+(?:year|three\s+years?|two\s+years?|four\s+years?)\b"
+    r"|^the\s+beginning\s+of\s+the\s+year\b"
+    r"|^(?:the\s+)?(?:4th|3rd|2nd|1st)\s+quarter\b"
+    r"|^quarter\s+(?:one|two|three|four|[1-4])\b"
+    r"|^fy\s*\d{4}\b"                                   # FY 2026, FY2025 etc.
+    # SEBI / regulatory circular ID format: letters/letters/number/year (e.g. CFD/CMD/4/2015)
+    r"|^[a-z]{2,}/[a-z]{2,}/\d"
 
     # SEC legal / underwriting boilerplate that escapes XBRL filter
     r"|^(?:the\s+)?underwriting\s+agreement"
@@ -202,6 +316,113 @@ _GENERIC_ECONOMIC_NOUNS: frozenset[str] = frozenset({
     # Generic sector names (sectors are context, not themes)
     "energy sector", "technology sector", "financial sector",
     "healthcare sector", "industrial sector", "consumer sector",
+
+    # ── India NSE/BSE boilerplate — validated by Gemini as non-investable ───────
+    # Audit/accounting boilerplate
+    "basis for opinion", "basis of opinion",
+    "the standards on auditing", "standards on auditing",
+    "the institute of chartered accountants", "institute of chartered accountants",
+    "the statutory auditors", "statutory auditors",
+    "the audit committee", "audit committee",
+    "the audited financial results", "audited financial results",
+    "indian accounting standards", "accounting standards",
+    "plant and equipment", "property plant and equipment",
+    # Legal/regulatory boilerplate
+    "inter alia", "inter-alia",
+    "the companies act", "companies act",
+    "the regulation 33", "regulation 33",
+    "the listing regulations", "listing regulations",
+    "disclosure requirements", "disclosure requirements) regulations",
+    "g block",           # NSE/BSE office address
+    "equity share capital", "share capital",
+    "the full financial year", "full financial year",
+    "the current financial year",
+    "covid-19", "covid19", "covid",  # too broad, not investable
+    # Generic corporate terms
+    "group", "standalone", "consolidated",
+    # Indian cities used as entities (exchange addresses)
+    "mumbai", "chennai", "bengaluru", "delhi", "kolkata", "pune", "hyderabad",
+    "maharashtra", "gujarat", "karnataka", "tamil nadu",
+    # ── India NSE/BSE boilerplate — appears in EVERY filing, zero signal value ──
+    # Temporal boilerplate (extremely common in Indian board meeting outcomes)
+    "this quarter", "next quarter", "last quarter", "current quarter",
+    "the current quarter", "this quarter's", "the quarter",
+    "this year", "next year", "last year", "the year", "the previous year",
+    "current year", "the current year", "current financial year",
+    "financial year", "the financial year", "fy", "h1", "h2", "q1", "q2", "q3", "q4",
+    "year ended", "quarter ended", "period ended",
+    "this", "year", "quarter", "month", "period",  # too generic
+
+    # Indian regulatory bodies used as theme names (not real themes)
+    "sebi", "rbi", "nclt", "nclat", "cci", "mca",
+    "dalal street",                                  # stock exchange location
+    "reserve bank", "reserve bank of india",
+    "listing regulations", "lodr", "sebi lodr",
+    "disclosure requirements", "listing obligations",
+    "pursuant to regulation", "regulation 30",
+    "interim financial", "interim financials",
+
+    # Generic Indian filing terms (appear in thousands of docs as boilerplate)
+    "standalone", "consolidated",                    # financial statement type
+    "indian", "india",                               # too generic as entity
+    "financials", "financial",                       # too generic
+    "secondly", "firstly", "thirdly",               # ordinal boilerplate
+    "next", "last", "current", "previous",           # temporal adjectives alone
+    "the companies act", "companies act",
+    "stock exchange", "exchange",
+    "nse", "bse",                                    # exchange names = boilerplate
+    "rules", "standards", "compliance officer",
+    "nclt", "nclat", "cci",                         # regulatory bodies
+    "interim", "the interim",
+
+    # India audit / quarterly-results boilerplate (mirrors additions to _NOISE_RE)
+    "limited review report", "the limited review report",
+    "limited review", "the limited review",
+    "unaudited financial results", "the unaudited financial results",
+    "unaudited results", "the unaudited results",
+    "ind as",                                       # catch bare "Ind AS" entity extractions
+    "holding company", "the holding company",
+    "company's management", "the company's management",
+    "phiroze jeejeebhoy towers",                    # BSE address
+    "listing department",
+    "code of ethics", "the code of ethics",
+    "equity share",
+    "year-to-date",
+    "earlier years", "the years", "the published year",
+    "regd",                                         # "regd." address abbreviation
+    "circular", "the circular",
+    "ebidta",                                       # mis-spelled EBITDA
+    "zero",
+    "house",
+    "profit", "profits",                            # too generic
+    "profit before tax", "profit after tax",
+    "scheme", "schemes",
+    "presentation",
+    "government of india", "the government of india",
+
+    # Auditor / financial statement phrases (second-wave India noise)
+    "independent auditor's report", "the independent auditor's report",
+    "auditor's report", "the auditor's report",
+    "auditor's responsibilities", "the auditor's responsibilities",
+    "internal auditors", "the internal auditors",
+    "standalone", "audited standalone", "the audited standalone",
+    "standalone financial results", "the standalone financial results",
+    "consolidated financial results", "the consolidated financial results",
+    "consolidated financial", "standalone financial",
+    "the indian accounting standards", "indian accounting standards",
+    "accounting standards", "the accounting standards",
+    "particulars year",
+    "the group", "group",
+    # Time-period phrases (second-wave temporal noise)
+    "full year", "the full year",
+    "the last three years", "last three years",
+    "the beginning of the year", "beginning of the year",
+    "the 4th quarter", "4th quarter", "quarter four", "quarter three", "quarter two", "quarter one",
+    "fy 2026", "fy 2025", "fy 2024", "fy 2023", "fy 2022", "fy 2021",
+    # SEBI/regulatory circular IDs — caught by regex too, belt-and-suspenders
+    "cfd/cmd/4/2015",
+    # Generic multi-word regulatory terms that aren't investable themes
+    "rules", "the rules",
 
     # Ordinals / numerals — extracted from NSE boilerplate (e.g. "thousands of shares")
     "thousands", "millions", "billions", "hundreds",
@@ -421,12 +642,18 @@ class SmartNoiseFilter:
     The filter auto-adapts to any dataset size — no fixed thresholds needed.
     """
 
-    def __init__(self, total_companies: int, total_sectors: int = 0):
+    def __init__(self, total_companies: int, total_sectors: int = 0,
+                 max_adaptive_min_companies: int = 10):
         self._total_companies = max(total_companies, 1)
         self._total_sectors = max(total_sectors, 1)
-        # Adaptive minimum: at least 2 companies, scales with sqrt of dataset
-        # For 10 companies → min 2, for 50 → min 3, for 200 → min 4
-        self._adaptive_min_companies = max(2, int(math.sqrt(self._total_companies) * 0.5))
+        # Adaptive minimum: at least 2 companies, scales with sqrt of dataset.
+        # For 10 companies → min 2, for 50 → min 3, for 200 → min 7.
+        # CAPPED at max_adaptive_min_companies (default 10) so large India
+        # corpora (500+ companies, 0.06 signals/doc) don't silently filter
+        # real themes like "optical fiber" that may only appear in 3-5 companies.
+        # Set max_adaptive_min_companies = config['themes']['min_companies_for_theme'] * 2.
+        raw_adaptive = max(2, int(math.sqrt(self._total_companies) * 0.5))
+        self._adaptive_min_companies = min(raw_adaptive, max(2, max_adaptive_min_companies))
         # Maximum company ratio before an entity is considered ubiquitous
         # Adapts: smaller datasets tolerate higher ratios
         self._ubiquity_cap = min(0.7, 0.4 + 3.0 / self._total_companies)
@@ -679,6 +906,22 @@ class ThemeDetector:
         self.use_graph = config.get("use_graph_detection", True)
         self._graph_unavailable = False  # circuit breaker: set after first connection failure
 
+        # Cap for SmartNoiseFilter.adaptive_min_companies.
+        # Default: min_companies_for_theme * 2 (so a corpus of 500 India companies
+        # still requires at most 2*min_companies companies per theme, not sqrt(500)*0.5=11).
+        # Override via config['themes']['max_adaptive_min_companies'].
+        self._max_adaptive_min = int(config.get(
+            "max_adaptive_min_companies",
+            max(self.min_companies * 2, 6),   # at least 6 so US isn't too loose
+        ))
+
+        # Configurable tension-gate thresholds (all have sensible defaults).
+        # Lower values surface themes earlier — useful for India's low signal density.
+        self._min_tension_demand  = int(config.get("min_tension_demand_signals", 2))
+        self._min_tension_supply  = int(config.get("min_tension_supply_signals", 2))
+        self._min_early_demand    = int(config.get("min_early_demand_signals", 4))
+        self._min_early_demand_cos= int(config.get("min_early_demand_companies", 4))
+
     def detect_from_signals(
         self,
         signal_records: list[dict],
@@ -795,6 +1038,7 @@ class ThemeDetector:
         noise_filter = SmartNoiseFilter(
             total_companies=total_companies_in_dataset,
             total_sectors=total_sectors_in_dataset,
+            max_adaptive_min_companies=self._max_adaptive_min,
         )
 
         for entity_name, cluster in entity_map.items():
@@ -822,9 +1066,10 @@ class ThemeDetector:
             capex_count = cluster["capex_count"]
 
             # Gate 1: Classic supply-demand tension (most reliable)
-            has_tension = demand_count >= 2 and supply_constraint_count >= 2
+            has_tension = (demand_count >= self._min_tension_demand
+                           and supply_constraint_count >= self._min_tension_supply)
             # Gate 2: Heavy capex commitment = structural theme
-            min_capex_cos = max(3, noise_filter.adaptive_min_companies)
+            min_capex_cos = max(self.min_companies, noise_filter.adaptive_min_companies)
             has_capex_conviction = (
                 capex_count >= min_capex_cos
                 and n_companies >= min_capex_cos
@@ -832,10 +1077,10 @@ class ThemeDetector:
             # Gate 3: Demand surging ahead of supply (early detection)
             # Multiple companies report strong demand before supply constraints
             # emerge — this is Stage 0/1: the investment sweet spot.
-            min_demand_cos = max(4, noise_filter.adaptive_min_companies)
+            min_demand_cos = max(self._min_early_demand_cos, noise_filter.adaptive_min_companies)
             has_demand_surge_early = (
-                demand_count >= 4
-                and supply_constraint_count < 2
+                demand_count >= self._min_early_demand
+                and supply_constraint_count < self._min_tension_supply
                 and n_companies >= min_demand_cos
                 and capex_count >= 2
             )
@@ -951,6 +1196,7 @@ class ThemeDetector:
         self,
         cluster_rows: list[dict],
         causal_chain_entities: Optional[frozenset] = None,
+        country: str = None,
     ) -> list[InvestmentTheme]:
         """Fast path: auto-detect themes from PRE-AGGREGATED cluster rows.
 
@@ -999,6 +1245,7 @@ class ThemeDetector:
         noise_filter = SmartNoiseFilter(
             total_companies=total_companies_in_dataset,
             total_sectors=total_sectors_in_dataset,
+            max_adaptive_min_companies=self._max_adaptive_min,
         )
 
         for row in cluster_rows:
@@ -1036,6 +1283,19 @@ class ThemeDetector:
             total_signals = int(row.get("total_signals") or sum(signal_counts.values()))
             quarter_count = int(row.get("quarter_count") or 1)
 
+            # ── Recency weight ─────────────────────────────────────────────────
+            # recent_doc_count = distinct docs filed in the last 90 days of the
+            # lookback window (populated by get_entity_signal_clusters_in_window).
+            # Strong decay: evergreen themes that haven't had new signals in 90d
+            # score near-zero; themes with fresh recent activity score at full.
+            # This surfaces NEW emerging themes above stale multi-year ones.
+            _recent_docs = int(row.get("recent_doc_count") or 0)
+            _recency_ratio = _recent_docs / max(n_docs, 1)
+            # Weight: 0.10 (no recent signals at all) → 1.0 (all signals recent)
+            # The 0.10 floor preserves very long-term structural themes while
+            # ensuring fresh surges dominate the ranking.
+            _recency_weight = 0.10 + 0.90 * _recency_ratio
+
             # ── Statistical noise check (replaces hardcoded ubiquity + blacklist) ──
             if noise_filter.is_noise(entity_name, n_companies, n_sectors=0,
                                      signal_counts=signal_counts,
@@ -1052,10 +1312,11 @@ class ThemeDetector:
             supply_constraint_count = sum(v for k, v in signal_counts.items() if k in SUPPLY_CONSTRAINT_SIGNALS)
 
             # ── Gate 1: Demand-supply TENSION (highest quality signal) ────────
-            has_tension = demand_count >= 2 and supply_constraint_count >= 2
+            has_tension = (demand_count >= self._min_tension_demand
+                           and supply_constraint_count >= self._min_tension_supply)
 
             # ── Gate 2: Strong capex commitment (companies spending big) ──────
-            min_capex_cos = max(3, noise_filter.adaptive_min_companies)
+            min_capex_cos = max(self.min_companies, noise_filter.adaptive_min_companies)
             has_capex_conviction = (
                 capex_count >= min_capex_cos
                 and n_companies >= min_capex_cos
@@ -1066,15 +1327,28 @@ class ThemeDetector:
             # haven't been widely discussed yet. This is Stage 0-1: demand is
             # running ahead of what the market can supply — the investable edge
             # is detecting this BEFORE supply bottlenecks become visible.
-            min_demand_cos = max(4, noise_filter.adaptive_min_companies)
+            min_demand_cos = max(self._min_early_demand_cos, noise_filter.adaptive_min_companies)
             has_demand_surge_early = (
-                demand_count >= 4                    # strong demand signal count
-                and supply_constraint_count < 2      # supply not yet constrained
-                and n_companies >= min_demand_cos    # multiple companies reporting it
-                and capex_count >= 2                 # and capex is being committed
+                demand_count >= self._min_early_demand   # strong demand signal count
+                and supply_constraint_count < self._min_tension_supply   # supply not yet constrained
+                and n_companies >= min_demand_cos        # multiple companies reporting it
+                and capex_count >= 2                     # and capex is being committed
             )
 
-            if not has_tension and not has_capex_conviction and not has_demand_surge_early:
+            # ── Gate 4: Regulatory tailwind + capex buildout (EMS / PLI pattern) ──
+            # India PLI/EMS companies show capex_increase + regulatory_tailwind
+            # without supply bottlenecks. This gate catches buildout themes that
+            # would otherwise be invisible to Gates 1-3.
+            regulatory_count = signal_counts.get("regulatory_tailwind", 0)
+            has_regulatory_buildout = (
+                regulatory_count >= self._min_tension_supply  # enough regulatory signals
+                and capex_count >= 2                           # real capex commitment
+                and n_companies >= max(self._min_early_demand_cos,
+                                       noise_filter.adaptive_min_companies)
+            )
+
+            if not has_tension and not has_capex_conviction \
+                    and not has_demand_surge_early and not has_regulatory_buildout:
                 continue
 
             # Adaptive minimum evidence
@@ -1091,6 +1365,16 @@ class ThemeDetector:
             elif has_demand_surge_early:
                 # Score based purely on demand intensity — no supply yet
                 tension_score = min(demand_count * 4.0, 30.0)
+            elif has_regulatory_buildout:
+                # Regulatory + capex buildout: primary gate for India (PLI/EMS pattern).
+                # India: score same range as supply-demand tension (up to 60) because
+                # government-driven capex buildouts are the dominant investment theme
+                # pattern for Indian markets — not supply bottlenecks.
+                # US/other: lower ceiling (40) since tension is the primary signal.
+                _reg_ceil = 60.0 if country == "IN" else 40.0
+                tension_score = min(
+                    regulatory_count * 4.0 + capex_count * 3.0, _reg_ceil
+                )
             else:
                 tension_score = 0.0
 
@@ -1134,15 +1418,23 @@ class ThemeDetector:
             )
             causal_boost = 15.0 if in_causal_chain else 0.0
 
-            strength = min(
+            raw_strength = (
                 tension_score + capex_bonus + breadth_bonus
                 + quarter_bonus + causal_boost
-                + constraint_bonus + capex_lag_bonus,
-                100.0,
+                + constraint_bonus + capex_lag_bonus
             )
+            # Apply recency weight: recent surges outrank stale evergreen themes.
+            strength = min(raw_strength * _recency_weight, 100.0)
 
             # ── Dominant signal and theme character ───────────────────────────
-            for priority in ("supply_bottleneck", "demand_surge", "capex_increase"):
+            # For India regulatory-buildout themes, make regulatory_tailwind a
+            # first-class dominant signal type (not just a fallback).
+            if has_regulatory_buildout and country == "IN":
+                _priority_order = ("regulatory_tailwind", "supply_bottleneck",
+                                   "demand_surge", "capex_increase")
+            else:
+                _priority_order = ("supply_bottleneck", "demand_surge", "capex_increase")
+            for priority in _priority_order:
                 if signal_counts.get(priority, 0) > 0:
                     dominant_signal = priority
                     break
@@ -1177,6 +1469,12 @@ class ThemeDetector:
             sig_slug = dominant_signal.replace("_", "-")[:15]
             theme_slug = f"auto-{entity_slug}-{sig_slug}"
             if theme_slug in existing_seed_slugs:
+                continue
+
+            # Dedup across gates: if any gate already produced a theme for this
+            # entity slug, skip. Gate 4 (regulatory_tailwind) runs AFTER Gates 1-3
+            # so it must not create a duplicate theme for the same entity.
+            if any(t.theme_slug.startswith(f"auto-{entity_slug}-") for t in auto_themes):
                 continue
 
             # ── Description text ──────────────────────────────────────────────
@@ -1237,6 +1535,16 @@ class ThemeDetector:
                     "is_bottleneck":            entity_name.lower() in _BOTTLENECK_THEMES,
                     "bottleneck_theme_name":    _BOTTLENECK_THEMES.get(entity_name.lower(), ""),
                     "entity_name_normalized":   entity_name,
+                    # Recency metadata — used by the UI to distinguish "NEW surge"
+                    # from "evergreen theme that's always been here".
+                    "recency_ratio":            round(_recency_ratio, 3),
+                    "recent_doc_count":         _recent_docs,
+                    "recency_weight":           round(_recency_weight, 3),
+                    # first_detected_in_window = earliest signal in the CURRENT
+                    # lookback window. Different from first_detected (all-time).
+                    "window_first_detected":    str(first_signal_date) if first_signal_date else None,
+                    "has_regulatory_buildout":  has_regulatory_buildout,
+                    "regulatory_count":         regulatory_count,
                 },
             ))
 
