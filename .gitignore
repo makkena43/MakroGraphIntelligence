@@ -41,6 +41,19 @@ Thumbs.db
 data/india/pdfs/
 data/india/*.pdf
 
+# Node dependencies
+node_modules/
+frontend/node_modules/
+
+# Backup archives
+backups/
+
+# Runtime data / cache / checkpoints
+data/ai_analysis_cache.json
+data/pib_scan_checkpoint.txt
+data/*.json
+data/*.txt
+
 # Secrets / credentials
 .env
 *.env
