@@ -52,16 +52,25 @@ _DEFAULT_RSS_FEEDS = [
 ]
 
 _DEFAULT_KEYWORDS = [
-    "repo rate", "monetary policy", "inflation", "CPI", "WPI", "GDP",
-    "forex", "foreign exchange", "reserve", "liquidity",
-    "credit", "NBFC", "bank", "banking", "NPA", "bad loan",
-    "interest rate", "MPC", "policy statement",
-    "FDI", "FPI", "capital flows", "current account", "balance of payments",
-    "rupee", "INR", "exchange rate", "currency",
-    "digital currency", "CBDC", "UPI", "NEFT", "RTGS",
-    "financial stability", "systemic risk",
-    "priority sector", "MSME", "micro finance",
-    "payment system", "prepaid instrument",
+    # Monetary policy
+    "repo rate", "monetary policy", "MPC", "policy statement", "interest rate",
+    "inflation", "CPI", "WPI", "GDP", "liquidity",
+    # Credit & banking
+    "credit", "NBFC", "bank", "banking", "NPA", "bad loan", "financial stability",
+    "priority sector", "MSME", "micro finance", "sectoral credit",
+    # External sector
+    "forex", "foreign exchange", "reserve", "FDI", "FPI", "capital flows",
+    "current account", "balance of payments", "rupee", "INR", "exchange rate",
+    # India infrastructure / growth themes relevant to macro
+    "infrastructure", "renewable energy", "solar", "green finance", "ESG",
+    "electric vehicle", "EV", "battery", "semiconductor", "PLI",
+    "capital expenditure", "capex", "investment", "credit growth",
+    "power sector", "transmission", "grid", "5G", "telecom",
+    "defence", "defense", "export", "import", "trade",
+    # Digital / fintech
+    "digital currency", "CBDC", "UPI", "payment system",
+    # Regulatory
+    "penalty", "circular", "directive", "regulation", "framework",
 ]
 
 
@@ -105,9 +114,11 @@ class RBIFetcher(SourceAdapter):
         return any(kw in lower for kw in self._kw_lower)
 
     def _fetch_article_text(self, url: str) -> str:
-        """Fetch and extract plain text from an RBI HTML article page.
+        """Fetch and extract plain text from an RBI HTML press release page.
 
-        Used when fetch_full_text=True for tighter body-level keyword checks.
+        RBI press releases are at BS_PressReleaseDisplay.aspx?prid=XXXXX.
+        Content lives in <table class="tablebg">. Fallbacks try common div selectors.
+        Note: rbidocs.rbi.org.in PDF URLs are blocked — never call this with those.
         """
         if not _BS4_AVAILABLE:
             return ""
@@ -116,6 +127,13 @@ class RBIFetcher(SourceAdapter):
             resp = self.session.get(url, timeout=self.timeout)
             resp.raise_for_status()
             soup = BeautifulSoup(resp.text, "lxml")
+            # Primary: RBI press release table content
+            table = soup.find("table", {"class": "tablebg"})
+            if table:
+                text = table.get_text(" ", strip=True)
+                if len(text) > 100:
+                    return text
+            # Fallbacks for other RBI page types
             for sel in [
                 {"class": "innner-page-main-about-us-content-right-part"},
                 {"id": "main-content"},
@@ -124,7 +142,9 @@ class RBIFetcher(SourceAdapter):
             ]:
                 div = soup.find("div", sel)
                 if div:
-                    return div.get_text(" ", strip=True)
+                    text = div.get_text(" ", strip=True)
+                    if len(text) > 100:
+                        return text
             return soup.get_text(" ", strip=True)
         except Exception as exc:
             logger.debug(f"[rbi] Full text fetch failed for {url}: {exc}")
@@ -216,85 +236,96 @@ class RBIFetcher(SourceAdapter):
 
         start_dt = _parse_iso_date(self.start_date)
         docs: list[SourceDocument] = []
-        current_date: Optional[datetime] = None
+        seen_urls: set[str] = set()
 
-        try:
-            self._throttle()
-            resp = self.session.get(RBI_HTML_LISTING, timeout=self.timeout)
-            resp.raise_for_status()
-        except Exception as exc:
-            logger.error(f"[rbi] HTML listing fetch failed: {exc}")
-            return []
+        # RBI HTML listing: the base URL and Year= param both return the same
+        # ~60 most-recent releases (server ignores the Year param).
+        # Fetch only the base URL — deduplication handles the rest.
+        _listing_urls = [RBI_HTML_LISTING]
 
-        try:
-            soup = BeautifulSoup(resp.text, "lxml")
-        except Exception:
-            soup = BeautifulSoup(resp.text, "html.parser")
-
-        # Pick the table with the most <tr> rows (the press release listing table)
-        all_tables = soup.find_all("table")
-        table = max(all_tables, key=lambda t: len(t.find_all("tr")), default=None)
-        if not table or not table.find_all("tr"):
-            logger.warning(f"[rbi] No usable table on listing page (found {len(all_tables)} tables, resp={len(resp.content)}B)")
-            return []
-
-        for row in table.find_all("tr"):
-            tds = row.find_all("td")
-
-            if len(tds) == 1:
-                current_date = _parse_date_from_text(tds[0].get_text(strip=True))
+        for listing_url in _listing_urls:
+            current_date: Optional[datetime] = None
+            try:
+                self._throttle()
+                resp = self.session.get(listing_url, timeout=self.timeout)
+                resp.raise_for_status()
+            except Exception as exc:
+                logger.warning(f"[rbi] HTML listing fetch failed ({listing_url}): {exc}")
                 continue
 
-            if len(tds) < 2:
+            try:
+                soup = BeautifulSoup(resp.text, "lxml")
+            except Exception:
+                soup = BeautifulSoup(resp.text, "html.parser")
+
+            all_tables = soup.find_all("table")
+            table = max(all_tables, key=lambda t: len(t.find_all("tr")), default=None)
+            if not table:
                 continue
 
-            title_a = tds[0].find("a", href=True)
-            pdf_a = tds[1].find("a", href=True)
+            for row in table.find_all("tr"):
+                tds = row.find_all("td")
 
-            if not title_a:
-                continue
+                if len(tds) == 1:
+                    current_date = _parse_date_from_text(tds[0].get_text(strip=True))
+                    continue
 
-            title = title_a.get_text(strip=True)[:500]
-            if not title:
-                continue
+                if len(tds) < 2:
+                    continue
 
-            pub_dt = current_date or _parse_date_from_text(title)
+                title_a = tds[0].find("a", href=True)
+                pdf_a   = tds[1].find("a", href=True)
 
-            if start_dt and pub_dt and pub_dt < start_dt:
-                continue
-            if since and pub_dt and pub_dt <= since:
-                continue
+                if not title_a:
+                    continue
 
-            if not self._is_relevant(title):
-                continue
+                title = title_a.get_text(strip=True)[:500]
+                if not title:
+                    continue
 
-            if pdf_a and pdf_a["href"].startswith("http"):
-                doc_url = pdf_a["href"]
-                doc_type = "pdf"
-            else:
-                doc_url = urljoin(RBI_BASE, title_a["href"])
+                pub_dt = current_date or _parse_date_from_text(title)
+
+                if start_dt and pub_dt and pub_dt < start_dt:
+                    continue
+                if since and pub_dt and pub_dt <= since:
+                    continue
+
+                if not self._is_relevant(title):
+                    continue
+
+                # Always use the HTML prid page — rbidocs PDF URLs are blocked (401).
+                # The prid HTML page at BS_PressReleaseDisplay.aspx?prid=X is
+                # accessible and has full text in table.tablebg.
+                doc_url  = urljoin(RBI_BASE, title_a["href"])
                 doc_type = "html"
 
-            docs.append(SourceDocument(
-                url=doc_url,
-                title=title,
-                doc_type=doc_type,
-                source_name=self.source_name,
-                published_at=pub_dt,
-                company="",
-                ticker="",
-                filing_type=_classify_rbi_title(title),
-                metadata={
-                    "country": "IN",
-                    "source": "RBI",
-                    "category": "press_release",
-                },
-            ))
+                if doc_url in seen_urls:
+                    continue
+                seen_urls.add(doc_url)
 
-            if len(docs) >= self.max_results:
-                break
+                docs.append(SourceDocument(
+                    url=doc_url,
+                    title=title,
+                    doc_type=doc_type,
+                    source_name=self.source_name,
+                    published_at=pub_dt,
+                    company="",
+                    ticker="",
+                    filing_type=_classify_rbi_title(title),
+                    metadata={
+                        "country": "IN",
+                        "source": "RBI",
+                        "category": "press_release",
+                    },
+                ))
 
-        logger.debug(f"[rbi] HTML listing: {len(docs)} relevant docs")
+                if len(docs) >= self.max_results:
+                    logger.debug(f"[rbi] max_results={self.max_results} reached")
+                    return docs
+
+            logger.debug(f"[rbi] URL {listing_url[-40:]}: running total={len(docs)}")
+
+        logger.info(f"[rbi] HTML listing: {len(docs)} relevant docs across {len(_listing_urls)} year pages")
         return docs
 
     def discover(self, since: Optional[datetime] = None, until: Optional[datetime] = None) -> list[SourceDocument]:

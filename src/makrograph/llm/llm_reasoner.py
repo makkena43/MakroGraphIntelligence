@@ -121,6 +121,8 @@ class LLMReasoner:
         self._cost_per_1k = config.get("llm_cost_per_1k_tokens", 0.00025)
 
         self._gemini_api_key: str = config.get("gemini_api_key", "")
+        self._gemini_timeout: int = int(config.get("gemini_timeout_seconds", 45))
+        self._gemini_connect_timeout: int = int(config.get("gemini_connect_timeout_seconds", 10))
         self._cache: dict[str, str] = {}
         self._daily_cost: float = 0.0
         self._daily_calls: int = 0
@@ -246,7 +248,7 @@ class LLMReasoner:
                     url,
                     headers={"Content-Type": "application/json", "X-goog-api-key": api_key},
                     json=payload,
-                    timeout=60,
+                    timeout=(self._gemini_connect_timeout, self._gemini_timeout),
                 )
                 resp.raise_for_status()
                 data = resp.json()

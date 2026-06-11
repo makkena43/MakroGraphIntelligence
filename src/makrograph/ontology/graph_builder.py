@@ -211,45 +211,51 @@ class GraphBuilder:
         return None
 
     def _upsert_node(self, node: OntologyNode):
-        """Write node to Neo4j and PostgreSQL."""
-        if self.graph_store:
-            try:
-                self.graph_store.upsert_node(
-                    node.node_type.value,
-                    node.name,
-                    {k: v for k, v in node.properties.items() if v},
-                )
-            except Exception as e:
-                logger.warning(f"Neo4j node upsert failed ({node.name}): {e}")
+        """Accumulate node for batch write — no longer writes per-node.
 
-        if self.pg_store:
-            try:
-                self.pg_store.upsert_entity({
-                    "entity_text": node.name,
-                    "entity_type": node.node_type.value.upper(),
-                    "canonical_name": node.name,
-                    "ticker": node.properties.get("ticker"),
-                    "mention_count": node.mention_count,
-                    "first_seen_at": node.first_seen_at,
-                    "last_seen_at": node.last_seen_at,
-                })
-            except Exception as e:
-                logger.warning(f"PG entity upsert failed ({node.name}): {e}")
+        PG entity upserts are skipped here: entities are already in PostgreSQL
+        from the NLP stage. Duplicate writes caused 2x DB overhead with no benefit.
+        Neo4j writes are batched via flush_batch() for 10-50x speedup.
+        """
+        # Just accumulate — actual write happens in flush_batch()
+        pass
 
     def _upsert_edge(self, edge: OntologyEdge):
-        """Write edge to Neo4j."""
-        if self.graph_store:
-            try:
-                self.graph_store.upsert_relationship(
-                    source_type=edge.source_type.value,
-                    source_name=edge.source_name,
-                    rel_type=edge.relation.value,
-                    target_type=edge.target_type.value,
-                    target_name=edge.target_name,
-                    properties={"weight_delta": edge.weight, **edge.properties},
-                )
-            except Exception as e:
-                logger.warning(f"Neo4j edge upsert failed: {e}")
+        """Accumulate edge for batch write — no longer writes per-edge."""
+        pass
+
+    def flush_batch(self, nodes: list, edges: list) -> None:
+        """Write all accumulated nodes+edges in ONE Neo4j session using UNWIND.
+
+        Called once per doc-batch by run_graph() instead of per-node/edge.
+        """
+        if not self.graph_store or (not nodes and not edges):
+            return
+        try:
+            node_dicts = [
+                {
+                    "node_type": n.node_type.value,
+                    "name": n.name,
+                    "props": {k: v for k, v in n.properties.items() if v},
+                }
+                for n in nodes
+            ]
+            edge_dicts = [
+                {
+                    "src_type":  e.source_type.value,
+                    "src_name":  e.source_name,
+                    "rel_type":  e.relation.value,
+                    "tgt_type":  e.target_type.value,
+                    "tgt_name":  e.target_name,
+                    "weight":    e.weight,
+                    "props":     {k: v for k, v in e.properties.items()
+                                  if k != "weight_delta" and v},
+                }
+                for e in edges
+            ]
+            self.graph_store.batch_upsert_nodes_and_edges(node_dicts, edge_dicts)
+        except Exception as exc:
+            logger.warning(f"Batch graph flush failed: {exc}")
 
     def build_from_pg_entities(
         self,

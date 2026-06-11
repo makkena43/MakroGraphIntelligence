@@ -1,3 +1,6 @@
+# IDE session files (may contain secrets in shell history)
+.claude/
+
 # Python
 __pycache__/
 *.py[cod]

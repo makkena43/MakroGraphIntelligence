@@ -289,6 +289,56 @@ class PGStore:
 
         return "\n".join(lines)
 
+    @staticmethod
+    def build_single_canonical_prompt(review: dict) -> str:
+        """Build a prompt for a single cluster.
+        
+        Used when the combined prompt is too large and we need to process
+        clusters individually to avoid token limits.
+        """
+        members  = review.get("member_names") or []
+        descs    = review.get("member_descriptions") or []
+        suggest  = review.get("suggested_name", "")
+        slugs    = review.get("member_slugs") or []
+
+        # Collect signal info from descriptions
+        desc_text = " | ".join(
+            d[:120] for d in descs if d
+        )
+
+        lines = [
+            "You are a senior investment analyst reviewing auto-detected investment themes",
+            "from SEC filings and earnings calls.",
+            "",
+            "Below is ONE theme cluster containing similar themes that describe the SAME",
+            "macro investment opportunity. Provide ONE canonical name for this cluster.",
+            "",
+            "RULES:",
+            "  • Max 7 words per name",
+            "  • Investor-grade, specific, actionable",
+            "  • Focus on: structural driver → impacted asset class",
+            "  • Good: 'AI Infrastructure Power Constraint', 'HBM Supply Constraint', 'EV Battery Shortage'",
+            "  • Bad:  'Technology', 'Supply Chain', 'AI Growth'",
+            "",
+            "═" * 60,
+            "",
+            "CLUSTER 1:",
+            f"  Themes:  {' | '.join(members)}",
+        ]
+        
+        if desc_text:
+            lines.append(f"  Context: {desc_text[:300]}")
+        if suggest:
+            lines.append(f"  Auto-suggested name: {suggest}  (improve or keep as-is)")
+        
+        lines += [
+            "─" * 60,
+            "",
+            "Now write the canonical name (no numbering, no explanation):",
+        ]
+
+        return "\n".join(lines)
+
     def ensure_canonicalization_columns(self) -> None:
         """Add canonicalization columns to mg_themes if they don't exist yet.
 
@@ -903,6 +953,10 @@ class PGStore:
                 canonical_name     = COALESCE(EXCLUDED.canonical_name, mg_themes.canonical_name),
                 aliases            = EXCLUDED.aliases,
                 parent_theme_slug  = EXCLUDED.parent_theme_slug,
+                -- Never re-activate a theme that was manually deactivated (is_active=false).
+                -- A manual deactivation is an explicit override; the pipeline should not
+                -- silently undo it on the next run.
+                is_active          = mg_themes.is_active,
                 updated_at         = NOW()
             RETURNING id
         """
@@ -1036,6 +1090,7 @@ class PGStore:
             FROM mg_themes t
             JOIN latest_snap ls ON ls.theme_id = t.id
             WHERE ls.snap_strength >= %s
+              AND t.is_active = TRUE
               {country_clause}
             ORDER BY ls.snap_strength DESC
         """
@@ -1260,6 +1315,8 @@ class PGStore:
                 canonical_name     = COALESCE(EXCLUDED.canonical_name, mg_themes.canonical_name),
                 aliases            = EXCLUDED.aliases,
                 parent_theme_slug  = EXCLUDED.parent_theme_slug,
+                -- Never re-activate a manually deactivated theme.
+                is_active          = mg_themes.is_active,
                 updated_at         = NOW()
             RETURNING id, theme_slug
         """
@@ -1341,12 +1398,13 @@ class PGStore:
             INSERT INTO mg_theme_beneficiaries
                 (theme_id, entity_id, ticker, company_name, beneficiary_type,
                  company_role, relevance_score, signal_count, capex_signals,
-                 quarterly_mentions, first_seen_at, last_seen_at, rank_in_theme, reasoning)
+                 quarterly_mentions, first_seen_at, last_seen_at, rank_in_theme, reasoning,
+                 window_start, window_end)
             VALUES
                 (%(theme_id)s, %(entity_id)s, %(ticker)s, %(company_name)s, %(beneficiary_type)s,
                  %(company_role)s, %(relevance_score)s, %(signal_count)s, %(capex_signals)s,
                  %(quarterly_mentions)s::jsonb, %(first_seen_at)s, %(last_seen_at)s,
-                 %(rank_in_theme)s, %(reasoning)s)
+                 %(rank_in_theme)s, %(reasoning)s, %(window_start)s, %(window_end)s)
             ON CONFLICT (theme_id, entity_id) DO UPDATE SET
                 relevance_score    = EXCLUDED.relevance_score,
                 signal_count       = EXCLUDED.signal_count,
@@ -1356,6 +1414,8 @@ class PGStore:
                 last_seen_at       = EXCLUDED.last_seen_at,
                 rank_in_theme      = EXCLUDED.rank_in_theme,
                 reasoning          = COALESCE(EXCLUDED.reasoning, mg_theme_beneficiaries.reasoning),
+                window_start       = EXCLUDED.window_start,
+                window_end         = EXCLUDED.window_end,
                 updated_at         = NOW()
             RETURNING id
         """
@@ -1377,6 +1437,8 @@ class PGStore:
                     "last_seen_at": beneficiary.get("last_seen_at", date.today()),
                     "rank_in_theme": beneficiary.get("rank_in_theme"),
                     "reasoning": beneficiary.get("reasoning"),
+                    "window_start": beneficiary.get("window_start"),
+                    "window_end": beneficiary.get("window_end"),
                 })
                 row = cur.fetchone()
                 return row["id"] if row else None
@@ -1530,18 +1592,22 @@ class PGStore:
         sql = """
             INSERT INTO mg_causal_chains
                 (chain_id, chain_name, description, depth, terminal_effect,
-                 activation_score, links, first_detected, last_scored_at)
+                 activation_score, links, first_detected, last_scored_at, country)
             VALUES
                 (%(chain_id)s, %(chain_name)s, %(description)s, %(depth)s,
                  %(terminal_effect)s, %(activation_score)s, %(links)s::jsonb,
-                 %(first_detected)s, %(last_scored_at)s)
+                 %(first_detected)s, %(last_scored_at)s, %(country)s)
             ON CONFLICT (chain_id) DO UPDATE SET
                 activation_score = EXCLUDED.activation_score,
                 links            = EXCLUDED.links,
-                -- COALESCE: never overwrite a real date with NULL.
-                -- If new scored_at is NULL (no signal data yet) keep the existing date.
+                country          = EXCLUDED.country,
+                -- Keep the earliest first_detected so historical runs anchor chains
+                -- to when they first appeared in data, not when first stored.
                 last_scored_at   = COALESCE(EXCLUDED.last_scored_at, mg_causal_chains.last_scored_at),
-                first_detected   = COALESCE(mg_causal_chains.first_detected, EXCLUDED.first_detected),
+                first_detected   = LEAST(
+                    COALESCE(mg_causal_chains.first_detected, EXCLUDED.first_detected),
+                    COALESCE(EXCLUDED.first_detected, mg_causal_chains.first_detected)
+                ),
                 updated_at       = NOW()
             RETURNING id
         """
@@ -1557,6 +1623,7 @@ class PGStore:
                     "links": chain.get("links", "[]"),
                     "first_detected": chain.get("first_detected"),
                     "last_scored_at": chain.get("last_scored_at"),
+                    "country": chain.get("country", "US"),
                 })
                 row = cur.fetchone()
                 return row["id"] if row else None
@@ -1883,13 +1950,25 @@ class PGStore:
                 cur.execute(sql, params)
                 return [dict(r) for r in cur.fetchall()]
 
+    def get_existing_theme_ids(self, theme_ids: set[int]) -> set[int]:
+        """Return the subset of theme_ids that still exist in mg_themes."""
+        if not theme_ids:
+            return set()
+        with self._conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT id FROM mg_themes WHERE id = ANY(%s)",
+                    (list(theme_ids),)
+                )
+                return {row[0] for row in cur.fetchall()}
+
     def get_entity_signal_clusters_in_window(
         self,
         signal_types: list[str],
         since_date,
         as_of_date,
         min_signal_count: int = 2,
-        limit: int = 3000,
+        limit: int | None = None,
         country: str = None,
     ) -> list[dict]:
         """Pre-aggregated entity-signal clusters for theme detection.
@@ -1937,8 +2016,13 @@ class PGStore:
                   AND d.filed_at >= %s
                   AND d.filed_at <= %s
                   AND (%s IS NULL OR d.country = %s)
-                  -- Only investment-relevant entity types
-                  AND e.entity_type IN ('COMPANY','TECHNOLOGY','SECTOR','PRODUCT','REGULATION','CONCEPT')
+                  -- Only theme-forming entity types: technology, sector, product concepts.
+                  -- COMPANY and CONCEPT types are excluded here because ~95%% of COMPANY
+                  -- entities in India filings are boilerplate ("Audit Committee", "Standalone",
+                  -- "Limited Review Report") and CONCEPT types are regulatory phrases.
+                  -- Real companies appear as BENEFICIARIES of themes (mapped separately);
+                  -- theme ENTITIES must be investable technology/sector/product concepts.
+                  AND e.entity_type IN ('TECHNOLOGY','SECTOR','PRODUCT')
                   AND length(e.canonical_name) >= 4
                   -- Must start with a letter (excludes punctuation, symbol, number prefixes)
                   AND e.canonical_name ~ '^[A-Za-z]'
@@ -1989,6 +2073,9 @@ class PGStore:
                       'operating','financial','statements','report','filing',
                       'forward','looking','cautionary','statement','commission',
                       'shortage','shortages','geopolitical','geopolitics','notes',
+                      -- India audit/report single-word noise
+                      'standalone','standalone','particulars','auditors','auditor',
+                      'responsibilities','group','rules','year','circular',
                       -- Additional single-word corporate/legal/financial noise
                       'operations','operation','treasury',
                       'agreement','agreements','charter','charters',
@@ -2043,7 +2130,23 @@ class PGStore:
                       'the amendment','the warrant','the certificate',
                       'the charter','the prospectus','the covenant',
                       'operating operations','treasury operations',
-                      'general operations','business operations'
+                      'general operations','business operations',
+                      -- India audit / financial statement boilerplate
+                      'independent auditor''s report','the independent auditor''s report',
+                      'auditor''s report','the auditor''s report',
+                      'auditor''s responsibilities','the auditor''s responsibilities',
+                      'internal auditors','the internal auditors',
+                      'audited standalone','the audited standalone',
+                      'standalone financial results','the standalone financial results',
+                      'consolidated financial results','the consolidated financial results',
+                      'the indian accounting standards','indian accounting standards',
+                      'accounting standards',
+                      'the group','particulars year',
+                      'full year','the full year',
+                      'the last three years','the beginning of the year',
+                      'the 4th quarter','quarter four','quarter three','quarter two','quarter one',
+                      'government of india','the government of india',
+                      'companies act','the companies act'
                   )
                   -- Exclude bank / underwriter names that appear in every equity filing
                   AND lower(e.canonical_name) !~ '(bofa|merrill lynch|goldman sachs|morgan stanley|jp morgan|wells fargo|citigroup|barclays|credit suisse|national association|bancorp)'
@@ -2051,6 +2154,58 @@ class PGStore:
                   AND e.canonical_name !~* '^(d[.]?c[.]?\\s*[0-9]|washington|united states|securities and exchange|commission file|irs employer|state of |address of)'
                   AND e.canonical_name !~* '^(shortage|shortages|geopolitical|geopolitics)$'
                   AND e.canonical_name !~ '^[0-9]{5}'   -- ZIP codes like 20549
+                  -- ── India mega-boilerplate: entities appearing in virtually every filing ──
+                  -- These saturate the LIMIT before real investment entities are reached.
+                  -- They are blocked here (SQL layer) so they never compete for the row budget.
+                  AND lower(e.canonical_name) NOT IN (
+                      'sebi','rbi','nclt','nclat','cci','mca',             -- regulators
+                      'dalal street','g block','bandra kurla','bkc',       -- addresses
+                      'the companies act','companies act',
+                      'the listing regulations','listing regulations',
+                      'the regulation 33','regulation 33',
+                      'disclosure requirements) regulations',
+                      'the institute of chartered accountants',
+                      'the audit committee','audit committee',
+                      'the statutory auditors','statutory auditors',
+                      'inter alia','pursuant to regulation 30',
+                      'bse limited','nse limited',
+                      'indian accounting standards','the indian accounting standards',
+                      'interim financial reporting',
+                      'the holding company','holding company',
+                      'the group','group',
+                      'standalone','consolidated',
+                      'financials','financial',
+                      'year','this quarter','last year',
+                      'materials','power','energy',   -- sector names alone are too generic for entity-level
+                      'indian','india'
+                  )
+                  -- Exclude India regulatory circular IDs: CFD/CMD/4/2015 etc.
+                  AND e.canonical_name !~ '^[A-Za-z]{2,}/[A-Za-z]{2,}/[0-9]'
+                  -- Exclude FY / quarter labels: FY2026, Q3FY20 etc.
+                  AND e.canonical_name !~* '^(fy|q[1-4]fy)[0-9]'
+                  -- PRODUCT-type noise that slips through (audit/reporting phrases)
+                  AND lower(e.canonical_name) NOT IN (
+                      'conclude','report','standards','codes','shareholders',
+                      'standalone financial results','financial results',
+                      'the financial results','auditor','auditors',
+                      'chartered','chartered accountants',
+                      'as 108','as 34','as 116','as 115',   -- Ind AS numbers
+                      'intangible','deferred tax','total equity',
+                      'q1 fy26','q2 fy26','q3 fy26','q4 fy26',
+                      'q1 fy25','q2 fy25','q3 fy25','q4 fy25'
+                  )
+            ),
+            -- Count distinct companies per entity to detect ubiquitous boilerplate.
+            -- Entities appearing in >55%% of all companies are filing boilerplate,
+            -- not investable themes.
+            company_counts AS (
+                SELECT canonical_name, COUNT(DISTINCT company) AS n_cos
+                FROM raw
+                WHERE company IS NOT NULL
+                GROUP BY canonical_name
+            ),
+            total_cos AS (
+                SELECT COUNT(DISTINCT company) AS total FROM raw WHERE company IS NOT NULL
             ),
             sig_counts AS (
                 SELECT
@@ -2077,21 +2232,101 @@ class PGStore:
                 sj.total_signals::int                              AS total_signals,
                 SUM(r.is_capex)::int                               AS capex_count,
                 MIN(r.filed_at)::date                              AS first_signal_date,
+                MAX(r.filed_at)::date                              AS last_signal_date,
                 COUNT(DISTINCT date_trunc('quarter', r.filed_at))::int AS quarter_count,
-                SUM(r.is_constraint_kw)::int                       AS constraint_keyword_count
+                SUM(r.is_constraint_kw)::int                       AS constraint_keyword_count,
+                -- Signals in the most recent 90 days vs the full window.
+                -- Used downstream to compute a recency weight so new surges
+                -- outrank old persistent themes with large historical doc counts.
+                COUNT(DISTINCT r.document_id) FILTER (
+                    WHERE r.filed_at >= %s - INTERVAL '90 days'
+                )::int                                             AS recent_doc_count
             FROM raw r
             JOIN sig_json sj ON sj.canonical_name = r.canonical_name
+            JOIN company_counts cc ON cc.canonical_name = r.canonical_name
+            CROSS JOIN total_cos tc
             GROUP BY r.canonical_name, r.entity_type,
-                     sj.signal_type_counts, sj.total_signals
+                     sj.signal_type_counts, sj.total_signals,
+                     cc.n_cos, tc.total
             HAVING SUM(r.is_capex) + sj.total_signals >= %s
-            ORDER BY sj.total_signals DESC
-            LIMIT %s
+              -- Ubiquity guard: entities in >22%% of all companies are boilerplate.
+              -- With TECHNOLOGY/SECTOR/PRODUCT types this rarely filters real themes.
+              AND (cc.n_cos::float / NULLIF(tc.total, 0)) < 0.22
+            -- Order by investment-signal breadth (company count for capex/demand signals)
+            -- then by recency. Real emerging themes have both breadth AND freshness.
+            ORDER BY cc.n_cos DESC, sj.total_signals DESC
         """
+        params = [signal_types, since_date, as_of_date,
+                  country, country,
+                  as_of_date,       # recent_doc_count FILTER (as_of - 90d)
+                  min_signal_count]
+        if limit is not None:
+            sql += "\n            LIMIT %s"
+            params.append(limit)
         with self._conn() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute(sql, (signal_types, since_date, as_of_date,
-                                  country, country,
-                                  min_signal_count, limit))
+                cur.execute(sql, params)
+                return [dict(r) for r in cur.fetchall()]
+
+    def get_companies_by_theme_entity(
+        self,
+        entity_keywords: list[str],
+        since_date,
+        as_of_date,
+        country: str = None,
+        min_mentions: int = 2,
+    ) -> list[dict]:
+        """Find companies whose documents explicitly contain a theme entity
+        AND have at least one investment-relevant signal in the same window.
+
+        This is Beneficiary Strategy 4: catches companies like Shakti Pumps (solar)
+        where the keyword appears in extracted entities but NOT always in the
+        200-char signal context window that Strategy 1 requires.
+
+        Returns: list of {company, ticker, entity_mentions, signal_count, filed_at_max}
+        """
+        if not entity_keywords:
+            return []
+        from psycopg2.extras import RealDictCursor
+        kw_patterns = [f"%{kw}%" for kw in entity_keywords]
+        # Build OR conditions for each keyword
+        kw_conditions = " OR ".join(
+            "lower(e.canonical_name) LIKE %s" for _ in kw_patterns
+        )
+        country_clause = "AND d.country = %s" if country else ""
+        sql = f"""
+            SELECT
+                COALESCE(NULLIF(d.company,''), d.ticker)  AS company,
+                d.ticker,
+                COUNT(DISTINCT de.id)                     AS entity_mentions,
+                COUNT(DISTINCT s.id)                      AS signal_count,
+                MAX(d.filed_at)::date                     AS filed_at_max
+            FROM mg_document_entities de
+            JOIN mg_entities e  ON e.id = de.entity_id
+            JOIN mg_documents d ON d.id = de.document_id
+            -- Only count if there's also an investment signal in the same doc window
+            JOIN mg_signals s   ON s.document_id = d.id
+                AND s.signal_type IN (
+                    'demand_surge','supply_bottleneck','capex_increase',
+                    'technology_adoption','regulatory_tailwind',
+                    'hiring_surge','market_entry'
+                )
+            WHERE ({kw_conditions})
+              AND d.filed_at >= %s AND d.filed_at <= %s
+              {country_clause}
+              AND COALESCE(NULLIF(d.company,''), d.ticker) IS NOT NULL
+            GROUP BY d.company, d.ticker
+            HAVING COUNT(DISTINCT de.id) >= %s
+            ORDER BY entity_mentions DESC
+            LIMIT 100
+        """
+        params = kw_patterns + [since_date, as_of_date]
+        if country:
+            params.append(country)
+        params.append(min_mentions)
+        with self._conn() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(sql, params)
                 return [dict(r) for r in cur.fetchall()]
 
     def get_entities_in_window(self, since_date, as_of_date, country: str = None) -> list[dict]:
@@ -2944,39 +3179,71 @@ class PGStore:
                 # actually relevant during that period, not just the latest run.
                 # Falls back to the full set if nothing matches (e.g. fresh DB).
                 cur.execute(
-                    """SELECT tb.theme_id, tb.entity_id, tb.ticker, tb.company_name,
+                    """WITH co_sigs AS (
+                           -- Total signals per company IN THE SELECTED WINDOW.
+                           -- Using window-scoped total prevents 6-year veterans from
+                           -- dominating recent-company rankings: a company listed in 2026
+                           -- competes on equal footing with one listed in 2020 when the
+                           -- user selects a 2026-only date range.
+                           SELECT COALESCE(NULLIF(d.company,''), d.ticker) AS co,
+                                  COUNT(*) AS total_sigs
+                           FROM mg_signals s
+                           JOIN mg_documents d ON d.id = s.document_id
+                           WHERE d.country = %s
+                             AND d.filed_at BETWEEN %s AND %s
+                           GROUP BY 1
+                       )
+                       SELECT tb.theme_id, tb.entity_id, tb.ticker, tb.company_name,
                               tb.beneficiary_type, tb.company_role,
-                              tb.relevance_score, tb.signal_count,
+                              tb.relevance_score,
+                              -- Window-scoped total replaces all-time stored signal_count.
+                              -- This makes rankings year-specific: selecting 2024 shows
+                              -- companies active IN 2024, not their entire history.
+                              COALESCE(cs.total_sigs, tb.signal_count) AS signal_count,
                               tb.rank_in_theme, tb.capex_signals,
-                              tb.first_seen_at
+                              tb.first_seen_at,
+                              COALESCE(cs.total_sigs, 0) AS company_total_signals
                        FROM mg_theme_beneficiaries tb
                        JOIN mg_themes t ON t.id = tb.theme_id
+                       LEFT JOIN co_sigs cs ON cs.co = tb.company_name
                        WHERE t.is_active = TRUE
                          AND t.country = %s
-                         AND tb.ticker IS NOT NULL
-                         AND tb.ticker != ''
+                         AND tb.company_name IS NOT NULL
+                         AND tb.company_name != ''
                          AND tb.first_seen_at <= %s AND tb.last_seen_at >= %s
                        ORDER BY tb.theme_id, tb.rank_in_theme""",
-                    (country, date_to, date_from),
+                    (country, date_from, date_to,
+                     country, date_to, date_from),
                 )
                 beneficiaries = [dict(r) for r in cur.fetchall()]
 
                 # Fall back if no date-scoped beneficiaries (fresh pipeline run)
                 if not beneficiaries:
                     cur.execute(
-                        """SELECT tb.theme_id, tb.entity_id, tb.ticker, tb.company_name,
+                        """WITH co_sigs AS (
+                               SELECT COALESCE(NULLIF(d.company,''), d.ticker) AS co,
+                                      COUNT(*) AS total_sigs
+                               FROM mg_signals s
+                               JOIN mg_documents d ON d.id = s.document_id
+                               WHERE d.country = %s
+                               GROUP BY 1
+                           )
+                           SELECT tb.theme_id, tb.entity_id, tb.ticker, tb.company_name,
                                   tb.beneficiary_type, tb.company_role,
-                                  tb.relevance_score, tb.signal_count,
+                                  tb.relevance_score,
+                                  COALESCE(cs.total_sigs, tb.signal_count) AS signal_count,
                                   tb.rank_in_theme, tb.capex_signals,
-                                  tb.first_seen_at
+                                  tb.first_seen_at,
+                                  COALESCE(cs.total_sigs, 0) AS company_total_signals
                            FROM mg_theme_beneficiaries tb
                            JOIN mg_themes t ON t.id = tb.theme_id
+                           LEFT JOIN co_sigs cs ON cs.co = tb.company_name
                            WHERE t.is_active = TRUE
                              AND t.country = %s
-                             AND tb.ticker IS NOT NULL
-                             AND tb.ticker != ''
+                             AND tb.company_name IS NOT NULL
+                             AND tb.company_name != ''
                            ORDER BY tb.theme_id, tb.rank_in_theme""",
-                        (country,),
+                        (country, country),
                     )
                     beneficiaries = [dict(r) for r in cur.fetchall()]
 
