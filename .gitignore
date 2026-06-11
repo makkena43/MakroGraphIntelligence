@@ -42,3 +42,6 @@ data/india/*.pdf
 .env
 *.env
 config/secrets.yaml
+
+# Local secrets file (gitignored — copy from secrets.json.example)
+config/secrets.json

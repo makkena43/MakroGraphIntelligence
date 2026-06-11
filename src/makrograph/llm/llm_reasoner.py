@@ -11,6 +11,7 @@ Supported providers:
     anthropic  — Claude 3 Haiku / Sonnet / Opus
     openai     — GPT-4o / GPT-4o-mini
     deepseek   — DeepSeek-V3 / DeepSeek-R1 (OpenAI-compatible API)
+    gemini     — Google Gemini Flash / Pro (REST API, no SDK needed)
 
 Budget protection:
     - Token tracking per task type
@@ -83,6 +84,29 @@ class LLMReasoner:
             "- Bad examples: 'Technology', 'Supply Chain', 'AI Growth'\n\n"
             "Respond with ONLY the canonical name — no explanation, no punctuation at the end."
         ),
+        "gemini_themes_analysis": (
+            "You are an expert macro investment analyst. The following investment themes were "
+            "auto-detected from {market} market company filings and earnings data over multiple quarters.\n\n"
+            "SHORTLISTED THEMES ({n_themes} themes):\n{themes_text}\n\n"
+            "Provide a concise investment analysis covering:\n"
+            "1. Top 3 themes with the strongest multi-year investment case (2-3 sentences each)\n"
+            "2. Cross-theme connections and amplifying factors\n"
+            "3. Key macro risks to monitor across these themes\n"
+            "4. Sector rotation implications\n\n"
+            "Be specific, data-driven, and actionable. Write for a professional equity investor."
+        ),
+        "gemini_stocks_analysis": (
+            "You are an expert thematic portfolio manager. The following stocks were ranked using "
+            "multi-factor thematic analysis of {market} market company filings.\n\n"
+            "ACTIVE THEMES:\n{themes_text}\n\n"
+            "TOP RANKED STOCKS:\n{stocks_text}\n\n"
+            "Provide:\n"
+            "1. Top 5 high-conviction positions with brief rationale (1-2 sentences each)\n"
+            "2. Portfolio construction guidance (supply chain vs end beneficiary vs direct plays)\n"
+            "3. Key theme concentration risks to hedge\n"
+            "4. One contrarian view worth considering\n\n"
+            "Be concise and actionable. Write for a professional portfolio manager."
+        ),
     }
 
     def __init__(self, config: dict):
@@ -96,6 +120,7 @@ class LLMReasoner:
         # Cost per 1K tokens (approximate)
         self._cost_per_1k = config.get("llm_cost_per_1k_tokens", 0.00025)
 
+        self._gemini_api_key: str = config.get("gemini_api_key", "")
         self._cache: dict[str, str] = {}
         self._daily_cost: float = 0.0
         self._daily_calls: int = 0
@@ -148,6 +173,13 @@ class LLMReasoner:
             except Exception as e:
                 logger.warning(f"DeepSeek client init failed: {e}")
                 self._client = None
+        elif self.provider == "gemini":
+            import os
+            api_key = self._gemini_api_key or os.environ.get("GEMINI_API_KEY", "")
+            if not api_key:
+                logger.warning("Gemini API key not configured. Set gemini_api_key in config or GEMINI_API_KEY env var.")
+            self._client = {"api_key": api_key}
+            logger.info(f"Gemini client configured (model: {self.model})")
 
     def _cache_key(self, task: str, payload: dict) -> str:
         raw = task + json.dumps(payload, sort_keys=True)
@@ -195,6 +227,33 @@ class LLMReasoner:
                 text = response.choices[0].message.content
                 in_tokens = response.usage.prompt_tokens
                 out_tokens = response.usage.completion_tokens
+
+            elif self.provider == "gemini":
+                import requests as _requests
+                api_key = self._client.get("api_key", "")
+                url = (
+                    f"https://generativelanguage.googleapis.com/v1beta/models/"
+                    f"{self.model}:generateContent"
+                )
+                payload = {
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {
+                        "temperature": self.temperature,
+                        "maxOutputTokens": self.max_tokens,
+                    },
+                }
+                resp = _requests.post(
+                    url,
+                    headers={"Content-Type": "application/json", "X-goog-api-key": api_key},
+                    json=payload,
+                    timeout=60,
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                text = data["candidates"][0]["content"]["parts"][0]["text"]
+                usage = data.get("usageMetadata", {})
+                in_tokens = usage.get("promptTokenCount", len(prompt.split()))
+                out_tokens = usage.get("candidatesTokenCount", len(text.split()))
 
             else:
                 return None
@@ -399,6 +458,69 @@ class LLMReasoner:
                     ))
         except Exception as e:
             logger.warning(f"LLM log write failed: {e}")
+
+    def analyze_shortlisted(
+        self,
+        themes: list,
+        stocks: list,
+        country: str = "US",
+    ) -> Optional[str]:
+        """Call Gemini to generate an investment analysis of shortlisted themes + ranked stocks.
+
+        Args:
+            themes: List of theme dicts from pg_store.get_shortlisted_themes()
+            stocks:  List of RankedStock objects from RankingEngine.run() (may be empty)
+            country: ISO-2 market code (US | IN)
+        Returns:
+            Gemini analysis text, or None if disabled / error.
+        """
+        market = "India (NSE/BSE)" if country == "IN" else "USA (NYSE/NASDAQ)"
+
+        # Build themes summary
+        themes_lines = []
+        for i, t in enumerate(themes[:15], 1):
+            name = t.get("theme_name", "") if isinstance(t, dict) else getattr(t, "theme_name", "")
+            conviction = (t.get("conviction", "") if isinstance(t, dict) else getattr(t, "conviction", "")).upper()
+            score = float(t.get("strength_score") or 0) if isinstance(t, dict) else float(getattr(t, "strength_score", 0) or 0)
+            quarters = int(t.get("confirmed_quarters") or 0) if isinstance(t, dict) else int(getattr(t, "confirmed_quarters", 0) or 0)
+            cos = int(t.get("company_count") or 0) if isinstance(t, dict) else int(getattr(t, "company_count", 0) or 0)
+            themes_lines.append(
+                f"{i}. {name} [{conviction}] | Score: {score:.0f} | {quarters}Q | {cos} companies"
+            )
+        themes_text = "\n".join(themes_lines) if themes_lines else "No shortlisted themes available yet."
+
+        # Build stocks summary
+        stocks_lines = []
+        for s in (stocks or [])[:20]:
+            ticker = getattr(s, "ticker", "")
+            company = getattr(s, "company_name", "")
+            role = getattr(s, "company_role", "")
+            score = getattr(s, "final_score", 0)
+            theme_list = getattr(s, "themes", [])[:3]
+            stocks_lines.append(
+                f"  {ticker} ({company}) | {role} | Score: {score:.4f} | Themes: {', '.join(theme_list)}"
+            )
+        stocks_text = "\n".join(stocks_lines) if stocks_lines else "No ranked stocks available yet."
+
+        if stocks:
+            payload = {"themes_text": themes_text, "stocks_text": stocks_text, "market": market}
+            cache_key = self._cache_key("gemini_stocks_analysis", payload)
+            if cache_key in self._cache:
+                return self._cache[cache_key]
+            prompt = self.TASK_PROMPTS["gemini_stocks_analysis"].format(**payload)
+            task = "gemini_stocks_analysis"
+        else:
+            payload = {"themes_text": themes_text, "n_themes": len(themes), "market": market}
+            cache_key = self._cache_key("gemini_themes_analysis", payload)
+            if cache_key in self._cache:
+                return self._cache[cache_key]
+            prompt = self.TASK_PROMPTS["gemini_themes_analysis"].format(**payload)
+            task = "gemini_themes_analysis"
+
+        result = self._call_llm(prompt, task)
+        if result:
+            self._cache[cache_key] = result
+        return result
 
     @property
     def budget_status(self) -> dict:

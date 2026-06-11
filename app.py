@@ -60,8 +60,35 @@ for _mod_name in [
 # ── load config ──────────────────────────────────────────────────────────────
 @st.cache_resource(show_spinner=False)
 def load_config():
+    import os, json
     with open(ROOT / "config" / "settings.yaml") as f:
-        return yaml.safe_load(f)
+        cfg = yaml.safe_load(f)
+    # Merge secrets.json (gitignored) — deep merge into cfg
+    secrets_path = ROOT / "config" / "secrets.json"
+    if secrets_path.exists():
+        with open(secrets_path) as f:
+            secrets = json.load(f)
+        for section, values in secrets.items():
+            if section.startswith("_"):
+                continue
+            if isinstance(values, dict):
+                cfg.setdefault(section, {}).update(
+                    {k: v for k, v in values.items() if v}
+                )
+    # Environment variables override secrets.json (highest priority)
+    _env_overrides = {
+        ("neo4j",       "password"):  "MAKROGRAPH_NEO4J_PASSWORD",
+        ("postgresql",  "password"):  "MAKROGRAPH_PG_PASSWORD",
+        ("gemini",      "api_key"):   "GEMINI_API_KEY",
+        ("fred",        "api_key"):   "FRED_API_KEY",
+        ("eia",         "api_key"):   "EIA_API_KEY",
+        ("congress",    "api_key"):   "CONGRESS_API_KEY",
+    }
+    for (section, key), env_var in _env_overrides.items():
+        val = os.environ.get(env_var)
+        if val:
+            cfg.setdefault(section, {})[key] = val
+    return cfg
 
 cfg = load_config()
 
@@ -124,6 +151,25 @@ def _capture_logs():
         yield handler
     finally:
         root.removeHandler(handler)
+
+
+def _call_gemini_api(prompt: str, api_key: str, model: str = "gemini-flash-latest") -> str:
+    """POST a prompt to the Google Gemini REST API and return the response text."""
+    import requests as _req
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.4, "maxOutputTokens": 1200},
+    }
+    resp = _req.post(
+        url,
+        headers={"Content-Type": "application/json", "X-goog-api-key": api_key},
+        json=payload,
+        timeout=60,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    return data["candidates"][0]["content"]["parts"][0]["text"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -584,6 +630,9 @@ with st.sidebar:
 🚀 <b>Pipeline Runner</b> — run ingest + NLP + themes<br>
 📞 <b>Concall Analysis</b> — browse filings by date<br>
 🗺️ <b>Themes & Companies</b> — detected macro themes<br>
+⭐ <b>Shortlisted Themes</b> — persisted multi-quarter themes<br>
+🏆 <b>Stock Rankings</b> — thematic stock ranking<br>
+🤖 <b>AI Analysis</b> — Gemini: themes + bottlenecks + stocks<br>
 🌐 <b>Macro & Policy</b> — FRED, EIA, Congress data<br>
 🏢 <b>Company Explorer</b> — per-ticker deep-dive
 </div>""",
@@ -627,12 +676,13 @@ with st.sidebar:
 # TABS  (5 tabs)
 # ─────────────────────────────────────────────────────────────────────────────
 
-tab_run, tab_concall, tab_themes, tab_shortlisted, tab_ranking, tab_macro, tab_company = st.tabs([
+tab_run, tab_concall, tab_themes, tab_shortlisted, tab_ranking, tab_ai, tab_macro, tab_company = st.tabs([
     "🚀  Pipeline Runner",
     "📞  Concall & Filings",
     "🗺️  Themes & Companies",
     "⭐  Shortlisted Themes",
     "🏆  Stock Rankings",
+    "🤖  AI Analysis",
     "🌐  Macro & Policy",
     "🏢  Company Explorer",
 ])
@@ -2923,6 +2973,80 @@ with tab_shortlisted:
                     },
                 )
 
+        # ── Gemini AI Analysis ────────────────────────────────────────────────
+        st.markdown("---")
+        _sl_gemini_key   = cfg.get("gemini", {}).get("api_key", "")
+        _sl_gemini_model = cfg.get("gemini", {}).get("model", "gemini-flash-latest")
+
+        st.markdown(
+            '<div style="background:#0f172a;border-left:3px solid #a855f7;border-radius:8px;'
+            'padding:8px 16px;margin-bottom:12px">'
+            '<span style="font-size:0.92rem;font-weight:700;color:#f1f5f9">🤖 Gemini AI Analysis</span>'
+            f'<span style="font-size:0.75rem;color:#64748b;margin-left:10px">'
+            f'Google Gemini Flash · {COUNTRY_LABEL} · {len(sl_themes)} shortlisted themes</span>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+
+        if not _sl_gemini_key:
+            st.caption("💡 Set `gemini.api_key` in `config/settings.yaml` to enable Gemini analysis.")
+        else:
+            _sl_gcol1, _sl_gcol2 = st.columns([1, 5])
+            with _sl_gcol1:
+                _sl_run_gem = st.button(
+                    "✨ Run Gemini Analysis",
+                    key="sl_gemini_run",
+                    type="primary",
+                    help="Send shortlisted themes to Google Gemini Flash for investment analysis",
+                )
+            with _sl_gcol2:
+                if st.session_state.get("sl_gemini_analysis"):
+                    if st.button("🗑  Clear", key="sl_gemini_clear"):
+                        st.session_state.pop("sl_gemini_analysis", None)
+                        st.rerun()
+
+            if _sl_run_gem:
+                with st.spinner("Calling Google Gemini API…"):
+                    try:
+                        _sl_theme_lines = []
+                        for _si, _st_t in enumerate(sl_themes[:15], 1):
+                            _sl_theme_lines.append(
+                                f"{_si}. {_st_t.get('theme_name','')} "
+                                f"[{(_st_t.get('conviction') or '').upper()}] "
+                                f"| Score: {float(_st_t.get('strength_score') or 0):.0f} "
+                                f"| {int(_st_t.get('confirmed_quarters') or 0)} quarters "
+                                f"| {int(_st_t.get('company_count') or 0)} companies"
+                            )
+                        _sl_themes_block = "\n".join(_sl_theme_lines) or "No themes available."
+                        _sl_market = "India (NSE/BSE)" if COUNTRY_CODE == "IN" else "USA (NYSE/NASDAQ)"
+                        _sl_prompt = (
+                            f"You are an expert macro investment analyst. The following investment themes "
+                            f"were auto-detected from {_sl_market} market company filings and earnings data.\n\n"
+                            f"SHORTLISTED THEMES ({len(sl_themes)} themes):\n{_sl_themes_block}\n\n"
+                            "Provide a concise investment analysis covering:\n"
+                            "1. Top 3 themes with the strongest multi-year investment case (2-3 sentences each)\n"
+                            "2. Cross-theme connections and amplifying factors\n"
+                            "3. Key macro risks to monitor\n"
+                            "4. Sector rotation implications\n\n"
+                            "Be specific, data-driven, and actionable. Write for a professional equity investor."
+                        )
+                        st.session_state["sl_gemini_analysis"] = _call_gemini_api(
+                            _sl_prompt, _sl_gemini_key, _sl_gemini_model
+                        )
+                    except Exception as _sl_ge:
+                        st.error(f"Gemini API error: {_sl_ge}")
+
+            if st.session_state.get("sl_gemini_analysis"):
+                st.markdown(
+                    '<div style="border-left:3px solid #a855f7;background:#1e0a3b;'
+                    'border-radius:0 8px 8px 0;padding:6px 14px 2px 14px;margin-bottom:4px">'
+                    '<span style="font-size:0.70rem;font-weight:700;color:#a855f7;'
+                    'text-transform:uppercase;letter-spacing:.08em">🤖 Gemini Flash — Investment Analysis</span>'
+                    '</div>',
+                    unsafe_allow_html=True,
+                )
+                st.markdown(st.session_state["sl_gemini_analysis"])
+
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # TAB — STOCK RANKINGS
@@ -3357,6 +3481,92 @@ with tab_ranking:
                         hide_index=True,
                     )
 
+            # ━━ Section F: Gemini AI Analysis ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            st.markdown("---")
+            _rk_gemini_key   = cfg.get("gemini", {}).get("api_key", "")
+            _rk_gemini_model = cfg.get("gemini", {}).get("model", "gemini-flash-latest")
+
+            st.markdown(
+                '<div style="background:#0f172a;border-left:3px solid #a855f7;border-radius:8px;'
+                'padding:8px 16px;margin-bottom:12px">'
+                '<span style="font-size:0.92rem;font-weight:700;color:#f1f5f9">🤖 Gemini AI Analysis</span>'
+                f'<span style="font-size:0.75rem;color:#64748b;margin-left:10px">'
+                f'Google Gemini Flash · {COUNTRY_LABEL} · {len(rk_themes_res)} themes · '
+                f'{len(_display_stocks)} stocks</span>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+
+            if not _rk_gemini_key:
+                st.caption("💡 Set `gemini.api_key` in `config/settings.yaml` to enable Gemini analysis.")
+            else:
+                _rk_gcol1, _rk_gcol2 = st.columns([1, 5])
+                with _rk_gcol1:
+                    _rk_run_gem = st.button(
+                        "✨ Run Gemini Analysis",
+                        key="rk_gemini_run",
+                        type="primary",
+                        help="Send ranked themes + stocks to Google Gemini Flash for portfolio analysis",
+                    )
+                with _rk_gcol2:
+                    if st.session_state.get("rk_gemini_analysis"):
+                        if st.button("🗑  Clear", key="rk_gemini_clear"):
+                            st.session_state.pop("rk_gemini_analysis", None)
+                            st.rerun()
+
+                if _rk_run_gem:
+                    with st.spinner("Calling Google Gemini API…"):
+                        try:
+                            _rk_theme_lines = []
+                            for _ri, _rt in enumerate(rk_themes_res[:15], 1):
+                                _rk_theme_lines.append(
+                                    f"{_ri}. {_rt.theme_name} [{_rt.conviction.upper()}] "
+                                    f"| RankScore: {_rt.rank_score_pct:.1f} "
+                                    f"| Momentum: {_rt.momentum:.3f} "
+                                    f"| {getattr(_rt, 'company_count', 0)} companies"
+                                )
+                            _rk_themes_block = "\n".join(_rk_theme_lines) or "No themes ranked yet."
+
+                            _rk_stock_lines = []
+                            for _rs in _display_stocks[:20]:
+                                _rk_stock_lines.append(
+                                    f"  #{_rs.rank} {_rs.ticker} ({_rs.company_name}) "
+                                    f"| {_rs.company_role} | Score: {_rs.final_score:.4f} "
+                                    f"| Themes: {', '.join(_rs.themes[:3])}"
+                                )
+                            _rk_stocks_block = "\n".join(_rk_stock_lines) or "No stocks ranked yet."
+
+                            _rk_market = "India (NSE/BSE)" if COUNTRY_CODE == "IN" else "USA (NYSE/NASDAQ)"
+                            _rk_prompt = (
+                                f"You are an expert thematic portfolio manager. The following stocks were "
+                                f"ranked using multi-factor thematic analysis of {_rk_market} company filings.\n\n"
+                                f"ACTIVE THEMES ({len(rk_themes_res)} themes):\n{_rk_themes_block}\n\n"
+                                f"TOP RANKED STOCKS:\n{_rk_stocks_block}\n\n"
+                                "Provide:\n"
+                                "1. Top 5 high-conviction positions with brief rationale (1-2 sentences each)\n"
+                                "2. Portfolio construction guidance (supply chain vs end beneficiary vs direct plays)\n"
+                                "3. Key theme concentration risks to hedge\n"
+                                "4. One contrarian view worth considering\n\n"
+                                "Be concise and actionable. Write for a professional portfolio manager."
+                            )
+                            st.session_state["rk_gemini_analysis"] = _call_gemini_api(
+                                _rk_prompt, _rk_gemini_key, _rk_gemini_model
+                            )
+                        except Exception as _rk_ge:
+                            st.error(f"Gemini API error: {_rk_ge}")
+
+                if st.session_state.get("rk_gemini_analysis"):
+                    st.markdown(
+                        '<div style="border-left:3px solid #a855f7;background:#1e0a3b;'
+                        'border-radius:0 8px 8px 0;padding:6px 14px 2px 14px;margin-bottom:4px">'
+                        '<span style="font-size:0.70rem;font-weight:700;color:#a855f7;'
+                        'text-transform:uppercase;letter-spacing:.08em">'
+                        '🤖 Gemini Flash — Portfolio Analysis</span>'
+                        '</div>',
+                        unsafe_allow_html=True,
+                    )
+                    st.markdown(st.session_state["rk_gemini_analysis"])
+
     else:
         # Pre-run placeholder
         st.markdown(
@@ -3373,6 +3583,388 @@ with tab_ranking:
             '</div>',
             unsafe_allow_html=True,
         )
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# TAB — AI ANALYSIS (Gemini)
+# Comprehensive AI analysis of all themes, bottlenecks, and ranked stocks
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+with tab_ai:
+    import json as _json_ai
+    from datetime import date as _date_ai, timedelta as _td_ai
+
+    _ai_gemini_key   = cfg.get("gemini", {}).get("api_key", "")
+    _ai_gemini_model = cfg.get("gemini", {}).get("model", "gemini-flash-latest")
+    _ai_market = "India (NSE/BSE)" if COUNTRY_CODE == "IN" else "USA (NYSE/NASDAQ)"
+
+    st.markdown(
+        f'<div style="background:#1e1b6b;border-left:3px solid #818cf8;border-radius:6px;'
+        f'padding:6px 14px;margin-bottom:10px;font-size:0.80rem;color:#c7d2fe">'
+        f'{COUNTRY_FLAG} AI Analysis for <b>{COUNTRY_LABEL}</b> — '
+        f'change market in the sidebar ←</div>',
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        '<div style="background:#1a0a2e;border-left:3px solid #a855f7;border-radius:6px;'
+        'padding:8px 16px;margin-bottom:16px;font-size:0.82rem;color:#e9d5ff">'
+        '🤖 <b>AI Analysis</b> — Comprehensive Gemini Flash analysis covering all detected themes, '
+        'supply-chain bottlenecks, shortlisted multi-quarter themes, and ranked stocks. '
+        'One click → full professional investment brief.</div>',
+        unsafe_allow_html=True,
+    )
+
+    # ── Load data independently ────────────────────────────────────────────────
+    _ai_all_themes = load_themes(min_strength=0.0, country=COUNTRY_CODE)
+    _ai_sl_themes  = load_shortlisted_themes(min_quarters=2, country=COUNTRY_CODE)
+
+    # Identify bottleneck themes from metadata
+    _ai_bottlenecks = []
+    for _t in _ai_all_themes:
+        _bmeta = _t.get("metadata") or {}
+        if isinstance(_bmeta, str):
+            try:
+                _bmeta = _json_ai.loads(_bmeta)
+            except Exception:
+                _bmeta = {}
+        if (
+            _bmeta.get("theme_type") == "bottleneck"
+            or _bmeta.get("is_bottleneck")
+            or _bmeta.get("constraint_kw_count", 0) >= 3
+        ):
+            _ai_bottlenecks.append(_t)
+
+    # ── KPI cards ─────────────────────────────────────────────────────────────
+    _ai_c1, _ai_c2, _ai_c3, _ai_c4 = st.columns(4)
+    for _col, _val, _lbl, _clr in [
+        (_ai_c1, len(_ai_all_themes),   "Active Themes",      "#818cf8"),
+        (_ai_c2, len(_ai_bottlenecks),  "Bottleneck Themes",  "#f59e0b"),
+        (_ai_c3, len(_ai_sl_themes),    "Shortlisted Themes", "#22c55e"),
+        (_ai_c4, "Flash",               "Gemini Model",       "#a855f7"),
+    ]:
+        with _col:
+            st.markdown(
+                f'<div class="kpi-card">'
+                f'<div class="kpi-num" style="color:{_clr}">{_val}</div>'
+                f'<div class="kpi-label">{_lbl}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+
+    if not _ai_gemini_key:
+        st.warning(
+            "⚠️ **Gemini API key not configured.**  "
+            "Set `gemini.api_key` in `config/settings.yaml` to enable AI analysis.",
+            icon="🔑",
+        )
+    elif not _ai_all_themes and not _ai_sl_themes:
+        st.info(
+            "No themes detected yet. Run the pipeline (🚀 Pipeline Runner tab) "
+            "to populate themes first.",
+            icon="ℹ️",
+        )
+    else:
+        # ── Analysis mode selector ─────────────────────────────────────────────
+        _ai_mode = st.radio(
+            "Analysis mode",
+            [
+                "🔍 Theme Focus — in-depth analysis of all active themes + connections",
+                "⚠️ Bottleneck Focus — supply constraint, risk & second-order effects",
+                "🏆 Portfolio Focus — ranked stocks, positioning & construction guidance",
+                "🌐 Master Analysis — all themes + bottlenecks + stocks (comprehensive brief)",
+            ],
+            index=3,
+            key="ai_mode_selector",
+            help=(
+                "Theme Focus: full theme landscape analysis.\n"
+                "Bottleneck Focus: supply constraint deep-dive.\n"
+                "Portfolio Focus: stock picking and sizing.\n"
+                "Master Analysis: all-in-one investment brief."
+            ),
+        )
+
+        # ── Action buttons ─────────────────────────────────────────────────────
+        _ai_btn_c1, _ai_btn_c2, _ai_btn_spacer = st.columns([1, 1, 4])
+        with _ai_btn_c1:
+            _ai_run = st.button(
+                "✨ Run AI Analysis",
+                key="ai_run_btn",
+                type="primary",
+                help="Send all pipeline data to Gemini Flash and generate investment analysis",
+            )
+        with _ai_btn_c2:
+            if st.session_state.get("ai_analysis_result"):
+                if st.button("🗑  Clear result", key="ai_clear_btn"):
+                    st.session_state.pop("ai_analysis_result", None)
+                    st.session_state.pop("ai_analysis_meta", None)
+                    st.rerun()
+
+        # ── Execute ────────────────────────────────────────────────────────────
+        if _ai_run:
+            with st.spinner("🤖 Building context and calling Gemini Flash…"):
+                try:
+                    # ── Build all-themes block ─────────────────────────────────
+                    _ai_theme_lines = []
+                    for _i, _t in enumerate(_ai_all_themes[:25], 1):
+                        _m = _t.get("metadata") or {}
+                        if isinstance(_m, str):
+                            try:
+                                _m = _json_ai.loads(_m)
+                            except Exception:
+                                _m = {}
+                        _ttype = _m.get("theme_type", "auto")
+                        _bn_flag = " 🔴[BOTTLENECK]" if (
+                            _m.get("is_bottleneck") or _ttype == "bottleneck"
+                            or _m.get("constraint_kw_count", 0) >= 3
+                        ) else ""
+                        _ai_theme_lines.append(
+                            f"{_i}. {_t.get('theme_name', '')} "
+                            f"[{(_t.get('conviction') or 'emerging').upper()}]{_bn_flag} "
+                            f"| Score:{float(_t.get('strength_score') or 0):.0f} "
+                            f"| Q:{int(_t.get('confirmed_quarters') or 0)} "
+                            f"| Cos:{int(_t.get('company_count') or 0)} "
+                            f"| Type:{_ttype}"
+                        )
+                    _ai_themes_block = "\n".join(_ai_theme_lines) or "No themes detected."
+
+                    # ── Build shortlisted block ────────────────────────────────
+                    _ai_sl_lines = []
+                    for _i, _t in enumerate(_ai_sl_themes[:15], 1):
+                        _ai_sl_lines.append(
+                            f"{_i}. {_t.get('theme_name', '')} "
+                            f"[{(_t.get('conviction') or 'emerging').upper()}] "
+                            f"| Score:{float(_t.get('strength_score') or 0):.0f} "
+                            f"| {int(_t.get('confirmed_quarters') or 0)} quarters "
+                            f"| {int(_t.get('company_count') or 0)} companies"
+                        )
+                    _ai_sl_block = "\n".join(_ai_sl_lines) or "No shortlisted themes yet."
+
+                    # ── Build bottleneck block ─────────────────────────────────
+                    _ai_bn_lines = []
+                    for _i, _t in enumerate(_ai_bottlenecks[:10], 1):
+                        _ai_bn_lines.append(
+                            f"{_i}. {_t.get('theme_name', '')} "
+                            f"| Score:{float(_t.get('strength_score') or 0):.0f} "
+                            f"| Companies:{int(_t.get('company_count') or 0)}"
+                        )
+                    _ai_bn_block = (
+                        "\n".join(_ai_bn_lines)
+                        if _ai_bn_lines else "No bottleneck themes detected."
+                    )
+
+                    # ── Fetch ranked stocks (best-effort) ──────────────────────
+                    _ai_stocks_block = (
+                        "No ranked stocks available — open 🏆 Stock Rankings tab "
+                        "and click ▶ Run Ranking first, or wait for the pipeline to complete."
+                    )
+                    _ai_stock_count = 0
+                    if pg:
+                        try:
+                            from makrograph.ranking import RankingEngine as _AI_RE
+                            _ai_engine = _AI_RE(pg)
+                            _, _ai_rk_stocks = _ai_engine.run(
+                                date_from    = _date_ai.today() - _td_ai(days=730),
+                                date_to      = _date_ai.today(),
+                                top_n_themes = 15,
+                                country      = COUNTRY_CODE,
+                            )
+                            _ai_rk_stocks = list(_ai_rk_stocks)[:20]
+                            if _ai_rk_stocks:
+                                _ai_stock_count = len(_ai_rk_stocks)
+                                _slines = []
+                                for _s in _ai_rk_stocks:
+                                    _slines.append(
+                                        f"  #{_s.rank} {_s.ticker} ({_s.company_name}) "
+                                        f"| {_s.company_role} "
+                                        f"| Score:{_s.final_score:.4f} "
+                                        f"| Themes:{', '.join(_s.themes[:3])}"
+                                    )
+                                _ai_stocks_block = "\n".join(_slines)
+                        except Exception as _ai_re_err:
+                            _ai_stocks_block = (
+                                f"Ranking engine unavailable ({type(_ai_re_err).__name__}). "
+                                "Run 🏆 Stock Rankings tab first."
+                            )
+
+                    # ── Build prompt by mode ────────────────────────────────────
+                    _mode_label = _ai_mode.split("—")[0].strip()
+
+                    if "Theme Focus" in _mode_label:
+                        _ai_prompt = (
+                            f"You are an expert macro investment analyst covering {_ai_market}.\n\n"
+                            f"ALL ACTIVE INVESTMENT THEMES ({len(_ai_all_themes)}):\n"
+                            f"{_ai_themes_block}\n\n"
+                            f"SHORTLISTED THEMES (≥2 sustained quarters, {len(_ai_sl_themes)}):\n"
+                            f"{_ai_sl_block}\n\n"
+                            "Provide a detailed theme analysis:\n"
+                            "1. **Top 5 Themes** with the strongest multi-year investment case "
+                            "(2-3 sentences each — include companies, sectors, time horizon)\n"
+                            "2. **Cross-Theme Connections** — amplifying or conflicting forces\n"
+                            "3. **Emerging Themes** — just appeared or accelerating fast (watch list)\n"
+                            "4. **Key Macro Risks** across these themes\n"
+                            "5. **Sector Rotation Implications** — which sectors to overweight/underweight\n\n"
+                            "Be specific, data-driven, and actionable. Write for a professional equity investor."
+                        )
+
+                    elif "Bottleneck" in _mode_label:
+                        _ai_prompt = (
+                            f"You are an expert macro analyst specializing in supply constraints "
+                            f"and bottlenecks for {_ai_market}.\n\n"
+                            f"ALL ACTIVE THEMES ({len(_ai_all_themes)}):\n{_ai_themes_block}\n\n"
+                            f"IDENTIFIED BOTTLENECK / SUPPLY-CONSTRAINT THEMES ({len(_ai_bottlenecks)}):\n"
+                            f"{_ai_bn_block}\n\n"
+                            "Provide a supply constraint analysis:\n"
+                            "1. **Critical Bottlenecks** — why each matters and expected duration "
+                            "(2-3 sentences each)\n"
+                            "2. **Second-Order Effects** — which downstream sectors are most exposed\n"
+                            "3. **Resolution Timeline** — which constraints ease vs. persist (6–18 month view)\n"
+                            "4. **Beneficiaries** — companies/sectors that profit from constraint resolution\n"
+                            "5. **Hedging Strategies** — how to protect portfolios exposed to these constraints\n\n"
+                            "Be specific and data-driven. Write for a professional risk manager."
+                        )
+
+                    elif "Portfolio" in _mode_label:
+                        _ai_prompt = (
+                            f"You are an expert thematic portfolio manager covering {_ai_market}.\n\n"
+                            f"ACTIVE THEMES ({len(_ai_all_themes)}):\n{_ai_themes_block}\n\n"
+                            f"TOP RANKED STOCKS:\n{_ai_stocks_block}\n\n"
+                            "Provide:\n"
+                            "1. **Top 10 Stock Picks** with brief rationale (1-2 sentences each, "
+                            "include role: supply/demand/direct)\n"
+                            "2. **Portfolio Construction** — tier the positions:\n"
+                            "   - Tier 1 Core (high conviction, full position)\n"
+                            "   - Tier 2 Tactical (medium conviction, half position)\n"
+                            "   - Tier 3 Speculative (asymmetric upside, small position)\n"
+                            "3. **Concentration Risks** — key theme overlaps to hedge\n"
+                            "4. **Sizing Guidance** — suggested % weights per tier\n"
+                            "5. **Contrarian View** — one idea the market is underpricing\n\n"
+                            "Be concise and actionable. Write for a professional portfolio manager."
+                        )
+
+                    else:  # Master Analysis
+                        _ai_prompt = (
+                            f"You are an elite macro investment research team covering {_ai_market}. "
+                            f"Produce a comprehensive investment brief based on this pipeline data.\n\n"
+                            f"=== PIPELINE DATA ===\n\n"
+                            f"ALL ACTIVE THEMES ({len(_ai_all_themes)}, auto-detected from company filings):\n"
+                            f"{_ai_themes_block}\n\n"
+                            f"SUSTAINED SHORTLISTED THEMES (≥2 quarters, {len(_ai_sl_themes)}):\n"
+                            f"{_ai_sl_block}\n\n"
+                            f"SUPPLY-CHAIN BOTTLENECKS ({len(_ai_bottlenecks)}):\n"
+                            f"{_ai_bn_block}\n\n"
+                            f"TOP RANKED STOCKS (thematic multi-factor scoring):\n"
+                            f"{_ai_stocks_block}\n\n"
+                            "=== COMPREHENSIVE INVESTMENT BRIEF ===\n\n"
+                            "**1. MACRO LANDSCAPE** (3-4 sentences)\n"
+                            "   Overall structural forces and investment environment.\n\n"
+                            "**2. TOP 5 CONVICTION THEMES**\n"
+                            "   For each: thesis (2 sentences) | key sectors | time horizon | key risk.\n\n"
+                            "**3. BOTTLENECK & CONSTRAINT ANALYSIS**\n"
+                            "   Critical supply constraints, second-order downstream effects, "
+                            "duration estimates.\n\n"
+                            "**4. TOP 10 STOCK RECOMMENDATIONS**\n"
+                            "   For each: role (supply/demand/direct) | 1-sentence rationale | conviction level.\n\n"
+                            "**5. PORTFOLIO CONSTRUCTION**\n"
+                            "   Tier 1 core | Tier 2 tactical | Tier 3 speculative. "
+                            "Suggested weight ranges.\n\n"
+                            "**6. KEY RISKS & HEDGES**\n"
+                            "   Top 3 macro risks and suggested hedges.\n\n"
+                            "**7. CONTRARIAN VIEW**\n"
+                            "   One underappreciated angle the consensus is missing.\n\n"
+                            "Use markdown headers and bullet points. Be specific, data-driven, actionable."
+                        )
+
+                    _ai_result = _call_gemini_api(_ai_prompt, _ai_gemini_key, _ai_gemini_model)
+                    st.session_state["ai_analysis_result"] = _ai_result
+                    st.session_state["ai_analysis_meta"] = {
+                        "mode":       _ai_mode,
+                        "themes":     len(_ai_all_themes),
+                        "sl":         len(_ai_sl_themes),
+                        "bottlenecks": len(_ai_bottlenecks),
+                        "stocks":     _ai_stock_count,
+                        "market":     _ai_market,
+                        "ts":         datetime.now().strftime("%H:%M:%S"),
+                    }
+
+                except Exception as _ai_err:
+                    st.error(f"Gemini API error: {_ai_err}")
+
+        # ── Display Result ─────────────────────────────────────────────────────
+        if st.session_state.get("ai_analysis_result"):
+            _ai_meta = st.session_state.get("ai_analysis_meta", {})
+            st.markdown(
+                f'<div style="background:#1a0a2e;border:1px solid #7c3aed;border-radius:8px;'
+                f'padding:8px 16px;margin:12px 0 6px 0;display:flex;'
+                f'justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'
+                f'<div>'
+                f'<span style="font-size:0.92rem;font-weight:700;color:#f1f5f9">'
+                f'🤖 Gemini Flash — AI Investment Analysis</span>'
+                f'<span style="font-size:0.72rem;color:#a855f7;margin-left:10px">'
+                f'{_ai_meta.get("mode","")}</span>'
+                f'</div>'
+                f'<div style="font-size:0.70rem;color:#64748b;text-align:right">'
+                f'{_ai_meta.get("market","")} · '
+                f'{_ai_meta.get("themes",0)} themes · '
+                f'{_ai_meta.get("sl",0)} shortlisted · '
+                f'{_ai_meta.get("bottlenecks",0)} bottlenecks · '
+                f'{_ai_meta.get("stocks",0)} stocks · '
+                f'Generated {_ai_meta.get("ts","")}'
+                f'</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                '<div style="background:#0f0a1e;border:1px solid #4c1d95;border-radius:8px;'
+                'padding:20px 26px;margin-top:2px">',
+                unsafe_allow_html=True,
+            )
+            st.markdown(st.session_state["ai_analysis_result"])
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        # ── Data preview (collapsible) ─────────────────────────────────────────
+        with st.expander(
+            f"📊 Data preview — {len(_ai_all_themes)} themes · "
+            f"{len(_ai_bottlenecks)} bottlenecks · "
+            f"{len(_ai_sl_themes)} shortlisted",
+            expanded=False,
+        ):
+            _prev_c1, _prev_c2, _prev_c3 = st.columns(3)
+
+            with _prev_c1:
+                st.markdown(f"**All Active Themes ({len(_ai_all_themes)})**")
+                for _pt in _ai_all_themes[:12]:
+                    _pc = CONVICTION_COLOR.get(_pt.get("conviction", "emerging"), "#6366f1")
+                    st.markdown(
+                        f"- {_pt.get('theme_name','')} "
+                        f"`{(_pt.get('conviction') or 'emerging').upper()}` "
+                        f"· {float(_pt.get('strength_score') or 0):.0f}pts"
+                    )
+                if len(_ai_all_themes) > 12:
+                    st.caption(f"…and {len(_ai_all_themes) - 12} more themes")
+
+            with _prev_c2:
+                st.markdown(f"**Shortlisted (≥2Q, {len(_ai_sl_themes)})**")
+                for _pt in _ai_sl_themes[:12]:
+                    st.markdown(
+                        f"- {_pt.get('theme_name','')} "
+                        f"· {int(_pt.get('confirmed_quarters') or 0)}Q "
+                        f"· {int(_pt.get('company_count') or 0)} cos"
+                    )
+                if len(_ai_sl_themes) > 12:
+                    st.caption(f"…and {len(_ai_sl_themes) - 12} more")
+
+            with _prev_c3:
+                st.markdown(f"**Bottleneck Themes ({len(_ai_bottlenecks)})**")
+                if _ai_bottlenecks:
+                    for _pt in _ai_bottlenecks[:12]:
+                        st.markdown(f"- 🔴 {_pt.get('theme_name','')} · {float(_pt.get('strength_score') or 0):.0f}pts")
+                    if len(_ai_bottlenecks) > 12:
+                        st.caption(f"…and {len(_ai_bottlenecks) - 12} more")
+                else:
+                    st.caption("No bottleneck themes detected yet.")
+
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # TAB 3 — MACRO & POLICY

@@ -80,6 +80,7 @@ class IntelligencePipeline:
         self._macro_store = None
         self._macro_graph = None
         self._constraint_engine = None
+        self._gemini_reasoner = None
 
     # ----------------------------------------------------------
     # INITIALIZATION
@@ -199,6 +200,23 @@ class IntelligencePipeline:
             llm_reasoner=self._llm_reasoner,
             config=self.config.get("graph_rag", {}),
         )
+
+    def _init_gemini(self):
+        """Initialise a dedicated Gemini LLM reasoner for post-pipeline analysis."""
+        from ..llm.llm_reasoner import LLMReasoner
+
+        gemini_cfg = self.config.get("gemini", {})
+        reasoner_cfg = {
+            "llm_provider":         "gemini",
+            "llm_model":            gemini_cfg.get("model", "gemini-flash-latest"),
+            "llm_enabled":          bool(gemini_cfg.get("api_key", "")),
+            "llm_max_tokens":       gemini_cfg.get("max_tokens", 1000),
+            "llm_temperature":      gemini_cfg.get("temperature", 0.4),
+            "llm_daily_cost_cap_usd": 20.0,
+            "llm_cost_per_1k_tokens": 0.0001,
+            "gemini_api_key":       gemini_cfg.get("api_key", ""),
+        }
+        self._gemini_reasoner = LLMReasoner(reasoner_cfg)
 
     # ----------------------------------------------------------
     # STAGE 1: INGEST
@@ -724,9 +742,9 @@ class IntelligencePipeline:
         # cause the loop to re-query already-processed docs, emptying the batch after 1 pass.
         # Live mode: fetch docs without a local file on disk.
         _path_clause = (
-            "AND (raw_text IS NULL OR raw_text = '')"
+            "AND (raw_text IS NULL OR raw_text = '') AND processing_status != 'unsupported'"
             if store_text_to_db
-            else "AND (local_path IS NULL OR local_path = '')"
+            else "AND (local_path IS NULL OR local_path = '') AND processing_status != 'unsupported'"
         )
 
         # Track already-attempted doc IDs to avoid re-fetching failed docs on retry
@@ -2010,6 +2028,7 @@ class IntelligencePipeline:
             ("macro",          self.run_macro,                    {}),
             ("graph_rag",      self.run_graph_rag,                {}),
             ("llm",            self.run_llm_enrichment,           {"country": _country}),
+            ("gemini_analysis", self.run_gemini_analysis,         {"country": _country}),
         ]
 
         all_stats = {}
@@ -2722,6 +2741,89 @@ class IntelligencePipeline:
         stats["duration_sec"] = round(_time.time() - start, 2)
         logger.info(f"Macro stage complete: {stats}")
         self._log_run("macro", stats)
+        return stats
+
+    # ----------------------------------------------------------
+    # STAGE: GEMINI AI POST-PIPELINE ANALYSIS
+    # ----------------------------------------------------------
+    def run_gemini_analysis(self, country: str = None) -> dict:
+        """Generate a Gemini AI investment analysis using shortlisted themes + ranked stocks.
+
+        Runs as the FINAL stage of run_full() for both US and India pipelines.
+        Requires a valid gemini.api_key in settings.yaml (or GEMINI_API_KEY env var).
+        Output is logged at INFO level and returned in stats for display.
+        """
+        if not self._gemini_reasoner:
+            self._init_gemini()
+
+        _country = country or self.config.get("market", {}).get("country", "US")
+        stats: dict = {"analysis_generated": False}
+
+        if not self._gemini_reasoner or not self._gemini_reasoner.enabled:
+            logger.info("Gemini analysis skipped — no API key configured (set gemini.api_key in settings.yaml).")
+            return stats
+
+        if not self._pg_store:
+            logger.info("Gemini analysis skipped — PostgreSQL not available.")
+            return stats
+
+        try:
+            # 1. Shortlisted themes (≥2 quarters of sustained signal)
+            themes = []
+            try:
+                themes = self._pg_store.get_shortlisted_themes(min_quarters=2, country=_country)
+            except Exception as _te:
+                logger.warning(f"Could not load shortlisted themes for Gemini: {_te}")
+                # Fallback: use active themes
+                themes = self._pg_store.get_active_themes(min_strength=30.0, country=_country)
+
+            # 2. Top ranked stocks via RankingEngine (best effort — may not be available)
+            stocks = []
+            try:
+                from datetime import date as _date, timedelta as _td
+                import importlib as _il
+                _rmod = _il.import_module("makrograph.ranking")
+                _RankingEngine = getattr(_rmod, "RankingEngine")
+                engine = _RankingEngine(self._pg_store)
+                _, stocks = engine.run(
+                    date_from=_date.today() - _td(days=730),
+                    date_to=_date.today(),
+                    top_n_themes=15,
+                    country=_country,
+                )
+                stocks = list(stocks)[:20]
+            except Exception as _re:
+                logger.warning(f"RankingEngine unavailable for Gemini analysis: {_re}")
+
+            if not themes and not stocks:
+                logger.info("Gemini analysis skipped — no themes or stocks available.")
+                stats["skipped_reason"] = "no_data"
+                return stats
+
+            analysis = self._gemini_reasoner.analyze_shortlisted(
+                themes=themes,
+                stocks=stocks,
+                country=_country,
+            )
+
+            if analysis:
+                stats["analysis_generated"] = True
+                stats["analysis_text"] = analysis
+                stats["themes_analyzed"] = len(themes)
+                stats["stocks_analyzed"] = len(stocks)
+                logger.info(
+                    f"\n{'='*60}\n"
+                    f"GEMINI AI ANALYSIS ({_country} — {len(themes)} themes, {len(stocks)} stocks):\n"
+                    f"{'='*60}\n{analysis}\n{'='*60}"
+                )
+            else:
+                logger.warning("Gemini returned no analysis text.")
+
+        except Exception as exc:
+            logger.error(f"Gemini analysis stage failed: {exc}", exc_info=True)
+            stats["error"] = str(exc)
+
+        self._log_run("gemini_analysis", {k: v for k, v in stats.items() if k != "analysis_text"})
         return stats
 
     def search_similar(self, query_text: str, top_k: int = 10) -> list[dict]:
