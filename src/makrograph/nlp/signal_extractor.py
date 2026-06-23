@@ -245,6 +245,57 @@ _RAW_PATTERNS: list[tuple[str, str, str, float]] = [
      "hiring_surge", "positive", 0.75),
     (r"\b(?:layoff|headcount.{0,20}reduc|workforce.{0,20}reduc|restructur|right.?siz)",
      "hiring_freeze", "negative", 0.80),
+
+    # ── CAPACITY SHORTAGE ────────────────────────────────────────────────
+    # Explicit capacity shortage language — higher conviction than supply_bottleneck
+    (r"\b(?:capacity\s+(?:fully\s+booked|oversubscribed|saturated|maxed\s+out|"
+     r"running\s+at\s+full|at\s+(?:full|max|peak)\s+utiliz))",
+     "capacity_shortage", "negative", 0.88),
+    (r"\b(?:no\s+(?:additional\s+)?capacity|capacity\s+not\s+available|"
+     r"capacity\s+(?:crunch|crunch|dearth|deficit)|utilization.{0,20}(?:9[0-9]|100)\s*%)",
+     "capacity_shortage", "negative", 0.85),
+    (r"\b(?:backlog|order\s+backlog).{0,40}(?:\d+\s*(?:months?|quarters?|years?))",
+     "capacity_shortage", "negative", 0.82),
+
+    # ── LOCALIZATION OPPORTUNITY ─────────────────────────────────────────
+    # Import substitution / Make in India / PLI-driven domestic production
+    (r"\b(?:import\s+substitut|localiz(?:ation|ing|ed?)|indigeniz(?:ation|ing)|"
+     r"domestic(?:ally)?\s+(?:manufactur|produc|sourc)|make\s+in\s+india)\b",
+     "localization_opportunity", "positive", 0.85),
+    (r"\b(?:PLI|production.linked\s+incentive|FAME|phased\s+manufacturing\s+programme|PMP)\b"
+     r".{0,60}(?:approv|eligibl|benefit|receiv|sanction|disburse|claim)",
+     "localization_opportunity", "positive", 0.87),
+    (r"\b(?:import\s+duty|custom\s+duty|BCD|anti.dumping)\b.{0,40}"
+     r"(?:increas|hike|impos|rais|raised|hiked).{0,40}"
+     r"(?:solar|semiconductor|electron|steel|chemical|battery|EV|telecom)",
+     "localization_opportunity", "positive", 0.83),
+
+    # ── TENDER PIPELINE ──────────────────────────────────────────────────
+    # Active tender / bid pipeline signals
+    (r"\b(?:L1|lowest\s+bidder|lowest\s+quoted|emerged\s+L1|declared\s+L1)\b",
+     "tender_pipeline", "positive", 0.88),
+    (r"\b(?:tender|bid|RFP|RFQ|request\s+for\s+(?:proposal|quotation))\b.{0,60}"
+     r"(?:win|won|award|bagg|secur|receiv|approv|issue)",
+     "tender_pipeline", "positive", 0.85),
+    (r"\b(?:tender\s+(?:floated|issued|called|invit)|SECI\s+tender|PGCIL\s+tender|"
+     r"Railways\s+tender|CPWD\s+tender)\b",
+     "tender_pipeline", "positive", 0.80),
+    (r"(?:Rs\.?\s*|INR\s*|₹\s*)\d[\d,]*\s*(?:crores?|Crs?\b).{0,40}"
+     r"(?:tender|order|contract|project|EPC|bid)",
+     "tender_pipeline", "positive", 0.82),
+
+    # ── POLICY SUPPORT ───────────────────────────────────────────────────
+    # Government scheme / budgetary / policy support signals
+    (r"\b(?:budget\s+(?:allocation|outlay|provision|support|boost)|"
+     r"budgetary\s+(?:support|allocation|outlay))\b",
+     "policy_support", "positive", 0.82),
+    (r"\b(?:viability\s+gap\s+funding|VGF|capital\s+subsidy|interest\s+subvention|"
+     r"government\s+(?:grant|subsidy|incentive|support|push|thrust))\b",
+     "policy_support", "positive", 0.83),
+    (r"\b(?:national\s+(?:mission|policy|programme|plan)|mission\s+shakti|"
+     r"PM\s+(?:KUSUM|Gati\s+Shakti|MITRA|PRANAM|Surya\s+Ghar)|"
+     r"Sagarmala|Bharatmala|UDAY|RDSS|DDUGJY)\b",
+     "policy_support", "positive", 0.80),
 ]
 
 # Pre-compiled at module import — shared across all SignalExtractor instances.

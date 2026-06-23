@@ -155,7 +155,34 @@ class CapacityRequirementGenerator:
 class CapacityGapDetector:
     """Layer 3: Compute demand vs domestic capacity and generate investable gap themes."""
 
-    def detect(self, requirements: list[CapacityRequirement]) -> list[CapacityGap]:
+    def detect(
+        self,
+        requirements: list[CapacityRequirement],
+        supply_chain_db=None,
+    ) -> list[CapacityGap]:
+        """Detect capacity gaps by comparing requirements against domestic capacity.
+
+        Args:
+            supply_chain_db: Optional IndiaSupplyChainDB instance (Layer 6).
+                When provided, cross-references each component against the supply
+                chain knowledge graph to upgrade severity for nodes with known
+                critical bottleneck risk or high import dependency (Change 6).
+        """
+        # Build a lookup from supply chain DB: component name → SupplyChainNode
+        sc_lookup: dict[str, object] = {}
+        if supply_chain_db is not None:
+            try:
+                for node in supply_chain_db.all_nodes():
+                    # Map canonical node names to their data
+                    sc_lookup[node.name.lower()] = node
+                    # Also map stage-name keywords used in _CAPACITY_CONVERSION
+                    for kw in node.constraint_keywords:
+                        kw_lower = kw.lower().split()[0]  # first word as key
+                        if kw_lower not in sc_lookup:
+                            sc_lookup[kw_lower] = node
+            except Exception as _e:
+                logger.debug(f"[CapacityGapDetector] supply_chain_db lookup failed: {_e}")
+
         gaps: list[CapacityGap] = []
         for req in requirements:
             domestic = _DOMESTIC_CAPACITY.get(req.component)
@@ -169,7 +196,39 @@ class CapacityGapDetector:
 
             gap_pct = (gap_qty / req.required_quantity) * 100 if req.required_quantity > 0 else 0
             severity = self._classify_severity(gap_pct)
+
+            # Change 6: upgrade severity if SupplyChainDB classifies this node
+            # as a known bottleneck or high import dependency
+            if sc_lookup:
+                comp_lower = req.component.lower()
+                stage_lower = req.supply_chain_stage.lower()
+                sc_node = sc_lookup.get(comp_lower) or sc_lookup.get(stage_lower)
+                if sc_node is not None:
+                    sc_risk = getattr(sc_node, "bottleneck_risk", None)
+                    sc_import = getattr(sc_node, "import_share", 0.0)
+                    # Upgrade severity: SupplyChainDB "critical" nodes are always critical
+                    if sc_risk == "critical" and severity not in ("critical",):
+                        severity = "critical"
+                        logger.debug(
+                            f"[CapacityGapDetector] Severity upgraded to critical "
+                            f"for '{req.component}' via SupplyChainDB"
+                        )
+                    elif sc_risk == "high" and severity == "moderate":
+                        severity = "high"
+                    # High import dependency → boost confidence
+                    if sc_import >= 0.80:
+                        req = CapacityRequirement(
+                            sector=req.sector,
+                            component=req.component,
+                            required_quantity=req.required_quantity,
+                            unit=req.unit,
+                            supply_chain_stage=req.supply_chain_stage,
+                            source_target=req.source_target,
+                            target_year=req.target_year,
+                        )
+
             theme_name = self._build_theme_name(req.component, req.supply_chain_stage)
+            confidence = 0.85 if severity == "critical" else 0.75
 
             gaps.append(CapacityGap(
                 sector=req.sector,
@@ -183,6 +242,7 @@ class CapacityGapDetector:
                 theme_name=theme_name,
                 severity=severity,
                 target_year=req.target_year,
+                confidence=confidence,
             ))
 
         # Sort by severity + gap_pct

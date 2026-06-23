@@ -66,12 +66,76 @@ Respond ONLY with valid JSON array:
 """
 
 
+import re as _re
+
+# ---------------------------------------------------------------------------
+# Change 9: Deterministic noise filter (runs BEFORE Claude to reduce API calls)
+# ---------------------------------------------------------------------------
+
+_DETERMINISTIC_REMOVE_PATTERNS: list[_re.Pattern] = [
+    # Regulatory / legal boilerplate
+    _re.compile(r"\b(?:SEBI|NCLT|NCLAT|Companies\s+Act|Listing\s+Obligat|"
+                r"Regulation\s+\d+|Insider\s+Trading|Statutory\s+Auditor|"
+                r"Chartered\s+Accountant|Standards?\s+on\s+Auditing|"
+                r"basis\s+for\s+opinion|audit\s+committee|"
+                r"Ind\s*AS|IFRS|Going\s+Concern)\b", _re.I),
+    # Pure temporal expressions
+    _re.compile(r"^\s*(?:this|last|next|current|full|financial|fiscal)\s+"
+                r"(?:quarter|year|half|period|month)\b", _re.I),
+    _re.compile(r"\b(?:quarter\s+ended|year\s+ended|the\s+year|the\s+quarter|"
+                r"YoY|QoQ|year.on.year|quarter.on.quarter)\b", _re.I),
+    # Generic / non-specific single-word or city themes
+    _re.compile(r"^(?:India|Indian|Group|Standalone|Consolidated|Inter\s+alia|"
+                r"Mumbai|Delhi|Bangalore|Chennai|Hyderabad|Gujarat|Maharashtra|"
+                r"Dalal\s+Street|G\s+Block|COVID|Covid.19|Pandemic)\s*", _re.I),
+    # Accounting concepts
+    _re.compile(r"\b(?:Goodwill|Deferred\s+Tax|Plant\s+and\s+Equipment|"
+                r"Right.of.Use|Equity\s+Share\s+Capital|Par\s+Value|"
+                r"Other\s+Comprehensive\s+Income|EBITDA\s+Margin\b)\b", _re.I),
+]
+
+_DETERMINISTIC_KEEP_PATTERNS: list[_re.Pattern] = [
+    # Always keep themes containing strong investable keywords
+    _re.compile(r"\b(?:shortage|bottleneck|constraint|capex|supply\s+gap|"
+                r"localization|PLI|import\s+substitut|capacity\s+gap|"
+                r"tender|order\s+book|export|domestic\s+manufactur)\b", _re.I),
+]
+
+
+def _deterministic_filter(themes: list) -> tuple[list, list]:
+    """Pre-filter themes deterministically before calling Claude (Change 9).
+
+    Returns:
+        (kept_themes, rejected_themes) — kept go to Claude for confirmation,
+        rejected are definitively removed without any LLM call.
+    """
+    kept, rejected = [], []
+    for t in themes:
+        name = t.theme_name or ""
+        # Hard keep: always-keep patterns override everything
+        if any(p.search(name) for p in _DETERMINISTIC_KEEP_PATTERNS):
+            kept.append(t)
+            continue
+        # Hard remove: definitively noise — no need to call Claude
+        if any(p.search(name) for p in _DETERMINISTIC_REMOVE_PATTERNS):
+            logger.debug(f"  REMOVE (deterministic): {name}")
+            rejected.append(t)
+            continue
+        # Ambiguous: pass to Claude for classification
+        kept.append(t)
+    return kept, rejected
+
+
 def filter_themes_with_gemini(
     themes: list,
     api_key: str,
     country: str = "IN",
 ) -> list:
-    """Filter noisy themes using Claude API.
+    """Filter noisy themes — deterministic pre-filter then Claude for ambiguous cases.
+
+    Change 9: Deterministic patterns handle obvious noise (regulatory boilerplate,
+    temporal expressions, accounting terms) without any LLM call. Claude is only
+    invoked for ambiguous cases, reducing API usage and keeping ranking deterministic.
 
     Args:
         themes: list of InvestmentTheme objects
@@ -82,7 +146,7 @@ def filter_themes_with_gemini(
         Filtered list — noise themes removed, signal themes kept unchanged.
         If API unavailable or fails, returns original list unmodified.
     """
-    if not api_key or not themes:
+    if not themes:
         return themes
 
     # Only filter themes for the specified country
@@ -92,7 +156,21 @@ def filter_themes_with_gemini(
     if not to_filter:
         return themes
 
-    logger.info(f"Claude noise filter: checking {len(to_filter)} {country} themes...")
+    # ── Change 9: Deterministic pre-filter ───────────────────────────────────
+    pre_kept, pre_rejected = _deterministic_filter(to_filter)
+    if pre_rejected:
+        logger.info(
+            f"Deterministic filter removed {len(pre_rejected)} noisy themes "
+            f"without calling Claude"
+        )
+
+    # If no API key or nothing left for Claude, return immediately
+    if not api_key or not pre_kept:
+        return pass_through + pre_kept
+
+    # Only call Claude for ambiguous themes not handled deterministically
+    to_filter = pre_kept
+    logger.info(f"Claude noise filter: checking {len(to_filter)} {country} themes (after deterministic pre-filter)...")
 
     keep_names: set[str] = set()
     remove_names: set[str] = set()

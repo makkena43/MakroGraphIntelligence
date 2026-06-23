@@ -299,16 +299,29 @@ class RankingEngine:
 
     def run(
         self,
-        date_from:       date,
-        date_to:         date,
-        top_n_themes:    int   = 15,   # raised from 10; dual-criterion adds more
-        min_final_score: float = 0.0,
-        country:         str   = "US",
+        date_from:          date,
+        date_to:            date,
+        top_n_themes:       int        = 15,
+        min_final_score:    float      = 0.0,
+        country:            str        = "US",
+        focus_theme_slugs:  list[str]  = [],  # noqa: B006
     ) -> tuple[list[ThemeScore], list[StockRanking]]:
-        """Full ranking pass.  Returns (ranked_themes, ranked_stocks)."""
-        logger.info("RankingEngine v6  %s → %s  top_n=%d  country=%s", date_from, date_to, top_n_themes, country)
+        """Full ranking pass.  Returns (ranked_themes, ranked_stocks).
 
-        data = self._pg.get_ranking_data(date_from=date_from, date_to=date_to, country=country)
+        focus_theme_slugs: when provided, the theme pool is restricted to only
+        these slugs (e.g. the NEW + ESCALATING themes from year-focus analysis).
+        This makes the stock ranking reflect only the themes that changed this
+        year rather than the full persistent universe.
+        """
+        logger.info(
+            "RankingEngine v6  %s → %s  top_n=%d  country=%s  focused=%d",
+            date_from, date_to, top_n_themes, country, len(focus_theme_slugs),
+        )
+
+        data = self._pg.get_ranking_data(
+            date_from=date_from, date_to=date_to, country=country,
+            focus_theme_slugs=focus_theme_slugs,
+        )
 
         # ── Step 1: Score themes (6-factor + theme_cq) ────────────────────────
         theme_scores = self._score_themes(data)

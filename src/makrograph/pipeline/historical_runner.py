@@ -357,6 +357,19 @@ class HistoricalRunner:
                 causal_stats = self._causal_month(window_end)
                 result.causal_score = causal_stats.get("top_score", 0.0)
 
+            # ---- STAGE 5b: INDIA INTELLIGENCE LAYERS (Change 2) --------
+            # Run L1-L10 BEFORE themes for India so capacity gaps, localization
+            # opportunities, and causal chains influence theme generation.
+            # Pass window_end as as_of_date for Change 3 (static target leakage).
+            if _country == "IN" and not self.skip_themes:
+                try:
+                    self._pipeline.run_india_intelligence(
+                        as_of_date=window_end,
+                        pg_store=self._pg_store,
+                    )
+                except Exception as _ie:
+                    logger.warning(f"India intelligence layers failed for {replay_batch}: {_ie}")
+
             # ---- STAGE 6: THEMES (as_of=replay_date) --------------------
             if not self.skip_themes:
                 theme_stats = self._themes_month(window_end)
@@ -1045,6 +1058,14 @@ class HistoricalRunner:
                                 result.replay_batch,
                             ))
 
+                    # Deduplicate on conflict key before INSERT to avoid
+                    # "ON CONFLICT DO UPDATE command cannot affect row a second time"
+                    # when a ticker appears under multiple beneficiary_types for the same theme.
+                    _seen: dict[tuple, tuple] = {}
+                    for row in perf_rows:
+                        _seen[(row[1], row[2], row[4])] = row  # (slug, ticker, detection_date)
+                    perf_rows = list(_seen.values())
+
                     # Step 3: batch INSERT (same cursor — not yet closed)
                     if perf_rows:
                         perf_sql = """
@@ -1074,6 +1095,10 @@ class HistoricalRunner:
             return
 
         self._pipeline = IntelligencePipeline(self.config)
+        # Skip ALTER TABLE migrations in replay mode — schema already exists and
+        # ALTER TABLE holds AccessExclusiveLock that blocks all readers for minutes.
+        if self.replay_mode:
+            self._pipeline._skip_migrations = True
         self._pipeline._init_storage()
         self._pg_store = self._pipeline._pg_store
         try:
@@ -1081,13 +1106,15 @@ class HistoricalRunner:
         except Exception as e:
             logger.debug(f"Macro init skipped (will retry per-month): {e}")
 
-        # Apply any new schema tables created in this release
-        try:
-            schema_path = Path(__file__).resolve().parent.parent.parent.parent / "schema" / "postgres_schema.sql"
-            if schema_path.exists():
-                self._pg_store.apply_schema(str(schema_path))
-        except Exception as e:
-            logger.debug(f"Schema re-apply skipped: {e}")
+        # Apply any new schema tables created in this release.
+        # Skip in replay mode — schema already exists; apply_schema holds locks.
+        if not self.replay_mode:
+            try:
+                schema_path = Path(__file__).resolve().parent.parent.parent.parent / "schema" / "postgres_schema.sql"
+                if schema_path.exists():
+                    self._pg_store.apply_schema(str(schema_path))
+            except Exception as e:
+                logger.debug(f"Schema re-apply skipped: {e}")
 
         # Build the company CIK list once for this entire run.
         # This advances the batch offset a single time regardless of how many

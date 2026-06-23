@@ -96,7 +96,7 @@ class IntelligencePipeline:
         vec_cfg = {**pg_cfg, **self.config.get("embeddings", {})}
 
         if pg_cfg.get("host"):
-            self._pg_store = PGStore(pg_cfg)
+            self._pg_store = PGStore(pg_cfg, skip_migrations=getattr(self, "_skip_migrations", False))
         if neo4j_cfg.get("enabled", False) and neo4j_cfg.get("uri"):
             try:
                 self._graph_store = GraphStore(neo4j_cfg)
@@ -164,8 +164,10 @@ class IntelligencePipeline:
             pg_store=self._pg_store,
         )
 
-        # Ensure canonicalization + contradiction schema is up to date (idempotent)
-        if self._pg_store:
+        # Ensure canonicalization + contradiction schema is up to date (idempotent).
+        # Skip in replay mode — schema already exists and ALTER TABLE holds
+        # AccessExclusiveLock that blocks all concurrent readers for minutes.
+        if self._pg_store and not getattr(self, "_skip_migrations", False):
             try:
                 self._pg_store.ensure_canonicalization_columns()
                 self._pg_store.ensure_canonical_review_table()
@@ -1488,6 +1490,9 @@ class IntelligencePipeline:
             "acquisition_intent", "market_entry",
             "regulatory_tailwind", "regulatory_headwind",
             "hiring_surge", "inventory_buildup", "inventory_drawdown",
+            # Expanded signal families (Change 5)
+            "capacity_shortage", "localization_opportunity",
+            "tender_pipeline", "policy_support",
         ]
 
         # ── Path A: Raw signals WITHOUT entity join (~15K rows)
@@ -1730,6 +1735,14 @@ class IntelligencePipeline:
         stats["neo4j_theme_rels"] = neo4j_rels
         _t["neo4j_hierarchy"] = round(time.time() - _t0, 2)
 
+        # Load active causal chains for beneficiary boost (Changes 4 & 8)
+        _active_chains: list[dict] = []
+        if self._pg_store:
+            try:
+                _active_chains = self._pg_store.get_active_causal_chains(min_score=10.0)
+            except Exception as _ce:
+                logger.debug(f"Could not load active causal chains for beneficiary mapper: {_ce}")
+
         # Map beneficiaries
         _t0 = time.time()
         theme_objects = [rt.theme for rt in ranked]
@@ -1743,6 +1756,7 @@ class IntelligencePipeline:
             pg_store=self._pg_store,
             since_date=_lookback,
             country=_country,
+            active_causal_chains=_active_chains,
         )
         _t["beneficiary_map"] = round(time.time() - _t0, 2)
 
@@ -1841,8 +1855,22 @@ class IntelligencePipeline:
             logger.info("LLM disabled or PGStore unavailable. Skipping enrichment.")
             return stats
 
-        themes = self._pg_store.get_active_themes(min_strength=40.0, country=_country)
-        theme_id_map = {t["theme_slug"]: t["id"] for t in themes}
+        # Change 9: Only call LLM for themes without high deterministic conviction.
+        # Themes with conviction='high' or strength_score>70 already have strong
+        # signal evidence — LLM adds noise, not information. Reserve LLM calls for
+        # borderline themes (emerging/developing) where hypothesis text adds value.
+        all_active = self._pg_store.get_active_themes(min_strength=40.0, country=_country)
+        themes = [
+            t for t in all_active
+            if t.get("conviction", "emerging") not in ("high", "confirmed")
+            or t.get("strength_score", 0) < 60.0
+        ]
+        if len(themes) < len(all_active):
+            logger.info(
+                f"LLM enrichment: skipping {len(all_active) - len(themes)} high-conviction "
+                f"themes (deterministic evidence sufficient). Enriching {len(themes)} borderline themes."
+            )
+        theme_id_map = {t["theme_slug"]: t["id"] for t in all_active}
 
         hypotheses = self._llm_reasoner.enrich_themes_batch(
             themes=themes,
@@ -2064,16 +2092,24 @@ class IntelligencePipeline:
         self._log_run("graph_rag", stats)
         return stats
 
+    # ----------------------------------------------------------
+    # STAGE: INDIA INTELLIGENCE LAYERS (L1–L10)
+    # Change 2: runs BEFORE run_themes() for India so capacity gaps,
+    # localization opportunities, and causal chains can influence
+    # theme generation (not just be appended after the fact).
+    # ----------------------------------------------------------
     def run_full(self, since: Optional[datetime] = None, country: str = None) -> dict:
         """Run all pipeline stages end-to-end.
 
         The ingest stage is dispatched based on market.country:
           - "IN"  → run_ingest_india()  (NSE/BSE/Screener — company filings only)
-                    India macro/policy (PIB/SEBI/RBI/InvestIndia/Commerce) are in run_macro()
+                    India intelligence layers (L1-L10) run before themes.
+                    India macro/policy (PIB/SEBI/RBI/InvestIndia/Commerce) in run_macro()
           - other → run_ingest()        (SEC EDGAR — US default, unchanged)
 
-        All downstream stages (NLP, graph, themes, macro …) are country-agnostic
-        and run identically for both markets.
+        Change 2 (India only): India intelligence layers (L1–L10) now run BEFORE
+        run_themes() so capacity gaps, localization opportunities, and causal chains
+        can influence theme generation rather than being appended after ranking.
 
         Args:
             country: ISO-2 country code. Overrides config["market"]["country"] so the
@@ -2094,20 +2130,33 @@ class IntelligencePipeline:
 
         # Build stage list — pass _country explicitly to every stage that accepts it
         # so the UI-selected country propagates end-to-end without reading settings.yaml.
-        _stages = [
-            ("ingest",         _ingest_fn,                        {}),
-            ("nlp",            self.run_nlp,                      {"country": _country}),
-            ("embeddings",     self.run_embeddings,               {"country": _country}),
-            ("graph",          self.run_graph,                    {"country": _country}),
-            ("graphiti",       self.run_graphiti_ingest,          {}),
-            ("bertrend",       self.run_bertrend,                 {}),
-            ("themes",         self.run_themes,                   {"country": _country}),
-            ("contradictions", self.run_contradictions,           {}),
-            ("macro",          self.run_macro,                    {}),
-            ("graph_rag",      self.run_graph_rag,                {}),
-            ("llm",            self.run_llm_enrichment,           {"country": _country}),
-            ("gemini_analysis", self.run_gemini_analysis,         {"country": _country}),
+        #
+        # Change 2 (India only): india_intelligence stage runs BEFORE themes so
+        # L1-L10 data (capacity gaps, localization opps, causal chains) is ready
+        # when ThemeDetector and ThemeRanker execute.
+        _stages: list = [
+            ("ingest",     _ingest_fn,            {}),
+            ("nlp",        self.run_nlp,           {"country": _country}),
+            ("embeddings", self.run_embeddings,    {"country": _country}),
+            ("graph",      self.run_graph,         {"country": _country}),
+            ("graphiti",   self.run_graphiti_ingest, {}),
+            ("bertrend",   self.run_bertrend,      {}),
         ]
+
+        # Change 2: India intelligence layers run before theme detection
+        if _country == "IN":
+            _stages.append(
+                ("india_intelligence", self.run_india_intelligence, {})
+            )
+
+        _stages.extend([
+            ("themes",         self.run_themes,        {"country": _country}),
+            ("contradictions", self.run_contradictions, {}),
+            ("macro",          self.run_macro,          {}),
+            ("graph_rag",      self.run_graph_rag,      {}),
+            ("llm",            self.run_llm_enrichment, {"country": _country}),
+            ("gemini_analysis", self.run_gemini_analysis, {"country": _country}),
+        ])
 
         all_stats = {}
         for stage, fn, kwargs in _stages:
@@ -2245,6 +2294,12 @@ class IntelligencePipeline:
                 except Exception as e:
                     logger.warning(f"Event extraction failed for doc {doc.get('id')}: {e}")
 
+            if docs_processed % 500 == 0 and docs_processed > 0:
+                elapsed = round(time.time() - start, 1)
+                logger.info(
+                    f"Events progress: {docs_processed} docs processed, "
+                    f"{events_stored} events stored ({elapsed}s elapsed)"
+                )
             if not use_window:
                 break
             docs = _fetch()
@@ -2928,8 +2983,9 @@ class IntelligencePipeline:
     def run_india_intelligence(
         self,
         as_of_date=None,
-        lookback_days: int = 180,
+        lookback_days: int = 365,
         tender_records: list = None,
+        pg_store=None,
     ) -> dict:
         """Run all 10 India-specific upstream intelligence layers.
 
@@ -2956,7 +3012,11 @@ class IntelligencePipeline:
         """
         from datetime import date as _date, timedelta as _td
 
+        # pg_store override: historical runner may pass its own store instance
+        _pg = pg_store or self._pg_store
         _as_of = as_of_date or _date.today()
+        if hasattr(_as_of, "date"):
+            _as_of = _as_of.date()
         start = time.time()
         stats: dict = {
             "layer": "india_intelligence",
@@ -2973,16 +3033,29 @@ class IntelligencePipeline:
             "errors": [],
         }
 
-        if not self._pg_store:
+        if not _pg:
             logger.warning("[IndiaIntelligence] PGStore not initialized — DB layers skipped.")
+
+        # ── Layer 6: IndiaSupplyChainDB (loaded early — used by L3) ─────────
+        sc_db = None
+        try:
+            from ..india.supply_chain_db import IndiaSupplyChainDB
+            sc_db = IndiaSupplyChainDB()
+            critical_nodes = sc_db.get_bottleneck_nodes(severity="critical")
+            logger.info(f"[IndiaIntelligence] Layer 6 (SupplyChainDB): "
+                        f"{len(sc_db.all_nodes())} nodes, {len(critical_nodes)} critical bottlenecks")
+        except Exception as e:
+            logger.error(f"[IndiaIntelligence] Layer 6 failed: {e}", exc_info=True)
+            stats["errors"].append(f"L6:{e}")
 
         # ── Layer 1: Policy Intelligence ────────────────────────────────────
         try:
             from ..india.policy_intelligence import PolicyIntelligenceEngine
             pie = PolicyIntelligenceEngine(self.config)
-            policy_targets = pie.get_static_targets()
+            # Change 3: filter future targets by as_of_date to prevent leakage in replay
+            policy_targets = pie.get_static_targets(as_of_date=_as_of)
             # Also try to extract from any policy event text already in the DB
-            if self._pg_store:
+            if _pg:
                 try:
                     with self._pg_store._conn() as conn:
                         from psycopg2.extras import RealDictCursor
@@ -2990,9 +3063,9 @@ class IntelligencePipeline:
                             cur.execute("""
                                 SELECT content, source_name FROM mg_policy_events
                                 WHERE country = 'IN'
-                                  AND published_at >= %s
+                                  AND published_at >= %s AND published_at <= %s
                                 LIMIT 200
-                            """, (_as_of - _td(days=365),))
+                            """, (_as_of - _td(days=365), _as_of))
                             for row in cur.fetchall():
                                 extracted = pie.extract_from_text(
                                     row.get("content") or "",
@@ -3001,9 +3074,9 @@ class IntelligencePipeline:
                                 policy_targets.extend(extracted)
                 except Exception as _pe:
                     logger.debug(f"[IndiaIntelligence] Policy event text extraction: {_pe}")
-                pie.persist(policy_targets, self._pg_store)
+                pie.persist(policy_targets, _pg)
             stats["policy_targets"] = len(policy_targets)
-            logger.info(f"[IndiaIntelligence] Layer 1 (Policy): {len(policy_targets)} targets")
+            logger.info(f"[IndiaIntelligence] Layer 1 (Policy): {len(policy_targets)} targets (as_of={_as_of})")
         except Exception as e:
             logger.error(f"[IndiaIntelligence] Layer 1 failed: {e}", exc_info=True)
             stats["errors"].append(f"L1:{e}")
@@ -3021,15 +3094,16 @@ class IntelligencePipeline:
             stats["errors"].append(f"L2:{e}")
             requirements = []
 
-        # ── Layer 3: Capacity Gap Detector ───────────────────────────────────
+        # ── Layer 3: Capacity Gap Detector (Change 6: uses SupplyChainDB) ────
         gap_theme_names: list[str] = []
         try:
             from ..india.capacity_engine import CapacityGapDetector
             cgd = CapacityGapDetector()
-            gaps = cgd.detect(requirements)
+            # Change 6: pass sc_db so critical nodes upgrade gap severity
+            gaps = cgd.detect(requirements, supply_chain_db=sc_db)
             gap_theme_names = [g.theme_name for g in gaps]
-            if self._pg_store:
-                cgd.persist(gaps, self._pg_store)
+            if _pg:
+                cgd.persist(gaps, _pg)
             stats["capacity_gaps"] = len(gaps)
             for g in gaps[:5]:
                 logger.info(f"[IndiaIntelligence] Layer 3 gap: {g.theme_name} "
@@ -3045,8 +3119,8 @@ class IntelligencePipeline:
             from ..india.import_localization import ImportDependencyEngine
             ide = ImportDependencyEngine()
             dependencies = ide.get_dependencies(min_import_share=0.50)
-            if self._pg_store:
-                ide.persist(dependencies, self._pg_store)
+            if _pg:
+                ide.persist(dependencies, _pg)
             stats["import_dependencies"] = len(dependencies)
             logger.info(f"[IndiaIntelligence] Layer 4 (ImportDep): {len(dependencies)} dependencies")
         except Exception as e:
@@ -3060,26 +3134,14 @@ class IntelligencePipeline:
             loe = LocalizationOpportunityEngine()
             opportunities = loe.identify(dependencies)
             localization_theme_names = [o.theme_name for o in opportunities]
-            if self._pg_store:
-                loe.persist(opportunities, self._pg_store)
+            if _pg:
+                loe.persist(opportunities, _pg)
             stats["localization_opportunities"] = len(opportunities)
             logger.info(f"[IndiaIntelligence] Layer 5 (Localization): {len(opportunities)} opportunities")
         except Exception as e:
             logger.error(f"[IndiaIntelligence] Layer 5 failed: {e}", exc_info=True)
             stats["errors"].append(f"L5:{e}")
             localization_theme_names = []
-
-        # ── Layer 6: India Supply Chain DB ───────────────────────────────────
-        # In-memory graph — no DB persistence needed (static knowledge base).
-        try:
-            from ..india.supply_chain_db import IndiaSupplyChainDB
-            sc_db = IndiaSupplyChainDB()
-            critical_nodes = sc_db.get_bottleneck_nodes(severity="critical")
-            logger.info(f"[IndiaIntelligence] Layer 6 (SupplyChainDB): "
-                        f"{len(sc_db.all_nodes())} nodes, {len(critical_nodes)} critical bottlenecks")
-        except Exception as e:
-            logger.error(f"[IndiaIntelligence] Layer 6 failed: {e}", exc_info=True)
-            stats["errors"].append(f"L6:{e}")
 
         # ── Layer 7: Beneficiary Discovery ───────────────────────────────────
         try:
@@ -3088,12 +3150,12 @@ class IntelligencePipeline:
             all_theme_names = list(dict.fromkeys(gap_theme_names + localization_theme_names))
             beneficiaries = bdl.discover(
                 all_theme_names,
-                pg_store=self._pg_store,
+                pg_store=_pg,
                 as_of_date=_as_of,
                 lookback_days=lookback_days,
             )
-            if self._pg_store:
-                bdl.persist(beneficiaries, self._pg_store)
+            if _pg:
+                bdl.persist(beneficiaries, _pg)
             stats["beneficiaries_discovered"] = len(beneficiaries)
             logger.info(f"[IndiaIntelligence] Layer 7 (Beneficiary): {len(beneficiaries)} beneficiaries")
         except Exception as e:
@@ -3106,15 +3168,14 @@ class IntelligencePipeline:
             ti = TenderIntelligence(self.config.get("tender", {}))
             tender_signals = []
             if tender_records:
-                # Group by source if records have a 'source' key, else use 'external'
                 by_source: dict = {}
                 for rec in tender_records:
                     src = rec.get("source") or "external"
                     by_source.setdefault(src, []).append(rec)
                 for src, recs in by_source.items():
                     tender_signals.extend(ti.parse_tender_feed(recs, source=src))
-            if self._pg_store and tender_signals:
-                ti.persist(tender_signals, self._pg_store)
+            if _pg and tender_signals:
+                ti.persist(tender_signals, _pg)
             stats["tender_signals_ingested"] = len(tender_signals)
             logger.info(f"[IndiaIntelligence] Layer 8 (Tender): {len(tender_signals)} signals ingested")
         except Exception as e:
@@ -3125,9 +3186,9 @@ class IntelligencePipeline:
         try:
             from ..india.order_book_detector import OrderBookPressureDetector
             obd = OrderBookPressureDetector(self.config)
-            if self._pg_store:
+            if _pg:
                 ob_stats = obd.detect_from_db_batch(
-                    self._pg_store,
+                    _pg,
                     batch_size=self.config.get("india", {}).get("order_book_batch_size", 300),
                     lookback_days=lookback_days,
                     as_of_date=_as_of,
@@ -3139,15 +3200,15 @@ class IntelligencePipeline:
             else:
                 logger.info("[IndiaIntelligence] Layer 9 (OrderBook): skipped (no DB)")
         except Exception as e:
-            logger.error(f"[IndiaIntelligence] Layer 10 failed: {e}", exc_info=True)
+            logger.error(f"[IndiaIntelligence] Layer 9 failed: {e}", exc_info=True)
             stats["errors"].append(f"L9:{e}")
 
-        # ── Layer 10: India Causal Chain Generator ───────────────────────────
+        # ── Layer 10: India Causal Chain Generator (runs LAST — feeds ThemeRanker)
         try:
             from ..india.causal_chain_generator import IndiaCausalChainGenerator
             iccg = IndiaCausalChainGenerator(self.config)
-            if self._pg_store:
-                chains_saved = iccg.score_and_persist(self._pg_store, as_of_date=_as_of)
+            if _pg:
+                chains_saved = iccg.score_and_persist(_pg, as_of_date=_as_of)
                 stats["causal_chains_persisted"] = chains_saved
                 logger.info(f"[IndiaIntelligence] Layer 10 (CausalChain): {chains_saved} chains persisted")
             else:

@@ -11,16 +11,26 @@ import RankingTab from './components/tabs/RankingTab'
 import AITab from './components/tabs/AITab'
 import MacroTab from './components/tabs/MacroTab'
 import CompanyTab from './components/tabs/CompanyTab'
+import YearIntelligenceTab from './components/tabs/YearIntelligenceTab'
+import IndustriesTab from './components/tabs/IndustriesTab'
+import IndiaPolicyTab from './components/tabs/IndiaPolicyTab'
+import ThemeResearchTab from './components/tabs/ThemeResearchTab'
+import InvestmentShortlistTab from './components/tabs/InvestmentShortlistTab'
 
 const TABS = [
-  { id: 'pipeline',    label: '🚀 Pipeline Runner' },
-  { id: 'filings',     label: '📞 Concall & Filings' },
-  { id: 'themes',      label: '🗺️ Themes & Companies' },
-  { id: 'shortlisted', label: '⭐ Shortlisted Themes' },
-  { id: 'ranking',     label: '🏆 Stock Rankings' },
-  { id: 'ai',          label: '🤖 AI Analysis' },
-  { id: 'macro',       label: '🌐 Macro & Policy' },
-  { id: 'company',     label: '🏢 Company Explorer' },
+  { id: 'pipeline',          label: '🚀 Pipeline Runner' },
+  { id: 'filings',           label: '📞 Concall & Filings' },
+  { id: 'year-intelligence', label: '📅 Year Intelligence' },
+  { id: 'investment',        label: '🎯 Investment Shortlist' },
+  { id: 'theme-research',    label: '🔬 Theme Research' },
+  { id: 'india-policy',      label: '🇮🇳 India PLI & Policy' },
+  { id: 'industries',        label: '🏭 Industries' },
+  { id: 'themes',            label: '🗺️ Themes & Companies' },
+  { id: 'shortlisted',       label: '⭐ Shortlisted Themes' },
+  { id: 'ranking',           label: '🏆 Stock Rankings' },
+  { id: 'ai',                label: '🤖 AI Analysis' },
+  { id: 'macro',             label: '🌐 Macro & Policy' },
+  { id: 'company',           label: '🏢 Company Explorer' },
 ]
 
 export default function App() {
@@ -95,9 +105,14 @@ export default function App() {
 
         {/* Tab content */}
         <main className="flex-1 overflow-y-auto p-4">
-          {activeTab === 'pipeline'    && <PipelineTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
-          {activeTab === 'filings'     && <FilingsTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
-          {activeTab === 'themes'      && <ThemesTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'pipeline'          && <PipelineTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'filings'           && <FilingsTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'year-intelligence' && <YearIntelligenceTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'investment'        && <InvestmentShortlistTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'theme-research'   && <ThemeResearchTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'india-policy'     && <IndiaPolicyTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'industries'        && <IndustriesTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'themes'            && <ThemesTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'shortlisted' && <ShortlistedTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'ranking'     && <RankingTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'ai'          && <AITab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchReplayHistory } from '../../api'
 import { CountryBanner, SectionHeader, Spinner } from '../ui'
@@ -7,13 +7,25 @@ interface Props { country: string; countryFlag: string; countryLabel: string }
 
 const today = new Date().toISOString().slice(0, 10)
 
+function logLineClass(line: string): string {
+  if (line.startsWith('[STAGE]'))      return 'text-amber-300 font-bold mt-2 border-t border-amber-900/30 pt-1'
+  if (line.startsWith('[DONE]'))       return 'text-emerald-400 font-bold'
+  if (line.startsWith('[ERROR]'))      return 'text-red-400'
+  if (line.startsWith('[REPLAY]'))     return 'text-sky-400 font-semibold'
+  if (line.startsWith('[INDIA-INTEL]'))return 'text-orange-400'
+  if (/\bERROR\b/.test(line))         return 'text-red-400'
+  if (/\bWARNING\b/.test(line))       return 'text-yellow-400'
+  if (/\bINFO\b/.test(line))          return 'text-sky-300'
+  return 'text-slate-400'
+}
+
 export default function PipelineTab({ country, countryFlag, countryLabel }: Props) {
   const [mode, setMode] = useState<'live' | 'replay'>('live')
   const [startDate, setStartDate] = useState(
     new Date(Date.now() - 90 * 86400_000).toISOString().slice(0, 10)
   )
   const [endDate, setEndDate] = useState(today)
-  const [fetchMode, setFetchMode] = useState('selected')
+  const [fetchMode, setFetchMode] = useState('all_us_complete')
   const [maxCo, setMaxCo] = useState(200)
   const [stages, setStages] = useState({
     ingest: true, nlp: true, graph: true, events: true,
@@ -27,7 +39,9 @@ export default function PipelineTab({ country, countryFlag, countryLabel }: Prop
   const [resume, setResume] = useState(false)
   const [running, setRunning] = useState(false)
   const [logs, setLogs] = useState<string[]>([])
+  const [done, setDone] = useState(false)
   const logRef = useRef<HTMLDivElement>(null)
+  const sseBuffer = useRef('')
 
   const { data: replayHistory = [] } = useQuery({
     queryKey: ['replay-history'],
@@ -40,9 +54,15 @@ export default function PipelineTab({ country, countryFlag, countryLabel }: Prop
     }
   }, [logs])
 
+  const copyLogs = useCallback(() => {
+    navigator.clipboard.writeText(logs.join('\n'))
+  }, [logs])
+
   const runPipeline = async () => {
     setLogs([])
+    setDone(false)
     setRunning(true)
+    sseBuffer.current = ''
     try {
       const body = {
         country, start_date: startDate, end_date: endDate,
@@ -60,18 +80,28 @@ export default function PipelineTab({ country, countryFlag, countryLabel }: Prop
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
+      if (!res.ok) {
+        setLogs(prev => [...prev, `[ERROR] HTTP ${res.status} ${res.statusText}`])
+        return
+      }
       const reader = res.body!.getReader()
       const decoder = new TextDecoder()
       while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        const text = decoder.decode(value)
-        for (const line of text.split('\n')) {
-          if (line.startsWith('data: ')) {
-            const msg = line.slice(6)
-            setLogs(prev => [...prev.slice(-200), msg])
-            if (msg === '[DONE]') { setRunning(false); return }
+        const { done: streamDone, value } = await reader.read()
+        if (streamDone) break
+        // Append chunk to buffer; split on newlines; last incomplete line stays in buffer
+        sseBuffer.current += decoder.decode(value, { stream: true })
+        const lines = sseBuffer.current.split('\n')
+        sseBuffer.current = lines.pop() ?? ''
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const msg = line.slice(6).trim()
+          if (msg === '[DONE]') {
+            setDone(true)
+            setRunning(false)
+            return
           }
+          if (msg) setLogs(prev => [...prev, msg])
         }
       }
     } catch (e) {
@@ -129,19 +159,8 @@ export default function PipelineTab({ country, countryFlag, countryLabel }: Prop
           <label className="text-xs text-slate-400 mb-1 block">Company Universe</label>
           <select value={fetchMode} onChange={e => setFetchMode(e.target.value)} className="select w-full">
             <option value="selected">Selected companies (from config)</option>
-            <option value="all_us">All US companies — batched</option>
             <option value="all_us_complete">All US companies — complete (~6000)</option>
           </select>
-          {fetchMode === 'all_us' && (
-            <div className="mt-2">
-              <label className="text-xs text-slate-400 mb-1 block">
-                Max companies per run: {maxCo}
-              </label>
-              <input type="range" min={50} max={1000} step={50} value={maxCo}
-                onChange={e => setMaxCo(+e.target.value)}
-                className="w-full accent-indigo-500" />
-            </div>
-          )}
         </div>
       )}
 
@@ -249,7 +268,7 @@ export default function PipelineTab({ country, countryFlag, countryLabel }: Prop
         )}
       </div>
 
-      <div className="border-t border-slate-800 pt-4">
+      <div className="border-t border-slate-800 pt-4 flex items-center gap-3">
         <button
           onClick={runPipeline}
           disabled={running}
@@ -258,12 +277,65 @@ export default function PipelineTab({ country, countryFlag, countryLabel }: Prop
           {running ? <Spinner size="sm" /> : '▶'}
           {running ? 'Running…' : 'Run Pipeline'}
         </button>
+        {(running || logs.length > 0) && (
+          <>
+            <button
+              onClick={() => { setLogs([]); setDone(false) }}
+              disabled={running}
+              className="btn-secondary text-xs"
+            >
+              Clear
+            </button>
+            {logs.length > 0 && (
+              <button onClick={copyLogs} className="btn-secondary text-xs">
+                Copy logs
+              </button>
+            )}
+          </>
+        )}
       </div>
 
-      {/* Log output */}
-      {logs.length > 0 && (
-        <div ref={logRef} className="log-box whitespace-pre-wrap">
-          {logs.join('\n')}
+      {/* Log terminal */}
+      {(running || logs.length > 0) && (
+        <div className="rounded-xl border border-slate-700 overflow-hidden">
+          {/* Terminal header */}
+          <div className="flex items-center justify-between bg-slate-800 px-3 py-2 border-b border-slate-700">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-semibold text-slate-300">Pipeline Log</span>
+              {running && (
+                <span className="flex items-center gap-1.5 text-xs text-emerald-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Live
+                </span>
+              )}
+              {done && !running && (
+                <span className="text-xs text-emerald-400 font-semibold">✓ Complete</span>
+              )}
+              {!running && !done && logs.length > 0 && (
+                <span className="text-xs text-red-400 font-semibold">✗ Stopped</span>
+              )}
+            </div>
+            <span className="text-xs text-slate-500 font-mono">{logs.length} lines</span>
+          </div>
+
+          {/* Log lines */}
+          <div
+            ref={logRef}
+            className="bg-slate-950 font-mono text-xs p-3 overflow-y-auto"
+            style={{ maxHeight: '520px', minHeight: running && logs.length === 0 ? '80px' : undefined }}
+          >
+            {running && logs.length === 0 && (
+              <span className="text-slate-500 animate-pulse">Waiting for pipeline output…</span>
+            )}
+            {logs.map((line, i) => (
+              <div key={i} className={`leading-5 ${logLineClass(line)}`}>
+                {line}
+              </div>
+            ))}
+            {running && logs.length > 0 && (
+              <span className="inline-block w-2 h-3.5 bg-sky-400 animate-pulse ml-0.5 align-middle" />
+            )}
+          </div>
         </div>
       )}
 

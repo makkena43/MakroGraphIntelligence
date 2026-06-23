@@ -153,6 +153,8 @@ class BeneficiaryMapper:
         2. Graph relationships: supply chain traversal
         3. Entity co-occurrence: companies mentioned with theme keywords
         4. Sector membership: companies in beneficiary sectors
+        5. Company Capability DB: product-level capability matching (Change 1)
+        6. Causal chain membership: boosts companies in active chains (Change 4/8)
     """
 
     def __init__(self, config: dict):
@@ -161,6 +163,17 @@ class BeneficiaryMapper:
         self.use_graph = config.get("use_graph_for_beneficiaries", True)
         self.max_beneficiaries = config.get("max_beneficiaries_per_theme", 30)
         self._classifier = CompanyClassifier(config)
+        # Lazy-load CompanyCapabilityDB (Change 1)
+        self._capability_db = None
+
+    def _get_capability_db(self):
+        if self._capability_db is None:
+            try:
+                from ..india.company_capability_db import CompanyCapabilityDB
+                self._capability_db = CompanyCapabilityDB()
+            except Exception:
+                self._capability_db = False  # disable if import fails
+        return self._capability_db if self._capability_db is not False else None
 
     def map_theme(
         self,
@@ -174,6 +187,7 @@ class BeneficiaryMapper:
         pg_store=None,
         since_date=None,
         country: str = None,
+        causal_chain_beneficiaries: set[str] = None,
     ) -> BeneficiaryResult:
         """Identify all beneficiaries for a single theme.
 
@@ -182,8 +196,12 @@ class BeneficiaryMapper:
                         last_seen_at on beneficiaries so that historical quarterly
                         runs produce correctly-dated rows instead of always using
                         date.today().
+            causal_chain_beneficiaries: Set of company names (lower-case) that are
+                named as beneficiary_sectors in active causal chains related to this
+                theme. Companies in this set get a confidence boost (Changes 4 & 8).
         """
         _as_of = as_of_date or date.today()
+        _causal_ben_set = causal_chain_beneficiaries or set()
         result = BeneficiaryResult(theme_slug=theme_slug, theme_name=theme_name)
 
         # Strategy 1: Signal-based beneficiaries (primary source)
@@ -247,6 +265,30 @@ class BeneficiaryMapper:
         if self.use_graph and graph_store:
             indirect = self._from_graph(theme_slug, graph_store, as_of_date=_as_of)
             result.indirect.extend(indirect)
+
+        # ── Change 1: Apply Company Capability DB boost ──────────────────────
+        # Boost relevance for companies with documented product-level capability
+        # matching the theme keywords. This rewards specialist manufacturers over
+        # diversified conglomerates that merely mention the keyword in passing.
+        cap_db = self._get_capability_db()
+        if cap_db and theme_keywords:
+            for b in result.direct:
+                cap_boost = cap_db.get_capability_boost(
+                    b.company_name or b.entity_name or "", theme_keywords
+                )
+                if cap_boost > 0:
+                    b.relevance_score = min(b.relevance_score + cap_boost, 100.0)
+                    b.reasoning = (b.reasoning or "") + f" | Capability match: +{cap_boost:.1f}"
+
+        # ── Changes 4 & 8: Causal chain beneficiary confidence boost ─────────
+        # Companies explicitly named in active causal chains for this theme get
+        # a +15 relevance boost — structural chain evidence > incidental mention.
+        if _causal_ben_set:
+            for b in result.direct:
+                company_lower = (b.company_name or b.entity_name or "").lower()
+                if company_lower in _causal_ben_set or (b.ticker or "").lower() in _causal_ben_set:
+                    b.relevance_score = min(b.relevance_score + 15.0, 100.0)
+                    b.reasoning = (b.reasoning or "") + " | Causal chain beneficiary: +15"
 
         # Sort by relevance_score DESC before truncating so high-relevance companies
         # from any strategy (incl. Strategy 4 entity-match) are not cut by
@@ -378,6 +420,7 @@ class BeneficiaryMapper:
         pg_store=None,
         since_date=None,
         country: str = None,
+        active_causal_chains: list[dict] = None,
     ) -> list[BeneficiaryResult]:
         """Map beneficiaries for all themes.
 
@@ -385,18 +428,48 @@ class BeneficiaryMapper:
             as_of_date: The replay/analysis date. Passed down so beneficiary
                         first_seen_at / last_seen_at are stamped with the correct
                         historical date rather than today.
+            active_causal_chains: List of active causal chain dicts (from
+                pg_store.get_active_causal_chains). Used to build per-theme
+                causal beneficiary sets for Changes 4 & 8.
         """
         seed_map = {}
         if seed_themes:
             seed_map = {s["slug"]: s for s in seed_themes}
+
+        # Build a mapping: theme_keyword → set of beneficiary company names (lower-case)
+        # from active causal chains so each theme gets its own causal boost set.
+        chain_keyword_to_beneficiaries: dict[str, set[str]] = {}
+        if active_causal_chains:
+            for chain in active_causal_chains:
+                sectors = chain.get("beneficiary_sectors") or []
+                if isinstance(sectors, str):
+                    import json as _json
+                    try:
+                        sectors = _json.loads(sectors)
+                    except Exception:
+                        sectors = [sectors]
+                chain_name = (chain.get("chain_name") or "").lower()
+                terminal = (chain.get("terminal_effect") or "").lower()
+                for kw_source in (chain_name, terminal):
+                    for tok in kw_source.replace("-", " ").split():
+                        if len(tok) >= 3:
+                            chain_keyword_to_beneficiaries.setdefault(tok, set()).update(
+                                s.lower() for s in sectors
+                            )
 
         results = []
         for theme in themes:
             slug = theme.theme_slug if hasattr(theme, "theme_slug") else theme.get("theme_slug", "")
             name = theme.theme_name if hasattr(theme, "theme_name") else theme.get("theme_name", "")
             seed = seed_map.get(slug, {})
-            # Derive keywords: seed keywords OR entity extracted from theme name
             keywords = self._keywords_from_theme(slug, name, seed)
+
+            # Build the causal-chain beneficiary set for this theme's keywords
+            theme_causal_bens: set[str] = set()
+            for kw in keywords:
+                for tok in kw.lower().split():
+                    if tok in chain_keyword_to_beneficiaries:
+                        theme_causal_bens.update(chain_keyword_to_beneficiaries[tok])
 
             result = self.map_theme(
                 theme_slug=slug,
@@ -409,6 +482,7 @@ class BeneficiaryMapper:
                 pg_store=pg_store,
                 since_date=since_date,
                 country=country,
+                causal_chain_beneficiaries=theme_causal_bens,
             )
             results.append(result)
 
@@ -784,8 +858,8 @@ class BeneficiaryMapper:
             except Exception:
                 valid_theme_ids = all_theme_ids  # assume all valid if check fails
 
-        # Pass 2: upsert beneficiaries using pre-built entity id map
-        total = 0
+        # Pass 2: build batch rows then bulk-upsert in one transaction
+        batch: list[dict] = []
         for result in results:
             theme_id = theme_id_map.get(result.theme_slug)
             if not theme_id:
@@ -799,28 +873,36 @@ class BeneficiaryMapper:
                 entity_id = entity_id_map.get(key)
                 if not entity_id:
                     continue
+                batch.append({
+                    "theme_id":          theme_id,
+                    "entity_id":         entity_id,
+                    "ticker":            b.ticker,
+                    "company_name":      b.company_name,
+                    "beneficiary_type":  b.beneficiary_type,
+                    "company_role":      getattr(b, "company_role", ""),
+                    "relevance_score":   b.relevance_score,
+                    "signal_count":      b.signal_count,
+                    "capex_signals":     getattr(b, "capex_signals", 0),
+                    "quarterly_mentions": getattr(b, "quarterly_mentions", {}),
+                    "first_seen_at":     b.first_seen_at,
+                    "last_seen_at":      b.last_seen_at,
+                    "rank_in_theme":     b.rank_in_theme,
+                    "reasoning":         b.reasoning,
+                    "window_start":      window_start,
+                    "window_end":        window_end,
+                })
+
+        try:
+            total = pg_store.bulk_upsert_beneficiaries(batch)
+        except Exception as e:
+            logger.warning(f"Bulk beneficiary upsert failed, falling back to row-by-row: {e}")
+            total = 0
+            for row in batch:
                 try:
-                    pg_store.upsert_beneficiary({
-                        "theme_id": theme_id,
-                        "entity_id": entity_id,
-                        "ticker": b.ticker,
-                        "company_name": b.company_name,
-                        "beneficiary_type": b.beneficiary_type,
-                        "company_role": getattr(b, "company_role", ""),
-                        "relevance_score": b.relevance_score,
-                        "signal_count": b.signal_count,
-                        "capex_signals": getattr(b, "capex_signals", 0),
-                        "quarterly_mentions": getattr(b, "quarterly_mentions", {}),
-                        "first_seen_at": b.first_seen_at,
-                        "last_seen_at": b.last_seen_at,
-                        "rank_in_theme": b.rank_in_theme,
-                        "reasoning": b.reasoning,
-                        "window_start": window_start,
-                        "window_end": window_end,
-                    })
+                    pg_store.upsert_beneficiary(row)
                     total += 1
-                except Exception as e:
-                    logger.warning(f"Failed to persist beneficiary {b.entity_name}: {e}")
+                except Exception as re:
+                    logger.warning(f"Failed to persist beneficiary: {re}")
 
         logger.info(
             f"Persisted {total} beneficiaries for {len(results)} themes "
