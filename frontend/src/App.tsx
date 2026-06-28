@@ -17,6 +17,7 @@ import IndiaPolicyTab from './components/tabs/IndiaPolicyTab'
 import ThemeResearchTab from './components/tabs/ThemeResearchTab'
 import InvestmentShortlistTab from './components/tabs/InvestmentShortlistTab'
 import InvestableSignalsTab from './components/tabs/InvestableSignalsTab'
+import TodaysOpportunitiesTab from './components/tabs/TodaysOpportunitiesTab'
 import CompanyDiveTab from './components/tabs/CompanyDiveTab'
 import SentimentBoardTab from './components/tabs/SentimentBoardTab'
 
@@ -24,6 +25,7 @@ const TABS = [
   { id: 'pipeline',          label: '🚀 Pipeline Runner' },
   { id: 'filings',           label: '📞 Concall & Filings' },
   { id: 'year-intelligence', label: '📅 Year Intelligence' },
+  { id: 'today',             label: '🌅 Today\'s Opportunities' },
   { id: 'investable',        label: '⚡ Investable Signals' },
   { id: 'investment',        label: '🎯 Investment Shortlist' },
   { id: 'company-dive',      label: '🔍 Company Deep Dive' },
@@ -114,6 +116,7 @@ export default function App() {
           {activeTab === 'pipeline'          && <PipelineTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'filings'           && <FilingsTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'year-intelligence' && <YearIntelligenceTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'today'             && <TodaysOpportunitiesTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'investable'        && <InvestableSignalsTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'investment'        && <InvestmentShortlistTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'company-dive'     && <CompanyDiveTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}

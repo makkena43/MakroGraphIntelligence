@@ -627,9 +627,10 @@ class HistoricalRunner:
                 doc_id = doc["id"]
                 doc_filed_at = doc.get("filed_at")
 
-                # ── Read text — DB raw_text first, then fall back to file ─────
+                # ── Read text: DB → local file → SEC URL ─────────────────────
                 raw_text = doc.get("raw_text", "") or ""
 
+                # Strategy 1: local file
                 if not raw_text:
                     raw_path = doc.get("local_path", "")
                     if raw_path and raw_path not in ("UNSUPPORTED_FORMAT",):
@@ -651,6 +652,37 @@ class HistoricalRunner:
                                     raw_text = lp.read_text(encoding="utf-8", errors="ignore")
                             except Exception as e:
                                 logger.warning(f"Text read failed {lp}: {e}")
+
+                # Strategy 2: fetch from URL (handles US EDGAR docs where local
+                # file was never saved — fetcher stored metadata but not content)
+                if not raw_text:
+                    doc_url = doc.get("url") or ""
+                    if doc_url and doc_url.startswith("http"):
+                        try:
+                            import urllib.request, time as _time
+                            req = urllib.request.Request(
+                                doc_url,
+                                headers={
+                                    "User-Agent": "MakroGraphIntelligence/1.0 research@makrograph.com",
+                                    "Accept": "text/html,application/xhtml+xml",
+                                }
+                            )
+                            with urllib.request.urlopen(req, timeout=20) as resp:
+                                html_bytes = resp.read(512_000)
+                            html = html_bytes.decode("utf-8", errors="ignore")
+                            from bs4 import BeautifulSoup
+                            soup = BeautifulSoup(html, "lxml")
+                            for tag in soup(["script", "style", "header", "footer", "nav", "table"]):
+                                tag.decompose()
+                            raw_text = soup.get_text(separator=" ", strip=True)
+                            if raw_text and len(raw_text) > 100:
+                                try:
+                                    self._pg_store.update_raw_text(doc_id, raw_text[:200_000])
+                                except Exception:
+                                    pass
+                            _time.sleep(0.12)  # stay under SEC 10 req/s rate limit
+                        except Exception as e:
+                            logger.debug(f"URL fetch failed doc {doc_id}: {e}")
 
                 if not raw_text:
                     failed_ids.append(doc_id)

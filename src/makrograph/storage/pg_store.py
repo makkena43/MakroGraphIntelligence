@@ -403,12 +403,24 @@ class PGStore:
             "ALTER TABLE mg_signals ADD COLUMN IF NOT EXISTS country VARCHAR(10) DEFAULT 'US'",
             "CREATE INDEX IF NOT EXISTS idx_mg_signals_country ON mg_signals(country)",
             # perspective: 'seller' | 'buyer' | 'neutral'
-            # seller = company IS the constrained supplier (customers can't get enough FROM them)
-            # buyer  = company NEEDS the constrained item (they can't source inputs)
-            # This is the critical field for investment decisions — only seller-perspective
-            # supply constraints indicate pricing power / investable opportunity.
             "ALTER TABLE mg_signals ADD COLUMN IF NOT EXISTS perspective VARCHAR(20) DEFAULT 'neutral'",
             "CREATE INDEX IF NOT EXISTS idx_mg_signals_perspective ON mg_signals(perspective)",
+            # audit_trail: JSONB explaining WHY a company was tagged to a theme
+            # (sector gate result, perspective ratio, signal count, role classification)
+            "ALTER TABLE mg_theme_beneficiaries ADD COLUMN IF NOT EXISTS audit_trail JSONB DEFAULT '{}'::jsonb",
+            # window_start / window_end on mg_theme_beneficiaries:
+            # Critical for year-specific queries — each pipeline run stamps the analysis window.
+            # LEAST(existing, new) for window_start preserves earliest detection date.
+            # GREATEST(existing, new) for window_end preserves most recent detection.
+            "ALTER TABLE mg_theme_beneficiaries ADD COLUMN IF NOT EXISTS window_start DATE",
+            "ALTER TABLE mg_theme_beneficiaries ADD COLUMN IF NOT EXISTS window_end DATE",
+            "CREATE INDEX IF NOT EXISTS idx_bene_window ON mg_theme_beneficiaries(window_start, window_end)",
+            "CREATE INDEX IF NOT EXISTS idx_bene_window_end ON mg_theme_beneficiaries(window_end)",
+            # Per-document NLP enrichment: sentiment score + extractive summary
+            # computed at NLP stage so downstream tabs serve instantly without API calls.
+            "ALTER TABLE mg_documents ADD COLUMN IF NOT EXISTS sentiment_score FLOAT",
+            "ALTER TABLE mg_documents ADD COLUMN IF NOT EXISTS nlp_summary TEXT",
+            "CREATE INDEX IF NOT EXISTS idx_mg_docs_sentiment ON mg_documents(sentiment_score) WHERE sentiment_score IS NOT NULL",
             # Indexes
             "CREATE INDEX IF NOT EXISTS idx_mg_docs_country       ON mg_documents         (country)",
             "CREATE INDEX IF NOT EXISTS idx_mg_theme_country      ON mg_themes             (country)",
@@ -558,12 +570,44 @@ class PGStore:
                 row = cur.fetchone()
                 return row["id"] if row else None
 
+    def update_raw_text(self, doc_id: int, raw_text: str) -> None:
+        """Cache fetched raw text back into the document row so future runs skip re-fetch."""
+        with self._conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE mg_documents SET raw_text=%s, updated_at=NOW() WHERE id=%s",
+                    (raw_text, doc_id)
+                )
+
     def update_document_status(self, doc_id: int, status: str):
         with self._conn() as conn:
             with conn.cursor() as cur:
                 cur.execute(
                     "UPDATE mg_documents SET processing_status=%s, updated_at=NOW() WHERE id=%s",
                     (status, doc_id)
+                )
+
+    def update_document_nlp_enrichment(
+        self,
+        doc_id: int,
+        sentiment_score: float | None,
+        summary: str,
+    ) -> None:
+        """Store per-document sentiment score (1-10) and extractive NLP summary.
+
+        Called once per document at the end of the NLP stage.
+        sentiment_score: None means insufficient signals — stored as NULL (not 5.0 noise).
+        summary: newline-separated bullet points of investment-relevant sentences.
+        """
+        with self._conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """UPDATE mg_documents
+                       SET sentiment_score = %s,
+                           nlp_summary     = %s,
+                           updated_at      = NOW()
+                       WHERE id = %s""",
+                    (sentiment_score, summary[:5000] if summary else None, doc_id)
                 )
 
     def batch_update_document_status(self, doc_ids: list[int], status: str):
@@ -1824,7 +1868,10 @@ class PGStore:
                 last_seen_at       = EXCLUDED.last_seen_at,
                 rank_in_theme      = EXCLUDED.rank_in_theme,
                 reasoning          = COALESCE(EXCLUDED.reasoning, mg_theme_beneficiaries.reasoning),
-                window_start       = EXCLUDED.window_start,
+                -- Preserve EARLIEST window_start (historical data integrity):
+                -- Running 2022 pipeline must NOT overwrite 2021 window_start
+                window_start       = LEAST(COALESCE(mg_theme_beneficiaries.window_start, EXCLUDED.window_start), EXCLUDED.window_start),
+                -- Keep LATEST window_end (most recent detection)
                 window_end         = GREATEST(COALESCE(mg_theme_beneficiaries.window_end, EXCLUDED.window_end), EXCLUDED.window_end),
                 updated_at         = NOW()
             RETURNING id
@@ -1884,10 +1931,10 @@ class PGStore:
                 last_seen_at       = EXCLUDED.last_seen_at,
                 rank_in_theme      = EXCLUDED.rank_in_theme,
                 reasoning          = COALESCE(EXCLUDED.reasoning, mg_theme_beneficiaries.reasoning),
-                window_start       = EXCLUDED.window_start,
-                -- Only advance window_end forward (never let a re-run of an earlier
-                -- period overwrite a newer detection date, so year-specific queries
-                -- keep seeing companies from their most-recent detection year).
+                -- Preserve EARLIEST window_start — running 2022 pipeline must NOT
+                -- overwrite the 2021-01-01 window_start set during 2021 replay.
+                window_start       = LEAST(COALESCE(mg_theme_beneficiaries.window_start, EXCLUDED.window_start), EXCLUDED.window_start),
+                -- Keep LATEST window_end — most recent detection date wins.
                 window_end         = GREATEST(COALESCE(mg_theme_beneficiaries.window_end, EXCLUDED.window_end), EXCLUDED.window_end),
                 updated_at         = NOW()
         """
@@ -2379,6 +2426,7 @@ class PGStore:
         since_date,
         as_of_date,
         country: str = None,
+        perspective: str | None = None,   # 'seller' | 'buyer' | None (all)
     ) -> list[dict]:
         """Lean signal query — only signals + documents (NO entity cross-join).
 
@@ -2402,6 +2450,7 @@ class PGStore:
                 s.signal_unit,
                 s.document_id,
                 s.filed_at,
+                COALESCE(s.perspective, 'neutral') AS perspective,
                 d.company,
                 d.ticker        AS doc_ticker,
                 d.filed_at      AS doc_filed_at
@@ -2411,11 +2460,15 @@ class PGStore:
               AND d.filed_at >= %s
               AND d.filed_at <= %s
               {country_clause}
+              {perspective_clause}
             ORDER BY d.filed_at DESC
         """
-        country_clause = "AND d.country = %s" if country else ""
-        sql = sql.format(country_clause=country_clause)
-        params = [signal_types, since_date, as_of_date] + ([country] if country else [])
+        country_clause     = "AND d.country = %s" if country else ""
+        perspective_clause = "AND COALESCE(s.perspective,'neutral') = %s" if perspective else ""
+        sql = sql.format(country_clause=country_clause, perspective_clause=perspective_clause)
+        params = [signal_types, since_date, as_of_date]
+        if country:     params.append(country)
+        if perspective: params.append(perspective)
         with self._conn() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(sql, params)
@@ -3424,6 +3477,8 @@ class PGStore:
                 d.word_count,
                 d.title,
                 d.processing_status,
+                d.sentiment_score,
+                d.nlp_summary,
                 COUNT(DISTINCT s.id)        AS signal_count,
                 COUNT(DISTINCT de.entity_id) AS entity_count,
                 ROUND(AVG(s.confidence)::numeric, 3) AS avg_confidence

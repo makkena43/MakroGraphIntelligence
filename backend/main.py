@@ -160,6 +160,124 @@ def _call_claude(prompt: str) -> str:
 # CONFIG / KPIs
 # ═══════════════════════════════════════════════════════════════════════════════
 
+@app.get("/api/debug/pipeline-readiness")
+def debug_pipeline_readiness(country: str = "US", year: int = 2020) -> dict:
+    """Pre-pipeline diagnostic: shows exactly what data exists and what will be processed.
+
+    Call this BEFORE running the pipeline to understand:
+    1. How many documents exist for country+year
+    2. What status they're in (fetched/nlp_done/etc)
+    3. Whether reset is needed
+    4. Whether Ingest needs to run first
+    """
+    pg = get_pg()
+    if not pg:
+        return {}
+    try:
+        from psycopg2.extras import RealDictCursor
+        from_d = f"{year}-01-01"
+        to_d   = f"{year}-12-31"
+
+        with pg._conn() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+
+                # Document counts by status
+                cur.execute("""
+                    SELECT processing_status,
+                           COUNT(*) AS doc_count,
+                           MIN(filed_at)::date AS earliest,
+                           MAX(filed_at)::date AS latest,
+                           COUNT(DISTINCT company) AS companies
+                    FROM mg_documents
+                    WHERE country = %s AND filed_at BETWEEN %s AND %s
+                    GROUP BY processing_status
+                    ORDER BY doc_count DESC
+                """, (country, from_d, to_d))
+                docs_by_status = [dict(r) for r in cur.fetchall()]
+
+                # Total docs
+                cur.execute("""SELECT COUNT(*) AS total FROM mg_documents
+                               WHERE country=%s AND filed_at BETWEEN %s AND %s""",
+                            (country, from_d, to_d))
+                total_docs = cur.fetchone()["total"]
+
+                # Docs ready for NLP
+                cur.execute("""SELECT COUNT(*) AS ready FROM mg_documents
+                               WHERE country=%s AND filed_at BETWEEN %s AND %s
+                               AND processing_status='fetched'""",
+                            (country, from_d, to_d))
+                ready_for_nlp = cur.fetchone()["ready"]
+
+                # Signals already extracted
+                cur.execute("""
+                    SELECT COUNT(*) AS signal_count,
+                           COUNT(DISTINCT signal_type) AS signal_types,
+                           COUNT(*) FILTER (WHERE s.signal_type='capacity_constraint_seller') AS seller_sigs,
+                           COUNT(*) FILTER (WHERE COALESCE(s.perspective,'neutral')='seller') AS seller_perspective
+                    FROM mg_signals s
+                    JOIN mg_documents d ON d.id=s.document_id
+                    WHERE d.country=%s AND d.filed_at BETWEEN %s AND %s
+                """, (country, from_d, to_d))
+                signals = dict(cur.fetchone())
+
+                # Themes already created for this country
+                cur.execute("""SELECT COUNT(*) AS theme_count FROM mg_themes WHERE country=%s AND is_active=TRUE""",
+                            (country,))
+                themes = cur.fetchone()["theme_count"]
+
+                # Beneficiaries
+                cur.execute("""
+                    SELECT COUNT(*) AS bene_count FROM mg_theme_beneficiaries tb
+                    JOIN mg_themes t ON t.id=tb.theme_id WHERE t.country=%s
+                """, (country,))
+                benes = cur.fetchone()["bene_count"]
+
+        # Diagnosis
+        diagnosis = []
+        action_needed = []
+
+        if total_docs == 0:
+            diagnosis.append("❌ NO DOCUMENTS FOUND for this country+year")
+            action_needed.append("Run INGEST stage first to fetch documents from EDGAR/NSE/BSE")
+        elif ready_for_nlp == 0 and total_docs > 0:
+            diagnosis.append(f"⚠️ {total_docs} documents exist but NONE in 'fetched' status")
+            action_needed.append("Run reset SQL: scripts/reset_us_2020.sql (or appropriate reset script)")
+            action_needed.append("Then re-run NLP stage")
+        elif ready_for_nlp > 0:
+            diagnosis.append(f"✅ {ready_for_nlp} documents ready for NLP processing")
+
+        if signals["signal_count"] > 0:
+            diagnosis.append(f"ℹ️ {signals['signal_count']} signals already extracted from prior run")
+            if signals["seller_sigs"] == 0:
+                action_needed.append("Reset and re-run NLP to get new signal types (capacity_constraint_seller, etc.)")
+
+        if themes > 0:
+            diagnosis.append(f"ℹ️ {themes} themes already exist")
+        if benes > 0:
+            diagnosis.append(f"ℹ️ {benes} beneficiary mappings already exist")
+
+        return {
+            "country":         country,
+            "year":            year,
+            "total_documents": total_docs,
+            "docs_by_status":  docs_by_status,
+            "ready_for_nlp":   ready_for_nlp,
+            "signals":         signals,
+            "themes_count":    themes,
+            "beneficiaries":   benes,
+            "diagnosis":       diagnosis,
+            "action_needed":   action_needed,
+            "conclusion":      (
+                "READY — run NLP stage" if ready_for_nlp > 0 else
+                "NEED INGEST — no documents in DB" if total_docs == 0 else
+                "NEED RESET — documents exist but already processed"
+            ),
+        }
+    except Exception as e:
+        logging.error("pipeline_readiness: %s", e)
+        return {"error": str(e)}
+
+
 @app.get("/api/debug/data-coverage")
 def debug_data_coverage(country: str = "US") -> dict:
     """Shows what year-specific data actually exists in the DB.
@@ -645,6 +763,369 @@ def get_investment_shortlist(
         return []
 
 
+def _compute_constraint_stage(
+    first_detected_str: str | None,
+    quarters_with_signal: int,
+    momentum_score: float,
+    signal_acceleration: float,
+    has_realized_margin: bool,
+    has_supply_easing: bool,
+    c_count: int,
+    k_count: int,
+) -> tuple[int, float, int, str, list[str]]:
+    """World-class constraint cycle stage detection.
+
+    The four stages mirror how every structural constraint plays out:
+
+    Stage 1 — Emerging (most alpha):
+        Constraint just starting. Management first mentions it. 1-2 quarters old.
+        <30% of peer companies reporting same constraint.
+        Margins not yet expanded (coming). Analyst consensus: "not aware".
+        → STRONG BUY. This is NVIDIA in Q1 2022, Shakti Pumps in Q1 FY25.
+
+    Stage 2 — Accelerating (strong alpha):
+        3-9 months old. 30-70% of peers report it. Margin lift JUST starting.
+        Management more explicit: "we are capacity constrained".
+        → BUY. Best risk-adjusted entry. GE Vernova T&D in Q2 2024.
+
+    Stage 3 — Peak/Consensus (shrinking alpha):
+        9-18 months old. 70%+ of peers report it. Margins already expanded.
+        Sell-side analysts initiating coverage. "Widely known".
+        → HOLD. Dixon in 2023, Waaree in Q3 2024.
+
+    Stage 4 — Resolving (negative alpha):
+        18+ months old. Supply easing visible. Margins flattening/compressing.
+        Competitor capacity coming online. Constraint thesis closing.
+        → REDUCE/EXIT.
+
+    Returns: (stage, stage_confidence, time_horizon_months, conviction_tier, exit_triggers)
+    """
+    from datetime import date as _date
+    import math as _math
+
+    # Compute age in months
+    age_months = 0
+    if first_detected_str:
+        try:
+            fd = _date.fromisoformat(str(first_detected_str)[:10])
+            age_months = max(0, round((_date.today() - fd).days / 30))
+        except Exception:
+            age_months = 0
+
+    # Normalize signals to 0-1 indicators
+    is_accelerating    = signal_acceleration > 0.3   # momentum rising fast
+    has_strong_capex   = k_count >= 2
+    has_margin         = has_realized_margin
+
+    # Stage determination (ordered by priority)
+    exit_triggers: list[str] = []
+
+    if has_supply_easing:
+        exit_triggers.append("supply_easing_detected")
+    if age_months > 18 and momentum_score < 40:
+        exit_triggers.append("momentum_fading_after_18m")
+    if has_margin and age_months > 12:
+        exit_triggers.append("margin_expansion_late_stage")
+
+    # --- Stage 4: Resolving ---
+    if (has_supply_easing
+            or (age_months > 18 and momentum_score < 30)
+            or (age_months > 24)):
+        stage = 4
+        stage_conf = 0.75 if has_supply_easing else 0.60
+        time_horizon = 6
+        conviction = "reduce"
+
+    # --- Stage 3: Peak/Consensus ---
+    elif (age_months > 9 and not is_accelerating) or (age_months > 12 and has_margin):
+        stage = 3
+        stage_conf = 0.65
+        time_horizon = 12
+        conviction = "hold"
+        if has_margin and age_months > 15:
+            exit_triggers.append("pricing_power_mature_watch_compression")
+
+    # --- Stage 2: Accelerating ---
+    elif (3 <= age_months <= 9 and (is_accelerating or c_count >= 4)) \
+            or (quarters_with_signal >= 2 and c_count >= 3):
+        stage = 2
+        stage_conf = 0.72
+        time_horizon = 18
+        conviction = "buy"
+        if has_strong_capex:
+            time_horizon = 24   # capex commitment extends the runway
+
+    # --- Stage 1: Emerging (highest alpha) ---
+    else:
+        stage = 1
+        stage_conf = 0.55 + min(0.35, (c_count * 0.05))  # more signals = more confident
+        time_horizon = 30
+        conviction = "strong_buy"
+        if k_count == 0:
+            time_horizon = 24  # no capex = shorter visibility
+
+    # Adjust confidence for quality signals
+    if has_margin:
+        stage_conf = min(0.92, stage_conf + 0.10)
+    if has_strong_capex:
+        stage_conf = min(0.90, stage_conf + 0.08)
+
+    # Map conviction to readable tier
+    tier_label = {
+        "strong_buy": "🔴 STRONG BUY — Stage 1, early edge",
+        "buy":        "🟡 BUY — Stage 2, accelerating",
+        "hold":       "🟢 HOLD — Stage 3, consensus forming",
+        "reduce":     "⚫ REDUCE — Stage 4, thesis closing",
+    }.get(conviction, "🟡 BUY")
+
+    return stage, round(stage_conf, 2), time_horizon, tier_label, exit_triggers
+
+
+def _generate_auto_thesis(
+    company: str,
+    ticker: str,
+    theme: str,
+    constraint_stage: int,
+    conviction_tier: str,
+    constrained_component: str,
+    best_quote: str,
+    capex_quote: str,
+    c_count: int,
+    k_count: int,
+    avg_confidence: float,
+    time_horizon_months: int,
+    seller_ratio: float = 0.0,
+    has_supply_easing: bool = False,
+) -> str:
+    """Auto-generate a 2-3 sentence investment thesis in plain English.
+
+    No Claude API call — purely rule-based from signal data.
+    This is the 'why should I invest' explanation every stock needs.
+    """
+    stage_narrative = {
+        1: "is experiencing the EARLY STAGE of a structural constraint — before analyst consensus and price discovery.",
+        2: "is in an ACCELERATING constraint cycle with signals building across multiple quarters.",
+        3: "is a well-established constraint play — thesis is confirmed but consensus is forming.",
+        4: "constraint is maturing — supply is beginning to ease. Monitor for thesis closure.",
+    }.get(constraint_stage, "shows constraint signals.")
+
+    component_str = f" in {constrained_component}" if constrained_component else ""
+    quote_str = f' Management explicitly stated: "{best_quote[:180]}"' if best_quote else ""
+
+    if c_count >= 5 and k_count >= 2:
+        action_sentence = (
+            f"The company has {c_count} supply constraint signals AND {k_count} capex expansion signals — "
+            f"they see the demand and are investing to capture it. This is the highest-conviction setup: "
+            f"constrained supplier actively expanding."
+        )
+    elif c_count >= 3 and k_count >= 1:
+        action_sentence = (
+            f"With {c_count} constraint signals and confirmed capex commitment, "
+            f"this company is positioned as the SUPPLY SIDE of a structural shortage{component_str}."
+        )
+    elif c_count >= 2:
+        action_sentence = (
+            f"With {c_count} seller-perspective constraint signals (avg confidence {avg_confidence:.0%}), "
+            f"the company shows early evidence of supply-side constraint advantage."
+        )
+    else:
+        action_sentence = f"Shows {c_count} constraint signals with policy/demand tailwind support."
+
+    if has_supply_easing:
+        exit_str = " ⚠️ Monitor: supply easing signals detected — reduce if confirmed."
+    elif time_horizon_months >= 24:
+        exit_str = f" Thesis has {time_horizon_months}-month runway before expected resolution."
+    else:
+        exit_str = f" Time horizon: {time_horizon_months} months. Watch for exit signals."
+
+    return f"{company} ({ticker}) {stage_narrative} {action_sentence}{quote_str}{exit_str}"
+
+
+@app.get("/api/quality-compounders")
+def get_quality_compounders(
+    country: str = "IN",
+    year: int | None = None,
+    min_quality_score: float = 0.35,
+) -> dict:
+    """Tier 1 — Multi-decade quality compounder detection.
+
+    Finds companies with:
+    - High ROIC + reinvestment (compounding engine)
+    - Competitive moat (brand, distribution, IP, switching costs)
+    - Expanding TAM (long runway)
+    - Capital-disciplined management
+
+    These are 5-20 year holds. Different from Tier 2 (constraint plays).
+    This is how Jhunjhunwala found Titan, Lynch found Dunkin Donuts,
+    Buffett found Coca-Cola — BEFORE they were famous.
+    """
+    pg = get_pg()
+    if not pg:
+        return {}
+    try:
+        yr     = year or date.today().year
+        to_d   = date(yr, 12, 31) if yr < date.today().year else date.today()
+        from_d = date(yr - 2, 1, 1)   # 3 years of signals for sustainability check
+
+        # Get signals including quality signal types
+        quality_signal_types = [
+            "roic_high_sustained", "roic_reinvestment", "earnings_quality_high",
+            "competitive_moat", "tam_expansion_structural", "management_quality",
+            "margin_sustainability", "pricing_power_emerging", "realized_margin_expansion",
+            "supply_concentration", "demand_surge", "capex_increase", "market_entry",
+        ]
+        signal_records = pg.get_all_signals_in_window(
+            signal_types=quality_signal_types,
+            since_date=from_d,
+            as_of_date=to_d,
+            country=country,
+        )
+
+        from makrograph.ranking.quality_ranker import QualityRanker
+        ranker  = QualityRanker(min_signals=2, min_quality_score=min_quality_score)
+        results = ranker.rank(signal_records=signal_records, country=country)
+
+        tier1      = [r for r in results if r.investment_tier == "tier_1"]
+        tier1_watch= [r for r in results if r.investment_tier == "tier_1_watch"]
+
+        def _to_dict(r) -> dict:
+            return {
+                "ticker":           r.ticker,
+                "company":          r.company_name,
+                "quality_score":    r.quality_score,
+                "investment_tier":  r.investment_tier,
+                "tier_confidence":  r.tier_confidence,
+                "roic_score":       r.roic_score,
+                "moat_score":       r.moat_score,
+                "tam_score":        r.tam_score,
+                "management_score": r.management_score,
+                "signal_count":     r.signal_count,
+                "signal_quarters":  r.signal_quarters,
+                "best_roic_quote":  r.best_roic_quote,
+                "best_moat_quote":  r.best_moat_quote,
+                "best_tam_quote":   r.best_tam_quote,
+                "signal_types":     r.signal_types_found,
+                "quality_thesis":   r.quality_thesis,
+                "suggested_hold":   "5-20 years" if r.investment_tier == "tier_1" else "2-5 years",
+            }
+
+        return {
+            "year":        yr,
+            "country":     country,
+            "period":      f"{from_d} → {to_d}",
+            "tier_1_count":       len(tier1),
+            "tier_1_watch_count": len(tier1_watch),
+            "tier_1":             [_to_dict(r) for r in tier1],
+            "tier_1_watch":       [_to_dict(r) for r in tier1_watch],
+            "all_ranked":         [_to_dict(r) for r in results],
+            "generated_at":       datetime.now().isoformat(),
+        }
+    except Exception as e:
+        logging.error("get_quality_compounders: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/today")
+def get_todays_opportunities(
+    country: str = "IN",
+    as_of_year: int | None = None,
+) -> dict:
+    """THE master endpoint. Single source of truth for investment opportunities.
+
+    Returns a clean, unified list of stocks grouped by conviction stage.
+    This is what the user sees every morning — no tab-hopping required.
+
+    Each stock includes:
+    - auto_thesis: 2-3 sentence plain-English investment case
+    - constraint_stage: 1 (early) to 4 (resolving)
+    - conviction_tier: STRONG BUY / BUY / HOLD / REDUCE
+    - full evidence trail: quotes, signals, capex, theme
+    - exit_triggers: what to watch to reduce position
+    """
+    pg = get_pg()
+    if not pg:
+        raise HTTPException(status_code=503, detail="DB not available")
+
+    try:
+        yr = as_of_year or date.today().year
+
+        # Get the full investment funnel (Tier 2 + Tier 3)
+        shortlist_data = get_investment_final_shortlist(
+            country=country,
+            year=yr,
+            min_constraint_signals=1,
+            require_capex=False,
+            min_avg_confidence=0.65,
+        )
+
+        # Get Tier 1 quality compounders (runs in parallel conceptually)
+        tier1_data: dict = {}
+        try:
+            tier1_data = get_quality_compounders(country=country, year=yr, min_quality_score=0.30)
+        except Exception as e:
+            logging.warning("today: tier1 failed: %s", e)
+
+        stocks   = shortlist_data.get("final_shortlist", [])
+        regimes  = shortlist_data.get("constraint_regimes", [])
+        stats    = shortlist_data.get("stats", {})
+
+        # Generate auto-thesis for every stock
+        for s in stocks:
+            s["auto_thesis"] = _generate_auto_thesis(
+                company             = str(s.get("company","") or ""),
+                ticker              = str(s.get("ticker","") or ""),
+                theme               = str(s.get("theme","") or ""),
+                constraint_stage    = int(s.get("constraint_stage", 3)),
+                conviction_tier     = str(s.get("conviction_tier","") or ""),
+                constrained_component = str(s.get("constrained_component","") or ""),
+                best_quote          = str(s.get("best_constraint_quote","") or ""),
+                capex_quote         = str(s.get("capex_quote","") or ""),
+                c_count             = int(s.get("constraint_signals", 0)),
+                k_count             = int(s.get("capex_signals", 0)),
+                avg_confidence      = float(s.get("avg_confidence", 0)),
+                time_horizon_months = int(s.get("time_horizon_months", 12)),
+                has_supply_easing   = bool(s.get("has_supply_easing", False)),
+            )
+
+        # Group by conviction stage
+        by_stage: dict[int, list] = {1: [], 2: [], 3: [], 4: []}
+        for s in stocks:
+            stage = int(s.get("constraint_stage", 3))
+            by_stage.setdefault(stage, []).append(s)
+
+        # Summary counts
+        summary = {
+            "total":         len(stocks),
+            "stage1_count":  len(by_stage.get(1, [])),
+            "stage2_count":  len(by_stage.get(2, [])),
+            "stage3_count":  len(by_stage.get(3, [])),
+            "stage4_count":  len(by_stage.get(4, [])),
+            "active_regimes": len(regimes),
+            "as_of":         date.today().isoformat(),
+            "year":          yr,
+            "country":       country,
+        }
+
+        return {
+            "summary":               summary,
+            # Tier 1: Multi-decade quality compounders (5-20 year holds)
+            "tier1_compounders":     tier1_data.get("tier_1", []),
+            "tier1_watch":           tier1_data.get("tier_1_watch", []),
+            # Tier 2: Constraint cycle winners (2-5 year holds) grouped by stage
+            "stage1_strong_buy":     by_stage.get(1, []),
+            "stage2_buy":            by_stage.get(2, []),
+            "stage3_hold":           by_stage.get(3, []),
+            "stage4_reduce":         by_stage.get(4, []),
+            "constraint_regimes":    regimes,
+            "all_stocks":            stocks,
+            "generated_at":          datetime.now().isoformat(),
+        }
+
+    except Exception as e:
+        logging.error("get_todays_opportunities: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/investment-final-shortlist")
 def get_investment_final_shortlist(
     country: str = "IN",
@@ -730,35 +1211,75 @@ def get_investment_final_shortlist(
         with pg._conn() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
 
-                # 2a. Find all companies that filed constraint signals in the year
+                # 2a. Find companies with SELLER-PERSPECTIVE constraint signals
+                # Primary: capacity_constraint_seller signal type (new, explicit)
+                # Secondary: supply_bottleneck with perspective='seller' (pipeline sets this)
+                # Tertiary: supply_bottleneck with seller-language context patterns
+                #           (for existing data before pipeline re-run)
+                #
+                # SELLER language = "our capacity/backlog/lead times" → they have pricing power
+                # BUYER language  = "component shortage / supply chain disrupted" → they are hurt
+                #
+                # The key investment insight: only seller-perspective = pricing power + order visibility
                 cur.execute(
                     """SELECT
                            d.company,
                            COALESCE(NULLIF(d.ticker,''), d.company) AS ticker,
-                           COUNT(*) FILTER (WHERE s.signal_type IN (
-                               'supply_bottleneck','inventory_drawdown',
-                               'capacity_shortage','demand_exceeds_supply'
-                           ))                                           AS c_count,
+                           -- Count SELLER-perspective constraint signals
+                           COUNT(*) FILTER (WHERE
+                               s.signal_type = 'capacity_constraint_seller'
+                               OR (s.signal_type IN (
+                                       'supply_bottleneck','inventory_drawdown',
+                                       'capacity_shortage','demand_exceeds_supply'
+                                   )
+                                   AND (
+                                       -- Signals tagged seller by pipeline
+                                       COALESCE(s.perspective,'neutral') = 'seller'
+                                       -- OR context_text contains seller-language
+                                       -- (for existing data before pipeline re-run)
+                                       OR s.context_text ILIKE '%our capacity%'
+                                       OR s.context_text ILIKE '%our backlog%'
+                                       OR s.context_text ILIKE '%cannot meet demand%'
+                                       OR s.context_text ILIKE '%can''t meet demand%'
+                                       OR s.context_text ILIKE '%fully booked%'
+                                       OR s.context_text ILIKE '%fully allocated%'
+                                       OR s.context_text ILIKE '%sold out%'
+                                       OR s.context_text ILIKE '%our lead time%'
+                                       OR s.context_text ILIKE '%waiting list%'
+                                       OR s.context_text ILIKE '%oversubscribed%'
+                                       OR s.context_text ILIKE '%customers waiting%'
+                                   )
+                               )
+                           )                                           AS c_count,
                            COUNT(*) FILTER (WHERE s.signal_type = 'capex_increase')
                                                                         AS capex_count,
                            COUNT(*) FILTER (WHERE s.signal_type IN (
                                'demand_surge','capex_increase'
                            ))                                           AS d_count,
-                           ROUND(AVG(s.confidence) FILTER (WHERE s.signal_type IN (
-                               'supply_bottleneck','inventory_drawdown',
-                               'capacity_shortage','demand_exceeds_supply'
-                           ))::numeric, 3)                              AS avg_conf,
-                           -- Best constraint quote (highest confidence)
+                           ROUND(AVG(s.confidence) FILTER (WHERE
+                               s.signal_type = 'capacity_constraint_seller'
+                               OR (s.signal_type IN ('supply_bottleneck','capacity_shortage')
+                                   AND COALESCE(s.perspective,'neutral') = 'seller')
+                               OR (s.signal_type IN ('supply_bottleneck','capacity_shortage')
+                                   AND (s.context_text ILIKE '%our capacity%'
+                                        OR s.context_text ILIKE '%our backlog%'
+                                        OR s.context_text ILIKE '%fully booked%'
+                                        OR s.context_text ILIKE '%cannot meet demand%'))
+                           )::numeric, 3)                               AS avg_conf,
+                           -- Best seller-perspective quote
                            (ARRAY_AGG(s.context_text ORDER BY s.confidence DESC)
-                            FILTER (WHERE s.signal_type IN (
-                                'supply_bottleneck','inventory_drawdown',
-                                'capacity_shortage','demand_exceeds_supply'
-                            ) AND s.context_text IS NOT NULL
-                              AND LENGTH(s.context_text) > 40))[1]     AS best_quote,
+                            FILTER (WHERE
+                               (s.signal_type = 'capacity_constraint_seller'
+                                OR (s.signal_type IN ('supply_bottleneck','capacity_shortage')
+                                    AND (COALESCE(s.perspective,'neutral') = 'seller'
+                                         OR s.context_text ILIKE '%our capacity%'
+                                         OR s.context_text ILIKE '%backlog%'
+                                         OR s.context_text ILIKE '%fully booked%')))
+                               AND s.context_text IS NOT NULL
+                               AND LENGTH(s.context_text) > 40))[1]    AS best_quote,
                            (ARRAY_AGG(d.filed_at ORDER BY s.confidence DESC)
                             FILTER (WHERE s.signal_type IN (
-                                'supply_bottleneck','inventory_drawdown',
-                                'capacity_shortage','demand_exceeds_supply'
+                                'capacity_constraint_seller','supply_bottleneck'
                             )))[1]::date                                AS best_quote_date,
                            (ARRAY_AGG(s.context_text ORDER BY s.confidence DESC)
                             FILTER (WHERE s.signal_type = 'capex_increase'
@@ -770,17 +1291,24 @@ def get_investment_final_shortlist(
                          AND d.filed_at BETWEEN %s AND %s
                          AND d.company IS NOT NULL AND d.company != ''
                        GROUP BY d.company, COALESCE(NULLIF(d.ticker,''), d.company)
-                       HAVING COUNT(*) FILTER (WHERE s.signal_type IN (
-                           'supply_bottleneck','inventory_drawdown',
-                           'capacity_shortage','demand_exceeds_supply'
-                       )) >= %s
-                         AND ROUND(AVG(s.confidence) FILTER (WHERE s.signal_type IN (
-                             'supply_bottleneck','inventory_drawdown',
-                             'capacity_shortage','demand_exceeds_supply'
-                         ))::numeric, 3) >= %s
-                       ORDER BY c_count DESC, avg_conf DESC
+                       HAVING
+                           -- Must have seller-perspective constraint signals
+                           COUNT(*) FILTER (WHERE
+                               s.signal_type = 'capacity_constraint_seller'
+                               OR (s.signal_type IN (
+                                       'supply_bottleneck','inventory_drawdown',
+                                       'capacity_shortage'
+                                   )
+                                   AND (COALESCE(s.perspective,'neutral') = 'seller'
+                                        OR s.context_text ILIKE '%our capacity%'
+                                        OR s.context_text ILIKE '%our backlog%'
+                                        OR s.context_text ILIKE '%cannot meet demand%'
+                                        OR s.context_text ILIKE '%fully booked%'
+                                        OR s.context_text ILIKE '%our lead time%'))
+                           ) >= %s
+                       ORDER BY c_count DESC, avg_conf DESC NULLS LAST
                        LIMIT 200""",
-                    (country, from_d, to_d, min_constraint_signals, min_avg_confidence)
+                    (country, from_d, to_d, min_constraint_signals)
                 )
                 signal_companies = cur.fetchall()
 
@@ -946,17 +1474,55 @@ def get_investment_final_shortlist(
             )
 
             n_themes = len(theme_ids)
+
+            # ── World-class additions ─────────────────────────────────────────
+            # Constraint cycle stage + exit signals + conviction tier
+            # These are the 20% that makes this system world-class.
+
+            # Check for supply easing / exit signals in the signal list
+            has_supply_easing  = any(
+                s.get("signal_type") in ("supply_easing","demand_slowdown","inventory_buildup")
+                for s in (meta.get("quality_signals") or [])
+            )
+            has_realized_margin = any(
+                s.get("signal_type") == "realized_margin_expansion"
+                for s in (meta.get("quality_signals") or [])
+            )
+
+            # Theme first_detected date + quarters with signal
+            theme_first_det = ""
+            theme_quarters  = 0
+            theme_momentum  = 0.0
+            theme_accel     = 0.0
+            if best_theme:
+                theme_first_det = str(best_theme.get("first_detected","") or "")
+                theme_quarters  = int(best_theme.get("this_snap_count") or 0)
+                theme_momentum  = float(best_theme.get("this_avg_momentum") or 0)
+                theme_accel     = float(best_theme.get("strength_delta") or 0)
+
+            c_stage, stage_conf, time_horizon_m, conviction_tier, exit_triggers = (
+                _compute_constraint_stage(
+                    first_detected_str    = theme_first_det,
+                    quarters_with_signal  = theme_quarters,
+                    momentum_score        = theme_momentum,
+                    signal_acceleration   = theme_accel / max(abs(theme_accel), 1) if theme_accel else 0,
+                    has_realized_margin   = has_realized_margin,
+                    has_supply_easing     = has_supply_easing,
+                    c_count               = c_count,
+                    k_count               = k_count,
+                )
+            )
+
+            # Stage-adjusted rank score: Stage 1 gets 25% bonus, Stage 4 gets 30% penalty
+            stage_mult = {1: 1.25, 2: 1.10, 3: 0.90, 4: 0.70}.get(c_stage, 1.0)
+            rank_score_adjusted = round(min(100, rank_score * stage_mult), 1)
+
+            # Legacy conviction field
             conviction = (
                 "high"   if (avg_conf >= 0.85 and c_count >= 3 and focus_s >= 0.9) else
                 "high"   if (n_themes >= 2 and avg_conf >= 0.80 and c_count >= 2)   else
                 "medium" if (avg_conf >= 0.75 and c_count >= 2)                     else
                 "low"
-            )
-
-            time_horizon = (
-                "0-6m"   if c_count >= 5 and k_count >= 1 else
-                "6-12m"  if c_count >= 3 else
-                "12-18m"
             )
 
             results.append({
@@ -977,14 +1543,27 @@ def get_investment_final_shortlist(
                 "best_constraint_quote": (best_c.get("context_text","") or "")[:300] if best_c else "",
                 "best_constraint_date":  str(best_c.get("filed_date","")) if best_c else "",
                 "capex_quote":           (best_k.get("context_text","") or "")[:200] if best_k else "",
-                "theme_count":       n_themes,
-                "theme_names":       [theme_rows[tid]["theme_name"] for tid in theme_ids if tid in theme_rows],
-                "conviction":        conviction,
-                "time_horizon":      time_horizon,
-                "rank_score":        rank_score,
+                "theme_count":           n_themes,
+                "theme_names":           [theme_rows[tid]["theme_name"] for tid in theme_ids if tid in theme_rows],
+                "conviction":            conviction,
+                "time_horizon":          f"{time_horizon_m}m",
+                "rank_score":            rank_score_adjusted,
+                # ── World-class fields ─────────────────────────────────────────
+                "constraint_stage":      c_stage,           # 1=emerging, 2=accel, 3=peak, 4=resolving
+                "stage_confidence":      stage_conf,        # 0.55-0.92
+                "conviction_tier":       conviction_tier,   # "🔴 STRONG BUY" etc.
+                "time_horizon_months":   time_horizon_m,    # 6/12/18/24/30/36
+                "exit_triggers":         exit_triggers,     # what to watch to sell
+                "has_margin_expansion":  has_realized_margin,
+                "has_supply_easing":     has_supply_easing,
             })
 
-        results.sort(key=lambda r: -r["rank_score"])
+        # Sort: Stage 1 (strongest alpha) → Stage 2 → Stage 3 → Stage 4 (weakest)
+        # Within same stage: sort by rank_score DESC
+        results.sort(key=lambda r: (
+            r.get("constraint_stage", 3),   # lower stage = better
+            -r["rank_score"],
+        ))
         for i, r in enumerate(results):
             r["rank"] = i + 1
 
@@ -5005,7 +5584,7 @@ class PipelineRunBody(BaseModel):
     do_graph: bool = True
     do_events: bool = True
     do_causal: bool = True
-    do_india_intelligence: bool = False   # Layers 1-10 India upstream intelligence
+    do_india_intelligence: bool = False
     do_themes: bool = True
     do_contradictions: bool = True
     do_pdf_fetch_india: bool = False
@@ -5013,6 +5592,7 @@ class PipelineRunBody(BaseModel):
     skip_neo4j: bool = False
     nlp_batch_size: int = 500
     fetch_mode: str = "selected"
+    force_reprocess_nlp: bool = False   # Reset docs to 'fetched' before NLP so they are reprocessed
     max_companies: int = 200
     resume: bool = False
 
@@ -5097,6 +5677,28 @@ async def run_pipeline(body: PipelineRunBody):
                     _push("[STAGE] PDF Fetch (India)…")
                     pipeline.run_pdf_fetch_india(max_workers=body.pdf_fetch_workers)
                 if body.do_nlp:
+                    if body.force_reprocess_nlp:
+                        _push("[STAGE] Force-resetting document status to 'fetched' for NLP re-run…")
+                        pg = get_pg()
+                        if pg:
+                            try:
+                                from psycopg2.extras import RealDictCursor
+                                with pg._conn() as conn:
+                                    with conn.cursor() as cur:
+                                        cur.execute("""
+                                            UPDATE mg_documents
+                                            SET processing_status = 'fetched',
+                                                sentiment_score = NULL,
+                                                nlp_summary = NULL
+                                            WHERE country = %s
+                                              AND filed_at BETWEEN %s AND %s
+                                              AND processing_status IN ('nlp_done', 'graph_built', 'embedded')
+                                        """, (body.country, start, end))
+                                        reset_count = cur.rowcount
+                                    conn.commit()
+                                _push(f"[STAGE] Reset {reset_count} documents to 'fetched' status")
+                            except Exception as e:
+                                _push(f"[ERROR] Force-reset failed: {e}")
                     _push("[STAGE] NLP…")
                     pipeline._init_nlp()
                     pipeline.run_nlp(batch_size=body.nlp_batch_size, window_start=start,

@@ -92,6 +92,9 @@ export const fetchSavedCompanyDive = (company: string, country: string, year?: n
 export const fetchAllAnalysedCompanies = (country: string) =>
   api.get('/company/all-analysed', { params: { country } }).then(r => r.data)
 
+export const fetchPipelineReadiness = (country: string, year: number) =>
+  api.get('/debug/pipeline-readiness', { params: { country, year } }).then(r => r.data)
+
 export const fetchInvestableSignals = (
   country: string, year?: number, fromDate?: string, toDate?: string,
   minQuarters = 3, minSentiment = 7.0, topN = 30
@@ -152,6 +155,12 @@ export const fetchYearFocus = (country: string, year: number) =>
 
 export const fetchPLIPolicies = (year?: number, sector?: string) =>
   api.get('/india/pli-policies', { params: { year, sector } }).then(r => r.data)
+
+export const fetchTodaysOpportunities = (country: string, asOfYear?: number) =>
+  api.get('/today', { params: { country, as_of_year: asOfYear } }).then(r => r.data)
+
+export const fetchQualityCompounders = (country: string, year?: number, minScore = 0.30) =>
+  api.get('/quality-compounders', { params: { country, year, min_quality_score: minScore } }).then(r => r.data)
 
 export const fetchInvestmentFinalShortlist = (
   country: string, year?: number,

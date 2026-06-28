@@ -39,6 +39,127 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+# ── Module-level NLP helpers (no class needed) ────────────────────────────────
+
+def _compute_doc_sentiment_summary(
+    signals: list,
+    raw_text: str,
+    max_summary_lines: int = 15,
+) -> tuple:
+    """Compute per-document sentiment (1-10) and extractive summary (10-15 lines).
+
+    Called at NLP stage for every document so results are stored once and
+    served instantly to the sentiment board and company deep dive tabs.
+
+    No LLM calls — purely rule-based:
+    - Sentiment: confidence-weighted ratio of positive vs negative signals
+    - Summary:   top sentences ranked by signal relevance + investment keywords
+
+    Returns (sentiment_score: float | None, summary: str)
+    """
+    import re as _re
+
+    # ── Sentiment from signal mix ─────────────────────────────────────────
+    POS_TYPES = frozenset({
+        "demand_surge", "capex_increase", "capacity_constraint_seller",
+        "localization_opportunity", "tender_pipeline", "policy_support",
+        "market_entry", "regulatory_tailwind", "guidance_revenue",
+        "pricing_power_emerging",
+    })
+    NEG_TYPES = frozenset({
+        "supply_bottleneck", "inventory_drawdown", "capacity_shortage",
+        "demand_slowdown", "demand_exceeds_supply", "hiring_freeze",
+        "regulatory_headwind",
+    })
+
+    pos_conf = sum(s.confidence for s in signals if s.signal_type in POS_TYPES)
+    neg_conf = sum(s.confidence for s in signals if s.signal_type in NEG_TYPES)
+    total    = pos_conf + neg_conf
+
+    if total < 0.5:
+        sentiment_score = None   # insufficient signal evidence — don't store 5.0 noise
+    else:
+        # Ratio maps to 1–10: all positive = 10, all negative = 1, equal = 5.5
+        sentiment_score = round(1.0 + 9.0 * pos_conf / total, 1)
+
+    # ── Extractive summary ────────────────────────────────────────────────
+    # Investment-relevant sentence keywords (ordered by priority)
+    INVEST_KEYWORDS = [
+        # Seller-side / pricing power
+        r"\b(?:backlog|order\s+book|capacity\s+fully|fully\s+allocated|fully\s+booked|"
+        r"sold\s+out|lead\s+time|cannot\s+meet\s+demand|visibility|allocated\s+through)\b",
+        # Demand & growth
+        r"\b(?:demand\s+(?:surged?|grew|growing|strong|robust)|record\s+(?:demand|order|revenue)|"
+        r"order\s+win|bagged|awarded|contract|tender)\b",
+        # Capex & expansion
+        r"\b(?:capex|capital\s+expenditure|capacity\s+expansion|greenfield|brownfield|"
+        r"new\s+plant|commissioning|production\s+start)\b",
+        # PLI / policy
+        r"\b(?:PLI|production.linked|GeM|SECI|MNRE|Railways|indigenis|localiz|"
+        r"government\s+(?:order|tender|scheme))\b",
+        # Supply constraint (buyer side)
+        r"\b(?:supply\s+(?:chain|shortage|constraint)|component\s+shortage|"
+        r"material\s+shortage|procurement)\b",
+        # Financial metrics
+        r"\b(?:revenue|profit|margin|EBITDA|PAT|turnover)\b.{0,40}"
+        r"(?:grew|increas|rose|up|higher|\d+\s*%)",
+        # Guidance
+        r"\b(?:expect|project|anticipate|guidance|outlook|forecast)\b.{0,60}"
+        r"(?:revenue|growth|demand|order|margin|\d+\s*%)",
+    ]
+    compiled_kw = [_re.compile(p, _re.IGNORECASE) for p in INVEST_KEYWORDS]
+
+    # Also collect sentences containing signal context_text
+    signal_contexts: set[str] = set()
+    for s in signals:
+        ctx = (s.context_text or "").strip()
+        if ctx and len(ctx) > 40:
+            signal_contexts.add(ctx[:250])
+
+    # Split text into sentences
+    sentences = _re.split(r'(?<=[.!?])\s+', raw_text[:60_000])
+
+    # Score each sentence
+    scored: list[tuple[float, str]] = []
+    for sent in sentences:
+        sent = sent.strip()
+        if len(sent) < 40 or len(sent) > 500:
+            continue
+        score = 0.0
+        for i, pat in enumerate(compiled_kw):
+            if pat.search(sent):
+                score += (len(compiled_kw) - i) * 1.0   # earlier (higher priority) = more weight
+        # Boost if sentence is a signal context quote
+        for ctx in signal_contexts:
+            if ctx[:80].lower() in sent.lower():
+                score += 5.0
+                break
+        if score > 0:
+            scored.append((score, sent))
+
+    # Sort by score, deduplicate near-duplicate sentences
+    scored.sort(key=lambda x: -x[0])
+    selected: list[str] = []
+    seen_prefixes: set[str] = set()
+    for _, sent in scored:
+        prefix = sent[:50].lower().strip()
+        if prefix not in seen_prefixes:
+            seen_prefixes.add(prefix)
+            selected.append(sent)
+        if len(selected) >= max_summary_lines:
+            break
+
+    # Add any signal context quotes not already in selected
+    for ctx in list(signal_contexts)[:5]:
+        prefix = ctx[:50].lower().strip()
+        if prefix not in seen_prefixes and len(selected) < max_summary_lines:
+            seen_prefixes.add(prefix)
+            selected.append(ctx)
+
+    summary = "\n".join(f"• {s}" for s in selected) if selected else ""
+
+    return sentiment_score, summary
+
 
 class IntelligencePipeline:
     """Full end-to-end intelligence pipeline for theme detection.
@@ -929,6 +1050,9 @@ class IntelligencePipeline:
     # ----------------------------------------------------------
     # STAGE 2: NLP
     # ----------------------------------------------------------
+
+    # ── helpers ──────────────────────────────────────────────────────────────
+
     def run_nlp(
         self,
         batch_size: int = 500,
@@ -996,6 +1120,8 @@ class IntelligencePipeline:
             for doc in docs:
                 doc_id = doc["id"]
                 raw_text = (doc.get("raw_text") or "").strip()
+
+                # ── Strategy 1: local file ────────────────────────────────────
                 if not raw_text:
                     raw_path = doc.get("local_path", "") or ""
                     if raw_path and raw_path not in ("UNSUPPORTED_FORMAT",):
@@ -1022,8 +1148,42 @@ class IntelligencePipeline:
                                     raw_text = local_path.read_text(encoding="utf-8", errors="ignore")
                             except Exception as e:
                                 logger.warning(f"Text extraction failed for {local_path}: {e}")
+
+                # ── Strategy 2: fetch from URL (SEC EDGAR / web) ─────────────
+                # This kicks in when local file was never saved or was deleted.
+                # Applies to US EDGAR docs where ingest stored metadata but not content.
+                if not raw_text:
+                    doc_url = doc.get("url") or ""
+                    if doc_url and doc_url.startswith("http"):
+                        try:
+                            import urllib.request, time
+                            headers = {
+                                "User-Agent": "MakroGraphIntelligence/1.0 research@makrograph.com",
+                                "Accept": "text/html,application/xhtml+xml",
+                            }
+                            req = urllib.request.Request(doc_url, headers=headers)
+                            with urllib.request.urlopen(req, timeout=20) as resp:
+                                html_bytes = resp.read(512_000)  # cap at 500KB
+                            html = html_bytes.decode("utf-8", errors="ignore")
+                            from bs4 import BeautifulSoup
+                            soup = BeautifulSoup(html, "lxml")
+                            for tag in soup(["script", "style", "header", "footer", "nav", "table"]):
+                                tag.decompose()
+                            raw_text = soup.get_text(separator=" ", strip=True)
+                            # Cache in DB so we don't re-fetch next time
+                            if raw_text and len(raw_text) > 100:
+                                try:
+                                    self._pg_store.update_raw_text(doc_id, raw_text[:200_000])
+                                except Exception:
+                                    pass
+                            time.sleep(0.12)  # ~8 req/s — stay under SEC's 10 req/s limit
+                        except Exception as e:
+                            logger.debug(f"URL fetch failed for doc {doc_id} ({doc_url[:60]}): {e}")
+
+                # ── Strategy 3: title as last resort ─────────────────────────
                 if not raw_text:
                     raw_text = (doc.get("title") or "").strip()
+
                 doc_texts[doc_id] = raw_text
 
             # ── Phase 2: Batch spaCy NER on all texts at once (nlp.pipe) ────
@@ -1186,18 +1346,51 @@ class IntelligencePipeline:
                         if _theme_eid:
                             _sig_entity_id = _theme_eid
 
+                    # Derive perspective from signal_type when not set:
+                    # capacity_constraint_seller signals are ALWAYS seller perspective
+                    # supply_bottleneck signals are ALWAYS buyer perspective
+                    _perspective = getattr(sig, "perspective", "neutral") or "neutral"
+                    if _perspective == "neutral":
+                        # Seller perspective = company IS the constrained supplier
+                        if sig.signal_type in (
+                            "capacity_constraint_seller",
+                            "backlog_duration",         # company has booked-out orders
+                            "capacity_utilization_high", # running at limit → they're the constrained supplier
+                            "supply_concentration",      # monopoly/near-monopoly position
+                            "demand_pull",              # customers ordering ahead from THEM
+                            "realized_margin_expansion", # pricing power materialized
+                            "roic_high_sustained",      # quality signal = seller-type business
+                            "competitive_moat",         # quality signal
+                            "pricing_power_emerging",
+                        ):
+                            _perspective = "seller"
+                        # Buyer perspective = company NEEDS the constrained item
+                        elif sig.signal_type in (
+                            "supply_bottleneck", "inventory_drawdown",
+                            "capacity_shortage", "demand_exceeds_supply",
+                        ):
+                            _perspective = "buyer"
+                        # Neutral but company-positive (demand for their products)
+                        elif sig.signal_type in (
+                            "demand_surge", "capex_increase", "tender_pipeline",
+                            "localization_opportunity", "policy_support",
+                            "tam_expansion_structural", "management_quality",
+                        ):
+                            _perspective = "seller"   # these signals indicate company-positive dynamics
+
                     signal_dicts.append({
                         "document_id": doc_id,
                         "entity_id":   _sig_entity_id,
                         "signal_type": sig.signal_type,
-                        "direction": sig.direction,
-                        "confidence": sig.confidence,
+                        "direction":   sig.direction,
+                        "confidence":  sig.confidence,
                         "signal_value": sig.signal_value,
-                        "signal_unit": sig.signal_unit,
+                        "signal_unit":  sig.signal_unit,
                         "context_text": sig.context_text[:500],
                         "extracted_by": sig.extracted_by,
-                        "filed_at": doc.get("filed_at"),
-                        "country": doc.get("country", "US"),
+                        "filed_at":    doc.get("filed_at"),
+                        "country":     doc.get("country", "US"),
+                        "perspective": _perspective,
                     })
                 try:
                     self._pg_store.batch_insert_signals(signal_dicts)
@@ -1207,6 +1400,24 @@ class IntelligencePipeline:
                         self._pg_store.insert_signal(sd)
 
                 stats["signals_found"] += len(signal_dicts)
+
+                # ── Per-document sentiment + extractive summary ───────────────
+                # Computed at NLP time so downstream tabs load instantly.
+                # No LLM call — purely rule-based from extracted signals + text.
+                try:
+                    _doc_sentiment, _doc_summary = _compute_doc_sentiment_summary(
+                        signals=signals,
+                        raw_text=raw_text,
+                    )
+                    if _doc_sentiment is not None or _doc_summary:
+                        self._pg_store.update_document_nlp_enrichment(
+                            doc_id=doc_id,
+                            sentiment_score=_doc_sentiment,
+                            summary=_doc_summary,
+                        )
+                except Exception as _se:
+                    logger.debug("doc %s: sentiment/summary failed: %s", doc_id, _se)
+
                 done_ids.append(doc_id)
                 stats["docs_processed"] += 1
 
@@ -1761,12 +1972,17 @@ class IntelligencePipeline:
         _t["beneficiary_map"] = round(time.time() - _t0, 2)
 
         _t0 = time.time()
-        # Pass the signal window so beneficiaries are stamped with the analysis period.
-        # The ranking engine uses window_start/window_end to show only companies
-        # that were active in THAT specific year — prevents cross-year bleed.
-        _win_start = (_as_of - __import__('datetime').timedelta(days=self.config.get('themes',{}).get('signal_window_days',365))) if _as_of else None
+        # Pass the ACTUAL analysis window boundaries to beneficiary persist.
+        # Using _lookback (already computed above from as_of_date and signal_window_days)
+        # ensures the window is exact and date-bounded, NOT _as_of - 365 days recomputed
+        # here which could differ from the signal window actually used for theme detection.
+        # LEAST(existing.window_start, new) in DB preserves earliest historical date.
+        # GREATEST(existing.window_end, new) in DB preserves most recent detection.
+        _bene_window_start = _lookback  # same floor used for signal queries above
+        _bene_window_end   = _as_of
         self._beneficiary_mapper.persist(beneficiary_results, self._pg_store, theme_id_map,
-                                         window_start=_win_start, window_end=_as_of)
+                                         window_start=_bene_window_start,
+                                         window_end=_bene_window_end)
         stats["beneficiaries_mapped"] = sum(len(r.all_beneficiaries) for r in beneficiary_results)
 
         # ── Sync company_count on mg_themes to match actual persisted beneficiaries ──

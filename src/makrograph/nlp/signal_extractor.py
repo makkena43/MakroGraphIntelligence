@@ -290,24 +290,103 @@ _RAW_PATTERNS: list[tuple[str, str, str, float]] = [
     (r"\b(?:PLI|production.linked\s+incentive|FAME|phased\s+manufacturing\s+programme|PMP)\b"
      r".{0,60}(?:approv|eligibl|benefit|receiv|sanction|disburse|claim)",
      "localization_opportunity", "positive", 0.87),
+    # PLI scheme mentions with specific sector context (higher conviction)
+    (r"\bPLI\b.{0,40}(?:semiconductor|solar|battery|ACC|automobile|auto\s+component|"
+     r"telecom|textile|pharma|bulk\s+drug|medical\s+device|white\s+goods|"
+     r"food\s+processing|specialty\s+steel|drone)",
+     "localization_opportunity", "positive", 0.90),
     (r"\b(?:import\s+duty|custom\s+duty|BCD|anti.dumping)\b.{0,40}"
      r"(?:increas|hike|impos|rais|raised|hiked).{0,40}"
      r"(?:solar|semiconductor|electron|steel|chemical|battery|EV|telecom)",
      "localization_opportunity", "positive", 0.83),
 
     # ── TENDER PIPELINE ──────────────────────────────────────────────────
-    # Active tender / bid pipeline signals
+    # Active tender / bid pipeline signals — India-specific
     (r"\b(?:L1|lowest\s+bidder|lowest\s+quoted|emerged\s+L1|declared\s+L1)\b",
      "tender_pipeline", "positive", 0.88),
     (r"\b(?:tender|bid|RFP|RFQ|request\s+for\s+(?:proposal|quotation))\b.{0,60}"
      r"(?:win|won|award|bagg|secur|receiv|approv|issue)",
      "tender_pipeline", "positive", 0.85),
     (r"\b(?:tender\s+(?:floated|issued|called|invit)|SECI\s+tender|PGCIL\s+tender|"
-     r"Railways\s+tender|CPWD\s+tender)\b",
-     "tender_pipeline", "positive", 0.80),
+     r"Railways\s+tender|CPWD\s+tender|NTPC\s+tender|PowerGrid\s+tender)\b",
+     "tender_pipeline", "positive", 0.82),
+    # GeM portal — Government e-Marketplace (major India procurement channel)
+    (r"\b(?:GeM|GEM|government\s+e.?marketplace)\b.{0,60}"
+     r"(?:order|bid|tender|procure|win|award|portal|purchase)",
+     "tender_pipeline", "positive", 0.83),
+    # SECI power purchase agreements — key demand signal for solar/wind
+    (r"\bSECI\b.{0,60}(?:power\s+purchase\s+agreement|PPA|allocated|awarded|MW|GW)",
+     "tender_pipeline", "positive", 0.85),
     (r"(?:Rs\.?\s*|INR\s*|₹\s*)\d[\d,]*\s*(?:crores?|Crs?\b).{0,40}"
      r"(?:tender|order|contract|project|EPC|bid)",
      "tender_pipeline", "positive", 0.82),
+
+    # ── QUANTIFIED CONSTRAINT METRICS (world-class accuracy signals) ─────
+    # These extract NUMBERS from management commentary, turning vague statements
+    # into investable facts. Backlog of 12 months vs 2 months = very different.
+
+    # Backlog duration — how many months/quarters of production are already booked
+    # "18-month backlog", "backlog extends into Q4 2025", "2.5 years of orders"
+    # This is the STRONGEST indicator of pricing power — customer willingness to
+    # commit far in advance = inelastic demand.
+    (r"\bbacklog\b.{0,60}(?:cover|extend|span|reach|vis[ib]+ilit).{0,30}"
+     r"(?:\d+\s*(?:month|quarter|year|week)s?|through|into\s+(?:Q[1-4]|20\d{2}))",
+     "backlog_duration", "positive", 0.88),
+    (r"(?:order\s+book|backlog)\b.{0,40}"
+     r"(?:of\s+)?\d+[\.,]?\d*\s*(?:months?|quarters?|years?)",
+     "backlog_duration", "positive", 0.86),
+
+    # Capacity utilization — percentage of production capacity in use
+    # HIGH utilization (≥90%) = approaching constraint → pricing power incoming
+    # "Operating at 94% utilization", "running at full capacity"
+    (r"\b(?:operat|run(?:ning)?|utiliz)\b.{0,40}"
+     r"(?:at\s+)?(?:9[0-9]|100)\s*%\s*(?:capacity|utilization|util)",
+     "capacity_utilization_high", "positive", 0.87),
+    (r"\b(?:capacity|plant|facility)\b.{0,40}"
+     r"(?:fully\s+(?:loaded|utilized|booked)|at\s+(?:full|peak|maximum)\s+(?:capacity|utilization|load))",
+     "capacity_utilization_high", "positive", 0.88),
+    # Extract the actual % when stated explicitly
+    (r"\butilization\b.{0,20}(?:rate\b.{0,10})?(?:of\s+)?(\d{2,3})\s*%",
+     "capacity_utilization_high", "positive", 0.84),
+
+    # Realized margin expansion from pricing / product mix
+    # This is the ECONOMIC VALIDATION of pricing power — not just "we can raise prices"
+    # but "our gross margin expanded 400 basis points due to better product mix"
+    (r"\b(?:gross\s+)?margin\b.{0,60}"
+     r"(?:expand|improv|increas|widen|higher).{0,40}"
+     r"(?:\d+\s*(?:basis\s+)?(?:points?|bps?|pp)|%)",
+     "realized_margin_expansion", "positive", 0.85),
+    (r"\b(?:ASP|average\s+selling\s+price|realization|realisation)\b.{0,60}"
+     r"(?:increase|rise|grow|improv|higher|up).{0,30}(?:\d+\s*%|\d+\s*(?:rs\.|inr|₹|\$))",
+     "realized_margin_expansion", "positive", 0.84),
+    (r"\b(?:better\s+(?:pricing|realiz|product\s+mix)|pricing\s+(?:power\s+)?(?:realiz|materializ|captur|seen))\b",
+     "realized_margin_expansion", "positive", 0.80),
+
+    # Supply concentration — company claims monopoly/near-monopoly position
+    # "We are the only domestic manufacturer", "only 2 global suppliers"
+    # This is the MOAT signal — scarcity of supply creates lasting pricing power.
+    (r"\b(?:only|sole|lone|singular)\b.{0,30}"
+     r"(?:domestic|local|indigenous|indian)?\s*(?:manufacturer|supplier|producer|maker|vendor)\b",
+     "supply_concentration", "positive", 0.88),
+    (r"\b(?:few|limited|scarce)\s+(?:global\s+)?(?:supplier|manufacturer|producer)s?\b.{0,40}"
+     r"(?:world\s*wide|global(?:ly)?|across\s+(?:the\s+)?world|internationally)",
+     "supply_concentration", "positive", 0.83),
+    (r"\b(?:import\s+substit|indigenis|localiz)\w*.{0,40}"
+     r"(?:leader|dominant|largest|only|biggest|pioneer)",
+     "supply_concentration", "positive", 0.82),
+
+    # Competitor capacity constraint — rivals at capacity too (validates constraint)
+    # When a competitor says "our rival is fully booked too" = systemic shortage
+    (r"\b(?:compet|rival|peer|industry).{0,50}"
+     r"(?:also\s+)?(?:constrain|tight|limit|strain|at\s+(?:full|peak)\s+cap|fully\s+(?:book|allocat))",
+     "competitor_constrained", "positive", 0.75),
+
+    # Demand pull from customer side — customers ordering early due to scarcity
+    # "Customers are placing orders 12 months in advance", "advance booking surge"
+    (r"\b(?:customer|client)s?\b.{0,60}"
+     r"(?:order(?:ing|ed)?\s+(?:ahead|early|in\s+advance|forward|long.lead)|"
+     r"commit(?:ting|ted)\s+(?:capacity|production|allocation|future))",
+     "demand_pull", "positive", 0.83),
 
     # ── POLICY SUPPORT ───────────────────────────────────────────────────
     # Government scheme / budgetary / policy support signals
@@ -321,6 +400,158 @@ _RAW_PATTERNS: list[tuple[str, str, str, float]] = [
      r"PM\s+(?:KUSUM|Gati\s+Shakti|MITRA|PRANAM|Surya\s+Ghar)|"
      r"Sagarmala|Bharatmala|UDAY|RDSS|DDUGJY)\b",
      "policy_support", "positive", 0.80),
+    # MNRE (Ministry of New & Renewable Energy) — critical India policy driver
+    (r"\bMNRE\b.{0,80}(?:approv|sanction|allocat|target|tender|award|notif|fund|GW|MW)",
+     "policy_support", "positive", 0.84),
+    # Union Budget capex signals — infrastructure push is investable theme
+    (r"\b(?:union\s+budget|annual\s+budget)\b.{0,80}"
+     r"(?:capex|capital\s+expenditure|infrastructure|allocat|outlay).{0,40}"
+     r"(?:lakh\s+crore|trillion|billion|\d+\s*%)",
+     "policy_support", "positive", 0.86),
+    # Railways capex — direct order driver for Titagarh, RVNL, Texmaco etc.
+    (r"\b(?:indian\s+railways?|railways?\s+(?:ministry|board|capex|invest))\b"
+     r".{0,80}(?:crore|lakh|billion|wagon|locomotive|coach|electrif|loco|tender)",
+     "policy_support", "positive", 0.83),
+    # Defence indigenization — banned imports = captive demand for domestic suppliers
+    (r"\b(?:indigenis|indigeniz|Make\s+in\s+India\s+defence|"
+     r"defence\s+(?:indigenis|indigeniz|corridor|export|offset)|"
+     r"positive\s+indigenisation\s+list|import\s+embargo\s+defence|"
+     r"banned\s+(?:import|procurement)\s+list)\b",
+     "policy_support", "positive", 0.87),
+
+    # ── US MARKET: GUIDANCE & ALLOCATION SIGNALS ─────────────────────────
+    # Revenue / earnings guidance — forward-looking management confidence
+    (r"\b(?:we|the\s+company|management)\s+(?:expect|project|anticipate|forecast|"
+     r"guide|guided|reiterate)\b.{0,60}"
+     r"(?:revenue|sales|earnings|EPS|EBITDA|margin|growth).{0,40}"
+     r"(?:\$|\d+\s*(?:billion|million|B\b|M\b)|%)",
+     "guidance_revenue", "positive", 0.86),
+    # "Visibility into" — management signaling multi-quarter order confidence
+    (r"\b(?:visibility|confidence|comfort|clarity)\b.{0,40}"
+     r"(?:into|through|for|over)\b.{0,40}"
+     r"(?:next\s+(?:quarter|year|12\s*months|18\s*months)|"
+     r"(?:Q[1-4]|FY)\s*2[0-9]|(?:fiscal|calendar)\s+20[0-9]{2})",
+     "guidance_revenue", "positive", 0.83),
+    # Customer allocation language — clearest pricing power signal for US tech
+    (r"\b(?:allocat|ration|priorit)\w*\b.{0,60}"
+     r"(?:customer|client|partner).{0,40}"
+     r"(?:through\s+(?:Q[1-4]|H[12]|FY)|limit|capac|constrain)",
+     "capacity_constraint_seller", "positive", 0.91),
+    # "Sold through / booked through" — capacity committed to customers
+    (r"\b(?:sold|booked|committed|locked|contracted)\b.{0,30}"
+     r"(?:through|out\s+through|for)\b.{0,40}"
+     r"(?:Q[1-4]|H[12]|(?:next|fiscal|coming)\s+(?:year|quarter|12|18|24))",
+     "capacity_constraint_seller", "positive", 0.92),
+    # Pricing power from constraint — margin expansion explicitly from price
+    (r"\b(?:gross\s+margin|operating\s+margin|profitab)\w*\b.{0,60}"
+     r"(?:expand|improve|higher|increas).{0,60}"
+     r"(?:pric|mix|ASP|average\s+selling\s+price|pricing\s+power)",
+     "pricing_power_emerging", "positive", 0.82),
+    # "Customers placing orders in advance" — demand pull exceeding normal lead times
+    (r"\b(?:customer|client)s?\b.{0,40}"
+     r"(?:placing|placing\s+orders|ordering|booking|committing)\b.{0,40}"
+     r"(?:in\s+advance|ahead|early|long.lead|future\s+delivery|future\s+need)",
+     "capacity_constraint_seller", "positive", 0.88),
+    # ═══════════════════════════════════════════════════════════════════════
+    # TIER 1 SIGNALS — Multi-Decade Compounder Detection
+    # These signals identify companies that will compound wealth for 5-20 years.
+    # Peter Lynch found Taco Bell. Jhunjhunwala found Titan. Buffett found Coke.
+    # They ALL had these patterns in management commentary BEFORE they were famous.
+    # ═══════════════════════════════════════════════════════════════════════
+
+    # ── ROIC & REINVESTMENT QUALITY ──────────────────────────────────────
+    # The single most predictive signal for wealth creation over decades.
+    # Companies earning >20% ROIC and reinvesting = exponential compounders.
+    # Titan in 2003: "22% return on capital deployed in new stores" → found this.
+    (r"\b(?:return\s+on\s+(?:incremental\s+|invested\s+)?capital|ROIC|ROCE)\b"
+     r".{0,60}(?:\d{2,3}\s*%|(\d{2,3})\s*(?:percent|per\s*cent))",
+     "roic_high_sustained", "positive", 0.88),
+    (r"\b(?:capital\s+(?:efficiency|light|deployed|allocation)|asset.light)\b"
+     r".{0,60}(?:generat|return|compounding|high|improv)",
+     "roic_high_sustained", "positive", 0.82),
+    (r"\b(?:reinvest|plough\s+back|retained\s+earnings|internal\s+accruals)\b"
+     r".{0,60}(?:at\s+high|efficiently|compounding|back\s+into\s+(?:the\s+)?business)",
+     "roic_reinvestment", "positive", 0.83),
+    (r"\b(?:free\s+cash\s+flow|FCF)\b.{0,40}"
+     r"(?:exceed|greater\s+than|convert|(\d{2,3})\s*%\s*of\s+(?:net\s+)?(?:earnings|profit))",
+     "earnings_quality_high", "positive", 0.85),
+
+    # ── COMPETITIVE MOAT SIGNALS ─────────────────────────────────────────
+    # Brand, distribution, technology, switching costs — what makes a business
+    # DURABLE. HDFC Bank's distribution moat, Titan's brand preference,
+    # Asian Paints' distribution reach — all extractable from MD&A.
+    (r"\b(?:brand\s+(?:preference|equity|loyalty|recognition|strength))\b"
+     r".{0,60}(?:\d{1,3}\s*%|higher|stronger|leading|dominant|first\s+choice)",
+     "competitive_moat", "positive", 0.86),
+    (r"\b(?:switching\s+cost|customer\s+(?:stickiness|retention|lock.in|loyalty))\b"
+     r".{0,60}(?:high|strong|significant|barrier|difficult\s+to\s+switch)",
+     "competitive_moat", "positive", 0.83),
+    (r"\b(?:distribution\s+(?:network|reach|advantage|depth|width)|"
+     r"network\s+(?:effect|advantage)|ecosystem\s+(?:lock.in|advantage))\b"
+     r".{0,60}(?:largest|deepest|strongest|unmatched|decades|built\s+over)",
+     "competitive_moat", "positive", 0.82),
+    (r"\b(?:pricing\s+power|ability\s+to\s+(?:raise|increase)\s+prices|"
+     r"pass.?through\s+(?:costs?|inflation))\b"
+     r".{0,60}(?:sustained|confirmed|demonstrated|years|customers\s+accept)",
+     "competitive_moat", "positive", 0.84),
+    (r"\b(?:only|sole|dominant|leading)\s+(?:domestic\s+)?(?:player|manufacturer|provider)\b"
+     r".{0,40}(?:in\s+this|in\s+our|category|segment|niche)",
+     "competitive_moat", "positive", 0.87),
+
+    # ── MARKET SIZE EXPANSION (TAM) ──────────────────────────────────────
+    # Multi-decade compounders sit in GROWING markets. The jewelry market grew
+    # 8% annually in India for 20 years. Pharmaceutical market grew 12%.
+    # These TAM signals identify companies with long runways ahead.
+    (r"\b(?:market\s+(?:size|growing|growth)|TAM|addressable\s+market)\b"
+     r".{0,80}(?:grow|expand|double|triple).{0,40}"
+     r"(?:\d{1,3}\s*%\s*(?:CAGR|annually|per\s+year)|over\s+(?:next\s+)?(?:\d+|decade))",
+     "tam_expansion_structural", "positive", 0.83),
+    (r"\b(?:penetration\s+(?:rate|level)|per\s+capita\s+consumption|"
+     r"underpenetrated|low\s+penetration)\b"
+     r".{0,60}(?:opportunity|growing|room\s+to\s+grow|significant|large)",
+     "tam_expansion_structural", "positive", 0.81),
+    (r"\b(?:secular\s+(?:trend|growth|tailwind)|structural\s+(?:shift|opportunity|growth))\b"
+     r".{0,60}(?:decade|multi.year|long.term|sustained|irreversible)",
+     "tam_expansion_structural", "positive", 0.80),
+
+    # ── MANAGEMENT QUALITY (CAPITAL ALLOCATION & LONG-TERM THINKING) ─────
+    # The great investors identify management quality from HOW they communicate.
+    # Buffett reads annual letters. Lynch attended store visits.
+    # These patterns extract management quality signals from earnings calls.
+    (r"\b(?:decade|multi.year|long.?term|10.?year|20.?year)\b"
+     r".{0,60}(?:vision|thinking|strategy|investment|commitment|compounding|wealth)",
+     "management_quality", "positive", 0.78),
+    (r"\b(?:disciplined|prudent|measured|patient|conservative)\s+"
+     r"(?:capital|investment|allocation|balance\s+sheet|approach|deployment)",
+     "management_quality", "positive", 0.79),
+    (r"\b(?:return\s+(?:to\s+)?shareholders|shareholder\s+(?:value|wealth|returns))\b"
+     r".{0,60}(?:long.term|compounding|sustained|over\s+(?:decade|years))",
+     "management_quality", "positive", 0.76),
+    (r"\b(?:consistent|predictable|repeatable|sustained)\s+"
+     r"(?:earnings|performance|delivery|execution|cash\s+flow|growth)",
+     "management_quality", "positive", 0.77),
+
+    # ── MARGIN SUSTAINABILITY (NOT TEMPORARY) ────────────────────────────
+    # Temporary margin expansion ≠ quality. Sustained margins over 5+ years = quality.
+    # Asian Paints: "maintained 20%+ margins for 15 years despite input cost cycles"
+    (r"\b(?:gross\s+)?margin\b.{0,40}"
+     r"(?:sustain|maintain|hold|preserve|consistent|structurally).{0,40}"
+     r"(?:\d{1,3}\s*%|historically|over\s+(?:year|cycle|period))",
+     "margin_sustainability", "positive", 0.84),
+    (r"\b(?:historically|over\s+(?:the\s+)?(?:decade|years|cycle))\b"
+     r".{0,60}(?:margin|profitab|returns|performance).{0,40}"
+     r"(?:consistent|sustained|stable|maintained|above\s+\d{1,3}\s*%)",
+     "margin_sustainability", "positive", 0.82),
+
+    # ── POLICY TAILWIND SIGNALS (Tier 3) ─────────────────────────────────
+    # Government policy creates time-bounded windows. PLI schemes, budget allocations,
+    # import duties — these are 3-5 year windows for domestic manufacturers.
+    # Already captured above, but ensure we have high-conviction PLI patterns.
+    (r"\bPLI\b.{0,30}(?:beneficiary|approved|eligible|receiving|disburse)",
+     "policy_support", "positive", 0.90),
+    (r"\b(?:budget\s+outlay|budget\s+allocation)\b.{0,60}"
+     r"(?:crore|billion|lakh).{0,30}(?:our\s+sector|our\s+industry|support)",
+     "policy_support", "positive", 0.85),
 ]
 
 # Pre-compiled at module import — shared across all SignalExtractor instances.
@@ -349,38 +580,78 @@ _MONEY_INR_RE = re.compile(
 # Order matters: longer/more specific matches are listed first so they win
 # over generic overlapping terms (e.g. "data center" before "data").
 _THEME_ENTITY_PATTERNS: list[tuple[re.Pattern, str]] = [
-    (re.compile(r"\bdata\s+cent(?:er|re)s?\b",          re.I), "Data Center"),
-    (re.compile(r"\bartificial\s+intelligence\b",        re.I), "Artificial Intelligence"),
+    # ── Highly specific (match first to avoid false positives) ──────────
+    # Semiconductor components
+    (re.compile(r"\bHBM\b|\bhigh.bandwidth\s+memory\b",  re.I), "HBM Memory"),
+    (re.compile(r"\badvanced\s+packaging\b|\bCoWoS\b|\bSoIC\b", re.I), "Advanced Packaging"),
+    (re.compile(r"\bEUV\b|\bextreme\s+ultraviolet\b",    re.I), "EUV Lithography"),
+    (re.compile(r"\bAI\s+(?:chip|accelerator|processor|inference|GPU)\b", re.I), "AI Chip"),
+    (re.compile(r"\bNAND\s+flash\b|\bNAND\b",            re.I), "NAND Flash"),
+    (re.compile(r"\bDRAM\b",                             re.I), "DRAM Memory"),
+    # Power & Grid components
+    (re.compile(r"\bpower\s+transformer\b|\btransformer\s+manufactur\b", re.I), "Power Transformer"),
+    (re.compile(r"\b(?:400|765|220|132)\s*kV\s*(?:transformer|substation)\b", re.I), "HV Transformer"),
+    (re.compile(r"\btransmission\s+(?:line|tower|cable|conductor)\b", re.I), "Transmission Infrastructure"),
+    (re.compile(r"\bsubstation\b",                       re.I), "Substation Equipment"),
+    (re.compile(r"\bgrid.scale\s+storage|grid\s+battery\b", re.I), "Grid Storage"),
+    (re.compile(r"\bsolar\s+(?:panel|module|cell|glass|wafer|PV)\b", re.I), "Solar PV"),
+    (re.compile(r"\bwind\s+turbine\b|\bturbine\s+blade\b", re.I), "Wind Turbine"),
+    # Railways & Defence
+    (re.compile(r"\brailway\s+wagon|freight\s+wagon|gondola\s+wagon\b", re.I), "Railway Wagon"),
+    (re.compile(r"\bVande\s+Bharat|train\s+18\b",        re.I), "Vande Bharat"),
+    (re.compile(r"\blocomotive\b",                       re.I), "Locomotive"),
+    (re.compile(r"\bdefence\s+(?:drone|UAV|missile|radar|electronics)\b", re.I), "Defence Electronics"),
+    (re.compile(r"\bmilitary\s+(?:aircraft|helicopter)\b", re.I), "Military Aviation"),
+    (re.compile(r"\bammunition\b|\bexplosive\b",          re.I), "Ammunition"),
+    # Industrial & Manufacturing
+    (re.compile(r"\bstainless\s+steel\b|\bspecialty\s+steel\b", re.I), "Specialty Steel"),
+    (re.compile(r"\bCRGO\b|cold.rolled\s+grain.oriented\b", re.I), "CRGO Steel"),
+    (re.compile(r"\bforging\b|\bforgings?\b",             re.I), "Forging"),
+    (re.compile(r"\bcasting\b",                          re.I), "Casting"),
+    (re.compile(r"\bprecision\s+(?:component|part|machining)\b", re.I), "Precision Components"),
+    (re.compile(r"\bPCB\b|printed\s+circuit\s+board\b",  re.I), "PCB"),
+    (re.compile(r"\bcompressor\b",                       re.I), "Compressor"),
+    (re.compile(r"\bpump\b",                             re.I), "Pump"),
+    (re.compile(r"\bvalve\b",                            re.I), "Valve"),
+    (re.compile(r"\bcable\s+(?:manufactur|industry)\b|\bpower\s+cable\b", re.I), "Power Cable"),
+    (re.compile(r"\bACC\s+battery\b|advanced\s+chemistry\s+cell\b", re.I), "ACC Battery"),
+    (re.compile(r"\belectrolyzer\b|\bgreen\s+hydrogen\b", re.I), "Green Hydrogen"),
+    # Pharma & Healthcare
+    (re.compile(r"\bbulk\s+drug|API\b|active\s+pharmaceutical\b", re.I), "API/Bulk Drug"),
+    (re.compile(r"\bbiologic|biosimilar\b",               re.I), "Biologics"),
+    (re.compile(r"\bmedical\s+device\b",                  re.I), "Medical Device"),
+    # Tech & Software
+    (re.compile(r"\bdata\s+cent(?:er|re)s?\b",           re.I), "Data Center"),
     (re.compile(r"\bgenerative\s+ai\b",                  re.I), "Generative AI"),
+    (re.compile(r"\bartificial\s+intelligence\b",        re.I), "Artificial Intelligence"),
     (re.compile(r"\bmachine\s+learning\b",               re.I), "Machine Learning"),
-    (re.compile(r"\belectric\s+vehicle|ev\s+(?:charging|manufactur|segment)\b", re.I), "Electric Vehicle"),
-    (re.compile(r"\bvande\s+bharat\b",                   re.I), "Vande Bharat"),
+    (re.compile(r"\bcybersecurit\w+\b",                  re.I), "Cybersecurity"),
+    (re.compile(r"\bcloud\b",                            re.I), "Cloud"),
+    # ── Broader sector matches (lower priority) ──────────────────────────
+    (re.compile(r"\belectric\s+vehicle\b|\bEV\s+(?:charging|manufactur|segment)\b", re.I), "Electric Vehicle"),
     (re.compile(r"\bspecialty\s+chem(?:ical)?s?\b",      re.I), "Specialty Chemicals"),
     (re.compile(r"\bsemiconductor\b",                    re.I), "Semiconductor"),
-    (re.compile(r"\breal\s+estate\b",                    re.I), "Real Estate"),
     (re.compile(r"\brenewable\s+energy\b",               re.I), "Renewable Energy"),
-    (re.compile(r"\bcybersecurit\w+\b",                  re.I), "Cybersecurity"),
     (re.compile(r"\bagrochemic(?:al)?s?\b",              re.I), "Agrochemicals"),
-    (re.compile(r"\bherbicid\w+\b",                      re.I), "Herbicides"),
     (re.compile(r"\baerospace\b",                        re.I), "Aerospace"),
     (re.compile(r"\bdefence|defense\b",                  re.I), "Defense"),
     (re.compile(r"\bautomotive\b",                       re.I), "Automotive"),
     (re.compile(r"\btextile\b",                          re.I), "Textiles"),
     (re.compile(r"\bpharmaceut\w+|pharma\b",             re.I), "Pharma"),
-    (re.compile(r"\bhealthcare|hospital\b",              re.I), "Healthcare"),
     (re.compile(r"\bsolar\b",                            re.I), "Solar"),
-    (re.compile(r"\bwind\s+(?:energy|power|turbine|farm|project)\b", re.I), "Wind"),
+    (re.compile(r"\bwind\s+(?:energy|power|farm|project)\b", re.I), "Wind"),
     (re.compile(r"\bbattery\b",                          re.I), "Battery"),
     (re.compile(r"\blithium\b",                          re.I), "Lithium"),
     (re.compile(r"\bcement\b",                           re.I), "Cement"),
     (re.compile(r"\bsteel\b",                            re.I), "Steel"),
-    (re.compile(r"\bcloud\b",                            re.I), "Cloud"),
     (re.compile(r"\brobotics?\b",                        re.I), "Robotics"),
     (re.compile(r"\bfoundr(?:y|ies)\b",                  re.I), "Foundry"),
     (re.compile(r"\btransformer\b",                      re.I), "Transformer"),
     (re.compile(r"\bwafer\b",                            re.I), "Wafer"),
     (re.compile(r"\bbiotech\b",                          re.I), "Biotech"),
+    (re.compile(r"\breal\s+estate\b",                    re.I), "Real Estate"),
     (re.compile(r"\bnbfc\b",                             re.I), "NBFC"),
+    (re.compile(r"\bhealthcare\b|\bhospital\b",          re.I), "Healthcare"),
 ]
 
 def _extract_theme_entity(context: str) -> str:

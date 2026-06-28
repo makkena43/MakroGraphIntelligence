@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { fetchReplayHistory } from '../../api'
+import { fetchReplayHistory, fetchPipelineReadiness } from '../../api'
 import { CountryBanner, SectionHeader, Spinner } from '../ui'
 
 interface Props { country: string; countryFlag: string; countryLabel: string }
@@ -17,6 +17,82 @@ function logLineClass(line: string): string {
   if (/\bWARNING\b/.test(line))       return 'text-yellow-400'
   if (/\bINFO\b/.test(line))          return 'text-sky-300'
   return 'text-slate-400'
+}
+
+function ReadinessCheck({ country, startDate, endDate }: { country: string; startDate: string; endDate: string }) {
+  const year = new Date(startDate).getFullYear()
+  const { data: readiness, isLoading } = useQuery({
+    queryKey: ['pipeline-readiness', country, year],
+    queryFn: () => fetchPipelineReadiness(country, year),
+    staleTime: 30_000,
+  })
+
+  if (isLoading) return null
+  if (!readiness) return null
+
+  const r = readiness as Record<string, unknown>
+  const conclusion = String(r.conclusion ?? '')
+  const diagnosis = (r.diagnosis as string[]) ?? []
+  const actions = (r.action_needed as string[]) ?? []
+  const totalDocs = Number(r.total_documents ?? 0)
+  const readyNlp = Number(r.ready_for_nlp ?? 0)
+  const signals = r.signals as Record<string,number> ?? {}
+  const docsStatus = (r.docs_by_status as Record<string,unknown>[]) ?? []
+
+  const conclusionColor =
+    conclusion.startsWith('READY') ? 'border-emerald-700 bg-emerald-950/40' :
+    conclusion.startsWith('NEED INGEST') ? 'border-red-700 bg-red-950/40' :
+    'border-amber-700 bg-amber-950/40'
+
+  return (
+    <div className={`rounded-xl border px-4 py-3 space-y-2 mb-3 ${conclusionColor}`}>
+      <div className="flex items-center justify-between">
+        <div className="text-xs font-bold text-slate-200">
+          🔎 Pre-flight Check — {country} {year}
+        </div>
+        <div className={`text-xs font-black px-2 py-0.5 rounded ${
+          conclusion.startsWith('READY') ? 'text-emerald-300' :
+          conclusion.startsWith('NEED INGEST') ? 'text-red-300' : 'text-amber-300'
+        }`}>{conclusion}</div>
+      </div>
+
+      {/* Doc breakdown */}
+      <div className="flex gap-4 text-[11px] text-slate-400 flex-wrap">
+        <span>Total docs: <strong className="text-slate-200">{totalDocs}</strong></span>
+        <span>Ready for NLP: <strong className={readyNlp>0?'text-emerald-400':'text-red-400'}>{readyNlp}</strong></span>
+        <span>Existing signals: <strong className="text-slate-200">{Number(signals.signal_count??0)}</strong></span>
+        <span>Seller signals: <strong className="text-amber-400">{Number(signals.seller_sigs??0)}</strong></span>
+      </div>
+
+      {/* Status breakdown */}
+      {docsStatus.length > 0 && (
+        <div className="flex gap-2 flex-wrap">
+          {docsStatus.map((s,i) => (
+            <span key={i} className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">
+              <strong className="text-slate-200">{String(s.processing_status)}</strong>: {Number(s.doc_count)} docs / {Number(s.companies)} cos
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Diagnosis */}
+      <div className="space-y-0.5">
+        {diagnosis.map((d,i) => <div key={i} className="text-[11px] text-slate-300">{d}</div>)}
+      </div>
+
+      {/* Actions needed */}
+      {actions.length > 0 && (
+        <div className="space-y-1 border-t border-slate-700/50 pt-2">
+          <div className="text-[10px] font-bold text-amber-400">REQUIRED ACTIONS:</div>
+          {actions.map((a,i) => (
+            <div key={i} className="text-[11px] text-amber-300 flex items-start gap-1.5">
+              <span>→</span><span>{a}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function PipelineTab({ country, countryFlag, countryLabel }: Props) {
@@ -37,6 +113,7 @@ export default function PipelineTab({ country, countryFlag, countryLabel }: Prop
   const [pdfFetch, setPdfFetch] = useState(false)
   const [pdfWorkers, setPdfWorkers] = useState(6)
   const [resume, setResume] = useState(false)
+  const [forceReprocess, setForceReprocess] = useState(false)
   const [running, setRunning] = useState(false)
   const [logs, setLogs] = useState<string[]>([])
   const [done, setDone] = useState(false)
@@ -74,6 +151,7 @@ export default function PipelineTab({ country, countryFlag, countryLabel }: Prop
         do_pdf_fetch_india: pdfFetch, pdf_fetch_workers: pdfWorkers,
         skip_neo4j: skipNeo4j, nlp_batch_size: nlpBatch,
         fetch_mode: fetchMode, max_companies: maxCo, resume,
+        force_reprocess_nlp: forceReprocess,
       }
       const res = await fetch('/api/pipeline/run', {
         method: 'POST',
@@ -266,7 +344,18 @@ export default function PipelineTab({ country, countryFlag, countryLabel }: Prop
             <span className="text-sm text-slate-400">Resume from last batch</span>
           </label>
         )}
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={forceReprocess} onChange={e => setForceReprocess(e.target.checked)}
+            className="accent-amber-500" />
+          <span className="text-sm text-amber-400 font-medium">
+            🔄 Force re-process NLP
+            <span className="text-slate-500 font-normal ml-1">(resets already-processed docs — use when signal types changed)</span>
+          </span>
+        </label>
       </div>
+
+      {/* Pre-flight readiness check */}
+      <ReadinessCheck country={country} startDate={startDate} endDate={endDate} />
 
       <div className="border-t border-slate-800 pt-4 flex items-center gap-3">
         <button

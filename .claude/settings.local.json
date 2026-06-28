@@ -367,7 +367,16 @@
       "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Users/makkenasrinivas/PycharmProjects/MakroGraphIntelligence/src/makrograph/storage/pg_store.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
       "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Users/makkenasrinivas/PycharmProjects/MakroGraphIntelligence/backend/main.py'\\).read\\(\\)\\); print\\('backend OK'\\)\")",
       "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Users/makkenasrinivas/PycharmProjects/MakroGraphIntelligence/backend/main.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
-      "Bash(awk -F: '$2 > 2724 {print; exit}')"
+      "Bash(awk -F: '$2 > 2724 {print; exit}')",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Users/makkenasrinivas/PycharmProjects/MakroGraphIntelligence/src/makrograph/nlp/signal_extractor.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Users/makkenasrinivas/PycharmProjects/MakroGraphIntelligence/src/makrograph/themes/theme_detector.py'\\).read\\(\\)\\); print\\('theme_detector OK'\\)\")",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Users/makkenasrinivas/PycharmProjects/MakroGraphIntelligence/src/makrograph/nlp/signal_extractor.py'\\).read\\(\\)\\); print\\('signal_extractor OK'\\)\")",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Users/makkenasrinivas/PycharmProjects/MakroGraphIntelligence/src/makrograph/pipeline/intelligence_pipeline.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(git -C /Users/makkenasrinivas/PycharmProjects/MakroGraphIntelligence show HEAD:frontend/src/components/tabs/CompanyDiveTab.tsx)",
+      "Bash(git -C /Users/makkenasrinivas/PycharmProjects/MakroGraphIntelligence checkout HEAD -- frontend/src/components/tabs/CompanyDiveTab.tsx)",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Users/makkenasrinivas/PycharmProjects/MakroGraphIntelligence/src/makrograph/nlp/signal_extractor.py'\\).read\\(\\)\\); print\\('extractor OK'\\)\")",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Users/makkenasrinivas/PycharmProjects/MakroGraphIntelligence/src/makrograph/ranking/quality_ranker.py'\\).read\\(\\)\\); print\\('quality_ranker OK'\\)\")",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Users/makkenasrinivas/PycharmProjects/MakroGraphIntelligence/backend/main.py'\\).read\\(\\)\\); print\\('all OK'\\)\")"
     ]
   }
 }
