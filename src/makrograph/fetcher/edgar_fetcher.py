@@ -288,8 +288,9 @@ class EdgarFetcher(SourceAdapter):
 
         return docs
 
-    def discover(self, since: Optional[datetime] = None) -> list[SourceDocument]:
-        """Discover new SEC filings since last checkpoint."""
+    def discover(self, since: Optional[datetime] = None,
+                 until: Optional[datetime] = None) -> list[SourceDocument]:
+        """Discover new SEC filings between since and until (until is optional)."""
         all_docs: list[SourceDocument] = []
 
         self._build_cik_list()
@@ -302,6 +303,9 @@ class EdgarFetcher(SourceAdapter):
             if not submissions:
                 continue
             docs = self._submissions_to_source_docs(submissions, since)
+            # Apply until filter if provided
+            if until:
+                docs = [d for d in docs if d.published_at is None or d.published_at <= until]
             all_docs.extend(docs)
             logger.info(f"EDGAR CIK {cik}: found {len(docs)} new filings")
 

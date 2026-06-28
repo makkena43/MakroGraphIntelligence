@@ -402,6 +402,13 @@ class PGStore:
             # Add country to mg_signals so rankings can be scoped without always joining mg_documents
             "ALTER TABLE mg_signals ADD COLUMN IF NOT EXISTS country VARCHAR(10) DEFAULT 'US'",
             "CREATE INDEX IF NOT EXISTS idx_mg_signals_country ON mg_signals(country)",
+            # perspective: 'seller' | 'buyer' | 'neutral'
+            # seller = company IS the constrained supplier (customers can't get enough FROM them)
+            # buyer  = company NEEDS the constrained item (they can't source inputs)
+            # This is the critical field for investment decisions — only seller-perspective
+            # supply constraints indicate pricing power / investable opportunity.
+            "ALTER TABLE mg_signals ADD COLUMN IF NOT EXISTS perspective VARCHAR(20) DEFAULT 'neutral'",
+            "CREATE INDEX IF NOT EXISTS idx_mg_signals_perspective ON mg_signals(perspective)",
             # Indexes
             "CREATE INDEX IF NOT EXISTS idx_mg_docs_country       ON mg_documents         (country)",
             "CREATE INDEX IF NOT EXISTS idx_mg_theme_country      ON mg_themes             (country)",
@@ -788,7 +795,8 @@ class PGStore:
         sql = """
             INSERT INTO mg_signals
                 (document_id, entity_id, signal_type, signal_value, signal_unit,
-                 direction, confidence, context_text, extracted_by, filed_at, country)
+                 direction, confidence, context_text, extracted_by, filed_at, country,
+                 perspective)
             VALUES %s
             ON CONFLICT (document_id, COALESCE(entity_id, -1), signal_type, COALESCE(direction, ''))
             WHERE document_id IS NOT NULL
@@ -796,7 +804,8 @@ class PGStore:
                 confidence   = GREATEST(mg_signals.confidence, EXCLUDED.confidence),
                 signal_value = COALESCE(EXCLUDED.signal_value, mg_signals.signal_value),
                 context_text = COALESCE(EXCLUDED.context_text, mg_signals.context_text),
-                country      = COALESCE(EXCLUDED.country, mg_signals.country)
+                country      = COALESCE(EXCLUDED.country, mg_signals.country),
+                perspective  = COALESCE(EXCLUDED.perspective, mg_signals.perspective)
         """
         rows = [
             (
@@ -811,6 +820,7 @@ class PGStore:
                 s.get("extracted_by", ""),
                 s.get("filed_at"),
                 s.get("country", "US"),
+                s.get("perspective", "neutral"),
             )
             for s in deduped.values()
         ]

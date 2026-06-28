@@ -366,7 +366,8 @@
       "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Users/makkenasrinivas/PycharmProjects/MakroGraphIntelligence/src/makrograph/storage/pg_store.py'\\).read\\(\\)\\); print\\('pg_store OK'\\)\")",
       "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Users/makkenasrinivas/PycharmProjects/MakroGraphIntelligence/src/makrograph/storage/pg_store.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
       "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Users/makkenasrinivas/PycharmProjects/MakroGraphIntelligence/backend/main.py'\\).read\\(\\)\\); print\\('backend OK'\\)\")",
-      "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Users/makkenasrinivas/PycharmProjects/MakroGraphIntelligence/backend/main.py'\\).read\\(\\)\\); print\\('OK'\\)\")"
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('/Users/makkenasrinivas/PycharmProjects/MakroGraphIntelligence/backend/main.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(awk -F: '$2 > 2724 {print; exit}')"
     ]
   }
 }

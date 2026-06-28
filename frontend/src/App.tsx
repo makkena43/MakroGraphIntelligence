@@ -16,12 +16,18 @@ import IndustriesTab from './components/tabs/IndustriesTab'
 import IndiaPolicyTab from './components/tabs/IndiaPolicyTab'
 import ThemeResearchTab from './components/tabs/ThemeResearchTab'
 import InvestmentShortlistTab from './components/tabs/InvestmentShortlistTab'
+import InvestableSignalsTab from './components/tabs/InvestableSignalsTab'
+import CompanyDiveTab from './components/tabs/CompanyDiveTab'
+import SentimentBoardTab from './components/tabs/SentimentBoardTab'
 
 const TABS = [
   { id: 'pipeline',          label: '🚀 Pipeline Runner' },
   { id: 'filings',           label: '📞 Concall & Filings' },
   { id: 'year-intelligence', label: '📅 Year Intelligence' },
+  { id: 'investable',        label: '⚡ Investable Signals' },
   { id: 'investment',        label: '🎯 Investment Shortlist' },
+  { id: 'company-dive',      label: '🔍 Company Deep Dive' },
+  { id: 'sentiment-board',   label: '📊 Sentiment Board' },
   { id: 'theme-research',    label: '🔬 Theme Research' },
   { id: 'india-policy',      label: '🇮🇳 India PLI & Policy' },
   { id: 'industries',        label: '🏭 Industries' },
@@ -108,7 +114,10 @@ export default function App() {
           {activeTab === 'pipeline'          && <PipelineTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'filings'           && <FilingsTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'year-intelligence' && <YearIntelligenceTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'investable'        && <InvestableSignalsTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'investment'        && <InvestmentShortlistTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'company-dive'     && <CompanyDiveTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'sentiment-board'  && <SentimentBoardTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'theme-research'   && <ThemeResearchTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'india-policy'     && <IndiaPolicyTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'industries'        && <IndustriesTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}

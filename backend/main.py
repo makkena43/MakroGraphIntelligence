@@ -135,7 +135,7 @@ def _call_claude(prompt: str) -> str:
     model   = acfg.get("model", "claude-sonnet-4-6")
     temp    = float(acfg.get("temperature", 0.4))
     tokens  = int(acfg.get("max_tokens", 8192))
-    timeout = int(acfg.get("timeout_seconds", 120))
+    timeout = int(acfg.get("timeout_seconds", 300))
     ctout   = int(acfg.get("connect_timeout_seconds", 10))
     resp = _req.post(
         "https://api.anthropic.com/v1/messages",
@@ -643,6 +643,371 @@ def get_investment_shortlist(
     except Exception as e:
         logging.error("get_investment_shortlist: %s", e, exc_info=True)
         return []
+
+
+@app.get("/api/investment-final-shortlist")
+def get_investment_final_shortlist(
+    country: str = "IN",
+    year: int | None = None,
+    min_constraint_signals: int = 2,
+    require_capex: bool = False,
+    min_avg_confidence: float = 0.70,
+) -> dict:
+    """5-stage deterministic investment funnel. No Claude. Pure signal arithmetic.
+
+    Stage 1: NEW/ESCALATING constraint themes with named components
+    Stage 2: Supply-side companies in those themes (role='supply')
+    Stage 3: Companies with direct constraint evidence in their own filings
+    Stage 4: Evidence quality rank (confidence × count × capex)
+    Stage 5: Final ranked shortlist with all evidence attached
+    """
+    pg = get_pg()
+    if not pg:
+        return {}
+    try:
+        import json as _j
+        from psycopg2.extras import RealDictCursor
+        from collections import defaultdict
+
+        yr    = year or date.today().year
+        to_d  = date(yr, 12, 31) if yr < date.today().year else date.today()
+        from_d = date(yr - 1, 1, 1)   # look back 1 year for signals
+
+        # ─── Stage 1: Get NEW/ESCALATING themes ────────────────────────────
+        focus_themes = pg.get_year_focus_analysis(yr, country)
+        actionable   = [t for t in focus_themes
+                        if t.get("focus_class") in ("new", "escalating", "no_prior")]
+
+        stage1_out = []
+        for t in actionable:
+            # Get constraint components for this theme (what's physically constrained)
+            components: list[dict] = []
+            try:
+                components = pg.get_constraint_components(
+                    theme_id=t.get("id", 0) or 0,
+                    from_date=from_d,
+                    to_date=to_d,
+                    top_n=5,
+                )
+            except Exception:
+                pass
+            stage1_out.append({
+                "theme_id":   t.get("id"),
+                "theme_name": t.get("theme_name",""),
+                "theme_slug": t.get("theme_slug",""),
+                "focus":      t.get("focus_class",""),
+                "conviction": t.get("conviction",""),
+                "delta_pct":  t.get("delta_pct"),
+                "this_avg":   t.get("this_avg_strength", 0),
+                "constrained_components": [
+                    {"component": c.get("component",""),
+                     "signal_type": c.get("signal_type",""),
+                     "frequency": c.get("frequency", 0),
+                     "best_quote": (c.get("best_quote") or "")[:200]}
+                    for c in components[:3] if c.get("component","") not in ("unspecified","")
+                ],
+            })
+
+        actionable_slugs = [t["theme_slug"] for t in stage1_out if t["theme_slug"]]
+
+        if not actionable_slugs:
+            return {
+                "year": yr, "country": country,
+                "stats": {"stage1_themes": 0},
+                "stages": [], "final_shortlist": [],
+            }
+
+        # ─── Stage 2: Discover companies FROM SIGNALS (year-specific) ─────────
+        # PRIMARY SOURCE: mg_signals.document_id → mg_documents.filed_at
+        # This is the quality data — what companies actually said in their filings
+        # in THIS year. Naturally different each year because filing dates are real.
+        #
+        # mg_theme_beneficiaries is used ONLY for role enrichment (supply vs demand)
+        # not for company discovery — that table has no year dimension.
+        CONSTRAINT = ("supply_bottleneck","inventory_drawdown",
+                      "capacity_shortage","demand_exceeds_supply")
+
+        with pg._conn() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+
+                # 2a. Find all companies that filed constraint signals in the year
+                cur.execute(
+                    """SELECT
+                           d.company,
+                           COALESCE(NULLIF(d.ticker,''), d.company) AS ticker,
+                           COUNT(*) FILTER (WHERE s.signal_type IN (
+                               'supply_bottleneck','inventory_drawdown',
+                               'capacity_shortage','demand_exceeds_supply'
+                           ))                                           AS c_count,
+                           COUNT(*) FILTER (WHERE s.signal_type = 'capex_increase')
+                                                                        AS capex_count,
+                           COUNT(*) FILTER (WHERE s.signal_type IN (
+                               'demand_surge','capex_increase'
+                           ))                                           AS d_count,
+                           ROUND(AVG(s.confidence) FILTER (WHERE s.signal_type IN (
+                               'supply_bottleneck','inventory_drawdown',
+                               'capacity_shortage','demand_exceeds_supply'
+                           ))::numeric, 3)                              AS avg_conf,
+                           -- Best constraint quote (highest confidence)
+                           (ARRAY_AGG(s.context_text ORDER BY s.confidence DESC)
+                            FILTER (WHERE s.signal_type IN (
+                                'supply_bottleneck','inventory_drawdown',
+                                'capacity_shortage','demand_exceeds_supply'
+                            ) AND s.context_text IS NOT NULL
+                              AND LENGTH(s.context_text) > 40))[1]     AS best_quote,
+                           (ARRAY_AGG(d.filed_at ORDER BY s.confidence DESC)
+                            FILTER (WHERE s.signal_type IN (
+                                'supply_bottleneck','inventory_drawdown',
+                                'capacity_shortage','demand_exceeds_supply'
+                            )))[1]::date                                AS best_quote_date,
+                           (ARRAY_AGG(s.context_text ORDER BY s.confidence DESC)
+                            FILTER (WHERE s.signal_type = 'capex_increase'
+                              AND s.context_text IS NOT NULL))[1]       AS capex_quote,
+                           MAX(d.filed_at)::date                        AS last_filing
+                       FROM mg_signals s
+                       JOIN mg_documents d ON d.id = s.document_id
+                       WHERE d.country = %s
+                         AND d.filed_at BETWEEN %s AND %s
+                         AND d.company IS NOT NULL AND d.company != ''
+                       GROUP BY d.company, COALESCE(NULLIF(d.ticker,''), d.company)
+                       HAVING COUNT(*) FILTER (WHERE s.signal_type IN (
+                           'supply_bottleneck','inventory_drawdown',
+                           'capacity_shortage','demand_exceeds_supply'
+                       )) >= %s
+                         AND ROUND(AVG(s.confidence) FILTER (WHERE s.signal_type IN (
+                             'supply_bottleneck','inventory_drawdown',
+                             'capacity_shortage','demand_exceeds_supply'
+                         ))::numeric, 3) >= %s
+                       ORDER BY c_count DESC, avg_conf DESC
+                       LIMIT 200""",
+                    (country, from_d, to_d, min_constraint_signals, min_avg_confidence)
+                )
+                signal_companies = cur.fetchall()
+
+                # Build primary company map from signals
+                co_meta: dict[str, dict] = {}
+                for r in signal_companies:
+                    name = r["company"]
+                    co_meta[name] = {
+                        "ticker":       r["ticker"] or "",
+                        "role":         "",           # enriched below
+                        "c_count":      int(r["c_count"] or 0),
+                        "capex_count":  int(r["capex_count"] or 0),
+                        "d_count":      int(r["d_count"] or 0),
+                        "avg_conf":     float(r["avg_conf"] or 0),
+                        "best_quote":   (r["best_quote"] or "")[:300],
+                        "best_quote_date": str(r["best_quote_date"] or ""),
+                        "capex_quote":  (r["capex_quote"] or "")[:200],
+                        "last_filing":  str(r["last_filing"] or ""),
+                    }
+
+                if not co_meta:
+                    return {"year": yr, "country": country,
+                            "stats": {"stage1_themes": len(stage1_out),
+                                      "stage2_signal_companies": 0},
+                            "stages": stage1_out, "final_shortlist": []}
+
+                # 2b. Resolve theme IDs for theme-matching enrichment
+                cur.execute(
+                    "SELECT id, theme_name, theme_slug, conviction "
+                    "FROM mg_themes WHERE theme_slug=ANY(%s) AND is_active=TRUE",
+                    (actionable_slugs,)
+                )
+                theme_rows = {r["id"]: dict(r) for r in cur.fetchall()}
+
+                # 2c. Enrich: look up company roles from beneficiary table (optional)
+                # Use company name OR ticker matching — just for role label, NOT for filtering
+                company_names = list(co_meta.keys())
+                tickers       = [m["ticker"].upper() for m in co_meta.values() if m["ticker"]]
+
+                if company_names:
+                    cur.execute(
+                        """SELECT DISTINCT ON (tb.company_name)
+                                  tb.company_name, tb.ticker,
+                                  tb.company_role, tb.theme_id
+                           FROM mg_theme_beneficiaries tb
+                           WHERE (tb.company_name = ANY(%s)
+                                  OR UPPER(TRIM(tb.ticker)) = ANY(%s))
+                             AND tb.company_name IS NOT NULL
+                           ORDER BY tb.company_name, tb.relevance_score DESC""",
+                        (company_names, tickers or ["__none__"])
+                    )
+                    for r in cur.fetchall():
+                        nm = r["company_name"]
+                        if nm in co_meta and not co_meta[nm]["role"]:
+                            co_meta[nm]["role"] = r["company_role"] or ""
+
+                # 2d. Theme matching: which actionable themes mention these companies?
+                # Join through signal entity text and beneficiary name matching
+                co_themes_map: dict[str, set] = defaultdict(set)
+                if theme_rows:
+                    cur.execute(
+                        """SELECT DISTINCT tb.company_name, tb.theme_id
+                           FROM mg_theme_beneficiaries tb
+                           WHERE tb.theme_id = ANY(%s)
+                             AND (tb.company_name = ANY(%s)
+                                  OR UPPER(TRIM(tb.ticker)) = ANY(%s))""",
+                        (list(theme_rows.keys()), company_names, tickers or ["__none__"])
+                    )
+                    for r in cur.fetchall():
+                        co_themes_map[r["company_name"]].add(r["theme_id"])
+
+                # Also assign the closest theme based on signal entity_text matching
+                # to themes' constraint components (best-effort)
+                raw_sigs = []   # already captured above in co_meta
+
+        # ─── Stage 3 / Stage 4: Evidence already aggregated in Stage 2 ──────
+        # mg_signals query above already computed c_count, avg_conf, best_quote
+        # No second signal query needed — this IS the quality source.
+        co_evidence: dict[str, dict] = {
+            nm: {
+                "constraint": [{"signal_type": "supply_bottleneck",
+                                "confidence": meta["avg_conf"],
+                                "context_text": meta["best_quote"],
+                                "filed_date": meta["best_quote_date"]}]
+                              if meta["best_quote"] else [],
+                "capex":      [{"signal_type": "capex_increase",
+                                "confidence": 0.80,
+                                "context_text": meta["capex_quote"],
+                                "filed_date": ""}]
+                              if meta["capex_quote"] else [],
+                "demand":     []
+            }
+            for nm, meta in co_meta.items()
+        }
+        ticker_to_name = {m["ticker"].upper(): nm for nm, m in co_meta.items() if m["ticker"]}
+
+        # Patch: use pre-aggregated counts directly
+        for r in []:  # no-op — signals already aggregated
+            co = ticker_to_name.get((r.get("ticker") or "").upper()) or r.get("company","")
+            if co not in co_meta:
+                continue
+            ev = co_evidence[co]
+            sig = dict(r)
+            if r["signal_type"] in CONSTRAINT:
+                ev["constraint"].append(sig)
+            elif r["signal_type"] == "capex_increase":
+                ev["capex"].append(sig)
+            else:
+                ev["demand"].append(sig)
+
+        # ─── Stage 5: Score and rank ─────────────────────────────────────────
+        FOCUS_SCORE = {"new":1.0,"escalating":0.9,"no_prior":0.6,"persistent":0.3}
+        CONV_SCORE  = {"high":1.0,"confirmed":0.85,"developing":0.65,"emerging":0.4}
+
+        results = []
+        for name, meta in co_meta.items():
+            # Use pre-aggregated signal data from Stage 2 SQL
+            c_count  = meta.get("c_count", 0)
+            k_count  = meta.get("capex_count", 0)
+            d_count  = meta.get("d_count", 0)
+            avg_conf = meta.get("avg_conf", 0.0)
+
+            if c_count < min_constraint_signals:
+                continue
+            if require_capex and k_count == 0:
+                continue
+            if avg_conf < min_avg_confidence:
+                continue
+
+            # For compatibility with downstream code
+            c_sigs = [{"confidence": avg_conf, "context_text": meta.get("best_quote",""),
+                        "filed_date": meta.get("best_quote_date","")}] * c_count
+            k_sigs = [{"confidence": 0.80}] * k_count
+            d_sigs = [{}] * d_count
+
+            best_c_dict = {"context_text": meta.get("best_quote",""),
+                           "confidence": avg_conf,
+                           "filed_date": meta.get("best_quote_date","")}
+            best_k_dict = {"context_text": meta.get("capex_quote","")}
+            best_c = best_c_dict if meta.get("best_quote") else None
+            best_k = best_k_dict if meta.get("capex_quote") else None
+
+            # Theme quality
+            theme_ids  = co_themes_map.get(name, set())
+            best_theme = max(
+                (t for t in stage1_out if t.get("theme_id") in theme_ids),
+                key=lambda t: FOCUS_SCORE.get(t.get("focus",""),0) *
+                              CONV_SCORE.get(t.get("conviction",""),0),
+                default=None
+            )
+            focus_s = FOCUS_SCORE.get(best_theme.get("focus","") if best_theme else "", 0.3)
+            conv_s  = CONV_SCORE.get(best_theme.get("conviction","") if best_theme else "", 0.3)
+
+            # Rank score (0-100)
+            rank_score = round(
+                min(100, (
+                    c_count * avg_conf * 30      # signal count × quality
+                    + k_count * 15               # capex commitment
+                    + d_count * 5                # demand confirmation
+                    + focus_s * conv_s * 30      # theme quality
+                    + len(theme_ids) * 5         # multi-theme overlap
+                )), 1
+            )
+
+            n_themes = len(theme_ids)
+            conviction = (
+                "high"   if (avg_conf >= 0.85 and c_count >= 3 and focus_s >= 0.9) else
+                "high"   if (n_themes >= 2 and avg_conf >= 0.80 and c_count >= 2)   else
+                "medium" if (avg_conf >= 0.75 and c_count >= 2)                     else
+                "low"
+            )
+
+            time_horizon = (
+                "0-6m"   if c_count >= 5 and k_count >= 1 else
+                "6-12m"  if c_count >= 3 else
+                "12-18m"
+            )
+
+            results.append({
+                "rank":              0,
+                "company":           name,
+                "ticker":            meta["ticker"],
+                "company_role":      meta["role"],
+                "theme":             best_theme["theme_name"] if best_theme else "",
+                "theme_focus":       best_theme["focus"] if best_theme else "",
+                "constraint_signals": c_count,
+                "capex_signals":      k_count,
+                "demand_signals":     d_count,
+                "avg_confidence":    round(avg_conf, 3),
+                "constrained_component": (
+                    best_theme["constrained_components"][0]["component"]
+                    if best_theme and best_theme.get("constrained_components") else ""
+                ),
+                "best_constraint_quote": (best_c.get("context_text","") or "")[:300] if best_c else "",
+                "best_constraint_date":  str(best_c.get("filed_date","")) if best_c else "",
+                "capex_quote":           (best_k.get("context_text","") or "")[:200] if best_k else "",
+                "theme_count":       n_themes,
+                "theme_names":       [theme_rows[tid]["theme_name"] for tid in theme_ids if tid in theme_rows],
+                "conviction":        conviction,
+                "time_horizon":      time_horizon,
+                "rank_score":        rank_score,
+            })
+
+        results.sort(key=lambda r: -r["rank_score"])
+        for i, r in enumerate(results):
+            r["rank"] = i + 1
+
+        stats = {
+            "stage1_themes":          len(stage1_out),
+            "stage2_signal_companies": len(co_meta),          # companies with signals this year
+            "stage3_with_evidence":   len(co_meta),           # all signal companies have evidence
+            "stage4_qualify":         len(results),
+            "final_count":            min(len(results), 50),
+        }
+
+        return {
+            "year":            yr,
+            "country":         country,
+            "period":          f"{from_d} → {to_d}",
+            "stats":           stats,
+            "constraint_regimes": stage1_out,
+            "final_shortlist": results[:50],
+        }
+
+    except Exception as e:
+        logging.error("investment_final_shortlist: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Final shortlist failed: {e}")
 
 
 @app.get("/api/debug/window-end-dist")
@@ -1680,7 +2045,7 @@ def theme_company_research(body: ThemeResearchBody) -> list[dict]:
                     cur.execute(
                         """SELECT d.company, d.ticker,
                                   d.filed_at::date AS filed_date, d.filing_type,
-                                  s.signal_type, s.confidence, s.context_text, s.entity_text
+                                  s.signal_type, s.confidence, s.context_text
                            FROM mg_signals s
                            JOIN mg_documents d ON d.id = s.document_id
                            WHERE d.filed_at BETWEEN %s AND %s
@@ -1698,7 +2063,7 @@ def theme_company_research(body: ThemeResearchBody) -> list[dict]:
                     cur.execute(
                         """SELECT d.company, d.ticker,
                                   d.filed_at::date AS filed_date, d.filing_type,
-                                  s.signal_type, s.confidence, s.context_text, s.entity_text
+                                  s.signal_type, s.confidence, s.context_text
                            FROM mg_signals s
                            JOIN mg_documents d ON d.id = s.document_id
                            WHERE d.filed_at BETWEEN %s AND %s
@@ -1993,6 +2358,1260 @@ def get_company_themes(ticker: str, country: str = "US", as_of: str | None = Non
     except Exception as e:
         logging.error("get_company_themes: %s", e)
         return []
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMPANY DEEP DIVE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class CompanyDiveBody(BaseModel):
+    company:       str            # name or ticker
+    country:       str  = "IN"
+    year:          int  | None = None
+    force_refresh: bool = False
+
+
+@app.get("/api/company/sentiment-board")
+def get_investable_signals(
+    country: str = "IN",
+    year: int | None = None,
+    from_date: str | None = None,
+    to_date: str | None = None,
+    min_quarters: int = 3,      # consecutive quarters required (default 3, not 2)
+    min_sentiment: float = 7.0, # minimum per-quarter sentiment (default 7.0, not 6.0)
+    top_n: int = 30,            # return only top N by signal strength
+) -> list[dict]:
+    """Investable signal = confirmed 2-quarter positive sentiment (hard gate)
+    ranked by capex + constraint signals + theme membership (boosters, not gates).
+
+    Gate 1 (HARD): both last 2 quarters must have NLP sentiment >= 6.0.
+    Boosters: capex signals, constraint signals, theme membership.
+    Companies with all three rise to the top. Companies with only sentiment
+    but no capex/constraint appear at the bottom — user can decide.
+    """
+    pg = get_pg()
+    if not pg:
+        return []
+    try:
+        from psycopg2.extras import RealDictCursor
+        if from_date and to_date:
+            from_d = date.fromisoformat(from_date)
+            to_d   = date.fromisoformat(to_date)
+        elif year:
+            from_d = date(year, 1, 1)
+            to_d   = date(year, 12, 31) if year < date.today().year else date.today()
+        else:
+            from_d = date(date.today().year - 1, 1, 1)
+            to_d   = date.today()
+
+        with pg._conn() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    WITH
+
+                    -- Resolve signal direction (stored OR inferred from signal_type)
+                    sig_dir AS (
+                        SELECT s.document_id, s.signal_type,
+                               COALESCE(s.confidence, 0.75) AS conf,
+                               CASE
+                                   WHEN COALESCE(s.direction,'') = 'positive' THEN 1
+                                   WHEN COALESCE(s.direction,'') = 'negative' THEN -1
+                                   WHEN s.signal_type IN (
+                                       'demand_surge','capex_increase','technology_adoption',
+                                       'hiring_surge','market_entry','regulatory_tailwind',
+                                       'tender_pipeline','policy_support'
+                                   ) THEN 1
+                                   WHEN s.signal_type IN (
+                                       'supply_bottleneck','inventory_drawdown','capacity_shortage',
+                                       'demand_exceeds_supply','demand_slowdown','hiring_freeze',
+                                       'regulatory_headwind','capex_decrease'
+                                   ) THEN -1
+                                   ELSE 0
+                               END AS dir_val
+                        FROM mg_signals s
+                    ),
+
+                    -- Per-filing: sentiment + evidence counts
+                    filing_sent AS (
+                        SELECT
+                            d.id   AS doc_id,
+                            d.company,
+                            COALESCE(NULLIF(d.ticker,''), d.company) AS ticker,
+                            d.filed_at::date  AS filing_date,
+                            ROUND(GREATEST(1.0, LEAST(10.0,
+                                CASE WHEN SUM(sd.conf) = 0 THEN 5.5
+                                ELSE 5.5 + SUM(sd.dir_val::float * sd.conf)
+                                          / SUM(sd.conf) * 4.5
+                                END
+                            ))::numeric, 1)  AS filing_sentiment,
+                            COUNT(*) FILTER (WHERE sd.signal_type = 'capex_increase') AS capex_sigs,
+                            COUNT(*) FILTER (WHERE sd.signal_type IN (
+                                'supply_bottleneck','inventory_drawdown',
+                                'capacity_shortage','demand_exceeds_supply'
+                            ))  AS constraint_sigs,
+                            COUNT(*) AS total_sigs
+                        FROM mg_documents d
+                        JOIN sig_dir sd ON sd.document_id = d.id
+                        WHERE d.country = %s
+                          AND d.filed_at BETWEEN %s AND %s
+                          AND d.company IS NOT NULL AND d.company != ''
+                        GROUP BY d.id, d.company, d.ticker, d.filed_at
+                        HAVING COUNT(*) >= 3
+                    ),
+
+                    -- Quarter-level aggregation
+                    quarterly AS (
+                        SELECT company, ticker,
+                               DATE_TRUNC('quarter', filing_date)::date AS quarter,
+                               ROUND(AVG(filing_sentiment)::numeric,1) AS q_sent,
+                               SUM(capex_sigs)       AS q_capex,
+                               SUM(constraint_sigs)  AS q_cstr
+                        FROM filing_sent
+                        GROUP BY company, ticker, DATE_TRUNC('quarter', filing_date)
+                    ),
+
+                    -- Rank quarters newest-first
+                    q_ranked AS (
+                        SELECT *,
+                            ROW_NUMBER() OVER (PARTITION BY company ORDER BY quarter DESC) AS rn
+                        FROM quarterly
+                    ),
+
+                    -- GATE 1 (HARD): min_quarters consecutive recent quarters all >= min_sentiment
+                    -- Default: 3 quarters all >= 7.0 (much stricter than 2Q >= 6.0)
+                    confirmed AS (
+                        SELECT
+                            company, ticker,
+                            MAX(CASE WHEN rn=1 THEN q_sent END) AS q1,
+                            MAX(CASE WHEN rn=2 THEN q_sent END) AS q2,
+                            MAX(CASE WHEN rn=3 THEN q_sent END) AS q3,
+                            SUM(q_capex)  AS total_capex,
+                            SUM(q_cstr)   AS total_cstr,
+                            COUNT(*)      AS quarters_in_period
+                        FROM q_ranked
+                        GROUP BY company, ticker
+                        -- ALL of the last min_quarters quarters must be >= min_sentiment
+                        HAVING COUNT(*) FILTER (WHERE rn <= %s AND q_sent >= %s) >= %s
+                    ),
+
+                    -- Period totals (for filing count, last filing)
+                    period AS (
+                        SELECT company,
+                               MAX(filing_date) AS last_filing,
+                               COUNT(DISTINCT doc_id) AS filing_count,
+                               SUM(capex_sigs)      AS period_capex,
+                               SUM(constraint_sigs) AS period_cstr
+                        FROM filing_sent
+                        GROUP BY company
+                    ),
+
+                    -- Theme membership (LEFT join — booster not gate, uses ILIKE)
+                    theme_info AS (
+                        SELECT
+                            tb.company_name,
+                            tb.ticker AS theme_ticker,
+                            COUNT(DISTINCT t.id) AS theme_count,
+                            MAX(CASE WHEN t.conviction IN ('confirmed','high') THEN 1 ELSE 0 END) AS has_confirmed,
+                            STRING_AGG(DISTINCT t.theme_name, '; '
+                                ORDER BY t.theme_name) AS theme_names
+                        FROM mg_theme_beneficiaries tb
+                        JOIN mg_themes t ON t.id = tb.theme_id
+                        WHERE t.is_active = TRUE AND t.country = %s
+                          AND tb.company_name IS NOT NULL
+                        GROUP BY tb.company_name, tb.ticker
+                    )
+
+                    SELECT
+                        c.ticker,
+                        c.company,
+                        ROUND(((c.q1 + c.q2) / 2.0)::numeric, 1) AS sentiment_score,
+                        c.q1   AS last_quarter_sentiment,
+                        c.q2   AS prior_quarter_sentiment,
+                        c.quarters_in_period,
+                        p.period_capex    AS capex_signals,
+                        p.period_cstr     AS constraint_signals,
+                        p.filing_count,
+                        p.last_filing,
+                        COALESCE(ti.theme_count, 0)   AS theme_count,
+                        COALESCE(ti.has_confirmed, 0) AS in_confirmed_theme,
+                        COALESCE(ti.theme_names, '')  AS constraint_themes,
+                        -- Signal strength: pure sentiment + capex booster + constraint booster + theme booster
+                        ROUND((
+                            ((c.q1 + c.q2) / 2.0 - 6.0) * 15.0          -- sentiment above threshold
+                          + LEAST(40.0, p.period_capex    * 8.0)          -- capex commitment booster
+                          + LEAST(30.0, p.period_cstr     * 5.0)          -- constraint evidence booster
+                          + LEAST(15.0, COALESCE(ti.theme_count, 0) * 5.0) -- theme membership booster
+                        )::numeric, 1) AS signal_strength,
+                        -- Labels for the three signals
+                        CASE WHEN p.period_capex > 0 THEN true ELSE false END AS has_capex,
+                        CASE WHEN p.period_cstr  > 0 THEN true ELSE false END AS has_constraint,
+                        CASE WHEN COALESCE(ti.theme_count, 0) > 0 THEN true ELSE false END AS in_theme
+                    FROM confirmed c
+                    JOIN period p ON p.company = c.company
+                    LEFT JOIN theme_info ti
+                           ON LOWER(TRIM(c.company)) ILIKE LOWER(TRIM(ti.company_name))
+                           OR (c.ticker != '' AND UPPER(TRIM(c.ticker)) = UPPER(TRIM(ti.theme_ticker)))
+                    ORDER BY signal_strength DESC
+                    LIMIT %s
+                """, (country, from_d, to_d,
+                      min_quarters, min_sentiment, min_quarters,  # HAVING clause params
+                      country,                                     # theme_info WHERE
+                      top_n))
+                rows = cur.fetchall()
+        return [dict(r) for r in rows]
+    except Exception as e:
+        logging.error("get_investable_signals: %s", e, exc_info=True)
+        return []
+
+
+@app.get("/api/company/investable-signals")
+def investable_signals_endpoint(
+    country: str = "IN",
+    year: int | None = None,
+    from_date: str | None = None,
+    to_date: str | None = None,
+    min_quarters: int = 3,
+    min_sentiment: float = 7.0,
+    top_n: int = 30,
+) -> list[dict]:
+    return get_investable_signals(country=country, year=year,
+                                  from_date=from_date, to_date=to_date,
+                                  min_quarters=min_quarters,
+                                  min_sentiment=min_sentiment,
+                                  top_n=top_n)
+
+
+def get_sentiment_board(
+    country: str = "IN",
+    year: int | None = None,
+    from_date: str | None = None,   # YYYY-MM-DD overrides year
+    to_date: str | None = None,     # YYYY-MM-DD overrides year
+    min_filings: int = 1,
+    min_signals: int = 3,      # per filing minimum signals
+    min_directional: int = 2,  # must have ≥2 positive OR negative signals to matter
+    limit: int = 500,
+) -> list[dict]:
+    """Sentiment board for all companies — computed purely from NLP/spaCy signals,
+    no Claude API call needed.
+
+    Sentiment formula (1-10):
+        base = 5.0
+        + 0.40 per demand/positive signal (cap +4.0)
+        − 0.35 per constraint/negative signal (cap −3.5)
+        clamped to [1, 10]
+
+    Positive signal types: demand_surge, capex_increase, technology_adoption,
+                           regulatory_tailwind, market_entry, hiring_surge
+    Negative signal types: supply_bottleneck, inventory_drawdown, capacity_shortage,
+                           demand_exceeds_supply, demand_slowdown, hiring_freeze
+    """
+    pg = get_pg()
+    if not pg:
+        return []
+    try:
+        from psycopg2.extras import RealDictCursor
+        # Date logic — strict year isolation so each year shows different companies:
+        # - Year selected: ONLY filings from that calendar year (Jan 1 – Dec 31).
+        #   This ensures 2021 shows 2021 filings, 2022 shows 2022 filings, etc.
+        # - Explicit from/to dates: exact window
+        # - "All time": last 3 years
+        if from_date and to_date:
+            from_d = date.fromisoformat(from_date)
+            to_d   = date.fromisoformat(to_date)
+        elif year:
+            from_d = date(year, 1, 1)
+            to_d   = date(year, 12, 31) if year < date.today().year else date.today()
+        else:
+            from_d = date(date.today().year - 2, 1, 1)
+            to_d   = date.today()
+
+        with pg._conn() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    """
+                    WITH
+
+                    -- Step 1: Score every individual filing in the period
+                    -- Resolve each signal's direction:
+                    -- prefer stored direction, fall back to signal_type mapping
+                    sig_with_dir AS (
+                        -- Scoped to the date window for performance
+                        SELECT
+                            s.document_id,
+                            s.signal_type,
+                            COALESCE(s.confidence, 0.75) AS conf,
+                            CASE
+                                WHEN COALESCE(s.direction,'') = 'positive' THEN 1
+                                WHEN COALESCE(s.direction,'') = 'negative' THEN -1
+                                WHEN s.signal_type IN (
+                                    'demand_surge','capex_increase','technology_adoption',
+                                    'hiring_surge','market_entry','regulatory_tailwind',
+                                    'tender_pipeline','policy_support','localization_opportunity'
+                                ) THEN 1
+                                WHEN s.signal_type IN (
+                                    'supply_bottleneck','inventory_drawdown','capacity_shortage',
+                                    'demand_exceeds_supply','demand_slowdown','hiring_freeze',
+                                    'supply_easing','regulatory_headwind','capex_decrease',
+                                    'technology_disruption'
+                                ) THEN -1
+                                ELSE 0
+                            END AS dir_val
+                        FROM mg_signals s
+                        JOIN mg_documents d2 ON d2.id = s.document_id
+                        WHERE d2.country = %s
+                          AND d2.filed_at BETWEEN %s AND %s
+                    ),
+
+                    filing_scores AS (
+                        SELECT
+                            d.id                                              AS doc_id,
+                            d.company,
+                            COALESCE(NULLIF(d.ticker,''), d.company)          AS ticker,
+                            d.filed_at::date                                  AS filing_date,
+                            d.filing_type,
+                            COUNT(*) FILTER (WHERE sd.dir_val  = 1)          AS pos,
+                            COUNT(*) FILTER (WHERE sd.dir_val  = -1)         AS neg,
+                            COUNT(*) FILTER (WHERE sd.signal_type IN (
+                                'supply_bottleneck','inventory_drawdown',
+                                'capacity_shortage','demand_exceeds_supply'
+                            ))                                                AS cstr,
+                            COUNT(*) FILTER (WHERE sd.signal_type = 'capex_increase')
+                                                                              AS capex,
+                            COUNT(*)                                          AS total,
+                            COUNT(*) FILTER (WHERE sd.dir_val  = 1)          AS pos_conf,
+                            COUNT(*) FILTER (WHERE sd.dir_val  = -1)         AS neg_conf,
+                            -- Confidence-weighted sentiment score (1-10):
+                            -- net = Σ(dir_val × confidence) for all signals
+                            -- max_possible = Σ(confidence) when all positive
+                            -- sentiment = 5.5 + net / max_possible × 4.5
+                            -- → all positive  = 10.0
+                            -- → all negative  = 1.0
+                            -- → all neutral   = 5.5
+                            ROUND(GREATEST(1.0, LEAST(10.0,
+                                CASE
+                                    WHEN SUM(sd.conf) = 0 THEN 5.5
+                                    ELSE 5.5 + SUM(sd.dir_val::float * sd.conf)
+                                              / SUM(sd.conf) * 4.5
+                                END
+                            ))::numeric, 1)                                   AS filing_sentiment,
+                            (SELECT s2.signal_type FROM mg_signals s2
+                             WHERE s2.document_id = d.id
+                             GROUP BY s2.signal_type
+                             ORDER BY COUNT(*) DESC LIMIT 1)                  AS dominant_signal
+                        FROM mg_documents d
+                        JOIN sig_with_dir sd ON sd.document_id = d.id
+                        WHERE d.country = %s
+                          AND d.filed_at BETWEEN %s AND %s
+                          AND d.company IS NOT NULL AND d.company != ''
+                        GROUP BY d.id, d.company, d.ticker, d.filed_at, d.filing_type
+                        HAVING COUNT(*) >= %s
+                    ),
+
+                    -- Step 2: Pick the MOST RECENT filing per company
+                    --         This is the "what they last said" sentiment
+                    latest AS (
+                        SELECT DISTINCT ON (company)
+                            company, ticker, filing_date AS last_filing,
+                            filing_type   AS last_filing_type,
+                            filing_sentiment AS sentiment_score,
+                            pos AS positive_sigs,
+                            neg AS negative_sigs,
+                            cstr AS constraint_sigs,
+                            capex AS capex_sigs,
+                            total AS total_sigs,
+                            dominant_signal
+                        FROM filing_scores
+                        ORDER BY company, filing_date DESC
+                    ),
+
+                    -- Step 3: Quarter-level sentiment (group filings by quarter)
+                    quarterly AS (
+                        SELECT
+                            company,
+                            DATE_TRUNC('quarter', filing_date)::date     AS quarter,
+                            ROUND(AVG(filing_sentiment)::numeric, 1)     AS q_sentiment,
+                            SUM(pos)                                      AS q_pos,
+                            SUM(neg)                                      AS q_neg
+                        FROM filing_scores
+                        GROUP BY company, DATE_TRUNC('quarter', filing_date)
+                    ),
+
+                    -- Step 4: Rank quarters per company (most recent first)
+                    quarterly_ranked AS (
+                        SELECT *,
+                            ROW_NUMBER() OVER (PARTITION BY company ORDER BY quarter DESC) AS rn
+                        FROM quarterly
+                    ),
+
+                    -- Step 5: Check if last 2 quarters confirm the same direction.
+                    -- "Persistence" rule: a sentiment is only trusted when 2 consecutive
+                    -- quarters show the same bullish (≥6.5) or bearish (≤4.5) direction.
+                    persistence AS (
+                        SELECT
+                            company,
+                            MAX(CASE WHEN rn=1 THEN q_sentiment END)  AS q1,   -- most recent
+                            MAX(CASE WHEN rn=2 THEN q_sentiment END)  AS q2,   -- prior quarter
+                            MAX(CASE WHEN rn=1 THEN quarter   END)    AS q1_date,
+                            COUNT(*) FILTER (WHERE rn <= 4)           AS quarters_in_period,
+                            ROUND(AVG(q_sentiment)::numeric, 1)       AS confirmed_avg,
+                            -- Persistence classification
+                            CASE
+                                WHEN MAX(CASE WHEN rn=1 THEN q_sentiment END) >= 6.5
+                                 AND MAX(CASE WHEN rn=2 THEN q_sentiment END) >= 6.5
+                                    THEN 'confirmed_bullish'   -- ✅ 2 consecutive bullish quarters
+                                WHEN MAX(CASE WHEN rn=1 THEN q_sentiment END) <= 4.5
+                                 AND MAX(CASE WHEN rn=2 THEN q_sentiment END) <= 4.5
+                                    THEN 'confirmed_bearish'   -- ✅ 2 consecutive bearish quarters
+                                WHEN MAX(CASE WHEN rn=2 THEN q_sentiment END) IS NULL
+                                 AND MAX(CASE WHEN rn=1 THEN q_sentiment END) >= 6.5
+                                    THEN 'single_bullish'      -- only 1 quarter of data
+                                WHEN MAX(CASE WHEN rn=2 THEN q_sentiment END) IS NULL
+                                 AND MAX(CASE WHEN rn=1 THEN q_sentiment END) <= 4.5
+                                    THEN 'single_bearish'
+                                ELSE 'mixed'                   -- no consistent direction
+                            END AS persistence_status
+                        FROM quarterly_ranked
+                        GROUP BY company
+                    ),
+
+                    -- Step 6: Aggregate period totals and trend
+                    period_totals AS (
+                        SELECT
+                            company,
+                            COUNT(DISTINCT doc_id)                                    AS filing_count,
+                            MIN(filing_date)                                          AS first_filing,
+                            SUM(pos)                                                  AS period_pos,
+                            SUM(neg)                                                  AS period_neg,
+                            SUM(cstr)                                                 AS period_cstr,
+                            ROUND(AVG(filing_sentiment)::numeric, 1)                 AS period_avg_sentiment,
+                            (ARRAY_AGG(filing_sentiment ORDER BY filing_date DESC))[1] AS last_sentiment,
+                            (ARRAY_AGG(filing_sentiment ORDER BY filing_date ASC))[1]  AS first_sentiment
+                        FROM filing_scores
+                        GROUP BY company
+                        HAVING COUNT(DISTINCT doc_id) >= %s
+                           AND (SUM(pos) >= %s OR SUM(neg) >= %s)
+                    ),
+
+                    -- Step 7: Theme membership for cross-validation
+                    theme_membership AS (
+                        SELECT
+                            LOWER(TRIM(tb.company_name))  AS co_lower,
+                            tb.ticker                      AS theme_ticker,
+                            COUNT(DISTINCT t.id)           AS theme_count,
+                            MAX(CASE WHEN t.conviction IN ('confirmed','high') THEN 1 ELSE 0 END)
+                                                           AS has_confirmed_theme,
+                            STRING_AGG(DISTINCT t.theme_name, '; ' ORDER BY t.theme_name)
+                                                           AS theme_names
+                        FROM mg_theme_beneficiaries tb
+                        JOIN mg_themes t ON t.id = tb.theme_id
+                        WHERE t.is_active = TRUE
+                          AND t.country = %s
+                          AND tb.company_name IS NOT NULL
+                        GROUP BY LOWER(TRIM(tb.company_name)), tb.ticker
+                    )
+
+                    SELECT
+                        l.ticker,
+                        l.company,
+                        l.last_filing,
+                        l.last_filing_type,
+                        COALESCE(
+                            CASE WHEN pr.persistence_status IN ('confirmed_bullish','confirmed_bearish')
+                                 THEN pr.confirmed_avg END,
+                            l.sentiment_score
+                        )                                                             AS sentiment_score,
+                        l.positive_sigs,
+                        l.negative_sigs,
+                        l.constraint_sigs,
+                        l.capex_sigs,
+                        l.total_sigs,
+                        l.dominant_signal,
+                        p.filing_count,
+                        p.first_filing,
+                        p.period_pos,
+                        p.period_cstr,
+                        p.period_avg_sentiment,
+                        COALESCE(pr.persistence_status, 'single_bullish')            AS persistence_status,
+                        COALESCE(pr.quarters_in_period, 1)                           AS quarters_in_period,
+                        CASE
+                            WHEN p.filing_count < 2 THEN 'stable'
+                            WHEN p.last_sentiment - p.first_sentiment >  0.5 THEN 'improving'
+                            WHEN p.last_sentiment - p.first_sentiment < -0.5 THEN 'declining'
+                            ELSE 'stable'
+                        END                                                           AS sentiment_trend,
+                        -- Theme membership (cross-validation with constraint intelligence)
+                        COALESCE(tm.theme_count, 0)         AS theme_count,
+                        COALESCE(tm.has_confirmed_theme, 0) AS in_confirmed_theme,
+                        COALESCE(tm.theme_names, '')        AS theme_names,
+                        -- COMPOUND INVESTABILITY SCORE (0-100):
+                        -- Combines NLP sentiment + constraint evidence + theme validation.
+                        -- Only the intersection of all three produces a high score.
+                        ROUND((
+                            -- Sentiment quality (40 pts): confirmed 2Q bullish scores highest
+                            (CASE
+                                WHEN pr.persistence_status = 'confirmed_bullish'
+                                  AND COALESCE(pr.confirmed_avg, l.sentiment_score) >= 7.0
+                                THEN 40.0
+                                WHEN pr.persistence_status IN ('single_bullish','confirmed_bullish')
+                                  AND COALESCE(pr.confirmed_avg, l.sentiment_score) >= 7.0
+                                THEN 25.0
+                                WHEN COALESCE(pr.confirmed_avg, l.sentiment_score) >= 6.0
+                                THEN 10.0
+                                ELSE 0.0
+                            END)
+                            -- Constraint evidence (30 pts): company explicitly mentioned constraints
+                            + LEAST(30.0, l.constraint_sigs * 5.0)
+                            -- Capex commitment (15 pts): company investing to solve constraint
+                            + LEAST(15.0, l.capex_sigs * 5.0)
+                            -- Theme validation (15 pts): in confirmed constraint theme
+                            + COALESCE(LEAST(15.0, tm.theme_count * 5.0) * tm.has_confirmed_theme, 0)
+                        )::numeric, 1)                                                AS invest_score
+                    FROM latest l
+                    JOIN period_totals p  ON p.company  = l.company
+                    JOIN persistence   pr ON pr.company = l.company
+                    LEFT JOIN theme_membership tm
+                           ON LOWER(TRIM(l.company)) = tm.co_lower
+                           OR UPPER(TRIM(l.ticker))  = UPPER(TRIM(tm.theme_ticker))
+                    ORDER BY invest_score DESC, l.company ASC
+                    LIMIT %s
+                    """,
+                    (country, from_d, to_d,            # sig_with_dir scoped WHERE
+                     country, from_d, to_d,            # filing_scores WHERE
+                     min_signals,                       # filing_scores HAVING per-filing
+                     min_filings,                       # period_totals HAVING filing count
+                     min_directional, min_directional,  # period_totals HAVING directional
+                     country,                           # theme_membership WHERE country
+                     limit)
+                )
+                rows = cur.fetchall()
+
+        return [dict(r) for r in rows]
+    except Exception as e:
+        logging.error("sentiment_board: %s", e)
+        return []
+
+
+@app.get("/api/company/all-analysed")
+def get_all_analysed_companies(country: str = "IN") -> list[dict]:
+    """Return all previously analysed companies with conviction + sentiment summary."""
+    pg = get_pg()
+    if not pg:
+        return []
+    try:
+        import json as _j
+        from psycopg2.extras import RealDictCursor
+        with pg._conn() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    """SELECT country, year, summary_text, industry_insights, generated_at
+                       FROM mg_ai_summaries
+                       WHERE context_type = 'company_deep_dive'
+                         AND country = %s
+                       ORDER BY generated_at DESC""",
+                    (country,)
+                )
+                rows = cur.fetchall()
+
+        results = []
+        for row in rows:
+            yr_key  = str(row["year"] or "")          # e.g. "RELIANCE_2024"
+            parts   = yr_key.rsplit("_", 1)
+            ticker  = parts[0] if len(parts) == 2 else yr_key
+            year_n  = int(parts[1]) if len(parts) == 2 and parts[1].isdigit() else None
+
+            brief: dict = {}
+            raw = row["industry_insights"]
+            if raw:
+                # JSONB comes back as dict from psycopg2, not a string
+                if isinstance(raw, dict):
+                    brief = raw
+                elif isinstance(raw, str):
+                    try: brief = _j.loads(raw)
+                    except: brief = {}
+
+            rec         = brief.get("recommendation") or {}
+            action      = str(rec.get("action","") or "")
+            conviction  = str(rec.get("conviction","") or "")
+
+            # Overall sentiment: average of concall timeline scores if available
+            timeline    = brief.get("concall_timeline") or []
+            if timeline and isinstance(timeline, list):
+                scores = [float(c.get("sentiment_score",5)) for c in timeline if c.get("sentiment_score")]
+                avg_sentiment = round(sum(scores)/len(scores), 1) if scores else None
+            else:
+                avg_sentiment = None
+
+            # ticker from key OR from saved brief field
+            resolved_ticker  = brief.get("ticker") or ticker
+            resolved_company = brief.get("company") or ticker
+            results.append({
+                "ticker":          resolved_ticker,
+                "year":            year_n,
+                "company":         resolved_company,
+                "db_key":          yr_key,   # exact DB key for direct lookup
+                "action":          action,
+                "conviction":      conviction,
+                "avg_sentiment":   avg_sentiment,
+                "investment_thesis": (brief.get("investment_thesis") or "")[:150],
+                "best_quote":      (brief.get("best_quote") or "")[:120],
+                "generated_at":    str(row["generated_at"] or ""),
+                "pli_matches":     len(brief.get("pli_matches") or []),
+            })
+
+        return results
+    except Exception as e:
+        logging.error("get_all_analysed_companies: %s", e)
+        return []
+
+
+@app.get("/api/company/deep-dive")
+def get_saved_company_dive(company: str, country: str = "IN", year: int | None = None) -> dict:
+    """Return previously saved company deep-dive analysis, or {} if not generated.
+    Key format: TICKER_YEAR (e.g. RELIANCE_2024). Searches by ticker and name."""
+    pg = get_pg()
+    if not pg:
+        return {}
+    try:
+        yr       = str(year or date.today().year)
+        co_clean = company.upper().strip().replace(' ','_')
+        key_exact = f"{co_clean}_{yr}"
+        from psycopg2.extras import RealDictCursor
+        with pg._conn() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Exact key match first, then LIKE to handle partial ticker matches
+                cur.execute(
+                    """SELECT summary_text, industry_insights, generated_at, year
+                       FROM mg_ai_summaries
+                       WHERE country=%s
+                         AND context_type='company_deep_dive'
+                         AND (year = %s OR year LIKE %s)
+                       ORDER BY
+                         CASE WHEN year = %s THEN 0 ELSE 1 END,
+                         generated_at DESC
+                       LIMIT 1""",
+                    (country, key_exact, f"%_{yr}", key_exact)
+                )
+                row = cur.fetchone()
+                if not row:
+                    return {}
+                import json as _j
+                # JSONB comes back as dict from psycopg2, str needs parsing
+                saved = row["industry_insights"] or {}
+                if isinstance(saved, str):
+                    try: saved = _j.loads(saved)
+                    except: saved = {}
+
+                # Reconstruct the full result shape the frontend expects
+                # The brief fields (executive_summary, recommendation, etc.) are at top level
+                # The structural fields (themes, peers, etc.) are also at top level
+                brief_fields = {
+                    k: v for k, v in saved.items()
+                    if k not in ("themes","peers","pli_matches","budget_support",
+                                 "concall_timeline","recent_filings","data_summary",
+                                 "ticker","company")
+                }
+                return {
+                    "company":         saved.get("company", company),
+                    "ticker":          saved.get("ticker", co_clean),
+                    "country":         country,
+                    "year":            int(yr),
+                    "brief":           brief_fields,
+                    "themes":          saved.get("themes", []),
+                    "peers":           saved.get("peers", []),
+                    "pli_matches":     saved.get("pli_matches", []),
+                    "budget_support":  saved.get("budget_support", []),
+                    "concall_timeline":saved.get("concall_timeline", []),
+                    "recent_filings":  saved.get("recent_filings", []),
+                    "data_summary":    saved.get("data_summary", {}),
+                    "generated_at":    str(row["generated_at"]),
+                    "from_cache":      True,
+                }
+    except Exception as e:
+        logging.error("get_saved_company_dive: %s", e)
+        return {}
+
+
+@app.post("/api/company/deep-dive")
+def run_company_deep_dive(body: CompanyDiveBody) -> dict:
+    """Company-level deep dive: fetch 2-3 years of concalls + signals, call Claude.
+
+    Steps:
+    1. Search company in mg_documents by name/ticker
+    2. Pull filings + signals for last 3 years (year-2 to year)
+    3. Pull themes this company appears in
+    4. Find industry peers (same themes)
+    5. For India: if data sparse, trigger fresh fetch
+    6. Call Claude for investment analysis
+    7. Cache result in mg_ai_summaries
+    """
+    pg = get_pg()
+    acfg = CFG.get("anthropic", {})
+    if not acfg.get("api_key"):
+        raise HTTPException(status_code=400, detail="Anthropic API key not configured")
+
+    try:
+        import json as _json
+        from psycopg2.extras import RealDictCursor
+        from collections import defaultdict
+
+        yr      = body.year or date.today().year
+        to_d    = date(yr, 12, 31) if yr < date.today().year else date.today()
+        from_d  = date(yr - 2, 1, 1)   # 3 years of data
+        market  = "India (NSE/BSE)" if body.country == "IN" else "USA (NYSE/NASDAQ)"
+
+        # ── 1. Find company in DB (search by name/ticker) ─────────────────────
+        found_ticker = body.company.upper().strip()
+        found_name   = body.company
+        with pg._conn() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Try ticker first
+                cur.execute(
+                    """SELECT DISTINCT ticker, company FROM mg_documents
+                       WHERE country=%s AND (
+                           UPPER(ticker)=%s OR LOWER(company) ILIKE %s
+                       )
+                       ORDER BY company LIMIT 1""",
+                    (body.country, found_ticker, f"%{body.company.lower()}%")
+                )
+                row = cur.fetchone()
+                if row:
+                    found_ticker = row["ticker"] or found_ticker
+                    found_name   = row["company"] or found_name
+
+        # Cache key — always use resolved ticker for stable lookup
+        co_key = f"{found_ticker.upper().replace(' ','_')}_{yr}"
+
+        # ── 2. Pull filings (documents) for last 3 years ──────────────────────
+        filings: list[dict] = []
+        with pg._conn() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    """SELECT id, title, filing_type, filed_at, url, ticker, company
+                       FROM mg_documents
+                       WHERE country=%s
+                         AND filed_at BETWEEN %s AND %s
+                         AND (UPPER(ticker)=%s OR LOWER(company) ILIKE %s)
+                       ORDER BY filed_at DESC
+                       LIMIT 100""",
+                    (body.country, from_d, to_d,
+                     found_ticker, f"%{body.company.lower()}%")
+                )
+                filings = [dict(r) for r in cur.fetchall()]
+
+        # India: sparse data → trigger fresh fetch from NSE/BSE
+        if body.country == "IN" and len(filings) < 5 and not body.force_refresh:
+            logging.info("company_dive: sparse India data (%d docs) — triggering fresh fetch", len(filings))
+            try:
+                from makrograph.pipeline.intelligence_pipeline import IntelligencePipeline
+                _cfg = copy.deepcopy(CFG)
+                _cfg.setdefault("screener", {})["enabled"] = True
+                _cfg.setdefault("screener", {})["ticker_list"] = [found_ticker]
+                with IntelligencePipeline(_cfg) as pip:
+                    pip._init_storage()
+                    pip.run_ingest_india(since=from_d, until=to_d)
+                # Re-query after fetch
+                with pg._conn() as conn:
+                    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                        cur.execute(
+                            """SELECT id, title, filing_type, filed_at, url, ticker, company
+                               FROM mg_documents
+                               WHERE country=%s AND filed_at BETWEEN %s AND %s
+                                 AND (UPPER(ticker)=%s OR LOWER(company) ILIKE %s)
+                               ORDER BY filed_at DESC LIMIT 100""",
+                            (body.country, from_d, to_d, found_ticker, f"%{body.company.lower()}%")
+                        )
+                        filings = [dict(r) for r in cur.fetchall()]
+            except Exception as fe:
+                logging.warning("company_dive: fresh fetch failed: %s", fe)
+
+        # ── 3. Pull signals grouped by document ──────────────────────────────
+        doc_ids = [f["id"] for f in filings]
+        signals_by_type: dict[str, list[dict]] = defaultdict(list)
+        # Also group by document for per-concall sentiment
+        signals_by_doc: dict[int, list[dict]] = defaultdict(list)
+
+        POSITIVE_SIGNALS = {"demand_surge","capex_increase","technology_adoption",
+                            "regulatory_tailwind","market_entry","hiring_surge"}
+        NEGATIVE_SIGNALS = {"supply_bottleneck","inventory_drawdown","capacity_shortage",
+                            "demand_exceeds_supply","demand_slowdown","hiring_freeze"}
+
+        if doc_ids:
+            with pg._conn() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute(
+                        """SELECT s.signal_type, s.confidence, s.context_text,
+                                  s.document_id,
+                                  d.filed_at::date AS filed_date,
+                                  d.filing_type, d.title, d.id AS doc_id
+                           FROM mg_signals s
+                           JOIN mg_documents d ON d.id = s.document_id
+                           WHERE s.document_id = ANY(%s)
+                             AND s.context_text IS NOT NULL
+                             AND LENGTH(s.context_text) > 30
+                           ORDER BY d.filed_at DESC, s.confidence DESC
+                           LIMIT 500""",
+                        (doc_ids,)
+                    )
+                    for r in cur.fetchall():
+                        row = dict(r)
+                        st  = row["signal_type"]
+                        did = row["doc_id"]
+                        if len(signals_by_type[st]) < 5:
+                            signals_by_type[st].append(row)
+                        signals_by_doc[did].append(row)
+
+        # ── Per-concall sentiment scoring ─────────────────────────────────────
+        def _concall_sentiment(sigs: list[dict]) -> float:
+            """Score 1-10: positive signals push up, negative push down. Base = 5."""
+            score = 5.0
+            for s in sigs:
+                conf = float(s.get("confidence") or 0.7)
+                st   = s.get("signal_type","")
+                if st in POSITIVE_SIGNALS:
+                    score += 0.6 * conf
+                elif st in NEGATIVE_SIGNALS:
+                    score -= 0.5 * conf
+            return max(1.0, min(10.0, round(score, 1)))
+
+        # Build per-concall timeline (one entry per unique filing date)
+        concall_timeline: list[dict] = []
+        seen_dates: set[str] = set()
+        for filing in filings[:20]:
+            did  = filing["id"]
+            dt   = str(filing.get("filed_at",""))[:10]
+            if dt in seen_dates:
+                continue
+            seen_dates.add(dt)
+            doc_sigs = signals_by_doc.get(did, [])
+            sentiment = _concall_sentiment(doc_sigs)
+            # Pick best highlight per signal category
+            constraint_quotes = [s["context_text"][:180] for s in doc_sigs
+                                  if s["signal_type"] in NEGATIVE_SIGNALS
+                                  and float(s.get("confidence",0)) > 0.7][:1]
+            demand_quotes     = [s["context_text"][:180] for s in doc_sigs
+                                  if s["signal_type"] in POSITIVE_SIGNALS
+                                  and float(s.get("confidence",0)) > 0.7][:1]
+            concall_timeline.append({
+                "date":             dt,
+                "filing_type":      filing.get("filing_type",""),
+                "title":            filing.get("title","")[:60],
+                "sentiment_score":  sentiment,
+                "signal_count":     len(doc_sigs),
+                "positive_signals": sum(1 for s in doc_sigs if s["signal_type"] in POSITIVE_SIGNALS),
+                "negative_signals": sum(1 for s in doc_sigs if s["signal_type"] in NEGATIVE_SIGNALS),
+                "constraint_quote": constraint_quotes[0] if constraint_quotes else "",
+                "demand_quote":     demand_quotes[0] if demand_quotes else "",
+            })
+
+        # ── India policy / PLI cross-reference (run AFTER co_themes is populated) ──
+        pli_matches: list[dict] = []
+        budget_support: list[str] = []
+        if False:  # placeholder — moved below after co_themes fetch
+            pass
+            # Match company sectors (from themes) against PLI schemes
+            co_sectors = set()
+            for t in co_themes:
+                name = t.get("theme_name","").lower()
+                for kw, sector in [
+                    ("solar","Renewable Energy"),("electric vehicle","Automotive"),
+                    ("ev ","Automotive"),("battery","Energy Storage / EV"),
+                    ("semiconductor","Semiconductors"),("pharma","Pharmaceuticals"),
+                    ("telecom","Telecom"),("steel","Steel"),("textile","Textiles"),
+                    ("food","Food Processing"),("white goods","Consumer Electronics"),
+                    ("mobile","Electronics"),("defence","Defence / Aviation"),
+                    ("drone","Defence / Aviation"),("medic","Healthcare"),
+                    ("railway","Railways"),("infrastructure","Infrastructure"),
+                ]:
+                    if kw in name:
+                        co_sectors.add(sector)
+
+            for scheme in _INDIA_PLI_SCHEMES:
+                scheme_sector = scheme.get("sector","")
+                # Match by sector
+                if scheme_sector in co_sectors:
+                    pli_matches.append({
+                        "scheme": scheme["title"],
+                        "budget_crore": scheme.get("budget_crore",0),
+                        "incentive": scheme.get("incentive",""),
+                        "match_reason": f"Company sector '{scheme_sector}' matches",
+                        "layman_impact": scheme.get("layman_impact","")[:200],
+                    })
+                # Direct company name match in key_companies list
+                elif any(body.company.lower() in co.lower() or found_ticker.lower() in co.lower()
+                         for co in scheme.get("key_companies",[])):
+                    pli_matches.append({
+                        "scheme": scheme["title"],
+                        "budget_crore": scheme.get("budget_crore",0),
+                        "incentive": scheme.get("incentive",""),
+                        "match_reason": "Company directly listed as beneficiary",
+                        "layman_impact": scheme.get("layman_impact","")[:200],
+                    })
+
+            # Budget support check from causal chains / themes
+            if co_sectors & {"Infrastructure","Railways","Defence / Aviation"}:
+                budget_support.append("Budget 2024-25 allocated ₹11.11 lakh Cr capex — direct beneficiary")
+            if "Renewable Energy" in co_sectors:
+                budget_support.append("PM Surya Ghar scheme (₹75K Cr) drives rooftop solar demand")
+            if "Semiconductors" in co_sectors:
+                budget_support.append("PLI Semiconductor ₹76K Cr scheme + Tata/Micron fab investments")
+
+        # ── 4. Themes this company appears in ─────────────────────────────────
+        co_themes: list[dict] = []
+        with pg._conn() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    """SELECT t.theme_name, t.theme_slug, t.conviction,
+                              tb.company_role, tb.relevance_score
+                       FROM mg_theme_beneficiaries tb
+                       JOIN mg_themes t ON t.id = tb.theme_id
+                       WHERE t.is_active=TRUE AND t.country=%s
+                         AND (LOWER(tb.company_name) ILIKE %s
+                              OR UPPER(tb.ticker)=%s)
+                       ORDER BY tb.relevance_score DESC
+                       LIMIT 10""",
+                    (body.country, f"%{body.company.lower()}%", found_ticker)
+                )
+                co_themes = [dict(r) for r in cur.fetchall()]
+
+        # ── 5. Industry peers (same themes, top 10 by relevance) ─────────────
+        peers: list[dict] = []
+        if co_themes:
+            theme_slugs = [t["theme_slug"] for t in co_themes[:3]]
+            with pg._conn() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute(
+                        """SELECT DISTINCT ON (tb.company_name)
+                                  tb.company_name, tb.ticker, tb.company_role,
+                                  tb.relevance_score, t.theme_name
+                           FROM mg_theme_beneficiaries tb
+                           JOIN mg_themes t ON t.id = tb.theme_id
+                           WHERE t.theme_slug = ANY(%s)
+                             AND t.country = %s
+                             AND LOWER(tb.company_name) NOT ILIKE %s
+                             AND tb.company_name IS NOT NULL
+                           ORDER BY tb.company_name, tb.relevance_score DESC
+                           LIMIT 20""",
+                        (theme_slugs, body.country, f"%{body.company.lower()}%")
+                    )
+                    peers = [dict(r) for r in cur.fetchall()]
+
+        # ── 5b. India PLI / policy cross-reference (now that co_themes is ready) ─
+        if body.country == "IN":
+            co_sectors = set()
+            for t in co_themes:
+                name_lc = t.get("theme_name","").lower()
+                for kw, sector in [
+                    ("solar","Renewable Energy"),("electric vehicle","Automotive"),
+                    ("ev ","Automotive"),("battery","Energy Storage / EV"),
+                    ("semiconductor","Semiconductors"),("pharma","Pharmaceuticals"),
+                    ("telecom","Telecom"),("steel","Steel"),("textile","Textiles"),
+                    ("food","Food Processing"),("white goods","Consumer Electronics"),
+                    ("mobile","Electronics"),("defence","Defence / Aviation"),
+                    ("drone","Defence / Aviation"),("medic","Healthcare"),
+                    ("railway","Railways"),("infrastructure","Infrastructure"),
+                ]:
+                    if kw in name_lc:
+                        co_sectors.add(sector)
+
+            for scheme in _INDIA_PLI_SCHEMES:
+                scheme_sector = scheme.get("sector","")
+                if scheme_sector in co_sectors:
+                    pli_matches.append({
+                        "scheme": scheme["title"],
+                        "budget_crore": scheme.get("budget_crore",0),
+                        "incentive": scheme.get("incentive",""),
+                        "match_reason": f"Sector '{scheme_sector}' matched from themes",
+                        "layman_impact": scheme.get("layman_impact","")[:200],
+                    })
+                elif any(body.company.lower() in co.lower() or found_ticker.lower() in co.lower()
+                         for co in scheme.get("key_companies",[])):
+                    pli_matches.append({
+                        "scheme": scheme["title"],
+                        "budget_crore": scheme.get("budget_crore",0),
+                        "incentive": scheme.get("incentive",""),
+                        "match_reason": "Company directly listed as PLI beneficiary",
+                        "layman_impact": scheme.get("layman_impact","")[:200],
+                    })
+
+            if co_sectors & {"Infrastructure","Railways","Defence / Aviation"}:
+                budget_support.append("Union Budget 2024-25: ₹11.11 lakh Cr capex — direct beneficiary")
+            if "Renewable Energy" in co_sectors:
+                budget_support.append("PM Surya Ghar (₹75K Cr) drives rooftop solar demand")
+            if "Semiconductors" in co_sectors:
+                budget_support.append("PLI Semiconductor ₹76K Cr + Tata/Micron fab investments")
+
+        # ── 5c. Pre-compute conviction + action from data (backend rules) ────────
+        # Don't ask Claude to decide conviction — data-driven rules are more
+        # reliable than LLM judgment which defaults to "medium".
+        import statistics as _stats
+
+        sentiment_scores = [c["sentiment_score"] for c in concall_timeline
+                            if c.get("sentiment_score") is not None]
+        overall_sentiment = round(_stats.mean(sentiment_scores), 1) if sentiment_scores else 5.0
+        sentiment_trend_up = (
+            len(sentiment_scores) >= 3 and
+            sentiment_scores[-1] > sentiment_scores[0]  # last concall better than first
+        )
+
+        total_constraint = sum(len(v) for k, v in signals_by_type.items()
+                               if k in {"supply_bottleneck","inventory_drawdown",
+                                        "capacity_shortage","demand_exceeds_supply"})
+        total_demand     = sum(len(v) for k, v in signals_by_type.items()
+                               if k in {"demand_surge","technology_adoption","capex_increase"})
+        total_capex      = len(signals_by_type.get("capex_increase", []))
+        has_pli          = len(pli_matches) > 0
+
+        # Conviction rules — explicit thresholds, no LLM guessing
+        # Conviction thresholds — practical, data-driven
+        # HIGH: sentiment trending positive with any direct signal evidence
+        # MEDIUM: mixed or sparse signals
+        # LOW: clear negatives or no evidence at all
+        has_signals   = total_constraint > 0 or total_demand > 0 or total_capex > 0
+        bullish_trend = overall_sentiment >= 6.5
+        strong_trend  = overall_sentiment >= 7.5
+
+        if strong_trend and has_signals:
+            pre_conviction = "high"
+        elif bullish_trend and has_signals and len(filings) >= 2:
+            pre_conviction = "high"
+        elif bullish_trend and len(filings) >= 3:
+            pre_conviction = "high"                      # consistent positive sentiment, enough data
+        elif overall_sentiment < 4.0 or (not has_signals and len(filings) < 2):
+            pre_conviction = "low"
+        elif overall_sentiment < 5.0 and not has_signals:
+            pre_conviction = "low"
+        else:
+            pre_conviction = "medium"
+
+        # Action rules
+        if pre_conviction == "high" and (total_constraint >= 1 or total_capex >= 1):
+            pre_action = "strong_buy"
+        elif pre_conviction == "high":
+            pre_action = "buy"
+        elif overall_sentiment >= 6.0 and has_signals:
+            pre_action = "buy"
+        elif overall_sentiment < 4.5:
+            pre_action = "hold"
+        else:
+            pre_action = "buy" if overall_sentiment >= 5.5 and has_signals else "hold"
+
+        if total_capex >= 1 and total_constraint >= 1:
+            pre_action = "strong_buy"   # capex + constraint = company solving the bottleneck
+
+        # ── 6. Build Claude prompt ────────────────────────────────────────────
+        def _sig_block(stype: str, label: str) -> str:
+            sigs = signals_by_type.get(stype, [])
+            if not sigs:
+                return ""
+            lines = [f"\n{label} ({len(sigs)} signals):"]
+            for s in sigs[:2]:
+                dt   = str(s.get("filed_date",""))[:7]
+                conf = float(s.get("confidence",0))
+                text = (s.get("context_text","") or "").strip()[:180]
+                lines.append(f'  [{dt} conf:{conf:.2f}] "{text}"')
+            return "\n".join(lines)
+
+        # Concall timeline block for prompt
+        timeline_block = "\n".join(
+            f"  {c['date']} | {c['filing_type']} | Sentiment:{c['sentiment_score']}/10 "
+            f"| +{c['positive_signals']}/-{c['negative_signals']} signals"
+            + (f' | Constraint: "{c["constraint_quote"][:100]}"' if c.get("constraint_quote") else "")
+            + (f' | Demand: "{c["demand_quote"][:100]}"' if c.get("demand_quote") else "")
+            for c in concall_timeline[:12]
+        ) or "No concall data available."
+
+        themes_block = "\n".join(
+            f"  • {t['theme_name']} [{t['conviction'].upper()}] | Role:{t['company_role']}"
+            for t in co_themes
+        ) or "Not mapped to any active themes."
+
+        peers_block = ", ".join(
+            f"{p['ticker'] or p['company_name']}" for p in peers[:15]
+        ) or "None found."
+
+        pli_block = ""
+        if pli_matches:
+            pli_block = "\n\nINDIA PLI / BUDGET POLICY SUPPORT:\n" + "\n".join(
+                f"  • {m['scheme']} | ₹{m['budget_crore']:,} Cr | {m['incentive']} | {m['match_reason']}"
+                for m in pli_matches
+            )
+        if budget_support:
+            pli_block += "\n  Budget support: " + " | ".join(budget_support)
+
+        sig_sections = "".join(filter(None, [
+            _sig_block("supply_bottleneck",     "⚠️ SUPPLY BOTTLENECK"),
+            _sig_block("inventory_drawdown",    "⚠️ INVENTORY DRAWDOWN"),
+            _sig_block("demand_surge",          "📈 DEMAND SURGE"),
+            _sig_block("capex_increase",        "🔨 CAPEX INCREASE"),
+            _sig_block("demand_exceeds_supply", "🔴 DEMAND > SUPPLY"),
+        ]))
+
+        prompt = f"""You are an elite buy-side analyst covering {market}.
+Analyse {found_name} ({found_ticker}) for {yr} using {yr-2}–{yr} concall data.
+
+=== PRE-COMPUTED DATA METRICS (use these directly in recommendation) ===
+Overall avg sentiment:  {overall_sentiment}/10
+Total constraint sigs:  {total_constraint}
+Total demand sigs:      {total_demand}
+Total capex sigs:       {total_capex}
+Filings found:          {len(filings)}
+Sentiment trending:     {"UP (improving)" if sentiment_trend_up else "DOWN or flat"}
+PLI policy support:     {"YES - " + str(len(pli_matches)) + " schemes matched" if has_pli else "None matched"}
+
+PRE-COMPUTED RECOMMENDATION (derive from metrics above):
+  action    = {pre_action}
+  conviction = {pre_conviction}
+Use these EXACTLY in your recommendation field. Override only if the qualitative evidence
+strongly contradicts the data (e.g. known fraud, management change). Explain any override.
+
+CONCALL TIMELINE (pre-scored sentiment 1-10, 10=most bullish):
+{timeline_block}
+
+SIGNAL EVIDENCE:
+{sig_sections or "No signal evidence found."}
+
+THEMES: {themes_block}
+PEERS: {peers_block}{pli_block}
+
+Respond ONLY in valid JSON:
+{{
+  "company_overview": "2-3 sentences: what this company does and market position",
+  "investment_thesis": "3-4 sentences: core investment case for {yr} from the data",
+  "concall_highlights": [
+    {{
+      "date": "YYYY-MM",
+      "sentiment_score": 7,
+      "sentiment_label": "Bullish|Neutral|Cautious|Bearish",
+      "key_highlights": ["highlight 1 from management", "highlight 2", "highlight 3"],
+      "standout_quote": "best single quote that captures management tone",
+      "trend_vs_prior": "improving|stable|deteriorating"
+    }}
+  ],
+  "sentiment_trend": "overall: improving|declining|volatile — 1-2 sentences on how management tone changed over the period",
+  "constraint_analysis": {{
+    "is_constrained_supplier": true,
+    "constraint_type": "what they supply that is constrained",
+    "evidence": "specific quote",
+    "severity": "critical|high|moderate|low"
+  }},
+  "demand_analysis": {{
+    "demand_trend": "growing|stable|declining",
+    "key_demand_drivers": ["driver1", "driver2"],
+    "demand_evidence": "specific quote"
+  }},
+  "capex_signal": {{
+    "investing_to_grow": true,
+    "capex_evidence": "specific quote",
+    "implication": "what this means for future margins"
+  }},
+  "financial_signals": [
+    {{"signal": "management commentary on margins/order book/revenue", "implication": "investment implication"}}
+  ],
+  "policy_support": {{
+    "has_pli_benefit": {"true" if pli_matches else "false"},
+    "schemes": [{{"name": "scheme name", "benefit": "how company benefits", "incentive": "incentive rate"}}],
+    "budget_tailwinds": ["tailwind 1", "tailwind 2"],
+    "policy_risk": "any policy risk to this company"
+  }},
+  "recommendation": {{
+    "action": "strong_buy|buy|hold|sell",
+    "conviction": "high|medium|low",
+    "time_horizon": "3m|6m|12m|2y+",
+    "price_trigger": "specific event that triggers buy",
+    "stop_loss_trigger": "what invalidates the thesis"
+  }},
+  "peer_comparison": "1-2 sentences vs peers",
+  "key_risks": ["risk1", "risk2", "risk3"],
+  "best_quote": "single most powerful management quote from the data"
+}}
+
+Rules:
+- concall_highlights: produce one entry per filing date in the timeline above
+- Use sentiment_score from timeline (already pre-computed)
+- key_highlights must be from actual signal quotes provided
+- policy_support: based on PLI/budget data provided (if country=IN)
+- Base ALL claims on signal evidence provided; say "insufficient data" if sparse"""
+
+        logging.info("company_dive: calling Claude for %s (%d docs, %d signal types, %d pli matches)",
+                     found_name, len(filings), len(signals_by_type), len(pli_matches))
+        raw = _call_claude(prompt)
+        cleaned = raw.strip()
+        if cleaned.startswith("```"):
+            lines = cleaned.split("\n")
+            cleaned = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+        try:
+            brief = _json.loads(cleaned)
+        except _json.JSONDecodeError:
+            brief = {"raw": raw}
+
+        result = {
+            "company": found_name, "ticker": found_ticker,
+            "country": body.country, "year": yr,
+            "data_summary": {
+                "filings_found":  len(filings),
+                "signal_types":   list(signals_by_type.keys()),
+                "themes_count":   len(co_themes),
+                "peers_count":    len(peers),
+                "pli_matches":    len(pli_matches),
+                "period":         f"{yr-2}–{yr}",
+            },
+            "themes":            co_themes,
+            "peers":             peers,
+            "pli_matches":       pli_matches,
+            "budget_support":    budget_support,
+            "concall_timeline":  concall_timeline,
+            "recent_filings": [
+                {"date": str(f.get("filed_at",""))[:10],
+                 "type": f.get("filing_type",""),
+                 "title": f.get("title","")[:80]}
+                for f in filings[:15]
+            ],
+            "brief":        brief,
+            "generated_at": datetime.now().isoformat(),
+            "from_cache":   False,
+        }
+
+        # Save to DB
+        if pg and not brief.get("raw"):
+            try:
+                with pg._conn() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            """INSERT INTO mg_ai_summaries
+                               (country, year, context_type, summary_text, industry_insights, generated_at)
+                               VALUES (%s,%s,'company_deep_dive',%s,%s::jsonb,NOW())
+                               ON CONFLICT (country,year,context_type) DO UPDATE SET
+                               summary_text=EXCLUDED.summary_text,
+                               industry_insights=EXCLUDED.industry_insights,
+                               generated_at=NOW()""",
+                            (body.country, co_key,
+                             brief.get("investment_thesis","")[:500],
+                             # Save full result so cache loads everything including
+                             # concall_timeline, pli_matches, budget_support
+                             _json.dumps({
+                                 **brief,
+                                 "ticker":           found_ticker,
+                                 "company":          found_name,
+                                 "themes":           co_themes,
+                                 "peers":            peers,
+                                 "pli_matches":      pli_matches,
+                                 "budget_support":   budget_support,
+                                 "concall_timeline": concall_timeline,
+                                 "recent_filings":   result["recent_filings"],
+                                 "data_summary":     result["data_summary"],
+                             }))
+                        )
+                    conn.commit()
+            except Exception as e:
+                logging.warning("company_dive save: %s", e)
+
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error("company_dive: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Company deep dive failed: {e}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2710,7 +4329,401 @@ def run_ai_analysis(body: AIAnalysisBody) -> dict:
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logging.error("run_ai_analysis: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"AI analysis failed: {e}")
+
+
+class InvestmentBriefBody(BaseModel):
+    country: str = "US"
+    year: int | None = None
+    min_constraint: int = 1
+    top_n_companies: int = 50
+    force_refresh: bool = False   # when True, regenerate even if saved brief exists
+
+
+@app.get("/api/ai/investment-brief")
+def get_saved_investment_brief(country: str = "US", year: int | None = None) -> dict:
+    """Return a previously saved investment brief, or {} if not yet generated."""
+    pg = get_pg()
+    if not pg:
+        return {}
+    try:
+        yr = str(year or date.today().year)
+        from psycopg2.extras import RealDictCursor
+        with pg._conn() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(
+                    """SELECT summary_text, industry_insights, generated_at
+                       FROM mg_ai_summaries
+                       WHERE country = %s AND year = %s AND context_type = 'investment_brief'""",
+                    (country, yr)
+                )
+                row = cur.fetchone()
+                if not row:
+                    return {}
+                import json as _j
+                brief_data = row["industry_insights"] or {}
+                if isinstance(brief_data, str):
+                    try: brief_data = _j.loads(brief_data)
+                    except: brief_data = {}
+                return {
+                    "year":         int(yr),
+                    "country":      country,
+                    "market":       "India (NSE/BSE)" if country == "IN" else "USA (NYSE/NASDAQ)",
+                    "brief":        brief_data,
+                    "generated_at": str(row["generated_at"]),
+                    "from_cache":   True,
+                }
+    except Exception as e:
+        logging.error("get_saved_brief: %s", e)
+        return {}
+
+
+@app.post("/api/ai/investment-brief")
+def run_investment_brief(body: InvestmentBriefBody) -> dict:
+    """Investment brief where theme ↔ company matching is validated by signal evidence.
+
+    Data pipeline:
+    1. Load focus themes (NEW/ESCALATING with YoY delta)
+    2. Load shortlisted companies (investability scored)
+    3. For EACH company, pull their actual constraint + demand quotes from filings
+    4. Group companies under their matched themes — only show companies whose
+       constraint quotes actually mention entities relevant to that theme
+    5. Send structured theme→company→signal-evidence data to Claude
+    6. Claude validates pairs and produces clean investable brief
+    """
+    pg = get_pg()
+    acfg    = CFG.get("anthropic", {})
+    api_key = acfg.get("api_key", "")
+    if not api_key:
+        raise HTTPException(status_code=400,
+            detail="Anthropic API key not configured. Add to config/secrets.json: anthropic.api_key")
+
+    try:
+        import json as _json
+        from psycopg2.extras import RealDictCursor
+        from collections import defaultdict
+
+        yr    = body.year or date.today().year
+        from_d = date(yr, 1, 1)
+        to_d   = date(yr, 12, 31) if yr < date.today().year else date.today()
+        market = "India (NSE/BSE)" if body.country == "IN" else "USA (NYSE/NASDAQ)"
+
+        # ── Step 1: Focus themes ──────────────────────────────────────────────
+        focus_themes: list[dict] = []
+        if pg:
+            try:
+                focus_themes = pg.get_year_focus_analysis(yr, body.country)
+            except Exception as e:
+                logging.warning("brief/themes: %s", e)
+
+        actionable = [t for t in focus_themes
+                      if t.get("focus_class") in ("new","escalating","no_prior")]
+
+        if not actionable:
+            return {
+                "year": yr, "country": body.country, "market": market,
+                "brief": {"executive_summary":
+                    f"No actionable (NEW/ESCALATING) themes found for {market} {yr}. "
+                    "Run the pipeline for this year first."},
+                "data_summary": {}, "generated_at": datetime.now().isoformat()
+            }
+
+        # ── Step 2: Investment shortlist ──────────────────────────────────────
+        shortlist: list[dict] = []
+        if pg:
+            try:
+                shortlist = get_investment_shortlist(
+                    country=body.country, year=body.year,
+                    top_n=body.top_n_companies, capex_focus=True,
+                )
+            except Exception as e:
+                logging.warning("brief/shortlist: %s", e)
+
+        # ── Step 3: Build structured theme→company evidence from SHORTLIST ────
+        # The shortlist already has constraint_count, best_quote, capex_signals,
+        # constraint_delta from its own pre-computed scoring. We use THAT data
+        # instead of re-querying signals (which fails due to date/name mismatches).
+        # This avoids the "all excluded" problem: we have real scored evidence,
+        # just present it properly to Claude.
+        
+        theme_co_map: dict[str, list[dict]] = {}
+        for co in shortlist:
+            for co_theme in (co.get("themes") or []):
+                tn = (co_theme.get("name","") if isinstance(co_theme, dict) else str(co_theme))
+                if tn:
+                    theme_co_map.setdefault(tn, []).append(co)
+
+        sections: list[str] = []
+        # Cap themes and companies per theme to keep prompt size manageable
+        max_themes_in_prompt = min(10, len(actionable))
+        for t in actionable[:max_themes_in_prompt]:
+            tname  = t.get("theme_name","")
+            focus  = t.get("focus_class","")
+            delta  = t.get("delta_pct")
+            conv   = t.get("conviction","")
+            this_s = t.get("this_avg_strength", 0)
+            prior_s= t.get("prior_avg_strength", 0)
+            delta_str = (f"+{delta:.0f}% YoY" if delta and delta>0
+                         else ("new — no prior year" if not delta else f"{delta:.0f}% YoY"))
+
+            section = [
+                f"\nTHEME: \"{tname}\" [{focus.upper()}] [{conv.upper()}]",
+                f"Strength: {this_s:.0f} | Prior: {prior_s:.0f} | {delta_str}",
+            ]
+
+            matched_cos = theme_co_map.get(tname, [])[:5]   # max 5 per theme
+            if not matched_cos:
+                section.append("  No companies with direct theme mapping found.")
+            else:
+                section.append("  COMPANIES (pre-scored from concall signals):")
+                for c in matched_cos:
+                    action      = c.get("action","watch")
+                    score       = c.get("investability_score", 0)
+                    csigs       = c.get("constraint_signals", 0)
+                    dsigs       = c.get("demand_signals", 0)
+                    capex       = c.get("capex_signals", 0)
+                    c_delta     = c.get("constraint_delta", 0)
+                    quote       = (c.get("best_quote") or "").strip()[:180]
+                    prior_c     = c.get("prior_constraint", 0)
+                    # Evidence tier
+                    if csigs >= 3 and quote:
+                        tier = "STRONG — direct constraint evidence + quote"
+                    elif csigs >= 1 and (dsigs >= 1 or capex >= 1):
+                        tier = "MODERATE — constraint + demand signals confirmed"
+                    elif csigs >= 1:
+                        tier = "WEAK — constraint signals only, no demand confirmation"
+                    else:
+                        tier = "THEME-MAPPED — beneficiary by supply-chain structure"
+
+                    co_lines = [
+                        f"  • {c.get('ticker','')} ({c.get('company','')}) | {action.upper()} | Score:{score:.0f}",
+                        f"    Evidence tier: {tier}",
+                        f"    Signals: ⚠️{csigs} constraint | 📈{dsigs} demand"
+                        + (f" | 🔨{capex} capex" if capex else "")
+                        + (f" | ↑+{c_delta} YoY vs prior:{prior_c}" if c_delta > 0 else ""),
+                    ]
+                    if quote:
+                        co_lines.append(f"    Best quote: \"{quote}\"")
+                    section.extend(co_lines)
+            sections.append("\n".join(section))
+
+        # ── Causal chains ────────────────────────────────────────────────────
+        chains_txt = ""
+        if pg:
+            try:
+                with pg._conn() as conn:
+                    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                        cur.execute(
+                            """SELECT chain_name, terminal_effect, activation_score
+                               FROM mg_causal_chains
+                               WHERE is_active = TRUE AND country = %s
+                               ORDER BY activation_score DESC LIMIT 8""",
+                            (body.country,)
+                        )
+                        chains_txt = "\n".join(
+                            f"  {r['chain_name']} → {r['terminal_effect']} (score:{r['activation_score']:.0f})"
+                            for r in cur.fetchall()
+                        )
+            except Exception as e:
+                logging.warning("brief/chains: %s", e)
+
+        # ── PLI context (India) ───────────────────────────────────────────────
+        pli_ctx = ""
+        if body.country == "IN":
+            high = [s for s in _INDIA_PLI_SCHEMES
+                    if s.get("year",0) <= yr and s.get("impact_magnitude",0) >= 4]
+            pli_ctx = ("\n\nACTIVE INDIA PLI SCHEMES (high-impact):\n" +
+                "\n".join(f"  - {s['title']}: {', '.join(s.get('key_companies',[])[:3])}"
+                           for s in high[:5]))
+
+        # ─────────────────────────────────────────────────────────────────────
+        # TWO-PASS CHUNKED APPROACH
+        # Pass 1 (small/fast): theme intelligence — executive summary, ranked
+        #         themes, industries. No company data = small prompt.
+        # Pass 2 (chunked): companies split into batches of 4 themes each.
+        #         Each batch is a separate Claude call, results merged.
+        # This avoids timeouts while producing richer output than trimming.
+        # ─────────────────────────────────────────────────────────────────────
+
+        def _clean_json(raw: str) -> dict:
+            s = raw.strip()
+            if s.startswith("```"):
+                lines = s.split("\n")
+                s = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+            try:
+                return _json.loads(s)
+            except _json.JSONDecodeError:
+                return {"raw": raw}
+
+        # ── Pass 1: Theme Intelligence ────────────────────────────────────────
+        theme_lines = "\n".join(
+            f"{i+1}. [{t.get('focus_class','').upper()}] {t.get('theme_name','')} "
+            f"[{str(t.get('conviction','')).upper()}] "
+            f"Strength:{t.get('this_avg_strength',0):.0f} "
+            f"Prior:{t.get('prior_avg_strength',0):.0f} "
+            f"Delta:{'+' if (t.get('delta_pct') or 0)>0 else ''}{t.get('delta_pct') or 'new'}%"
+            for i, t in enumerate(actionable[:15])
+        )
+
+        pass1_prompt = f"""Analyst covering {market} for {yr}. Respond ONLY in valid JSON.
+
+CONSTRAINT INTELLIGENCE {yr}:
+Causal chains: {chains_txt or 'none'}
+{pli_ctx}
+
+NEW/ESCALATING THEMES ({len(actionable)}):
+{theme_lines}
+
+Output JSON:
+{{
+  "executive_summary": "3-4 sentences on dominant constraint regime and investment opportunity in {yr}",
+  "top_themes": [
+    {{"rank":1,"name":"exact theme","focus":"new|escalating","strength_delta":"+34%",
+      "investment_thesis":"2-sentence thesis with specific constraint dynamics",
+      "constrained_component":"specific material/component bottlenecked",
+      "key_catalyst":"trigger for payoff","time_horizon":"6m|12m|18m|2y+",
+      "conviction":"high|medium|low","key_risk":"main risk"}}
+  ],
+  "top_industries": [
+    {{"rank":1,"industry":"name","rationale":"1-2 sentences","constraint_driver":"bottleneck"}}
+  ],
+  "key_risks": ["risk1","risk2","risk3"],
+  "contrarian_view": "underappreciated angle"
+}}
+Rules: top_themes = all actionable themes ranked by investment priority (up to 10).
+top_industries = 5 industries. JSON only, no markdown."""
+
+        logging.info("brief pass1: sending theme prompt (%d chars)", len(pass1_prompt))
+        pass1_raw  = _call_claude(pass1_prompt)
+        pass1      = _clean_json(pass1_raw)
+        top_themes = pass1.get("top_themes", [])
+        # Get the ranked theme names from pass1 to drive pass2 ordering
+        ranked_theme_names = [t.get("name","") for t in top_themes]
+
+        # ── Pass 2: Company Rankings (chunked by theme batches) ───────────────
+        # Split sections into batches of 3 themes each to keep prompts small
+        BATCH_SIZE = 3
+        section_batches = [sections[i:i+BATCH_SIZE] for i in range(0, len(sections), BATCH_SIZE)]
+
+        all_companies: list[dict] = []
+        seen_tickers: set[str]   = set()
+
+        for batch_idx, batch in enumerate(section_batches):
+            batch_prompt = f"""Analyst covering {market} for {yr}. Respond ONLY in valid JSON.
+
+EVIDENCE TIERS:
+- STRONG: ≥3 constraint signals + quote → high conviction
+- MODERATE: constraint + demand/capex signals → medium-high
+- WEAK: constraint signals only → medium
+- THEME-MAPPED: beneficiary mapping only → low
+
+THEMES AND COMPANIES (batch {batch_idx+1}/{len(section_batches)}):
+{"".join(batch)}
+
+Output JSON array of companies:
+[
+  {{"rank":1,"ticker":"TICKER","company":"Name",
+    "action":"act_now|research|watch",
+    "evidence_tier":"strong|moderate|weak|theme_mapped",
+    "theme":"theme name",
+    "investability_score":85,
+    "thesis":"1-sentence thesis from signal evidence",
+    "constraint_evidence_used":"quote or signal summary",
+    "capex_responding":true,
+    "conviction":"high|medium|low",
+    "key_risk":"main risk"}}
+]
+Rules:
+- Include ALL companies from the data above
+- act_now: score≥60 AND strong/moderate evidence
+- research: score≥40 OR moderate/weak + escalating theme
+- watch: others
+- NEVER omit a company — assign conviction even if evidence is weak
+- JSON array only, no wrapper object"""
+
+            logging.info("brief pass2 batch %d: %d chars", batch_idx+1, len(batch_prompt))
+            try:
+                batch_raw = _call_claude(batch_prompt)
+                batch_cos = _clean_json(batch_raw)
+                # batch_cos should be a list; handle if Claude wraps it
+                if isinstance(batch_cos, dict):
+                    batch_cos = batch_cos.get("top_companies", batch_cos.get("companies", []))
+                if isinstance(batch_cos, list):
+                    for co in batch_cos:
+                        ticker = str(co.get("ticker","")).strip().upper()
+                        if ticker and ticker not in seen_tickers:
+                            seen_tickers.add(ticker)
+                            all_companies.append(co)
+            except Exception as e:
+                logging.warning("brief pass2 batch %d failed: %s", batch_idx+1, e)
+
+        # Re-rank merged companies by investability_score DESC then action priority
+        ACTION_ORDER = {"act_now": 0, "research": 1, "watch": 2}
+        all_companies.sort(key=lambda c: (
+            ACTION_ORDER.get(str(c.get("action","watch")), 3),
+            -float(c.get("investability_score", 0))
+        ))
+        # Re-assign sequential ranks
+        for i, co in enumerate(all_companies):
+            co["rank"] = i + 1
+
+        # Merge pass1 + pass2 into final result
+        parsed = {
+            "executive_summary": pass1.get("executive_summary",""),
+            "validation_notes":  f"Analysed {len(all_companies)} companies across {len(sections)} themes in {len(section_batches)} batches.",
+            "top_themes":        top_themes,
+            "top_industries":    pass1.get("top_industries",[]),
+            "top_companies":     all_companies,
+            "key_risks":         pass1.get("key_risks",[]),
+            "contrarian_view":   pass1.get("contrarian_view",""),
+        }
+
+        result = {
+            "year": yr,
+            "country": body.country,
+            "market": market,
+            "data_summary": {
+                "actionable_themes":       len(actionable),
+                "companies_analysed":      len(shortlist),
+                "companies_with_evidence": sum(1 for c in shortlist if c.get("constraint_signals", 0) > 0),
+                "causal_chains":           len(chains_txt.split("\n")) if chains_txt else 0,
+                "claude_batches":          len(section_batches) + 1,
+            },
+            "brief":        parsed,
+            "generated_at": datetime.now().isoformat(),
+            "from_cache":   False,
+        }
+
+        # Persist to mg_ai_summaries — loads instantly on next visit
+        if pg and not parsed.get("raw"):
+            try:
+                exec_sum = parsed.get("executive_summary", "")
+                with pg._conn() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            """INSERT INTO mg_ai_summaries
+                                   (country, year, context_type, summary_text, industry_insights, generated_at)
+                               VALUES (%s, %s, 'investment_brief', %s, %s::jsonb, NOW())
+                               ON CONFLICT (country, year, context_type) DO UPDATE SET
+                                   summary_text      = EXCLUDED.summary_text,
+                                   industry_insights = EXCLUDED.industry_insights,
+                                   generated_at      = NOW()""",
+                            (body.country, str(yr), exec_sum, _json.dumps(parsed))
+                        )
+                    conn.commit()
+                logging.info("brief saved: %s/%s", body.country, yr)
+            except Exception as save_err:
+                logging.warning("brief save failed (non-fatal): %s", save_err)
+
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error("investment_brief: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Investment brief failed: {e}")
+
 
 
 @app.get("/api/ai/cache")

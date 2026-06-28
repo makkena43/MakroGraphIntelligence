@@ -52,6 +52,13 @@ class InvestmentSignal:
     entity_text: str = ""
     extracted_by: str = "rule"
     position: int = 0
+    perspective: str = "neutral"            # seller | buyer | neutral
+    # perspective = 'seller': company IS the constrained supplier
+    #               (customers can't get enough FROM THEM → pricing power)
+    # perspective = 'buyer':  company NEEDS the constrained item
+    #               (they can't source inputs → margin pressure)
+    # This is the critical field for investment decisions:
+    # Only 'seller' perspective supply constraints = investable bullish signal
 
     @property
     def is_bullish(self) -> bool:
@@ -107,17 +114,32 @@ _RAW_PATTERNS: list[tuple[str, str, str, float]] = [
     (r"\b(?:demand|orders?|customer(?:s)?|request(?:s)?)\b.{0,80}"
      r"(?:exceed|outstrip|outpac|overwhelm|surpass).{0,50}(?:supply|capacity|production|output)",
      "demand_surge", "positive", 0.92),
+    # ── CAPACITY CONSTRAINT — SELLER perspective ──────────────────────────
+    # Company IS the constrained supplier: customers can't get enough FROM THEM.
+    # This is the investable signal — pricing power, order book visibility.
+    # Tagged as signal_type='capacity_constraint_seller' so the investment
+    # funnel can filter ONLY on this, not on buyer-side constraints.
+    (r"\b(?:can(?:not|'t)\s+(?:meet|keep\s+up\s+with|satisfy|fulfill)|"
+     r"unable\s+to\s+(?:meet|satisfy|fulfill)).{0,60}(?:demand|orders?|request|need)",
+     "capacity_constraint_seller", "positive", 0.94),
+    # "sold out" / "fully allocated" — clear seller language
+    (r"\b(?:sold\s+out|fully\s+booked|fully\s+allocated|"
+     r"allocation.{0,30}(?:limit|constrain|scarc)|"
+     r"oversubscribed.{0,30}(?:demand|order|request))",
+     "capacity_constraint_seller", "positive", 0.93),
+    # "our lead times extended" — their delivery queue grew (customers waiting for them)
+    (r"\b(?:our\s+)?lead.?time(?:s)?\s+(?:extend|lengthen|stretch|grow|increas).{0,40}"
+     r"(?:week|month|quarter|year|\d+)",
+     "capacity_constraint_seller", "positive", 0.91),
+    (r"\bwaiting\s+(?:list|time|period).{0,40}(?:grow|increas|lengthen|extend)",
+     "capacity_constraint_seller", "positive", 0.90),
+    # "backlog at record / growing / visibility" — customers pre-ordering from them
+    (r"\bbacklog.{0,60}(?:record|all.time|highest|grow|increas|strong|robust|extend|months|quarters)",
+     "capacity_constraint_seller", "positive", 0.92),
+    # Original supply_bottleneck negative direction kept for buyer ambiguous cases
     (r"\b(?:can(?:not|'t)\s+(?:meet|keep\s+up\s+with|satisfy|fulfill)|"
      r"unable\s+to\s+(?:meet|satisfy|fulfill)).{0,60}(?:demand|orders?|request|need)",
      "supply_bottleneck", "negative", 0.92),
-    # "sold out" / "allocation constrained" — but NOT "fully subscribed" (oversubscribed rights
-    # issue / IPO is investor demand signal, not a supply bottleneck in goods/services)
-    (r"\b(?:sold\s+out|fully\s+booked|"
-     r"allocation.{0,30}(?:limit|constrain|scarc)|"
-     r"lead.?time(?:s)?\s+(?:extend|lengthen|stretch|grow|increas))",
-     "supply_bottleneck", "negative", 0.90),
-    (r"\bwaiting\s+(?:list|time|period).{0,40}(?:grow|increas|lengthen|extend)",
-     "supply_bottleneck", "negative", 0.88),
 
     # ── DEMAND SURGE ─────────────────────────────────────────────────────
     (r"\b(?:demand|orders?|backlog|pipeline)\b.{0,60}"
@@ -158,7 +180,10 @@ _RAW_PATTERNS: list[tuple[str, str, str, float]] = [
     (r"\bdeclin\w*\b.{0,30}\d+\s*%\b.{0,30}(?:YOY|year.on.year|QOQ|quarter)",
      "demand_slowdown", "negative", 0.75),
 
-    # ── SUPPLY BOTTLENECK ─────────────────────────────────────────────────
+    # ── SUPPLY BOTTLENECK — BUYER perspective ────────────────────────────
+    # Company NEEDS the constrained item — their inputs are scarce.
+    # This is margin-compressive for them. NOT the investable signal.
+    # (The supplier of these scarce components is the investable play.)
     (r"\b(?:supply\s+(?:chain\s+)?(?:shortage|constraint|crunch|tightness|disruption|bottleneck)|"
      r"capacity\s+(?:constraint|crunch|limit|shortfall|tighten)|"
      r"component\s+(?:shortage|scarcity|crunch)|"
