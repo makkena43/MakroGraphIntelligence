@@ -2706,6 +2706,11 @@ def get_investment_final_shortlist(
             )
             intensity_bonus = min(intensity_bonus, 24)
 
+            # PROMOTED from shadow testing (US 2020-24 calibration):
+            # evidence_quality gate halved the decay rate (8.6% vs 15.6% base)
+            # without hurting the confirm rate — quality avoids losers.
+            quality_bonus = min(meta.get("evidence_quality", 0), 8.0) * 1.5  # up to +12
+
             raw_score = (
                 step1 * step2_mult
                 + step3
@@ -2713,8 +2718,17 @@ def get_investment_final_shortlist(
                 + theme_bonus
                 + comp_bonus
                 + intensity_bonus
+                + quality_bonus
                 + (5 if meta.get("capex_quote") else 0)
             )
+
+            # PROMOTED dedup insight: many signals on very few distinct days is
+            # one event told repeatedly (press release + intimation + transcript).
+            # Measured neutral on confirms — adopted as a counting-integrity
+            # haircut, damping the promotional filing pattern.
+            _cd = meta.get("c_days", 0)
+            if c_count >= 3 and _cd > 0 and c_count / _cd >= 3.0:
+                raw_score *= 0.90
 
             # YoY delta ceiling: hard cap by (noise-guarded) trajectory so
             # persistent companies cannot crowd out newly-emerging ones.
@@ -2903,12 +2917,14 @@ def get_investment_final_shortlist(
                 # 17% below it; top score band confirmed 50%; early trajectory
                 # is where the payoff asymmetry lives. Everything else stays
                 # visible as the watch list — nothing is hidden, only ranked.
+                # Score bar raised 80→90: shadow variant v_score90 measured
+                # 47.8% confirmed / 8.7% decayed — the strongest gate tested.
                 "list_tier": (
                     "conviction"
                     if (trajectory in ("new", "rising")
                         and peer_corr >= 5
                         and explosion_score >= 3
-                        and rank_score_adjusted >= 80)
+                        and rank_score_adjusted >= 90)
                     else "watch"
                 ),
                 "peer_corroboration":    peer_corr,
@@ -2921,6 +2937,75 @@ def get_investment_final_shortlist(
                 "demand_days":           meta.get("ds_days", 0),
                 "evidence_quality":      meta.get("evidence_quality", 0),
                 "filings_in_window":     meta.get("filing_count", 0),
+                # ── WHY SHORTLISTED: the full audit trail for the card ─────────
+                # Answers the three questions a great investor asks:
+                # why this (qualification), why now (trajectory), and what
+                # would change my mind (invalidation conditions).
+                "why_shortlisted": {
+                    "path": meta.get("detection_path", "hard_constraint"),
+                    "path_explanation": (
+                        "Management explicitly describes ITS OWN capacity/backlog as "
+                        "constrained (seller-perspective bottleneck language)."
+                        if meta.get("detection_path") != "demand_led" else
+                        "No explicit bottleneck sentence, but the GE-Vernova pattern is "
+                        "lit: surging ORDER-anchored demand + building capacity + "
+                        "margin/pricing proof — demand exceeding capacity, inferred."
+                    ),
+                    "qualification_checks": [
+                        {"check": f"seller-constraint signals ≥ {min_constraint_signals}",
+                         "value": c_count, "passed": c_count >= min_constraint_signals},
+                        {"check": "order-anchored demand signals ≥ 3 (Path B)",
+                         "value": meta.get("ds_seller", 0),
+                         "passed": meta.get("ds_seller", 0) >= 3},
+                        {"check": "capacity investment (capex signals ≥ 1)",
+                         "value": k_count, "passed": k_count >= 1},
+                        {"check": "pricing/margin proof ≥ 1",
+                         "value": pricing_count, "passed": pricing_count >= 1},
+                        {"check": "filings in window ≥ 3 (not a shell)",
+                         "value": meta.get("filing_count", 0),
+                         "passed": meta.get("filing_count", 0) >= 3},
+                    ],
+                    "trajectory_explanation": (
+                        f"Prior year: {prior_c} constraint signals → this window: "
+                        f"{c_count} → '{trajectory}'"
+                        + (" (fresh emergence in an established filer — highest alpha)"
+                           if trajectory == "new" else
+                           " (evidence growing — cycle accelerating)"
+                           if trajectory == "rising" else
+                           " (steady multi-year story — consensus territory)"
+                           if trajectory == "flat" else
+                           " (evidence fading — thesis resolving)")
+                    ),
+                    "corroboration_explanation": (
+                        f"{peer_corr} other companies show constraint evidence in the "
+                        f"same domain this window"
+                        + (" — independently confirmed." if peer_corr >= 5 else
+                           " — thin corroboration; verify independently." if peer_corr
+                           else " — NOBODY else sees this; treat as unverified.")
+                    ),
+                    "score_breakdown": {
+                        "constraint_base":     round(step1, 1),
+                        "pathway_multiplier":  round(step2_mult, 2),
+                        "capex_duration":      step3,
+                        "demand_confidence":   max(step4, 0),
+                        "theme_bonus":         round(theme_bonus, 1),
+                        "competitor_bonus":    comp_bonus,
+                        "intensity_bonus":     intensity_bonus,
+                        "quality_bonus":       round(quality_bonus, 1),
+                        "raw_total":           round(raw_score, 1),
+                        "trajectory_ceiling":  delta_ceiling,
+                        "stage_multiplier":    stage_mult,
+                        "final":               rank_score_adjusted,
+                    },
+                    "would_change_my_mind": (
+                        [t for t in exit_triggers] +
+                        ([f"supply easing language appearing ({easing_count} mentions already)"]
+                         if easing_count else []) +
+                        ["peer corroboration collapsing (domain no longer confirmed)"
+                         if peer_corr >= 5 else
+                         "still awaiting independent confirmation from peers"]
+                    ),
+                },
                 "order_growth_pct":      _og or None,
                 "utilization_pct":       _ut or None,
                 "margin_expansion_bps":  _mb or None,

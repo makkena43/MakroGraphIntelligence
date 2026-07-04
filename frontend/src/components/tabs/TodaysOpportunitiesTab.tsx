@@ -83,6 +83,8 @@ function StockCard({ s, defaultOpen }: { s: Record<string, unknown>; defaultOpen
   const lastDate  = String(s.last_signal_date ?? '')
   const explosion = Boolean(s.explosion_potential)
   const explosionLegs = Number(s.explosion_legs ?? 0)
+  const why = (s.why_shortlisted as Record<string, unknown>) ?? null
+  const integrity = (s.integrity_flags as string[]) ?? []
 
   return (
     <div className={`rounded-xl border overflow-hidden ${meta.bg} ${meta.border}`}
@@ -138,6 +140,58 @@ function StockCard({ s, defaultOpen }: { s: Record<string, unknown>; defaultOpen
             {Boolean(s.margin_expansion_bps) && <span>Margin: <strong className="text-green-400">+{Number(s.margin_expansion_bps).toFixed(0)}bps</strong></span>}
             {Boolean(s.book_to_bill) && <span>Book-to-bill: <strong className="text-green-400">{Number(s.book_to_bill).toFixed(1)}</strong></span>}
           </div>
+
+          {/* WHY SHORTLISTED — full audit trail */}
+          {why && (
+            <div className="bg-slate-900/60 border border-indigo-900/40 rounded-lg px-3 py-2 space-y-2">
+              <div className="text-[9px] text-indigo-400 font-bold">🧾 WHY SHORTLISTED</div>
+              <div className="flex items-start gap-2">
+                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold flex-shrink-0 ${why.path === 'demand_led' ? 'bg-amber-950/60 text-amber-300 border border-amber-700/40' : 'bg-red-950/60 text-red-300 border border-red-700/40'}`}>
+                  {why.path === 'demand_led' ? 'DEMAND-LED' : 'HARD CONSTRAINT'}
+                </span>
+                <p className="text-[10px] text-slate-400 leading-relaxed">{String(why.path_explanation ?? '')}</p>
+              </div>
+              <div className="grid grid-cols-1 gap-0.5">
+                {((why.qualification_checks as Record<string, unknown>[]) ?? []).map((c, i) => (
+                  <div key={i} className="flex items-center gap-2 text-[10px]">
+                    <span className={c.passed ? 'text-green-500' : 'text-slate-600'}>{c.passed ? '✓' : '✗'}</span>
+                    <span className="text-slate-400 flex-1">{String(c.check)}</span>
+                    <span className={`font-bold ${c.passed ? 'text-slate-200' : 'text-slate-600'}`}>{String(c.value)}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-slate-400">📈 {String(why.trajectory_explanation ?? '')}</p>
+              <p className="text-[10px] text-slate-400">🤝 {String(why.corroboration_explanation ?? '')}</p>
+              {Boolean(why.score_breakdown) && (
+                <details className="text-[10px] text-slate-500">
+                  <summary className="cursor-pointer hover:text-slate-300">Score math</summary>
+                  <div className="grid grid-cols-2 gap-x-4 mt-1 ml-2">
+                    {Object.entries(why.score_breakdown as Record<string, number>).map(([k, v]) => (
+                      <div key={k} className="flex justify-between">
+                        <span>{k.replace(/_/g, ' ')}</span>
+                        <strong className={k === 'final' ? 'text-amber-400' : 'text-slate-300'}>{String(v)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
+              {((why.would_change_my_mind as string[]) ?? []).length > 0 && (
+                <div>
+                  <div className="text-[9px] text-slate-500 font-bold">🔄 WOULD CHANGE MY MIND</div>
+                  {((why.would_change_my_mind as string[]) ?? []).map((w, i) => (
+                    <div key={i} className="text-[10px] text-slate-400">• {w.replace(/_/g, ' ')}</div>
+                  ))}
+                </div>
+              )}
+              {integrity.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {integrity.map((f, i) => (
+                    <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-orange-950/60 border border-orange-700/50 text-orange-300 font-bold">⚠ {f.replace(/_/g, ' ')}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Best constraint quote */}
           {cQuote && (

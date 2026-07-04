@@ -496,7 +496,9 @@
       "Bash(awk -F: '$1>1700 && $1<2700')",
       "Bash(awk 'NR>=1905 && NR<=1915' backend/main.py)",
       "Bash(PYTHONPATH=src:. .venv/bin/python3 -m makrograph.evaluation.propagation_lag --country IN)",
-      "Bash(psql -h 127.0.0.1 -U postgres -d makrograph -t -A -c \"SELECT COUNT\\(*\\) FROM mg_embeddings;\")"
+      "Bash(psql -h 127.0.0.1 -U postgres -d makrograph -t -A -c \"SELECT COUNT\\(*\\) FROM mg_embeddings;\")",
+      "Bash(curl -s --max-time 150 'http://localhost:8000/api/investment-final-shortlist?country=IN&year=2024' -o /private/tmp/claude-501/-Users-makkenasrinivas-PycharmProjects-MakroGraphIntelligence/50051d2d-9053-4f77-ac34-9491819f09c7/scratchpad/base_in.json)",
+      "Bash(curl -s --max-time 150 'http://localhost:8000/api/investment-final-shortlist?country=US&year=2025' -o /private/tmp/claude-501/-Users-makkenasrinivas-PycharmProjects-MakroGraphIntelligence/50051d2d-9053-4f77-ac34-9491819f09c7/scratchpad/base_us.json)"
     ]
   }
 }
