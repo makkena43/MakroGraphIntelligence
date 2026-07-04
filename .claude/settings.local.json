@@ -491,7 +491,11 @@
       "Bash(.venv/bin/python3 -c \"import ast; [ast.parse\\(open\\(f\\).read\\(\\)\\) for f in ['backend/main.py','src/makrograph/nlp/magnitude_extractor.py','src/makrograph/evaluation/fundamental_loop.py']]; print\\('syntax OK'\\)\")",
       "Bash(curl -s --max-time 30 \"http://localhost:8000/api/changes-since-last-run?country=US\")",
       "Bash(psql -h 127.0.0.1 -U postgres -d makrograph -t -A -c \"SELECT COUNT\\(*\\), MAX\\(snapshot_date\\) FROM mg_shortlist_snapshots;\")",
-      "Bash(PYTHONPATH=src:. .venv/bin/python3 -c ' *)"
+      "Bash(PYTHONPATH=src:. .venv/bin/python3 -c ' *)",
+      "Bash(PYTHONPATH=src .venv/bin/python3)",
+      "Bash(awk -F: '$1>1700 && $1<2700')",
+      "Bash(awk 'NR>=1905 && NR<=1915' backend/main.py)",
+      "Bash(PYTHONPATH=src:. .venv/bin/python3 -m makrograph.evaluation.propagation_lag --country IN)"
     ]
   }
 }

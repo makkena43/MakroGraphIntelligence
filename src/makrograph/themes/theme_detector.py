@@ -60,6 +60,17 @@ _NOISE_RE = re.compile(
     r"|form\s+(?:10-[kq]|8-k|s-[1-9]|20-f)"
     r"|annual report|quarterly report|current report"
 
+    # Document artifacts: page refs, salutations, clock times, honorifics
+    # ("Page 11", "Dear Sir/ Madam", "P.M.", "Quarter To Quarter")
+    r"|^pages?\s*\d*$"
+    r"|^dear\s+(?:sir|madam|sirs)"
+    r"|^[ap]\.?m\.?$"
+    r"|^(?:mr|mrs|ms|dr|shri|smt)\.?\s"
+    r"|^quarter\s+(?:to|over|on)\s+quarter"
+    r"|^(?:recent|prior|current|previous|coming|last|next)\s+(?:years?|quarters?|periods?|months?)$"
+    r"|^(?:sub|ref|re)\s*:"
+    r"|^(?:intangible|tangible)s?$"
+
     # Time references in entity names
     r"|\b(?:year|quarter|period|months?)\s+ended\b"
     r"|\bfiscal\s+(?:year|20\d{2})\b"

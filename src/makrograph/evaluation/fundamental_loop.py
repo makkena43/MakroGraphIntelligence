@@ -76,7 +76,19 @@ def shadow_variants(det: dict) -> dict:
     ut    = float(det.get("utilization_pct") or 0)
     score = float(det.get("rank_score") or 0)
     exp   = bool(det.get("explosion_potential"))
+    c_days  = int(det.get("constraint_days") or 0)
+    ds_days = int(det.get("demand_days") or 0)
+    equal   = float(det.get("evidence_quality") or 0)
+    c_cnt   = int(det.get("constraint_signals") or 0)
     return {
+        # DEDUP: qualification measured in distinct evidence DAYS, not raw
+        # signal counts — one event told three times is one event.
+        "v_dedup_days": c_days >= 2 or ds_days >= 3,
+        # QUALITY: confidence-weighted, quantified-premium evidence mass
+        "v_quality_evidence": equal >= 3.0,
+        # Repetition-heavy pattern: many signals but few distinct days —
+        # the promotional shape. Tracked to measure whether it UNDERperforms.
+        "v_repetitive_pattern": c_cnt >= 3 and c_days > 0 and c_cnt / max(c_days, 1) >= 2.5,
         # incumbent, for side-by-side comparison
         "incumbent_explosion": exp,
         # demand leg must be QUANTIFIED, not just counted

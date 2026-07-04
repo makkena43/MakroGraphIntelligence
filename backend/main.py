@@ -1644,6 +1644,80 @@ def _save_shortlist_snapshot(country: str, results: list[dict]) -> None:
         conn.commit()
 
 
+@app.get("/api/thesis-ledger")
+def get_thesis_ledger(ticker: str, country: str = "IN") -> dict:
+    """The research file for one company: every constraint-thesis event in
+    chronological order — signals with quotes and magnitudes, plus the
+    detector's own run history (stage/tier transitions from snapshots).
+    This is the record of 'what was knowable on which date'.
+    """
+    pg = get_pg()
+    if pg is None:
+        raise HTTPException(status_code=503, detail="DB unavailable")
+    tk = ticker.strip().upper()
+    from psycopg2.extras import RealDictCursor
+    with pg._conn() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                f"""SELECT d.filed_at::date AS dt, s.signal_type,
+                           COALESCE(s.perspective,'') AS perspective,
+                           s.confidence, s.signal_value, s.signal_unit,
+                           s.context_text,
+                           ({CONSTRAINT_PRED_SQL})   AS is_constraint,
+                           ({DS_SELLER_PRED_SQL})    AS is_order_demand,
+                           (s.signal_type = 'capex_increase')          AS is_capex,
+                           (s.signal_type IN ('realized_margin_expansion',
+                                              'pricing_power_emerging')) AS is_pricing,
+                           (s.signal_type = 'supply_easing')           AS is_easing
+                    FROM mg_signals s
+                    JOIN mg_documents d ON d.id = s.document_id
+                    WHERE d.country = %s AND UPPER(TRIM(d.ticker)) = %s
+                      AND (({CONSTRAINT_PRED_SQL}) OR ({DS_SELLER_PRED_SQL})
+                           OR s.signal_type IN ('capex_increase',
+                               'realized_margin_expansion','pricing_power_emerging',
+                               'supply_easing','competitor_constrained'))
+                    ORDER BY d.filed_at""",
+                (country, tk),
+            )
+            events = []
+            for r in cur.fetchall():
+                kind = ("constraint" if r["is_constraint"] else
+                        "order_demand" if r["is_order_demand"] else
+                        "capex" if r["is_capex"] else
+                        "pricing" if r["is_pricing"] else
+                        "easing" if r["is_easing"] else r["signal_type"])
+                q = _quality_quote(r["context_text"] or "")
+                events.append({
+                    "date":        str(r["dt"]),
+                    "kind":        kind,
+                    "signal_type": r["signal_type"],
+                    "perspective": r["perspective"],
+                    "confidence":  float(r["confidence"] or 0),
+                    "magnitude":   (f"{r['signal_value']:g} {r['signal_unit']}"
+                                    if r["signal_value"] is not None else None),
+                    "quote":       _trim_to_sentence(q, 220) if q else None,
+                })
+            # Detector run history (live snapshots): stage / tier over time
+            cur.execute(
+                """SELECT snapshot_date, stage, list_tier, trajectory, rank_score
+                   FROM mg_shortlist_snapshots
+                   WHERE country=%s AND ticker=%s ORDER BY snapshot_date""",
+                (country, tk),
+            )
+            runs = [{**dict(r), "snapshot_date": str(r["snapshot_date"])}
+                    for r in cur.fetchall()]
+    first_c = next((e["date"] for e in events if e["kind"] == "constraint"), None)
+    first_d = next((e["date"] for e in events if e["kind"] == "order_demand"), None)
+    return {
+        "ticker": tk, "country": country,
+        "first_constraint_signal": first_c,
+        "first_order_demand_signal": first_d,
+        "event_count": len(events),
+        "events": events,
+        "detector_run_history": runs,
+    }
+
+
 @app.get("/api/changes-since-last-run")
 def get_changes_since_last_run(country: str = "US") -> dict:
     """Diff the two most recent live-run snapshots: the weekly 'what changed'
@@ -1869,6 +1943,22 @@ def get_investment_final_shortlist(
                            COUNT(*) FILTER (WHERE {_CPRED})             AS c_count,
                            -- DEMAND-LED evidence: seller-tagged demand surge
                            COUNT(*) FILTER (WHERE {_DS_SELLER})         AS ds_seller,
+                           -- DISTINCT EVIDENCE DAYS: one order announced via
+                           -- press release + intimation + transcript is ONE
+                           -- event, not three. Days ≈ events. (Shadow-tested
+                           -- before it may replace raw counts in scoring.)
+                           COUNT(DISTINCT d.filed_at::date) FILTER (WHERE {_CPRED})
+                                                                        AS c_days,
+                           COUNT(DISTINCT d.filed_at::date) FILTER (WHERE {_DS_SELLER})
+                                                                        AS ds_days,
+                           -- QUALITY-WEIGHTED evidence: confidence-weighted,
+                           -- with a premium for quantified claims (a stated
+                           -- number is a stronger commitment than adjectives).
+                           SUM(CASE WHEN {_CPRED} OR {_DS_SELLER}
+                               THEN s.confidence
+                                    * (CASE WHEN s.signal_value IS NOT NULL
+                                            THEN 1.5 ELSE 1.0 END)
+                               ELSE 0 END)                              AS evidence_quality,
                            COUNT(*) FILTER (WHERE s.signal_type = 'capex_increase')
                                                                         AS capex_count,
                            COUNT(*) FILTER (WHERE s.signal_type IN (
@@ -1978,6 +2068,10 @@ def get_investment_final_shortlist(
                         "ds_seller":     int(r["ds_seller"] or 0),
                         "comp_constrained": int(r["comp_constrained"] or 0),
                         "easing_count":  int(r["easing_count"] or 0),
+                        "c_days":        int(r["c_days"] or 0),
+                        "ds_days":       int(r["ds_days"] or 0),
+                        "evidence_quality": round(float(r["evidence_quality"] or 0), 2),
+                        "filing_count":  int(r["filing_count"] or 0),
                         "max_order_growth": float(r["max_order_growth"] or 0),
                         "max_utilization":  float(r["max_utilization"] or 0),
                         "max_margin_bps":   float(r["max_margin_bps"] or 0),
@@ -2818,6 +2912,15 @@ def get_investment_final_shortlist(
                     else "watch"
                 ),
                 "peer_corroboration":    peer_corr,
+                # Signal QUALITY over quantity (shadow-tested, not yet scored):
+                #   constraint_days / demand_days — distinct evidence DAYS
+                #     (dedups same-day press release + intimation + transcript)
+                #   evidence_quality — confidence-weighted, quantified-claim
+                #     premium; high count + low quality = promotional pattern
+                "constraint_days":       meta.get("c_days", 0),
+                "demand_days":           meta.get("ds_days", 0),
+                "evidence_quality":      meta.get("evidence_quality", 0),
+                "filings_in_window":     meta.get("filing_count", 0),
                 "order_growth_pct":      _og or None,
                 "utilization_pct":       _ut or None,
                 "margin_expansion_bps":  _mb or None,
@@ -2835,12 +2938,38 @@ def get_investment_final_shortlist(
         for i, r in enumerate(results):
             r["rank"] = i + 1
 
+        # Universe coverage: how much of the filing universe the signal layer
+        # actually reads. High coverage (~95%) means a company's SILENCE while
+        # its domain is constrained is itself information.
+        try:
+            with pg._conn() as _cov_conn:
+                cur2 = _cov_conn.cursor()
+                cur2.execute(
+                    """SELECT COUNT(DISTINCT company) FROM mg_documents
+                       WHERE country=%s AND filed_at BETWEEN %s AND %s""",
+                    (country, from_d, to_d))
+                _cos_with_docs = cur2.fetchone()[0] or 0
+                cur2.execute(
+                    """SELECT COUNT(DISTINCT d.company) FROM mg_signals s
+                       JOIN mg_documents d ON d.id=s.document_id
+                       WHERE d.country=%s AND d.filed_at BETWEEN %s AND %s""",
+                    (country, from_d, to_d))
+                _cos_with_signals = cur2.fetchone()[0] or 0
+        except Exception:
+            _cos_with_docs = _cos_with_signals = 0
+
         stats = {
             "stage1_themes":          len(stage1_out),
             "stage2_signal_companies": len(co_meta),          # companies with signals this year
             "stage3_with_evidence":   len(co_meta),           # all signal companies have evidence
             "stage4_qualify":         len(results),
             "final_count":            min(len(results), 50),
+            "universe_companies_with_filings": _cos_with_docs,
+            "universe_companies_with_signals": _cos_with_signals,
+            "signal_coverage_pct": (
+                round(100.0 * _cos_with_signals / _cos_with_docs, 1)
+                if _cos_with_docs else 0
+            ),
         }
 
         # Persist a run snapshot for LIVE runs only (current year / no year):
