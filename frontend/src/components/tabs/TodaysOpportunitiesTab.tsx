@@ -79,6 +79,10 @@ function StockCard({ s, defaultOpen }: { s: Record<string, unknown>; defaultOpen
   const component = String(s.constrained_component ?? '')
   const theme  = String(s.theme ?? '')
   const themes = (s.theme_names as string[]) ?? []
+  const firstDate = String(s.first_signal_date ?? '')
+  const lastDate  = String(s.last_signal_date ?? '')
+  const explosion = Boolean(s.explosion_potential)
+  const explosionLegs = Number(s.explosion_legs ?? 0)
 
   return (
     <div className={`rounded-xl border overflow-hidden ${meta.bg} ${meta.border}`}
@@ -96,10 +100,12 @@ function StockCard({ s, defaultOpen }: { s: Record<string, unknown>; defaultOpen
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <span className="text-sm font-black text-slate-100">{String(s.ticker ?? '')}</span>
               <span className="text-xs text-slate-300">{String(s.company ?? '').slice(0,35)}</span>
+              {explosion && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-950/60 border border-red-600/60 text-red-300 font-bold" title="All 4 thesis legs lit: constraint + pathway + demand + early cycle">💥 EXPLOSION SETUP</span>}
               {component && <span className="text-[10px] text-amber-400 italic">🔩 {component}</span>}
               <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
                 {cSigs > 0 && <span className="text-[10px] text-red-400 font-bold">⚠️{cSigs}</span>}
                 {kSigs > 0 && <span className="text-[10px] text-amber-400 font-bold">🔨{kSigs}</span>}
+                {firstDate && <span className="text-[10px] text-slate-500" title="First constraint signal detected">📅{firstDate}</span>}
                 <span className="text-[10px] text-slate-600">⏱{th}m</span>
               </div>
             </div>
@@ -122,6 +128,14 @@ function StockCard({ s, defaultOpen }: { s: Record<string, unknown>; defaultOpen
             <span>Stage confidence: <strong className="text-slate-300">{(stageConf*100).toFixed(0)}%</strong></span>
             <span>Signal confidence: <strong className="text-slate-300">{(conf*100).toFixed(0)}%</strong></span>
             <span>Multi-theme: <strong className="text-slate-300">{themes.length}</strong></span>
+            {firstDate && <span>First detected: <strong className="text-green-400">{firstDate}</strong></span>}
+            {lastDate  && <span>Last signal: <strong className="text-slate-300">{lastDate}</strong></span>}
+            <span>Thesis legs: <strong className={explosionLegs === 4 ? 'text-red-400' : 'text-slate-300'}>{explosionLegs}/4</strong></span>
+            {Number(s.peer_corroboration ?? 0) > 0 && <span>Peer confirms: <strong className="text-cyan-400">{String(s.peer_corroboration)}</strong></span>}
+            {Boolean(s.order_growth_pct) && <span>Orders: <strong className="text-green-400">+{Number(s.order_growth_pct).toFixed(0)}%</strong></span>}
+            {Boolean(s.utilization_pct) && <span>Utilization: <strong className="text-amber-400">{Number(s.utilization_pct).toFixed(0)}%</strong></span>}
+            {Boolean(s.margin_expansion_bps) && <span>Margin: <strong className="text-green-400">+{Number(s.margin_expansion_bps).toFixed(0)}bps</strong></span>}
+            {Boolean(s.book_to_bill) && <span>Book-to-bill: <strong className="text-green-400">{Number(s.book_to_bill).toFixed(1)}</strong></span>}
           </div>
 
           {/* Best constraint quote */}
@@ -210,14 +224,23 @@ export default function TodaysOpportunitiesTab({ country }: Props) {
   const data   = raw as Record<string,unknown> | undefined
   const t1     = (data?.tier1_compounders as Record<string,unknown>[]) ?? []
   const t1w    = (data?.tier1_watch        as Record<string,unknown>[]) ?? []
-  const s1     = (data?.stage1_strong_buy  as Record<string,unknown>[]) ?? []
-  const s2     = (data?.stage2_buy         as Record<string,unknown>[]) ?? []
-  const s3     = (data?.stage3_hold        as Record<string,unknown>[]) ?? []
-  const s4     = (data?.stage4_reduce      as Record<string,unknown>[]) ?? []
+  const s1raw  = (data?.stage1_strong_buy  as Record<string,unknown>[]) ?? []
+  const s2raw  = (data?.stage2_buy         as Record<string,unknown>[]) ?? []
+  const s3raw  = (data?.stage3_hold        as Record<string,unknown>[]) ?? []
+  const s4raw  = (data?.stage4_reduce      as Record<string,unknown>[]) ?? []
+  // Conviction list: measured-quality bar (early trajectory + 5+ peer confirms
+  // + 3/4 thesis legs + top score band). Everything else stays visible below
+  // as the watch list — ranked, never hidden.
+  const isConviction = (s: Record<string,unknown>) => s.list_tier === 'conviction'
+  const conviction = [...s1raw, ...s2raw, ...s3raw, ...s4raw].filter(isConviction)
+  const s1 = s1raw.filter(s => !isConviction(s))
+  const s2 = s2raw.filter(s => !isConviction(s))
+  const s3 = s3raw.filter(s => !isConviction(s))
+  const s4 = s4raw.filter(s => !isConviction(s))
   const summary = (data?.summary as Record<string,number|string>) ?? {}
   const regimes = (data?.constraint_regimes as Record<string,unknown>[]) ?? []
 
-  const total = Number(summary.total ?? 0) + t1.length + t1w.length
+  const total = Number(summary.total ?? 0)
 
   return (
     <div className="space-y-4">
@@ -321,50 +344,29 @@ export default function TodaysOpportunitiesTab({ country }: Props) {
             </EmptyState>
           ) : (
             <div className="space-y-4">
-              {/* Tier 1 — Quality Compounders (5-20 year holds) */}
-              {(t1.length + t1w.length) > 0 && (
+              {conviction.length > 0 && (
                 <div className="space-y-2">
-                  <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl border bg-purple-950/40 border-purple-700/50">
+                  <div className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl border text-left bg-red-950/30 border-red-700/50">
                     <div className="flex-1">
-                      <div className="text-sm font-black text-purple-100">🏆 Tier 1 — QUALITY COMPOUNDERS</div>
-                      <div className="text-[11px] text-slate-400">Hold 5-20 years · ROIC ≥20% · durable moat · expanding TAM · The Titan/HDFC/Buffett pattern</div>
+                      <div className="text-sm font-black text-red-300">🎯 CONVICTION LIST</div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">
+                        Early trajectory + 5+ peer confirmations + full thesis chain + top score — the measured highest-quality setups
+                      </div>
                     </div>
-                    <div className="text-xl font-black px-3 py-1 rounded-lg bg-purple-900/60 text-purple-200">{t1.length + t1w.length}</div>
+                    <div className="text-xl font-black px-3 py-1 rounded-lg bg-red-900/50 text-red-300">{conviction.length}</div>
                   </div>
-                  {t1.length > 0 && (
-                    <div className="ml-2 space-y-2">
-                      {t1.map((s, i) => (
-                        <div key={i} className="bg-purple-950/30 border border-purple-800/40 rounded-xl px-4 py-3" style={{ borderLeft: '4px solid #a855f7' }}>
-                          <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 w-12 text-center">
-                              <div className="text-lg font-black text-purple-300">{(Number(s.quality_score ?? 0)*100).toFixed(0)}</div>
-                              <div className="text-[9px] text-slate-600">quality</div>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-sm font-black text-slate-100">{String(s.ticker ?? '')}</span>
-                                <span className="text-xs text-slate-300">{String(s.company ?? '').slice(0,35)}</span>
-                                <span className="text-[10px] text-purple-400 ml-auto">🏆 {String(s.suggested_hold ?? '5-20y')}</span>
-                              </div>
-                              <div className="flex gap-3 text-[10px] text-slate-500 mb-1">
-                                {Number(s.roic_score ?? 0) > 0.5 && <span className="text-emerald-400">ROIC ✓</span>}
-                                {Number(s.moat_score ?? 0) > 0.5 && <span className="text-blue-400">Moat ✓</span>}
-                                {Number(s.tam_score ?? 0) > 0.4 && <span className="text-amber-400">TAM ✓</span>}
-                                <span>Confirmed {Number(s.signal_quarters ?? 1)}Q</span>
-                              </div>
-                              <p className="text-[10px] text-slate-400 leading-relaxed">{String(s.quality_thesis ?? '').slice(0,200)}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div className="space-y-2 ml-2">
+                    {conviction.map((s, i) => (
+                      <StockCard key={i} s={s} defaultOpen={i < 3} />
+                    ))}
+                  </div>
                 </div>
               )}
-              {/* Tier 2 — Constraint Plays */}
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-wide px-1">
-                Tier 2 — Constraint Cycle Winners (2-5 year holds)
-              </div>
+              {conviction.length > 0 && (
+                <div className="text-[11px] font-bold text-slate-500 px-1 pt-2">
+                  👁 WATCH LIST — valid setups below the conviction bar, ranked by stage
+                </div>
+              )}
               <StageSection stage={1} stocks={s1} defaultOpen={true} />
               <StageSection stage={2} stocks={s2} defaultOpen={true} />
               <StageSection stage={3} stocks={s3} defaultOpen={false} />

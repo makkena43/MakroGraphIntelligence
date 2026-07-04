@@ -107,6 +107,21 @@ _KNOWN_TICKER_SECTORS: dict[str, str] = {
     "PG": "consumer_goods",    "CL": "consumer_goods",   "KMB": "consumer_goods",
     "CHD": "consumer_goods",   "COTY": "consumer_goods",  "EL": "cosmetic",
     "ULTA": "cosmetic",        "REV": "cosmetic",
+    # Beverages — consumer, not industrial suppliers
+    "MNST": "beverage",   "KO": "beverage",    "PEP": "beverage",
+    "BUD": "beverage",    "TAP": "beverage",   "STZ": "beverage",
+    "CELH": "beverage",   "SAM": "beverage",
+    # Homebuilders — construction, not tech/semiconductor suppliers
+    "PHM": "homebuilder", "DHI": "homebuilder", "LEN": "homebuilder",
+    "NVR": "homebuilder", "TOL": "homebuilder", "TMHC": "homebuilder",
+    "KBH": "homebuilder", "MDC": "homebuilder", "CCS": "homebuilder",
+    "FND": "retail",      # Floor & Decor = flooring retail, not industrial
+    # Home improvement retail
+    "HD": "retail",    "LOW": "retail",
+    # Apparel / athletic
+    "LULU": "apparel", "NKE": "apparel", "UA": "apparel",
+    # Electronics manufacturing services (supplier-type, not retail)
+    # FLEX is actually a manufacturing services company - let it through
     # Food & beverage
     "PEP": "food", "KO": "food", "MDLZ": "food", "GIS": "food",
     "CAG": "food", "CPB": "food", "HRL": "food", "SJM": "food",
@@ -136,11 +151,31 @@ _KNOWN_TICKER_SECTORS: dict[str, str] = {
     "BAC": "finance",  "JPM": "finance",  "WFC": "finance",  "C": "finance",
     "GS": "finance",   "MS": "finance",   "AXP": "finance",  "V": "finance",
     "MA": "finance",
-    # Insurance
+    # More finance / asset management
+    "FMBH": "finance",  "PFBC": "finance",  "WSFS": "finance",
+    "BGC": "finance",   "BXSL": "finance",  "GLPI": "finance",
+    "RKT": "finance",   "UWMC": "finance",  "GHLD": "finance",
+    "FICO": "finance",  "SPGI": "finance",  "MCO": "finance",
+    # Media / Marketing services
+    "STGW": "media",    "IPG": "media",     "OMC": "media",
+    "WPP": "media",     "PUBGY": "media",
+    # Gaming / Entertainment
+    "LYV": "entertainment", "RBLX": "entertainment", "TTWO": "entertainment",
+    "EA": "entertainment",  "ATVI": "entertainment",
+    # Insurance / professional risk services
     "UNH": "insurance", "AET": "insurance", "CI": "insurance",
+    "AON": "insurance", "MMC": "insurance", "AIG": "insurance",
+    "MET": "insurance", "PRU": "insurance", "AFL": "insurance",
+    # Enterprise SaaS (backlog = deferred revenue, not supply constraint)
+    "WDAY": "media",  "CRM": "media",  "NOW": "media",
+    "ADBE": "media",  "INTU": "media",  "ORCL": "media",
     # Healthcare services (NOT medical device manufacturers)
     "CVS": "pharmacy_chain", "WBA": "pharmacy_chain",
     "HCA": "hospital",       "THC": "hospital",
+    # Consumer platforms / retail (demand = transactions, not supply constraint;
+    # "orders" in their filings means consumer orders, not order books)
+    "DASH": "restaurant", "UBER": "restaurant", "AZO": "retail",
+    "TJX": "retail", "ORLY": "retail", "CCL": "hotel", "NCLH": "hotel",
     # Media / Entertainment
     "DIS": "entertainment", "NFLX": "entertainment", "WBD": "entertainment",
     "PARA": "entertainment", "FOX": "media",
@@ -199,8 +234,31 @@ _COMPANY_NAME_SECTOR_PATTERNS: list[tuple[str, str]] = [
     ("cvs health", "pharmacy_chain"), ("walgreens", "pharmacy_chain"),
     ("hca healthcare", "hospital"),
     # Media
+    ("stagwell", "media"), ("interpublic", "media"), ("omnicom", "media"),
+    ("live nation", "entertainment"), ("gaming and leisure", "finance"),
+    ("gaming & leisure", "finance"), ("rocket companies", "finance"),
+    ("first mid", "finance"), ("blackstone secured", "finance"),
+    ("lifeway foods", "food"), ("lifeway", "food"),
+    ("bgc group", "finance"), ("bgc partners", "finance"),
+    ("dollar general", "retail"), ("dollar tree", "retail"),
+    ("cypherpunk", "finance"),
     ("disney", "entertainment"), ("netflix", "entertainment"), ("comcast", "media"),
     ("news corp", "media"), ("fox corp", "media"),
+    # ── Generic sector words (not company names) ─────────────────────────────
+    # Any company whose NAME declares a blocked sector. Works for future
+    # companies in any country — these are industry words, not tickers.
+    ("financial", "finance"), (" bank", "finance"), ("bancorp", "finance"),
+    ("bancshares", "finance"), ("bankers", "finance"),
+    ("insurance", "insurance"), ("assurance", "insurance"),
+    ("cruise", "hotel"), ("resorts", "hotel"), ("casino", "entertainment"),
+    ("breweries", "beverage"), ("brewery", "beverage"),
+    ("distilleries", "beverage"), ("distillery", "beverage"),
+    ("beverages", "beverage"), ("foods", "food"), ("dairy", "food"),
+    ("fashions", "apparel"), ("garments", "apparel"),
+    ("jewellers", "apparel"), ("jewelers", "apparel"), ("jewellery", "apparel"),
+    ("jewelry", "apparel"), ("diamonds", "apparel"), ("gems ", "apparel"),
+    ("paints", "consumer_goods"), ("writing", "consumer_goods"),
+    ("realty", "real_estate"), ("housing", "real_estate"),
 ]
 
 # Icons surfaced in the UI for each role
@@ -645,12 +703,11 @@ class BeneficiaryMapper:
           known compatible sector → ALLOWED
         """
         if sector == "unknown":
-            # Require at least one seller-perspective signal for uncatalogued companies.
-            # A genuine constrained supplier will have "our capacity is constrained" /
-            # "fully allocated" / "our lead times extended" signals.
-            # P&G, Walmart, banks, airlines will NOT have these seller signals
-            # even if they mention "cloud" or "AI" throughout their filings.
-            return seller_signal_count >= 1
+            # Require a HARD seller constraint signal — not just demand_surge or capex.
+            # Generic sellers fire demand_surge freely (any company can say "we see strong demand").
+            # Real constrained suppliers fire capacity_constraint_seller / backlog_duration /
+            # capacity_utilization_high — these are specific, rare, and investable.
+            return seller_signal_count >= 2
 
         for kw in keywords:
             blocked = _SECTOR_BLOCK_PAIRS.get(kw, frozenset())

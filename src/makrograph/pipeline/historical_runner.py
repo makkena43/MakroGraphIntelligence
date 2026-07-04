@@ -667,20 +667,32 @@ class HistoricalRunner:
                                     "Accept": "text/html,application/xhtml+xml",
                                 }
                             )
-                            with urllib.request.urlopen(req, timeout=20) as resp:
-                                html_bytes = resp.read(512_000)
+                            # 10-K/10-Q iXBRL filings can be 1-3MB — use larger cap
+                            # to get full MD&A text, not just the filing header
+                            _filing_type = doc.get("filing_type","")
+                            _read_cap = 2_000_000 if _filing_type in ("10-K","10-Q") else 512_000
+                            with urllib.request.urlopen(req, timeout=30) as resp:
+                                html_bytes = resp.read(_read_cap)
                             html = html_bytes.decode("utf-8", errors="ignore")
                             from bs4 import BeautifulSoup
-                            soup = BeautifulSoup(html, "lxml")
-                            for tag in soup(["script", "style", "header", "footer", "nav", "table"]):
+                            import warnings as _w
+                            from bs4 import XMLParsedAsHTMLWarning
+                            _w.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
+                            # Use html.parser for iXBRL (10-K/10-Q inline XBRL filings)
+                            # lxml misidentifies iXBRL as XML and strips human-readable text
+                            _parser = "html.parser" if _filing_type in ("10-K","10-Q") else "lxml"
+                            soup = BeautifulSoup(html, _parser)
+                            for tag in soup(["script", "style", "header", "footer", "nav"]):
                                 tag.decompose()
                             raw_text = soup.get_text(separator=" ", strip=True)
+                            # Cache up to 400KB for 10-K/10-Q (more content, need more signal)
+                            _cache_cap = 400_000 if _filing_type in ("10-K","10-Q") else 200_000
                             if raw_text and len(raw_text) > 100:
                                 try:
-                                    self._pg_store.update_raw_text(doc_id, raw_text[:200_000])
+                                    self._pg_store.update_raw_text(doc_id, raw_text[:_cache_cap])
                                 except Exception:
                                     pass
-                            _time.sleep(0.12)  # stay under SEC 10 req/s rate limit
+                            _time.sleep(0.15)  # stay under SEC 10 req/s rate limit
                         except Exception as e:
                             logger.debug(f"URL fetch failed doc {doc_id}: {e}")
 
@@ -718,20 +730,43 @@ class HistoricalRunner:
 
                 # ── Signal extraction — batch insert ──────────────────────────
                 signals = p._signal_extractor.extract(raw_text, document_id=doc_id)
-                signal_dicts = [
-                    {
+
+                _SELLER_TYPES = frozenset({
+                    "capacity_constraint_seller", "backlog_duration",
+                    "capacity_utilization_high", "supply_concentration",
+                    "demand_pull", "realized_margin_expansion",
+                    "roic_high_sustained", "competitive_moat",
+                    "pricing_power_emerging", "demand_surge",
+                    "capex_increase", "tender_pipeline",
+                    "localization_opportunity", "policy_support",
+                    "tam_expansion_structural", "management_quality",
+                })
+                _BUYER_TYPES = frozenset({
+                    "supply_bottleneck", "inventory_drawdown",
+                    "capacity_shortage", "demand_exceeds_supply",
+                })
+
+                signal_dicts = []
+                for sig in signals:
+                    _persp = getattr(sig, "perspective", "neutral") or "neutral"
+                    if _persp == "neutral":
+                        if sig.signal_type in _SELLER_TYPES:
+                            _persp = "seller"
+                        elif sig.signal_type in _BUYER_TYPES:
+                            _persp = "buyer"
+                    signal_dicts.append({
                         "document_id": doc_id,
                         "signal_type": sig.signal_type,
-                        "direction": sig.direction,
-                        "confidence": sig.confidence,
+                        "direction":   sig.direction,
+                        "confidence":  sig.confidence,
                         "signal_value": sig.signal_value,
-                        "signal_unit": sig.signal_unit,
+                        "signal_unit":  sig.signal_unit,
                         "context_text": sig.context_text[:500],
                         "extracted_by": sig.extracted_by,
-                        "filed_at": doc_filed_at,
-                    }
-                    for sig in signals
-                ]
+                        "filed_at":    doc_filed_at,
+                        "perspective": _persp,
+                        "country":     _country,
+                    })
                 try:
                     self._pg_store.batch_insert_signals(signal_dicts)
                 except Exception as e:

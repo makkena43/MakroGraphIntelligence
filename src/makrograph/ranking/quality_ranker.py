@@ -153,7 +153,7 @@ class QualityRanker:
             elif stype in _MGMT_SIGNALS:
                 co_map[key]["mgmt_sigs"].append({"conf": conf, "quote": ctx, "type": stype})
             if stype in _MARGIN_SIGNALS:
-                co_map[key]["margin_sigs"].append({"conf": conf, "quote": ctx})
+                co_map[key]["margin_sigs"].append({"conf": conf, "quote": ctx, "type": stype})
 
             co_map[key]["total"] += 1
 
@@ -229,7 +229,7 @@ class QualityRanker:
                 tam_quote     = best_tam,
             )
 
-            found_types = list({s["type"] for sl in [roic_sigs,moat_sigs,tam_sigs,mgmt_sigs,margin_sigs] for s in sl})
+            found_types = list({s.get("type","") for sl in [roic_sigs,moat_sigs,tam_sigs,mgmt_sigs,margin_sigs] for s in sl if s.get("type")})
 
             results.append(QualityScore(
                 ticker               = data["ticker"],

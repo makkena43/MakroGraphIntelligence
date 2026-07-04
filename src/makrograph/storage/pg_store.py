@@ -1356,14 +1356,15 @@ class PGStore:
         The caller (UI) can display these as "Key Constrained Components" in
         the value-chain panel — fully data-driven from actual filing language.
         """
+        # entity_text is on mg_entities, not mg_signals — use signal_type as component proxy
         sql = """
             SELECT
-                COALESCE(NULLIF(s.entity_text,''), 'unspecified')  AS component,
+                s.signal_type                                       AS component,
                 s.signal_type,
                 COUNT(*)                                            AS frequency,
                 AVG(s.confidence)                                   AS avg_confidence,
-                -- Pick the most informative context snippet (longest unique quote)
-                (ARRAY_AGG(s.context_text ORDER BY length(s.context_text) DESC))[1]
+                (ARRAY_AGG(s.context_text ORDER BY length(s.context_text) DESC)
+                 FILTER (WHERE s.context_text IS NOT NULL AND length(s.context_text) > 30))[1]
                                                                     AS best_quote,
                 COUNT(DISTINCT d.company)                           AS companies_mentioning
             FROM mg_signals s
@@ -1375,9 +1376,11 @@ class PGStore:
               AND d.filed_at  BETWEEN %s AND %s
               AND s.signal_type IN (
                   'supply_bottleneck','inventory_drawdown',
-                  'capacity_shortage','demand_exceeds_supply'
+                  'capacity_shortage','demand_exceeds_supply',
+                  'capacity_constraint_seller','backlog_duration',
+                  'capacity_utilization_high'
               )
-            GROUP BY COALESCE(NULLIF(s.entity_text,''), 'unspecified'), s.signal_type
+            GROUP BY s.signal_type
             ORDER BY frequency DESC, avg_confidence DESC
             LIMIT %s
         """

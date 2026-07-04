@@ -263,6 +263,43 @@ class EdgarFetcher(SourceAdapter):
             matched += 1
 
             accn_clean = accn.replace("-", "")
+
+            # For 10-K/10-Q: the primaryDocument is often the XBRL instance file
+            # (e.g. "amd-20210327.htm" = XBRL, not human-readable prose).
+            # We need the human-readable HTML filing that contains MD&A text.
+            # Strategy: use the filing index page to find the largest .htm document
+            # (the main narrative filing is always the biggest HTML file).
+            if form in ("10-K", "10-Q") and primary_doc:
+                index_url = f"{EDGAR_ARCHIVE_URL}/{cik}/{accn_clean}/{accn_clean}-index.htm"
+                try:
+                    import urllib.request as _ur, time as _t
+                    _req = _ur.Request(index_url, headers={
+                        "User-Agent": self.config.get("user_agent","MakroGraph/1.0 research@makrograph.com")
+                    })
+                    with _ur.urlopen(_req, timeout=15) as _resp:
+                        _html = _resp.read(200_000).decode("utf-8","ignore")
+                    _t.sleep(0.12)
+                    # Find all .htm links in the index; pick the largest by filename heuristic
+                    import re as _re
+                    _htm_files = _re.findall(
+                        r'href="[^"]*?/([^/"]+\.htm)"',
+                        _html, _re.IGNORECASE
+                    )
+                    # Filter out XBRL instance docs (short names = company-date pattern)
+                    # and keep the main filing (typically contains "10q","10k","r","doc","body")
+                    _candidates = [
+                        f for f in _htm_files
+                        if not _re.match(r'^[a-z]+-\d{8}[a-z]*\.htm$', f.lower())  # skip XBRL stubs
+                        or any(kw in f.lower() for kw in ["10q","10k","form","report","annual","quarter"])
+                    ]
+                    if not _candidates:
+                        _candidates = _htm_files  # fall back to all htm files
+                    if _candidates:
+                        # Use first candidate (index lists primary doc first)
+                        primary_doc = _candidates[0]
+                except Exception:
+                    pass  # fall back to primaryDocument if index fetch fails
+
             doc_url = f"{EDGAR_ARCHIVE_URL}/{cik}/{accn_clean}/{primary_doc}"
 
             meta = {

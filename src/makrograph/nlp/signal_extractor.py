@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 # Maximum characters of document text to scan with regex.
 # SEC 10-K filings can be 500k+ chars. Signal-rich sections (MD&A, risk
 # factors, earnings call) are almost always in the first 80k characters.
-MAX_TEXT_CHARS = 80_000
+MAX_TEXT_CHARS = 0   # 0 = no limit; full document is scanned via chunking (see extract())
 
 
 @dataclass
@@ -115,16 +115,24 @@ _RAW_PATTERNS: list[tuple[str, str, str, float]] = [
      r"(?:exceed|outstrip|outpac|overwhelm|surpass).{0,50}(?:supply|capacity|production|output)",
      "demand_surge", "positive", 0.92),
     # ── CAPACITY CONSTRAINT — SELLER perspective ──────────────────────────
-    # Company IS the constrained supplier: customers can't get enough FROM THEM.
-    # This is the investable signal — pricing power, order book visibility.
-    # Tagged as signal_type='capacity_constraint_seller' so the investment
-    # funnel can filter ONLY on this, not on buyer-side constraints.
-    (r"\b(?:can(?:not|'t)\s+(?:meet|keep\s+up\s+with|satisfy|fulfill)|"
-     r"unable\s+to\s+(?:meet|satisfy|fulfill)).{0,60}(?:demand|orders?|request|need)",
+    # Company IS the constrained supplier — FACTUAL present/past tense only.
+    # "We cannot meet" / "We are currently unable to" = real constraint.
+    # "If we are unable to" / "We may be unable to" = hypothetical risk-factor boilerplate.
+    # Note: "may be unable" is excluded because every 10-K includes this as a risk disclosure.
+    (r"\b[Ww]e\s+(?:cannot|can't|are\s+currently\s+unable\s+to|"
+     r"were\s+unable\s+to|have\s+been\s+unable\s+to)\s+"
+     r"(?:meet|satisfy|fulfill|supply)\s.{0,50}(?:demand|orders?|need)",
      "capacity_constraint_seller", "positive", 0.94),
+    # Also capture passive: "demand cannot be met by us" / "our supply is insufficient"
+    (r"\b(?:demand|orders?).{0,30}(?:cannot|could\s+not|may\s+not).{0,30}"
+     r"(?:be\s+met|be\s+fulfilled|be\s+satisfied).{0,30}(?:by\s+us|by\s+our|we\s+)",
+     "capacity_constraint_seller", "positive", 0.89),
+    # Backlog increased/grew with segment context = genuine industrial backlog
+    (r"\b(?:segment\s+)?backlog\s+(?:as\s+of|at).{0,40}(?:increased|grew|higher|above)",
+     "capacity_constraint_seller", "positive", 0.89),
     # "sold out" / "fully allocated" — clear seller language
     (r"\b(?:sold\s+out|fully\s+booked|fully\s+allocated|"
-     r"allocation.{0,30}(?:limit|constrain|scarc)|"
+     r"(?:supplier|capacity)\s+allocation.{0,30}(?:limit|constrain|scarc)|"
      r"oversubscribed.{0,30}(?:demand|order|request))",
      "capacity_constraint_seller", "positive", 0.93),
     # "our lead times extended" — their delivery queue grew (customers waiting for them)
@@ -133,9 +141,42 @@ _RAW_PATTERNS: list[tuple[str, str, str, float]] = [
      "capacity_constraint_seller", "positive", 0.91),
     (r"\bwaiting\s+(?:list|time|period).{0,40}(?:grow|increas|lengthen|extend)",
      "capacity_constraint_seller", "positive", 0.90),
-    # "backlog at record / growing / visibility" — customers pre-ordering from them
-    (r"\bbacklog.{0,60}(?:record|all.time|highest|grow|increas|strong|robust|extend|months|quarters)",
+    # "OUR backlog growing / at record" — customers pre-ordering FROM the company.
+    # Requires "our" ownership OR explicit revenue link to avoid matching
+    # "customers/contractors experience backlogs" (third-party backlog = not investable)
+    (r"\bour\s+backlog.{0,80}(?:record|all.time|highest|grow|increas|strong|robust|extend|months|quarters)",
      "capacity_constraint_seller", "positive", 0.92),
+    # Backlog + revenue recognition = genuine seller order book
+    (r"\bbacklog.{0,80}(?:to\s+be\s+recognized\s+as\s+revenue|expected\s+to\s+be\s+recognized|"
+     r"convert(?:ed|s)?\s+to\s+revenue)",
+     "capacity_constraint_seller", "positive", 0.91),
+    # Backlog + record/increase without third-party subject
+    (r"\bbacklog\s+(?:increased|grew|reached\s+(?:a\s+)?record|at\s+(?:an?\s+)?(?:all.time|record))",
+     "capacity_constraint_seller", "positive", 0.90),
+    # "supply-constrained" / "remain constrained" — direct MD&A language from 10-Q/10-K
+    # NVDA Q3 FY22: "We expect to remain supply-constrained into fiscal year 2023"
+    (r"\b(?:remain|expect\s+to\s+remain|continue\s+to\s+be|are|were)\s+"
+     r"(?:supply.constrained|capacity.constrained|demand.constrained)",
+     "capacity_constraint_seller", "positive", 0.93),
+    # "placed non-cancellable orders to secure supply" — buying ahead = they're in demand
+    (r"\b(?:non.cancellable|advance)\s+(?:inventory\s+)?orders?.{0,60}"
+     r"(?:secure|future\s+supply|capacity|allocation)",
+     "capacity_constraint_seller", "positive", 0.88),
+    # "customers ordering in advance" / "abnormal order patterns"
+    (r"\b(?:customers?.{0,20}(?:ordering|order).{0,20}(?:in\s+advance|early|ahead)|"
+     r"abnormal\s+(?:order|demand)\s+patterns?)",
+     "capacity_constraint_seller", "positive", 0.87),
+    # "tight supply" / "supply tightness" — from company's own perspective
+    (r"\b(?:tight|tightening|constrained)\s+(?:supply|capacity|availability).{0,40}"
+     r"(?:our|we|expect|continue|persist|remain)",
+     "capacity_constraint_seller", "positive", 0.86),
+    # "demand exceeds our capacity/supply" — direct
+    (r"\bdemand\s+(?:significantly\s+)?(?:exceed|outstrip|outpac).{0,40}"
+     r"(?:our\s+)?(?:supply|capacity|production|output)",
+     "demand_exceeds_supply", "positive", 0.91),
+    # "we are at capacity" / "operating at full capacity"
+    (r"\b(?:at|near|approaching|running\s+at)\s+(?:full|maximum|peak)?\s*capacity\b",
+     "capacity_utilization_high", "positive", 0.88),
     # Original supply_bottleneck negative direction kept for buyer ambiguous cases
     (r"\b(?:can(?:not|'t)\s+(?:meet|keep\s+up\s+with|satisfy|fulfill)|"
      r"unable\s+to\s+(?:meet|satisfy|fulfill)).{0,60}(?:demand|orders?|request|need)",
@@ -669,55 +710,75 @@ def _extract_theme_entity(context: str) -> str:
 class SignalExtractor:
     """Extracts investment signals from financial document text using pre-compiled pattern rules."""
 
+    # Chunk size for full-document scanning.
+    # Each chunk is processed independently; overlap ensures signals that span
+    # a chunk boundary are not missed. 50K chars per chunk = ~35 pages of text.
+    _CHUNK_SIZE    = 50_000
+    _CHUNK_OVERLAP =    500   # chars shared between adjacent chunks
+
     def __init__(self, config: dict = None):
         cfg = config or {}
-        self.min_confidence = cfg.get("min_confidence", 0.65)
-        self.context_window = cfg.get("context_window_chars", 200)
-        self.max_signals_per_doc = cfg.get("max_signals_per_doc", 100)
-        # Cap text length scanned per document. SEC filings can be 500k+ chars;
-        # signal-rich content is almost always within the first 80k chars.
-        self.max_text_chars = cfg.get("max_text_chars_for_signals", MAX_TEXT_CHARS)
+        self.min_confidence      = cfg.get("min_confidence", 0.65)
+        self.context_window      = cfg.get("context_window_chars", 200)
+        self.max_signals_per_doc = cfg.get("max_signals_per_doc", 300)  # raised for full-doc scan
 
     def extract(self, text: str, document_id: int = None) -> list[InvestmentSignal]:
-        """Extract all investment signals from document text."""
+        """Extract all investment signals from the FULL document text via chunking.
+
+        Why chunking instead of a single pass on the full text:
+        - regex finditer on a 1MB string is fast, but collecting thousands of matches
+          across 38+ patterns would be slow and produce too many low-value hits
+        - Chunking lets us process large 10-K/10-Q filings completely without any
+          character cap while keeping each regex scan bounded (~50K chars per chunk)
+        - Overlap (500 chars) prevents missing signals that span a chunk boundary
+
+        Every chunk's signals carry the absolute position (chunk_offset + local_pos)
+        so deduplication works correctly across chunks.
+        """
         if not text:
             return []
 
-        # Truncate to signal-rich portion — avoids scanning boilerplate footnotes
-        scan_text = text[:self.max_text_chars]
+        all_signals: list[InvestmentSignal] = []
+        text_len = len(text)
 
-        signals: list[InvestmentSignal] = []
+        # Generate chunk windows across the full document
+        offset = 0
+        while offset < text_len:
+            chunk_end = min(offset + self._CHUNK_SIZE, text_len)
+            chunk = text[offset:chunk_end]
 
-        for compiled_pattern, signal_type, direction, confidence in SIGNAL_PATTERNS:
-            if confidence < self.min_confidence:
-                continue
-            for match in compiled_pattern.finditer(scan_text):
-                start = match.start()
-                ctx_start = max(0, start - self.context_window // 2)
-                ctx_end = min(len(scan_text), match.end() + self.context_window // 2)
-                context = scan_text[ctx_start:ctx_end].strip()
+            for compiled_pattern, signal_type, direction, confidence in SIGNAL_PATTERNS:
+                if confidence < self.min_confidence:
+                    continue
+                for match in compiled_pattern.finditer(chunk):
+                    local_start = match.start()
+                    abs_start   = offset + local_start
 
-                value, unit = self._extract_amount(context)
-                # Extract the theme entity (technology/sector keyword) from context.
-                # This links the signal to WHAT it's about, not just WHO filed it.
-                # e.g. "50% capacity expansion in Solar Glass" → entity_text="Solar"
-                theme_entity = _extract_theme_entity(context)
-                signals.append(InvestmentSignal(
-                    signal_type=signal_type,
-                    direction=direction,
-                    confidence=confidence,
-                    signal_value=value,
-                    signal_unit=unit,
-                    context_text=context,
-                    entity_text=theme_entity,
-                    extracted_by="rule",
-                    position=start,
-                ))
+                    ctx_start = max(0, local_start - self.context_window // 2)
+                    ctx_end   = min(len(chunk), match.end() + self.context_window // 2)
+                    context   = chunk[ctx_start:ctx_end].strip()
 
-            if len(signals) >= self.max_signals_per_doc:
+                    value, unit  = self._extract_amount(context)
+                    theme_entity = _extract_theme_entity(context)
+
+                    all_signals.append(InvestmentSignal(
+                        signal_type  = signal_type,
+                        direction    = direction,
+                        confidence   = confidence,
+                        signal_value = value,
+                        signal_unit  = unit,
+                        context_text = context,
+                        entity_text  = theme_entity,
+                        extracted_by = "rule",
+                        position     = abs_start,
+                    ))
+
+            # Advance by chunk_size minus overlap so signals near boundaries aren't missed
+            if chunk_end == text_len:
                 break
+            offset = chunk_end - self._CHUNK_OVERLAP
 
-        return self._deduplicate(signals)
+        return self._deduplicate(all_signals)
 
     def _extract_amount(self, context: str) -> tuple[Optional[float], Optional[str]]:
         """Extract a monetary value from surrounding context."""
@@ -733,14 +794,64 @@ class SignalExtractor:
         return None, None
 
     def _deduplicate(self, signals: list[InvestmentSignal]) -> list[InvestmentSignal]:
-        """Remove near-duplicate signals (same type within 500-char window)."""
-        seen: dict[str, int] = {}
+        """Remove near-duplicate signals across chunks and across the full document.
+
+        Two signals are duplicates if:
+        1. Same signal_type AND their positions are within 300 chars (chunk overlap area)
+        2. Same signal_type AND identical context_text (regex matched same text twice)
+
+        Keeps the highest-confidence signal when duplicates exist.
+        Also caps per-signal-type count to avoid one pattern flooding the output
+        (e.g. "competition_threat" appearing 200x in a 10-K risk factors section).
+        """
+        # Sort by confidence desc so we keep highest-confidence copy on collision
+        sorted_sigs = sorted(signals, key=lambda s: -s.confidence)
+
+        seen_positions: dict[str, list[int]] = {}   # signal_type → [positions kept]
+        seen_contexts:  set[str]             = set() # exact context dedup
+        type_counts:    dict[str, int]       = {}    # per-type cap
+
+        # Max signals per type — prevents risk-factor boilerplate flooding
+        # High-value signal types get higher caps (they're rare and important)
+        _TYPE_CAPS: dict[str, int] = {
+            "capacity_constraint_seller": 20,
+            "backlog_duration":           15,
+            "capacity_utilization_high":  15,
+            "demand_exceeds_supply":      15,
+            "supply_concentration":       10,
+            "roic_high_sustained":        10,
+            "competitive_moat":           10,
+            "realized_margin_expansion":  10,
+        }
+        _DEFAULT_CAP = 8   # generic signals like competition_threat, acquisition_intent
+
         result = []
-        for sig in sorted(signals, key=lambda s: -s.confidence):
-            key = sig.signal_type
-            if key not in seen or abs(sig.position - seen[key]) > 500:
-                seen[key] = sig.position
-                result.append(sig)
+        for sig in sorted_sigs:
+            stype = sig.signal_type
+            ctx   = sig.context_text or ""
+
+            # Exact context duplicate (same text matched in overlapping chunk)
+            if ctx and ctx in seen_contexts:
+                continue
+
+            # Position-proximity duplicate (within chunk overlap window of 500 chars)
+            prev_positions = seen_positions.get(stype, [])
+            too_close = any(abs(sig.position - p) < 300 for p in prev_positions)
+            if too_close:
+                continue
+
+            # Per-type cap
+            cap = _TYPE_CAPS.get(stype, _DEFAULT_CAP)
+            if type_counts.get(stype, 0) >= cap:
+                continue
+
+            # Accept this signal
+            seen_positions.setdefault(stype, []).append(sig.position)
+            if ctx:
+                seen_contexts.add(ctx)
+            type_counts[stype] = type_counts.get(stype, 0) + 1
+            result.append(sig)
+
         return result
 
     def extract_batch(

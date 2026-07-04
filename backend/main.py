@@ -477,9 +477,11 @@ def get_investment_shortlist(
                               tb.company_role, tb.relevance_score, tb.rank_in_theme
                        FROM mg_theme_beneficiaries tb
                        WHERE tb.theme_id = ANY(%s)
-                         AND tb.company_name IS NOT NULL AND tb.company_name != \'\'
+                         AND tb.company_name IS NOT NULL AND tb.company_name != ''
+                         AND (tb.window_end IS NULL OR tb.window_end >= %s)
+                         AND (tb.window_start IS NULL OR tb.window_start <= %s)
                        ORDER BY tb.relevance_score DESC""",
-                    (theme_ids,)
+                    (theme_ids, from_d, to_d)
                 )
                 bene_rows = list(cur.fetchall())
 
@@ -504,6 +506,34 @@ def get_investment_shortlist(
                 if not co_data:
                     return []
 
+                # Sector gate: remove retail/finance/consumer/etc. before signal query
+                try:
+                    from makrograph.themes import beneficiary_mapper as _bm_mod
+                    _BLOCKED = frozenset({
+                        "retail", "consumer_goods", "food", "beverage", "restaurant",
+                        "homebuilder", "apparel", "cosmetic", "cannabis",
+                        "finance", "insurance", "pharmacy_chain", "hospital",
+                        "airline", "hotel", "entertainment", "media", "real_estate",
+                    })
+                    to_remove = []
+                    for nm, meta in co_data.items():
+                        ticker = (meta.get("ticker") or "").upper()
+                        sector = _bm_mod._KNOWN_TICKER_SECTORS.get(ticker) if ticker else None
+                        if sector is None:
+                            for frag, sec in _bm_mod._COMPANY_NAME_SECTOR_PATTERNS:
+                                if frag in nm.lower():
+                                    sector = sec; break
+                        if sector in _BLOCKED:
+                            to_remove.append(nm)
+                    for nm in to_remove:
+                        co_data.pop(nm, None)
+                        co_theme_slugs.pop(nm, None)
+                except Exception:
+                    pass
+
+                if not co_data:
+                    return []
+
                 # Step 4: constraint + capex signals for THIS year AND prior year
                 # We need YoY delta — companies with SPIKING constraint signals
                 # are far more interesting than companies that always file a lot.
@@ -516,25 +546,39 @@ def get_investment_shortlist(
                 
                 def _sig_query(cur, date_from, date_to, cnames, tiks, cntry):
                     """Get signal counts per company for a date window.
-                    Uses ticker match (reliable) then company name match (fallback)."""
+                    Uses ticker match (reliable) then company name match (fallback).
+                    Counts SELLER-perspective constraint signals only:
+                      - capacity_constraint_seller (explicit seller signal, new pipeline)
+                      - supply_bottleneck/capacity_shortage with perspective='seller'
+                      - supply_bottleneck/capacity_shortage with seller-language context
+                    Buyer-side supply_bottleneck (e.g. CVNA needing cars) is excluded."""
                     results_map: dict[str, dict] = {}
-                    
+
+                    _SELLER_C = """(
+                        s.signal_type = 'capacity_constraint_seller'
+                        OR (s.signal_type IN (
+                                'supply_bottleneck','inventory_drawdown',
+                                'capacity_shortage','demand_exceeds_supply'
+                            )
+                            AND (COALESCE(s.perspective,'neutral') = 'seller'
+                                 OR s.context_text ILIKE '%%%%our capacity%%%%'
+                                 OR s.context_text ILIKE '%%%%our backlog%%%%'
+                                 OR s.context_text ILIKE '%%%%cannot meet demand%%%%'
+                                 OR s.context_text ILIKE '%%%%fully booked%%%%'
+                                 OR s.context_text ILIKE '%%%%our lead time%%%%'))
+                    )"""
+
                     if tiks:
                         cur.execute(
-                            """SELECT UPPER(TRIM(d.ticker)) AS doc_ticker,
-                                      COUNT(*) FILTER (WHERE s.signal_type IN (
-                                          'supply_bottleneck','inventory_drawdown',
-                                          'capacity_shortage','demand_exceeds_supply'
-                                      )) AS c_count,
+                            f"""SELECT UPPER(TRIM(d.ticker)) AS doc_ticker,
+                                      COUNT(*) FILTER (WHERE {_SELLER_C}) AS c_count,
                                       COUNT(*) FILTER (WHERE s.signal_type IN (
                                           'demand_surge','technology_adoption'
                                       )) AS d_count,
                                       COUNT(*) FILTER (WHERE s.signal_type = 'capex_increase') AS capex_count,
-                                      (ARRAY_AGG(s.context_text ORDER BY s.confidence DESC)
-                                       FILTER (WHERE s.signal_type IN (
-                                           'supply_bottleneck','inventory_drawdown',
-                                           'capacity_shortage','demand_exceeds_supply'
-                                       ) AND s.context_text IS NOT NULL))[1] AS best_quote,
+                                      MAX(CASE WHEN {_SELLER_C} AND s.context_text IS NOT NULL
+                                               AND LENGTH(s.context_text) > 40
+                                               THEN s.context_text ELSE NULL END) AS best_quote,
                                       MAX(d.filed_at)::date AS last_filing
                                  FROM mg_signals s
                                  JOIN mg_documents d ON d.id = s.document_id
@@ -546,7 +590,7 @@ def get_investment_shortlist(
                         )
                         for r in cur.fetchall():
                             results_map[r["doc_ticker"]] = dict(r)
-                    
+
                     # Fallback: company name match for those not found by ticker
                     unfound_names = [n for n in cnames if not any(
                         co_data.get(n, {}).get("ticker","").upper() == tk
@@ -554,20 +598,15 @@ def get_investment_shortlist(
                     )]
                     if unfound_names:
                         cur.execute(
-                            """SELECT d.company,
-                                      COUNT(*) FILTER (WHERE s.signal_type IN (
-                                          'supply_bottleneck','inventory_drawdown',
-                                          'capacity_shortage','demand_exceeds_supply'
-                                      )) AS c_count,
+                            f"""SELECT d.company,
+                                      COUNT(*) FILTER (WHERE {_SELLER_C}) AS c_count,
                                       COUNT(*) FILTER (WHERE s.signal_type IN (
                                           'demand_surge','technology_adoption'
                                       )) AS d_count,
                                       COUNT(*) FILTER (WHERE s.signal_type = 'capex_increase') AS capex_count,
-                                      (ARRAY_AGG(s.context_text ORDER BY s.confidence DESC)
-                                       FILTER (WHERE s.signal_type IN (
-                                           'supply_bottleneck','inventory_drawdown',
-                                           'capacity_shortage','demand_exceeds_supply'
-                                       ) AND s.context_text IS NOT NULL))[1] AS best_quote,
+                                      MAX(CASE WHEN {_SELLER_C} AND s.context_text IS NOT NULL
+                                               AND LENGTH(s.context_text) > 40
+                                               THEN s.context_text ELSE NULL END) AS best_quote,
                                       MAX(d.filed_at)::date AS last_filing
                                  FROM mg_signals s
                                  JOIN mg_documents d ON d.id = s.document_id
@@ -912,24 +951,58 @@ def _generate_auto_thesis(
     component_str = f" in {constrained_component}" if constrained_component else ""
     quote_str = f' Management explicitly stated: "{best_quote[:180]}"' if best_quote else ""
 
-    if c_count >= 5 and k_count >= 2:
+    # ── Identify which pathway the company is on ─────────────────────────
+    # There are two ways a constrained supplier monetises the shortage:
+    #
+    # Pathway A — PRICING POWER (scarcity → higher ASP)
+    #   When capacity can't be added quickly (long fab lead times, complex manufacturing)
+    #   Examples: NVIDIA (2-3 year TSMC ramp), Micron HBM
+    #   Signals: realized_margin_expansion, pricing_power_emerging
+    #
+    # Pathway B — VOLUME EXPANSION (scarcity → new capacity → revenue from volume)
+    #   When demand certainty justifies building, and company CAN build
+    #   Examples: GE Vernova T&D India, Waaree Energies, Shakti Pumps, Comfort Systems
+    #   Signals: capex_increase + demand_surge + tender_pipeline
+    #
+    # Pathway C — BOTH (highest conviction, longest runway)
+    #   Examples: Parker-Hannifin, Microchip Technology, LRCX
+    #   Signals: all of the above
+
+    has_capex   = k_count >= 1
+    comp_str    = f" in {constrained_component}" if constrained_component else ""
+
+    if c_count >= 3 and k_count >= 2:
+        # Pathway C: constraint confirmed + capacity being built = revenue from VOLUME
         action_sentence = (
-            f"The company has {c_count} supply constraint signals AND {k_count} capex expansion signals — "
-            f"they see the demand and are investing to capture it. This is the highest-conviction setup: "
-            f"constrained supplier actively expanding."
+            f"CONSTRAINT + CAPACITY EXPANSION{comp_str}: {c_count} supply constraint signals confirm "
+            f"demand exceeds current output. Management has committed {k_count} capex signals — "
+            f"they're building to capture the opportunity. Revenue grows from volume as new "
+            f"capacity comes online. This is the GE Vernova/Waaree/Parker-Hannifin playbook."
         )
-    elif c_count >= 3 and k_count >= 1:
+    elif c_count >= 2 and k_count >= 1:
         action_sentence = (
-            f"With {c_count} constraint signals and confirmed capex commitment, "
-            f"this company is positioned as the SUPPLY SIDE of a structural shortage{component_str}."
+            f"Constraint + capacity investment confirmed{comp_str}: {c_count} signals show "
+            f"the company cannot meet current demand, and {k_count} capex signal(s) confirm "
+            f"they're responding by expanding. Revenue grows as new capacity is delivered."
         )
-    elif c_count >= 2:
+    elif c_count >= 2 and k_count == 0:
         action_sentence = (
-            f"With {c_count} seller-perspective constraint signals (avg confidence {avg_confidence:.0%}), "
-            f"the company shows early evidence of supply-side constraint advantage."
+            f"Supply constraint confirmed{comp_str}: {c_count} seller-perspective signals "
+            f"(confidence {avg_confidence:.0%}) show demand exceeding capacity. No capex announced yet — "
+            f"watch for capacity expansion or pricing announcements. Early stage, high alpha window."
+        )
+    elif k_count >= 2:
+        action_sentence = (
+            f"Capacity expansion play{comp_str}: {k_count} capex signals show the company is "
+            f"investing to meet demand. First constraint signal confirms supply is genuinely tight. "
+            f"Revenue grows as new capacity comes online over the next {time_horizon_months} months."
         )
     else:
-        action_sentence = f"Shows {c_count} constraint signals with policy/demand tailwind support."
+        action_sentence = (
+            f"Early constraint signal detected{comp_str}: first evidence of supply-demand "
+            f"imbalance. Monitor for capex announcements (volume expansion) or pricing "
+            f"announcements (ASP expansion) to confirm which pathway this company will take."
+        )
 
     if has_supply_easing:
         exit_str = " ⚠️ Monitor: supply easing signals detected — reduce if confirmed."
@@ -985,8 +1058,32 @@ def get_quality_compounders(
         ranker  = QualityRanker(min_signals=2, min_quality_score=min_quality_score)
         results = ranker.rank(signal_records=signal_records, country=country)
 
-        tier1      = [r for r in results if r.investment_tier == "tier_1"]
-        tier1_watch= [r for r in results if r.investment_tier == "tier_1_watch"]
+        # Filter: Tier 1 quality compounders should be capital-goods / technology /
+        # industrial / financial services companies — not restaurants, retail, apparel.
+        # Quality signals (moat, ROIC) fire on McDonald's brand language which is
+        # technically valid for a pure quality framework but not investable in the
+        # constraint+quality lens we're building.
+        _TIER1_BLOCKED = frozenset({
+            "retail", "consumer_goods", "food", "beverage", "restaurant",
+            "apparel", "cosmetic", "cannabis", "entertainment", "media",
+            "airline", "hotel", "homebuilder",
+        })
+        try:
+            from makrograph.themes import beneficiary_mapper as _bm
+            def _t1_allowed(ticker: str, company: str) -> bool:
+                s = _bm._KNOWN_TICKER_SECTORS.get(ticker.upper(), "")
+                if s in _TIER1_BLOCKED:
+                    return False
+                co = company.lower()
+                for frag, sector in _bm._COMPANY_NAME_SECTOR_PATTERNS:
+                    if frag in co and sector in _TIER1_BLOCKED:
+                        return False
+                return True
+        except Exception:
+            def _t1_allowed(ticker, company): return True
+
+        tier1      = [r for r in results if r.investment_tier == "tier_1" and _t1_allowed(r.ticker, r.company_name)]
+        tier1_watch= [r for r in results if r.investment_tier in ("tier_1","tier_1_watch") and _t1_allowed(r.ticker, r.company_name) and r not in tier1]
 
         def _to_dict(r) -> dict:
             return {
@@ -1126,6 +1223,399 @@ def get_todays_opportunities(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+CONSTRAINT_PRED_SQL = """(
+    s.signal_type = 'capacity_constraint_seller'
+    OR (s.signal_type = 'capacity_utilization_high'
+        AND COALESCE(s.perspective,'neutral') != 'buyer'
+        -- The extractor fires this on ANY capacity table in a
+        -- filing; only count it when the text states TIGHTNESS.
+        AND (s.context_text ILIKE '%%full capacity%%'
+             OR s.context_text ILIKE '%%fully utilized%%'
+             OR s.context_text ILIKE '%%fully utilised%%'
+             OR s.context_text ILIKE '%%high utilization%%'
+             OR s.context_text ILIKE '%%high utilisation%%'
+             OR s.context_text ILIKE '%%peak utilization%%'
+             OR s.context_text ILIKE '%%peak utilisation%%'
+             OR s.context_text ILIKE '%%optimal utilization%%'
+             OR s.context_text ILIKE '%%optimum utilisation%%'
+             OR s.context_text ILIKE '%%running at capacity%%'
+             OR s.context_text ILIKE '%%capacity is full%%'))
+    OR (s.signal_type IN (
+            'supply_bottleneck','inventory_drawdown',
+            'capacity_shortage','demand_exceeds_supply',
+            'backlog_duration'
+        )
+        AND (
+            COALESCE(s.perspective,'neutral') = 'seller'
+            OR s.context_text ILIKE '%%our capacity%%'
+            OR s.context_text ILIKE '%%our backlog%%'
+            OR s.context_text ILIKE '%%order book%%'
+            OR s.context_text ILIKE '%%order inflow%%'
+            OR s.context_text ILIKE '%%book-to-bill%%'
+            OR s.context_text ILIKE '%%capacity utilization%%'
+            OR s.context_text ILIKE '%%cannot meet demand%%'
+            OR s.context_text ILIKE '%%cant meet demand%%'
+            OR s.context_text ILIKE '%%fully booked%%'
+            OR s.context_text ILIKE '%%fully allocated%%'
+            OR s.context_text ILIKE '%%sold out%%'
+            OR s.context_text ILIKE '%%our lead time%%'
+            OR s.context_text ILIKE '%%waiting list%%'
+            OR s.context_text ILIKE '%%oversubscribed%%'
+            OR s.context_text ILIKE '%%customers waiting%%'
+        )
+    )
+)"""
+# Demand-led evidence needs an ORDER-language anchor: constrained
+# suppliers sell through order books / order inflow / backlog
+# ("orders +173%", "order book at 3x revenue"). A consumer or
+# service business with surging demand (travel bookings, loan
+# growth, same-store sales) never phrases demand as orders —
+# this one word family separates GE Vernova from DoorDash.
+DS_SELLER_PRED_SQL = """(
+    s.signal_type = 'demand_surge'
+    AND COALESCE(s.perspective,'') = 'seller'
+    AND (s.context_text ILIKE '%%orders%%'
+         OR s.context_text ILIKE '%%order book%%'
+         OR s.context_text ILIKE '%%order inflow%%'
+         OR s.context_text ILIKE '%%order intake%%'
+         OR s.context_text ILIKE '%%order backlog%%'
+         OR s.context_text ILIKE '%%backlog%%'
+         OR s.context_text ILIKE '%%book-to-bill%%')
+)"""
+
+
+# ── Domain keyword families ───────────────────────────────────────────────────
+# Generic industry vocabulary (no companies, no tickers). Used for:
+#   1. theme ↔ company evidence matching
+#   2. peer corroboration (companies talking about the same constrained domain)
+#   3. supply-chain propagation (constrained domain → upstream components)
+THEME_KW_FAMILIES: dict[str, list[str]] = {
+    "wafer":         ["wafer","semiconductor","chip","foundry","fab ","fabs"],
+    "chip":          ["wafer","semiconductor","chip","foundry","fab "],
+    "foundry":       ["wafer","semiconductor","chip","foundry","fab "],
+    "asic":          ["wafer","semiconductor","chip","asic"],
+    "semiconductor": ["wafer","semiconductor","chip","foundry","fab "],
+    "aerospace":     ["aerospace","aircraft","defense","defence","aviation","engine","space"],
+    "defense":       ["defense","defence","aerospace","military","missile","aircraft"],
+    "defence":       ["defense","defence","aerospace","military","missile","aircraft"],
+    "cloud":         ["cloud","data center","datacenter","hyperscale","server"],
+    "data center":   ["cloud","data center","datacenter","hyperscale","server"],
+    "solar":         ["solar","photovoltaic","module","renewable"],
+    "wind":          ["wind","turbine","renewable"],
+    "power":         ["power","grid","transmission","substation","transformer","electricity","switchgear"],
+    "grid":          ["power","grid","transmission","substation","transformer","electricity"],
+    "transformer":   ["transformer","transmission","substation","switchgear"],
+    "battery":       ["battery","battery cell","energy storage","lithium"],
+    "cement":        ["cement","concrete","aggregates"],
+    "railway":       ["railway","rail","wagon","locomotive","metro"],
+    "robotic":       ["robot","automation","cnc","precision"],
+    "steel":         ["steel","metal","forging","alloy"],
+    "industrial":    ["industrial","manufacturing","machinery","automation"],
+    "medical":       ["medical","healthcare","device","diagnostic"],
+    "pharma":        ["pharma","drug","api ","formulation"],
+    "telecom":       ["telecom","fiber","spectrum","network"],
+    "cable":         ["cable","wire","conductor","fiber"],
+}
+
+# Supply-chain propagation: when a domain is CONFIRMED constrained (multiple
+# independent companies), its upstream input domains deserve a WATCH flag —
+# their constraint typically shows up in filings one or more quarters later.
+# Component-level industrial ontology, fully generic.
+UPSTREAM_COMPONENTS: dict[str, list[str]] = {
+    "transformer":   ["crgo steel","electrical steel","copper","lamination","insulation","bushing"],
+    "power":         ["transformer","conductor","cable","tower","insulator","switchgear","crgo"],
+    "grid":          ["transformer","conductor","cable","tower","insulator","switchgear"],
+    "wafer":         ["polysilicon","photoresist","lithography","quartz","gases","substrate"],
+    "semiconductor": ["wafer","polysilicon","photoresist","lithography","substrate","packaging"],
+    "data center":   ["transformer","generator","cooling","hvac","optical","copper","switchgear","ups "],
+    "cloud":         ["transformer","generator","cooling","optical","server","memory"],
+    "aerospace":     ["forging","casting","titanium","fastener","avionics","composite","engine"],
+    "defense":       ["forging","casting","electronics","propellant","optics","radar"],
+    "solar":         ["polysilicon","wafer","glass","inverter","module","silver paste"],
+    "wind":          ["gearbox","blade","casting","forging","bearing","generator"],
+    "battery":       ["lithium","cathode","anode","separator","electrolyte","copper foil"],
+    "railway":       ["wheel","axle","forging","casting","signalling","wagon"],
+    "cement":        ["clinker","limestone","petcoke","grinding"],
+}
+
+
+def _quality_quote(raw: str, max_len: int = 300) -> str:
+    """Return the quote only if it contains real operational/supply language.
+
+    Filters out SEC legal boilerplate that accidentally matched NLP patterns:
+    - bond issuance / securities registration language
+    - accounting / GAAP boilerplate
+    - pure risk-factor disclaimers with no operational content
+    Returns empty string for low-quality quotes so the UI shows nothing
+    rather than misleading legal text.
+    """
+    if not raw:
+        return ""
+    text = raw.strip()
+    lower = text.lower()
+
+    # ── Language-based rejection (company-agnostic) ──────────────────────────
+    # Every rejection rule here is based purely on WHAT THE TEXT SAYS,
+    # never on WHO wrote it. These patterns catch the same bad language
+    # regardless of whether it's DLR, SPG, Boeing, GM or any future company.
+
+    # Rule 1: Securities / bond issuance language
+    # Any filing text about offering notes/bonds to investors is not supply constraint.
+    # Matches: "Euro Notes were sold outside the US in reliance on Regulation S"
+    #          "Securities Act of 1933", "exempt from registration"
+    _SECURITIES_OFFERING = [
+        "securities act of 1933", "securities act of 1934",
+        "regulation s", "in reliance on regulation",
+        "exempt from registration", "isin ", "cusip ",
+        "sold outside the united states",
+        "placement memorandum", "offering memorandum",
+        "underwriting agreement",
+    ]
+    if any(ind in lower for ind in _SECURITIES_OFFERING):
+        return ""
+
+    # Rule 2: Partnership / REIT financial distribution language
+    # Any company structured as a partnership or REIT uses this language in 10-K
+    # financial statements — it describes HOW PROFITS ARE SPLIT, not supply constraints.
+    # Matches: "Net income available to Partners", "General Partner", "Limited Partners"
+    #          "Operating Partnership", "preferred units"
+    _PARTNERSHIP_FINANCIAL = [
+        "net income available to partners",
+        "income (loss) available to partners",
+        "general partner $", "limited partners -",
+        "limited partners allocated",
+        "operating partnership after preferred",
+        "preferred distribution", "preferred units",
+        "noncontrolling interests. we allocate",
+        "allocate net operating results",
+    ]
+    if any(ind in lower for ind in _PARTNERSHIP_FINANCIAL):
+        return ""
+
+    # Rule 3: Accounting / tax boilerplate
+    # Tax basis, goodwill impairment, GAAP reconciliation — not supply signals.
+    # Matches: "excess of book basis over tax basis", "EBITDA measures exclude GAAP"
+    _ACCOUNTING_BOILERPLATE = [
+        "book basis over tax basis", "tax basis over book basis",
+        "ebitda measures exclude", "gaap charges", "non-gaap",
+        "goodwill impairment", "forward-looking statements",
+        "safe harbor", "equity-based compensation",
+        "limited partnership units",
+        # M&A purchase price allocation — not supply constraint
+        "fair value of the acquired assets",
+        "acquired assets and assumed liabilities",
+        "purchase price allocation", "purchase accounting",
+        # Software/IP royalty language — not industrial supply constraint
+        "sales-based royalty", "royalty payments from the remaining",
+        "intellectual property license", "software license fee",
+        # Risk-factor disclaimer phrasing (forward-looking, not operational)
+        "may not continue", "may slow or may not", "growth may slow",
+        "may decelerate", "no assurance that",
+        "no guarantee that", "there can be no assurance",
+    ]
+    if any(ind in lower for ind in _ACCOUNTING_BOILERPLATE):
+        return ""
+
+    # Rule 4: Product liability / recall / legal settlement language
+    # Recalls, inflators, Max groundings — these are liability events, not supply constraints.
+    # Matches: "Takata inflators", "737 MAX aircraft", "product recall"
+    _LIABILITY_LANGUAGE = [
+        "product recall", "safety recall", "recall campaign",
+        "recalled certain vehicles", "recall certain",
+        "class action", "settlement agreement", "legal settlement",
+        "litigation reserve", "contingent liability",
+        "inflator", "airbag recall",
+        # Aircraft grounding — backlog exists but aircraft can't be delivered
+        "remain grounded", "are grounded", "grounding of",
+        "at delivery and acceptance of",  # contract accounting trigger point, not supply
+    ]
+    if any(ind in lower for ind in _LIABILITY_LANGUAGE):
+        return ""
+
+    # Rule 5: Customer concentration / segment reporting cross-references
+    # "Customer accounted for >10% of revenues" = concentration risk disclosure
+    # "See Note 14. Segment and Geographic Reporting" = cross-reference, no content
+    _CROSS_REFERENCE = [
+        "accounted for greater than 10%",
+        "accounted for more than 10%",
+        "represented more than 10%",
+        "see note ", "refer to note ", "further information on reporting",
+        "for further information on segment",
+        # Accounting segment restructuring — "costs fully allocated to each reportable segment"
+        "fully allocated to each reportable segment",
+        "allocated to each reportable segment based on",
+        "previously included in unallocated expenses",
+        # IT risk factor cross-lists — list of risks that happen to mention "backlog converts"
+        "failure to implement system enhanc",
+        "failure to implement technology",
+        "communications systems or the failure",
+    ]
+    if any(ind in lower for ind in _CROSS_REFERENCE):
+        return ""
+
+    # Rule 5b: Regulatory safety / compliance ratings (not supply constraint)
+    # Vehicle safety ratings, environmental certifications, drug approvals
+    # Matches: "EPA ratings as determined by NHTSA" (Tesla safety compliance)
+    _SAFETY_REGULATORY = [
+        "new car assessment program",
+        "nhtsa", "nhts",
+        "safety rating", "safety compliance",
+        "epa rating", "emissions rating",
+        "fuel economy rating",
+        "sold outside of the u.s. are subject to similar foreign compliance",
+    ]
+    if any(ind in lower for ind in _SAFETY_REGULATORY):
+        return ""
+
+    # Rule 5c: Backlog explicitly DECLINING = easing, not constraint
+    # "backlog to reduce", "backlog declining", "expect backlog to decrease"
+    # This company is Stage 4 (resolving), not Stage 1 (emerging)
+    _BACKLOG_EASING = [
+        "backlog to reduce",
+        "og to reduce as fiscal",   # truncated "backlog to reduce" from context window
+        "backlog will reduce",
+        "expect our backlog to decrease",
+        "expect backlog to decrease",
+        "backlog has decreased",
+        "backlog declined",
+        "reduction in backlog",
+        "working through our backlog",
+        "normalizing backlog",
+        "backlog normalization",
+    ]
+    if any(ind in lower for ind in _BACKLOG_EASING):
+        return ""
+
+    # Rule 6: Explicit negation — "does not have significant backlog"
+    # A company explicitly saying they have NO backlog is not a constraint signal.
+    _EXPLICIT_NEGATION = [
+        "does not have significant backlog",
+        "does not maintain a backlog",
+        "we do not have a backlog",
+        "backlog is not significant",
+        "nature of its business does not",
+        "nature of the business does not",
+    ]
+    if any(ind in lower for ind in _EXPLICIT_NEGATION):
+        return ""
+
+    # Rule 7: Buyer-perspective constraint (company is HURT, not advantaged)
+    # The constraint is on their INPUTS or CUSTOMERS, not their own capacity.
+    _BUYER_INDICATORS = [
+        # Direct adverse outcome language
+        "adverse effect", "adversely affect", "negatively impact",
+        "harm our", "hurt our", "reduce our revenue",
+        "result in lower", "result in reduced", "decline in demand",
+        "negatively impact our backlog",    # adverse effect on THEIR backlog
+        "reduce our backlog", "impact our backlog",
+        # Third-party is the constrained party, not the company
+        "contractors to experience", "customers to experience",
+        "our customers face", "customers are experiencing",
+        "customers cannot", "customers may not be able",
+        # Input shortage — company is the BUYER of constrained goods
+        "unable to source", "unable to procure", "difficulty procuring",
+        "shortage of components", "shortage of raw material",
+        "shortage of skilled workers, resulting in",
+        "labor shortage", "worker shortage", "staffing shortage",
+        "our suppliers", "from our suppliers", "supplier cannot",
+        # BUYER navigating a constrained environment (CSCO, DELL, MMM pattern)
+        # "we face competition for components that are supply-constrained" = buyer
+        # "navigate environments with constrained supply chains" = buyer
+        "face competition for certain components",
+        "navigate environments with constrained supply",
+        "navigate a constrained supply",
+        "raw material price inflation and constrained supply",
+        "constrained supply throughout the global marketplace",
+        "experienced raw material", "raw material constrained",
+        # Financial services non-operational language
+        "as a broker or investment advisor",
+        "in our capacity as a broker",
+        "investment advisor",
+        # Compliance risk (not supply constraint)
+        "resource allocation limitations",
+        "lack of vendor cooperation",
+        "regulatory requirement", "regulatory approval",
+        # Hypothetical risk factors
+        "if we are unable to meet", "if we fail to meet",
+        "we may be unable to meet",
+        "we may experience reduced customer demand or constrained supply",
+        "we may experience changes in customer demand or constrained supply",
+        "could adversely", "may adversely", "might adversely",
+        "due to fluctuating", "due to our foundry", "due to our supplier",
+    ]
+    if any(ind in lower for ind in _BUYER_INDICATORS):
+        return ""
+
+    # Require genuine SELLER-perspective operational language
+    # These indicate the COMPANY itself is the constrained supplier
+    _SELLER_WORDS = [
+        "our backlog", "our capacity", "our lead time", "our production",
+        "backlog increased", "backlog grew", "backlog at record",
+        "fully booked", "fully allocated", "sold out",
+        "cannot meet", "unable to meet", "supply constrained",
+        "supply-constrained", "remain constrained", "at capacity",
+        "at full capacity", "operating at", "utilization",
+        "non-cancellable", "placed orders in advance",
+        "customers ordering", "customers waiting",
+        "order backlog", "growing backlog", "record backlog",
+    ]
+    if not any(w in lower for w in _SELLER_WORDS):
+        # Fall back: allow if it has basic operational language
+        _OPERATIONAL_FALLBACK = [
+            "backlog", "lead time", "capacity", "shortage",
+            "constrain", "allocat", "capex", "capital expenditure",
+        ]
+        if not any(w in lower for w in _OPERATIONAL_FALLBACK):
+            return ""
+
+    return text[:max_len]
+
+
+@app.get("/api/fundamental-calibration")
+def get_fundamental_calibration(country: str = "US") -> dict:
+    """Measured hit rates of past detections, graded against the companies'
+    own subsequent filings (mg_fundamental_eval, filled by
+    makrograph.evaluation.fundamental_loop). No price data involved.
+    """
+    pg = get_pg()
+    if pg is None:
+        raise HTTPException(status_code=503, detail="DB unavailable")
+    try:
+        with pg._conn() as conn:
+            from psycopg2.extras import RealDictCursor
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                dims = {
+                    "by_stage":     "stage::text",
+                    "by_path":      "detection_path",
+                    "by_legs":      "explosion_legs::text",
+                    "by_year":      "detection_year::text",
+                    "by_corroboration": (
+                        "CASE WHEN COALESCE(peer_corroboration,0)=0 THEN '0' "
+                        "WHEN peer_corroboration<5 THEN '1-4' ELSE '5+' END"
+                    ),
+                }
+                out: dict = {"country": country}
+                for name, expr in dims.items():
+                    cur.execute(
+                        f"""SELECT {expr} AS bucket,
+                                   COUNT(*) AS n,
+                                   ROUND(100.0*COUNT(*) FILTER (WHERE outcome='confirmed')/COUNT(*),1) AS confirmed_pct,
+                                   ROUND(100.0*COUNT(*) FILTER (WHERE outcome='decayed')/COUNT(*),1)   AS decayed_pct
+                            FROM mg_fundamental_eval
+                            WHERE country = %s AND outcome != 'no_filings'
+                            GROUP BY 1 ORDER BY 1""",
+                        (country,),
+                    )
+                    out[name] = [dict(r) for r in cur.fetchall()]
+                cur.execute(
+                    "SELECT COUNT(*) AS graded FROM mg_fundamental_eval "
+                    "WHERE country=%s AND outcome != 'no_filings'", (country,))
+                out["graded_detections"] = cur.fetchone()["graded"]
+                return out
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"calibration failed: {e}")
+
+
 @app.get("/api/investment-final-shortlist")
 def get_investment_final_shortlist(
     country: str = "IN",
@@ -1152,7 +1642,14 @@ def get_investment_final_shortlist(
 
         yr    = year or date.today().year
         to_d  = date(yr, 12, 31) if yr < date.today().year else date.today()
-        from_d = date(yr - 1, 1, 1)   # look back 1 year for signals
+        # Year-specific window: historical years use only that year's filings so
+        # the same companies don't bleed across years. Current/next year uses a
+        # 18-month lookback to avoid sparse data for mid-year runs.
+        is_current = (yr >= date.today().year - 1)
+        from_d = date(yr - 1, 7, 1) if is_current else date(yr, 1, 1)
+        # Prior year for delta computation (always the full prior calendar year)
+        prior_from_d = date(yr - 1, 1, 1)
+        prior_to_d   = date(yr - 1, 12, 31)
 
         # ─── Stage 1: Get NEW/ESCALATING themes ────────────────────────────
         focus_themes = pg.get_year_focus_analysis(yr, country)
@@ -1161,17 +1658,9 @@ def get_investment_final_shortlist(
 
         stage1_out = []
         for t in actionable:
-            # Get constraint components for this theme (what's physically constrained)
+            # Skip per-theme component lookup in the loop — too slow with 100+ themes.
+            # Components are fetched on-demand per theme in the detail view.
             components: list[dict] = []
-            try:
-                components = pg.get_constraint_components(
-                    theme_id=t.get("id", 0) or 0,
-                    from_date=from_d,
-                    to_date=to_d,
-                    top_n=5,
-                )
-            except Exception:
-                pass
             stage1_out.append({
                 "theme_id":   t.get("id"),
                 "theme_name": t.get("theme_name",""),
@@ -1221,70 +1710,89 @@ def get_investment_final_shortlist(
                 # BUYER language  = "component shortage / supply chain disrupted" → they are hurt
                 #
                 # The key investment insight: only seller-perspective = pricing power + order visibility
+                #
+                # Two qualification paths (both country-agnostic):
+                #   HARD constraint: explicit bottleneck signal types with seller language
+                #   DEMAND-LED constraint: seller demand surge + capacity investment +
+                #     pricing/margin evidence. This is how constraint expresses itself
+                #     when management talks order books instead of bottlenecks
+                #     (GE Vernova pattern: "orders +173%, better pricing, adding capacity"
+                #     — demand exceeds capacity without a single "shortage" sentence).
+                #
+                # _CPRED is defined ONCE (module-level CONSTRAINT_PRED_SQL) and
+                # reused for count / confidence / quote / prior-year / first-ever
+                # AND by the fundamental-feedback evaluator, so every consumer
+                # agrees on what "constraint" means.
+                _CPRED = CONSTRAINT_PRED_SQL
+                _DS_SELLER = DS_SELLER_PRED_SQL
                 cur.execute(
-                    """SELECT
+                    f"""SELECT
                            d.company,
                            COALESCE(NULLIF(d.ticker,''), d.company) AS ticker,
-                           -- Count SELLER-perspective constraint signals
-                           COUNT(*) FILTER (WHERE
-                               s.signal_type = 'capacity_constraint_seller'
-                               OR (s.signal_type IN (
-                                       'supply_bottleneck','inventory_drawdown',
-                                       'capacity_shortage','demand_exceeds_supply'
-                                   )
-                                   AND (
-                                       -- Signals tagged seller by pipeline
-                                       COALESCE(s.perspective,'neutral') = 'seller'
-                                       -- OR context_text contains seller-language
-                                       -- (for existing data before pipeline re-run)
-                                       OR s.context_text ILIKE '%our capacity%'
-                                       OR s.context_text ILIKE '%our backlog%'
-                                       OR s.context_text ILIKE '%cannot meet demand%'
-                                       OR s.context_text ILIKE '%can''t meet demand%'
-                                       OR s.context_text ILIKE '%fully booked%'
-                                       OR s.context_text ILIKE '%fully allocated%'
-                                       OR s.context_text ILIKE '%sold out%'
-                                       OR s.context_text ILIKE '%our lead time%'
-                                       OR s.context_text ILIKE '%waiting list%'
-                                       OR s.context_text ILIKE '%oversubscribed%'
-                                       OR s.context_text ILIKE '%customers waiting%'
-                                   )
-                               )
-                           )                                           AS c_count,
+                           -- HARD seller-perspective constraint signals
+                           COUNT(*) FILTER (WHERE {_CPRED})             AS c_count,
+                           -- DEMAND-LED evidence: seller-tagged demand surge
+                           COUNT(*) FILTER (WHERE {_DS_SELLER})         AS ds_seller,
                            COUNT(*) FILTER (WHERE s.signal_type = 'capex_increase')
                                                                         AS capex_count,
                            COUNT(*) FILTER (WHERE s.signal_type IN (
                                'demand_surge','capex_increase'
                            ))                                           AS d_count,
-                           ROUND(AVG(s.confidence) FILTER (WHERE
-                               s.signal_type = 'capacity_constraint_seller'
-                               OR (s.signal_type IN ('supply_bottleneck','capacity_shortage')
-                                   AND COALESCE(s.perspective,'neutral') = 'seller')
-                               OR (s.signal_type IN ('supply_bottleneck','capacity_shortage')
-                                   AND (s.context_text ILIKE '%our capacity%'
-                                        OR s.context_text ILIKE '%our backlog%'
-                                        OR s.context_text ILIKE '%fully booked%'
-                                        OR s.context_text ILIKE '%cannot meet demand%'))
+                           -- Pricing power signals: the CRITICAL middle step
+                           -- Constraint → Pricing → Capex → Revenue explosion
+                           COUNT(*) FILTER (WHERE s.signal_type IN (
+                               'realized_margin_expansion', 'pricing_power_emerging',
+                               'supply_concentration'
+                           ))                                           AS pricing_count,
+                           -- Competitor constrained: a RIVAL's capacity is down
+                           -- while this company can ship — share gain + pricing
+                           -- power without building anything. Best setup there is.
+                           COUNT(*) FILTER (WHERE s.signal_type = 'competitor_constrained')
+                                                                        AS comp_constrained,
+                           -- Supply easing: the thesis-closing signal (exit trigger)
+                           COUNT(*) FILTER (WHERE s.signal_type = 'supply_easing')
+                                                                        AS easing_count,
+                           -- Quantified magnitudes (filled by magnitude_extractor):
+                           -- intensity beats mention-counting; an order book up
+                           -- 173 pct is a different animal from "orders grew".
+                           MAX(s.signal_value) FILTER (WHERE s.signal_unit = 'order_growth_pct')
+                                                                        AS max_order_growth,
+                           MAX(s.signal_value) FILTER (WHERE s.signal_unit = 'utilization_pct')
+                                                                        AS max_utilization,
+                           MAX(s.signal_value) FILTER (WHERE s.signal_unit = 'margin_change_bps')
+                                                                        AS max_margin_bps,
+                           MAX(s.signal_value) FILTER (WHERE s.signal_unit = 'booktobill_ratio')
+                                                                        AS max_booktobill,
+                           ROUND(AVG(s.confidence) FILTER (WHERE {_CPRED} OR {_DS_SELLER}
                            )::numeric, 3)                               AS avg_conf,
-                           -- Best seller-perspective quote
-                           (ARRAY_AGG(s.context_text ORDER BY s.confidence DESC)
-                            FILTER (WHERE
-                               (s.signal_type = 'capacity_constraint_seller'
-                                OR (s.signal_type IN ('supply_bottleneck','capacity_shortage')
-                                    AND (COALESCE(s.perspective,'neutral') = 'seller'
-                                         OR s.context_text ILIKE '%our capacity%'
-                                         OR s.context_text ILIKE '%backlog%'
-                                         OR s.context_text ILIKE '%fully booked%')))
+                           -- Best quote by TIER then CONFIDENCE: hard-constraint quotes
+                           -- (prefix '1') outrank demand-led quotes (prefix '0'), then
+                           -- LPAD confidence prefix ensures MAX picks highest confidence.
+                           SUBSTRING(
+                               MAX(CASE
+                                   WHEN {_CPRED}
+                                        AND s.context_text IS NOT NULL
+                                        AND LENGTH(s.context_text) > 40
+                                   THEN '1' || LPAD((s.confidence * 1000)::int::text, 5, '0') || s.context_text
+                                   WHEN {_DS_SELLER}
+                                        AND s.context_text IS NOT NULL
+                                        AND LENGTH(s.context_text) > 40
+                                   THEN '0' || LPAD((s.confidence * 1000)::int::text, 5, '0') || s.context_text
+                                   ELSE NULL END)
+                           , 7)                                         AS best_quote,
+                           MAX(CASE WHEN {_CPRED} OR {_DS_SELLER}
+                                THEN d.filed_at ELSE NULL END)::date    AS best_quote_date,
+                           MAX(CASE WHEN s.signal_type = 'capex_increase'
                                AND s.context_text IS NOT NULL
-                               AND LENGTH(s.context_text) > 40))[1]    AS best_quote,
-                           (ARRAY_AGG(d.filed_at ORDER BY s.confidence DESC)
-                            FILTER (WHERE s.signal_type IN (
-                                'capacity_constraint_seller','supply_bottleneck'
-                            )))[1]::date                                AS best_quote_date,
-                           (ARRAY_AGG(s.context_text ORDER BY s.confidence DESC)
-                            FILTER (WHERE s.signal_type = 'capex_increase'
-                              AND s.context_text IS NOT NULL))[1]       AS capex_quote,
-                           MAX(d.filed_at)::date                        AS last_filing
+                               THEN s.context_text ELSE NULL END)      AS capex_quote,
+                           MAX(d.filed_at)::date                        AS last_filing,
+                           MIN(d.filed_at)::date                        AS first_filing,
+                           COUNT(DISTINCT d.id)                         AS filing_count,
+                           -- Signal-text corpus for theme matching: what does
+                           -- this company actually talk about? (wafers, grids,
+                           -- transformers...) Used to verify theme relevance.
+                           LEFT(STRING_AGG(LEFT(s.context_text, 150), ' '), 5000)
+                                                                        AS ctx_blob
                        FROM mg_signals s
                        JOIN mg_documents d ON d.id = s.document_id
                        WHERE d.country = %s
@@ -1292,21 +1800,23 @@ def get_investment_final_shortlist(
                          AND d.company IS NOT NULL AND d.company != ''
                        GROUP BY d.company, COALESCE(NULLIF(d.ticker,''), d.company)
                        HAVING
-                           -- Must have seller-perspective constraint signals
-                           COUNT(*) FILTER (WHERE
-                               s.signal_type = 'capacity_constraint_seller'
-                               OR (s.signal_type IN (
-                                       'supply_bottleneck','inventory_drawdown',
-                                       'capacity_shortage'
-                                   )
-                                   AND (COALESCE(s.perspective,'neutral') = 'seller'
-                                        OR s.context_text ILIKE '%our capacity%'
-                                        OR s.context_text ILIKE '%our backlog%'
-                                        OR s.context_text ILIKE '%cannot meet demand%'
-                                        OR s.context_text ILIKE '%fully booked%'
-                                        OR s.context_text ILIKE '%our lead time%'))
-                           ) >= %s
-                       ORDER BY c_count DESC, avg_conf DESC NULLS LAST
+                           (
+                               -- Path A: hard seller-constraint signals
+                               COUNT(*) FILTER (WHERE {_CPRED}) >= %s
+                               -- Path B: demand-led constraint (GE Vernova pattern) —
+                               -- surging seller demand + building capacity + margin proof.
+                               -- All three legs required so raw demand noise never qualifies.
+                               OR (
+                                   COUNT(*) FILTER (WHERE {_DS_SELLER}) >= 3
+                                   AND COUNT(*) FILTER (WHERE s.signal_type = 'capex_increase') >= 1
+                                   AND COUNT(*) FILTER (WHERE s.signal_type IN (
+                                       'realized_margin_expansion','pricing_power_emerging'
+                                   )) >= 1
+                               )
+                           )
+                           -- Minimum filing count: 1-2 filings = penny stock / tiny co.
+                           AND COUNT(DISTINCT d.id) >= 3
+                       ORDER BY c_count DESC, ds_seller DESC, avg_conf DESC NULLS LAST
                        LIMIT 200""",
                     (country, from_d, to_d, min_constraint_signals)
                 )
@@ -1322,12 +1832,83 @@ def get_investment_final_shortlist(
                         "c_count":      int(r["c_count"] or 0),
                         "capex_count":  int(r["capex_count"] or 0),
                         "d_count":      int(r["d_count"] or 0),
-                        "avg_conf":     float(r["avg_conf"] or 0),
-                        "best_quote":   (r["best_quote"] or "")[:300],
+                        "avg_conf":      float(r["avg_conf"] or 0),
+                        "best_quote":    (r["best_quote"] or "")[:300],
                         "best_quote_date": str(r["best_quote_date"] or ""),
-                        "capex_quote":  (r["capex_quote"] or "")[:200],
-                        "last_filing":  str(r["last_filing"] or ""),
+                        "capex_quote":   (r["capex_quote"] or "")[:200],
+                        "last_filing":   str(r["last_filing"] or ""),
+                        "first_filing":  str(r["first_filing"] or ""),
+                        "pricing_count": int(r["pricing_count"] or 0),
+                        "ds_seller":     int(r["ds_seller"] or 0),
+                        "comp_constrained": int(r["comp_constrained"] or 0),
+                        "easing_count":  int(r["easing_count"] or 0),
+                        "max_order_growth": float(r["max_order_growth"] or 0),
+                        "max_utilization":  float(r["max_utilization"] or 0),
+                        "max_margin_bps":   float(r["max_margin_bps"] or 0),
+                        "max_booktobill":   float(r["max_booktobill"] or 0),
+                        "ctx_blob":      (r["ctx_blob"] or "").lower(),
                     }
+                    # Demand-led detection (Path B in HAVING): no hard constraint
+                    # signals, but seller demand surge + capex + pricing all fired.
+                    # Give it an effective constraint count from demand evidence so
+                    # downstream scoring works, and label the path for transparency.
+                    m = co_meta[name]
+                    if m["c_count"] == 0 and m["ds_seller"] >= 3:
+                        m["c_count"] = min(m["ds_seller"], 4)
+                        m["detection_path"] = "demand_led"
+                    else:
+                        m["detection_path"] = "hard_constraint"
+
+                # ── Sector gate: remove non-supplier companies before any further work ──
+                # The beneficiary mapper has _KNOWN_TICKER_SECTORS + name patterns.
+                # This is the same gate applied during theme mapping — apply it here
+                # to the shortlist so retail/finance/homebuilder/airline/entertainment
+                # companies never appear regardless of what signals they fired.
+                # Apply quality-quote filter immediately to co_meta.
+                # Companies whose ONLY constraint evidence is boilerplate (bond language,
+                # partnership distributions, recalls, etc.) get their c_count set to 0.
+                # This is language-based, not company-based — works for any future company.
+                for name, meta in co_meta.items():
+                    raw_q = meta.get("best_quote", "")
+                    filtered_q = _quality_quote(raw_q)
+                    meta["best_quote"] = filtered_q
+                    # If the best quote is boilerplate, clear the quote but DO NOT zero
+                    # c_count — the company may have other valid signals. The HAVING clause
+                    # in SQL already screened for >= N seller signals; if best_quote is
+                    # bad it's a display issue, not evidence of zero real signals.
+
+                _BLOCKED_SECTORS = frozenset({
+                    "retail", "consumer_goods", "food", "beverage", "restaurant",
+                    "homebuilder", "apparel", "cosmetic", "cannabis",
+                    "finance", "insurance", "pharmacy_chain", "hospital",
+                    "airline", "hotel", "entertainment", "media",
+                    "real_estate",   # REITs that are property owners not suppliers
+                })
+
+                try:
+                    from makrograph.themes import beneficiary_mapper as _bm_mod
+
+                    def _get_sector(ticker, company):
+                        if ticker:
+                            s = _bm_mod._KNOWN_TICKER_SECTORS.get(ticker.upper())
+                            if s:
+                                return s
+                        name_lower = (company or "").lower()
+                        for frag, sector in _bm_mod._COMPANY_NAME_SECTOR_PATTERNS:
+                            if frag in name_lower:
+                                return sector
+                        return "unknown"
+
+                    to_remove = []
+                    for nm, meta in co_meta.items():
+                        ticker = (meta.get("ticker") or "").upper()
+                        sector = _get_sector(ticker, nm)
+                        if sector in _BLOCKED_SECTORS:
+                            to_remove.append(nm)
+                    for nm in to_remove:
+                        del co_meta[nm]
+                except Exception as _se:
+                    logging.warning("Sector gate failed: %s", _se)
 
                 if not co_meta:
                     return {"year": yr, "country": country,
@@ -1335,13 +1916,84 @@ def get_investment_final_shortlist(
                                       "stage2_signal_companies": 0},
                             "stages": stage1_out, "final_shortlist": []}
 
-                # 2b. Resolve theme IDs for theme-matching enrichment
+                # 2a-delta: prior-year c_count for YoY delta scoring
+                # Companies with SPIKING signals this year rank much higher than
+                # companies with the same level every year (persistent plays).
+                tickers_for_delta = [m["ticker"].upper() for m in co_meta.values() if m.get("ticker")]
+                if tickers_for_delta:
+                    # Prior-year counts use the SAME _CPRED / _DS_SELLER definitions
+                    # as the main query so YoY trajectory compares like with like.
+                    cur.execute(
+                        f"""SELECT UPPER(TRIM(d.ticker)) AS tk,
+                                  COUNT(*) FILTER (WHERE {_CPRED})     AS prior_c,
+                                  COUNT(*) FILTER (WHERE {_DS_SELLER}) AS prior_ds,
+                                  COUNT(DISTINCT d.id)                 AS prior_docs
+                           FROM mg_signals s
+                           JOIN mg_documents d ON d.id = s.document_id
+                           WHERE d.country = %s
+                             AND d.filed_at BETWEEN %s AND %s
+                             AND UPPER(TRIM(d.ticker)) = ANY(%s)
+                           GROUP BY UPPER(TRIM(d.ticker))""",
+                        (country, prior_from_d, prior_to_d, tickers_for_delta)
+                    )
+                    prior_rows = {r["tk"]: r for r in cur.fetchall()}
+                    for nm, meta in co_meta.items():
+                        tk = (meta.get("ticker") or "").upper()
+                        pr = prior_rows.get(tk)
+                        # prior_docs=0 means the company simply wasn't filing last
+                        # year (IPO / new listing) — that is NOT evidence a
+                        # constraint newly emerged. Trajectory logic uses this to
+                        # avoid handing every fresh IPO the "new constraint" crown.
+                        meta["prior_docs"] = int(pr["prior_docs"] or 0) if pr else 0
+                        if meta.get("detection_path") == "demand_led":
+                            # Demand-led companies: trajectory measured on the same
+                            # evidence family that qualified them (seller demand surge).
+                            meta["prior_c_count"] = min(int(pr["prior_ds"] or 0), 4) if pr else 0
+                        else:
+                            meta["prior_c_count"] = int(pr["prior_c"] or 0) if pr else 0
+
+                    # True first-ever constraint signal date (NOT clipped to the
+                    # query window, unlike first_filing which is just MIN within
+                    # the year). Capped at the selected year's end so backtests
+                    # don't peek forward.
+                    cur.execute(
+                        f"""SELECT UPPER(TRIM(d.ticker)) AS tk,
+                                  MIN(d.filed_at) FILTER (WHERE {_CPRED})::date     AS first_ever_c,
+                                  MIN(d.filed_at) FILTER (WHERE {_DS_SELLER})::date AS first_ever_ds
+                           FROM mg_signals s
+                           JOIN mg_documents d ON d.id = s.document_id
+                           WHERE d.country = %s
+                             AND d.filed_at <= %s
+                             AND UPPER(TRIM(d.ticker)) = ANY(%s)
+                           GROUP BY UPPER(TRIM(d.ticker))""",
+                        (country, to_d, tickers_for_delta)
+                    )
+                    fe_rows = {r["tk"]: r for r in cur.fetchall()}
+                    for nm, meta in co_meta.items():
+                        tk = (meta.get("ticker") or "").upper()
+                        fr = fe_rows.get(tk)
+                        if not fr:
+                            meta["first_ever_signal"] = ""
+                        elif meta.get("detection_path") == "demand_led":
+                            meta["first_ever_signal"] = str(fr["first_ever_ds"] or fr["first_ever_c"] or "")
+                        else:
+                            meta["first_ever_signal"] = str(fr["first_ever_c"] or "")
+
+                # 2b. Resolve theme IDs — prefer SPECIFIC themes (≤40 companies).
+                # Generic catch-alls like "Materials: Constraint from Cloud Demand"
+                # with 138 companies tell us nothing useful about a specific company.
+                # We always store all themes but flag which are specific enough to display.
                 cur.execute(
-                    "SELECT id, theme_name, theme_slug, conviction "
+                    "SELECT id, theme_name, theme_slug, conviction, company_count "
                     "FROM mg_themes WHERE theme_slug=ANY(%s) AND is_active=TRUE",
                     (actionable_slugs,)
                 )
                 theme_rows = {r["id"]: dict(r) for r in cur.fetchall()}
+                # Mark which themes are specific enough to be useful
+                _SPECIFIC_THEME_IDS = {
+                    tid for tid, t in theme_rows.items()
+                    if (t.get("company_count") or 999) <= 40
+                }
 
                 # 2c. Enrich: look up company roles from beneficiary table (optional)
                 # Use company name OR ticker matching — just for role label, NOT for filtering
@@ -1419,6 +2071,50 @@ def get_investment_final_shortlist(
             else:
                 ev["demand"].append(sig)
 
+        # ─── Stage 4.5: Peer corroboration + supply-chain propagation ────────
+        # One company claiming constraint is an anecdote; several independent
+        # companies talking about the same constrained domain in the same
+        # window is a fact. Assign each company its domain families from its
+        # own signal corpus, then count peers per family.
+        _co_families: dict[str, set] = {}
+        for _nm, _m in co_meta.items():
+            _blob = (_m.get("ctx_blob","") or "") + " " + _nm.lower()
+            fams = {
+                fam for fam, words in THEME_KW_FAMILIES.items()
+                if any(w in _blob for w in words)
+            }
+            _co_families[_nm] = fams
+        _family_counts: dict[str, int] = {}
+        for _nm, fams in _co_families.items():
+            if co_meta[_nm].get("c_count", 0) >= 2:
+                for f in fams:
+                    _family_counts[f] = _family_counts.get(f, 0) + 1
+
+        # Confirmed-constrained domains (≥3 independent companies) propagate a
+        # WATCH to their upstream input components: suppliers of those inputs
+        # typically report their own constraint one or more quarters later.
+        _confirmed_domains = {f for f, n in _family_counts.items() if n >= 3}
+        upstream_watch: list[dict] = []
+        _seen_up: set = set()
+        for _dom in sorted(_confirmed_domains):
+            for _comp in UPSTREAM_COMPONENTS.get(_dom, []):
+                if _comp in _seen_up:
+                    continue
+                _seen_up.add(_comp)
+                # Companies already in candidates whose corpus mentions the
+                # upstream component but who have weak constraint counts —
+                # the earliest place the propagation will surface.
+                _early = [
+                    co_meta[n].get("ticker","") for n, m in co_meta.items()
+                    if _comp in (m.get("ctx_blob","") or "") and m.get("c_count",0) < 2
+                ][:5]
+                upstream_watch.append({
+                    "constrained_domain": _dom,
+                    "upstream_component": _comp,
+                    "confirmed_by_peers": _family_counts.get(_dom, 0),
+                    "early_candidates":   [t for t in _early if t],
+                })
+
         # ─── Stage 5: Score and rank ─────────────────────────────────────────
         FOCUS_SCORE = {"new":1.0,"escalating":0.9,"no_prior":0.6,"persistent":0.3}
         CONV_SCORE  = {"high":1.0,"confirmed":0.85,"developing":0.65,"emerging":0.4}
@@ -1451,27 +2147,233 @@ def get_investment_final_shortlist(
             best_c = best_c_dict if meta.get("best_quote") else None
             best_k = best_k_dict if meta.get("capex_quote") else None
 
-            # Theme quality
+            # Theme quality — pick the most SPECIFIC actionable theme for this company.
+            # Prefer themes whose name contains the company's sector keyword over
+            # generic "Materials: Constraint from ESG Demand" catch-alls.
             theme_ids  = co_themes_map.get(name, set())
+            ticker_upper = meta.get("ticker","").upper()
+            company_lower = name.lower()
+
+            # Sector → theme keyword priority mapping
+            _SECTOR_THEME_KEYWORDS = {
+                "data center": ["data center","cloud","datacenter"],
+                "semiconductor": ["semiconductor","chip","wafer","hbm"],
+                "defense": ["defense","defence","aerospace","military"],
+                "energy": ["solar","wind","power","energy","electric"],
+                "industrial": ["industrial","manufacturing","automation"],
+                "medical": ["medical","healthcare","pharma"],
+            }
+
+            # Evidence text: what the company ITSELF said. Theme keywords must
+            # appear here (or in the name) to count as a real match — matching
+            # against the theme universe alone produced junk like
+            # "Airbnb → Defense: Constraint from EPA Demand".
+            # The corpus is everything this company's signals said this year —
+            # a semiconductor company's signals talk wafers and fabs, a T&D
+            # company's talk grids and transformers. No sector table needed.
+            _evidence_text = (
+                (meta.get("best_quote","") or "").lower() + " " +
+                (meta.get("capex_quote","") or "").lower() + " " +
+                (meta.get("ctx_blob","") or "")
+            )
+            _sector_kws: list[str] = []
+
+            def _theme_relevance(theme_name: str, ticker: str, co_name: str) -> float:
+                """Score how relevant a theme is to this specific company."""
+                tn = theme_name.lower()
+                co = co_name.lower()
+                score = 0.0
+                # Penalise extremely generic ESG/catch-all themes
+                if "esg" in tn:
+                    score -= 2.0
+                if "severe constraint" in tn and "energy" not in co and "power" not in co:
+                    score -= 1.0
+                # Reward themes whose keywords appear in the company's NAME or
+                # in its OWN evidence text (quotes from its filings).
+                # Keyword FAMILIES: a theme keyword matches if the company's
+                # evidence uses any synonym from the same domain family —
+                # "wafer" theme ↔ company talking "semiconductor"/"fab"/"chip".
+                # (Defined at module level as THEME_KW_FAMILIES; also used for
+                # peer corroboration and supply-chain propagation.)
+                for kw, family in THEME_KW_FAMILIES.items():
+                    if kw in tn:
+                        if any(w in co or w in _evidence_text for w in family):
+                            score += 3.0
+                        else:
+                            score += 0.5
+                # Demand-Supply Tension themes are more specific than "X: Constraint from Y"
+                if "demand-supply tension" in tn:
+                    score += 1.5
+                return score
+
+            candidate_themes = [t for t in stage1_out if t.get("theme_id") in theme_ids]
+
+            # Prefer specific themes (≤40 companies) over generic catch-alls.
+            # "semiconductor: Demand-Supply Tension" (12 cos) > "Materials: Constraint from Cloud Demand" (138 cos)
+            specific_candidates = [t for t in candidate_themes if t.get("theme_id") in _SPECIFIC_THEME_IDS]
+            pool = specific_candidates if specific_candidates else candidate_themes
+
             best_theme = max(
-                (t for t in stage1_out if t.get("theme_id") in theme_ids),
-                key=lambda t: FOCUS_SCORE.get(t.get("focus",""),0) *
-                              CONV_SCORE.get(t.get("conviction",""),0),
+                pool,
+                key=lambda t: (
+                    _theme_relevance(t.get("theme_name",""), ticker_upper, company_lower)
+                    + FOCUS_SCORE.get(t.get("focus",""), 0) * 2
+                    + CONV_SCORE.get(t.get("conviction",""), 0)
+                    # Penalise overly broad themes directly in scoring
+                    - max(0, (theme_rows.get(t.get("theme_id",0),{}).get("company_count",0) - 20)) * 0.05
+                ),
                 default=None
             )
             focus_s = FOCUS_SCORE.get(best_theme.get("focus","") if best_theme else "", 0.3)
             conv_s  = CONV_SCORE.get(best_theme.get("conviction","") if best_theme else "", 0.3)
 
-            # Rank score (0-100)
-            rank_score = round(
-                min(100, (
-                    c_count * avg_conf * 30      # signal count × quality
-                    + k_count * 15               # capex commitment
-                    + d_count * 5                # demand confirmation
-                    + focus_s * conv_s * 30      # theme quality
-                    + len(theme_ids) * 5         # multi-theme overlap
-                )), 1
+            # Display gate: a theme is only SHOWN if it has genuine keyword
+            # overlap with the company (name or own evidence). A wrong theme
+            # is worse than no theme — it destroys trust in every other row.
+            # Scoring (focus_s/conv_s) still uses the best candidate either way.
+            theme_display_ok = bool(
+                best_theme
+                and _theme_relevance(best_theme.get("theme_name",""),
+                                     ticker_upper, company_lower) >= 3.0
             )
+
+            # Coverage fallback: signal-discovered companies often have NO
+            # beneficiary-table link (theme_ids empty) or only irrelevant links.
+            # Their own signal corpus still tells us which active theme they
+            # belong to — scan the FULL theme universe and take the best
+            # evidence-backed match. Same relevance function, same ≥3.0 bar,
+            # so this can never show a worse theme than the linked path.
+            if not theme_display_ok and stage1_out:
+                fb = max(
+                    stage1_out,
+                    key=lambda t: (
+                        _theme_relevance(t.get("theme_name",""), ticker_upper, company_lower)
+                        - max(0, (theme_rows.get(t.get("theme_id",0),{}).get("company_count",0) - 20)) * 0.05
+                    ),
+                    default=None
+                )
+                # Higher bar than the linked path (6.0 ≈ two independent keyword
+                # matches): without a beneficiary-table link there is no prior
+                # tying this company to the theme, so demand stronger evidence.
+                if fb is not None and _theme_relevance(
+                        fb.get("theme_name",""), ticker_upper, company_lower) >= 6.0:
+                    best_theme = fb
+                    theme_display_ok = True
+                    focus_s = FOCUS_SCORE.get(fb.get("focus",""), focus_s)
+                    conv_s  = CONV_SCORE.get(fb.get("conviction",""), conv_s)
+
+            # ── The Investment Cycle Score ─────────────────────────────────────
+            # The thesis is: Supply Constraint → Pricing Power → Capex → Revenue
+            # Each step of the cycle multiplies conviction:
+            #
+            # Step 1 (CONSTRAINT): Company can't meet demand → they have pricing power
+            #   capacity_constraint_seller, backlog_duration, capacity_utilization_high
+            #   BASE SCORE — without this, nothing else matters
+            #
+            # Step 2 (PRICING): They're actually charging more
+            #   realized_margin_expansion, pricing_power_emerging, supply_concentration
+            #   MULTIPLIER — constraint alone could be temporary; pricing confirms it's real
+            #
+            # Step 3 (CAPEX): They're investing to capture the opportunity
+            #   capex_increase — management believes in the demand; putting money behind it
+            #   DURATION EXTENDER — capex = multi-year revenue visibility
+            #
+            # Step 4 (DEMAND): Demand still growing while they're constrained
+            #   demand_surge — confirms the constraint isn't about to resolve naturally
+            #   CONFIDENCE BOOSTER — sustained demand = the cycle will last longer
+            #
+            # All four present = HIGHEST CONVICTION
+            # Three present = STRONG BUY
+            # Two present = BUY
+            # One (constraint only) = WATCH
+
+            pricing_count = meta.get("pricing_count", 0)
+            prior_c       = meta.get("prior_c_count", 0)
+            c_delta       = max(0, c_count - prior_c)  # YoY spike in constraint signals
+
+            # Noise guard: with signal counts this small (2-7 per year), a ±1
+            # difference is filing-timing noise, not a trajectory. Only call a
+            # change real if it's ≥2 signals AND ≥25% of the base — otherwise flat.
+            #
+            # "new" additionally requires the company to have FILED last year
+            # (prior_docs > 0): a constraint newly appearing in an established
+            # filer is Stage-1 alpha; a fresh IPO with no filing history is just
+            # unproven — treat as "rising" so it can't outrank real emergences.
+            prior_docs = meta.get("prior_docs", 0)
+            _raw_diff = c_count - prior_c
+            _base     = max(prior_c, 1)
+            if prior_c == 0 and c_count > 0:
+                trajectory = "new" if prior_docs > 0 else "rising"
+            elif abs(_raw_diff) < 2 or abs(_raw_diff) / _base < 0.25:
+                trajectory = "flat" if prior_c > 0 else "none"
+            elif _raw_diff > 0:
+                trajectory = "rising"
+            else:
+                trajectory = "declining"
+
+            # Step 1 base: hard constraint signals × confidence
+            step1 = min(c_count, 6) * avg_conf * 18
+
+            # Step 2 multiplier: EITHER pricing OR capex expansion makes constraint investable
+            # Pathway A: pricing power (realized_margin_expansion, pricing_power_emerging)
+            # Pathway B: volume expansion (capex_increase shows management is building capacity)
+            # Both equally valid — GE Vernova revenue exploded from VOLUME, not pricing
+            pricing_signal = min(pricing_count, 3) * 0.15   # up to 0.45 from pricing
+            capex_signal   = min(k_count, 4) * 0.12          # up to 0.48 from capex
+            step2_mult = 1.0 + max(pricing_signal, capex_signal)  # take the better pathway
+
+            # Step 3 duration: capex = years of revenue visibility ahead
+            step3 = min(k_count, 5) * 10
+
+            # Step 4 confidence: sustained demand = constraint won't resolve soon
+            step4 = min(d_count - k_count, 3) * 4  # demand above and beyond capex
+
+            # Theme quality: first detected this year = early mover advantage
+            theme_bonus = focus_s * conv_s * 20
+
+            # Competitor-constrained bonus: a rival's capacity is impaired while
+            # this company can ship. Share gain arrives without any capex —
+            # the highest-quality constraint variant (Micron vs impaired peers,
+            # pipe makers when import supply was cut).
+            comp_constrained = meta.get("comp_constrained", 0)
+            comp_bonus = min(comp_constrained, 3) * 7   # up to +21
+
+            # Intensity bonus from QUANTIFIED magnitudes: management stating a
+            # number is a stronger claim than vague language, and the size of
+            # the number is the size of the story.
+            _og  = meta.get("max_order_growth", 0)   # % order growth
+            _ut  = meta.get("max_utilization", 0)    # % capacity utilization
+            _mb  = meta.get("max_margin_bps", 0)     # margin expansion bps
+            _btb = meta.get("max_booktobill", 0)     # book-to-bill ratio
+            intensity_bonus = (
+                (12 if _og >= 50 else 6 if _og >= 25 else 0)
+                + (10 if _ut >= 90 else 5 if _ut >= 80 else 0)
+                + (6 if _mb >= 200 else 3 if _mb >= 100 else 0)
+                + (6 if _btb >= 1.2 else 0)
+            )
+            intensity_bonus = min(intensity_bonus, 24)
+
+            raw_score = (
+                step1 * step2_mult
+                + step3
+                + max(step4, 0)
+                + theme_bonus
+                + comp_bonus
+                + intensity_bonus
+                + (5 if meta.get("capex_quote") else 0)
+            )
+
+            # YoY delta ceiling: hard cap by (noise-guarded) trajectory so
+            # persistent companies cannot crowd out newly-emerging ones.
+            # New entrant → max 100, rising → max 88, flat → max 70, declining → max 55
+            delta_ceiling = {
+                "new": 100, "rising": 88, "flat": 70, "declining": 55,
+            }.get(trajectory, 55)
+
+            # Scale within the ceiling instead of hard-capping, so companies in
+            # the same trajectory bucket still differentiate by evidence strength
+            # (raw_score ~120-200 for strong evidence; /150 normalizes).
+            rank_score = round(delta_ceiling * min(1.0, raw_score / 150), 1)
 
             n_themes = len(theme_ids)
 
@@ -1479,39 +2381,95 @@ def get_investment_final_shortlist(
             # Constraint cycle stage + exit signals + conviction tier
             # These are the 20% that makes this system world-class.
 
-            # Check for supply easing / exit signals in the signal list
-            has_supply_easing  = any(
-                s.get("signal_type") in ("supply_easing","demand_slowdown","inventory_buildup")
-                for s in (meta.get("quality_signals") or [])
-            )
-            has_realized_margin = any(
-                s.get("signal_type") == "realized_margin_expansion"
-                for s in (meta.get("quality_signals") or [])
-            )
+            # Supply easing — thesis-closing evidence. Counted directly in SQL
+            # (the old check read meta["quality_signals"], a key that was never
+            # populated, so the exit override silently never fired).
+            # CAUTION: the extractor tags all supply_easing as perspective=
+            # neutral and mis-fires on capacity-expansion language ("investing
+            # in ... our supply chain"). So easing text alone NEVER forces an
+            # exit — it only does when the YoY trajectory independently agrees
+            # (declining). Otherwise it's surfaced as a watch trigger.
+            easing_count = meta.get("easing_count", 0)
+            has_easing_text  = easing_count >= 2 and easing_count * 2 >= c_count
+            has_supply_easing = has_easing_text and trajectory == "declining"
+            has_realized_margin = meta.get("pricing_count", 0) >= 1
 
-            # Theme first_detected date + quarters with signal
-            theme_first_det = ""
-            theme_quarters  = 0
-            theme_momentum  = 0.0
-            theme_accel     = 0.0
-            if best_theme:
-                theme_first_det = str(best_theme.get("first_detected","") or "")
-                theme_quarters  = int(best_theme.get("this_snap_count") or 0)
-                theme_momentum  = float(best_theme.get("this_avg_momentum") or 0)
-                theme_accel     = float(best_theme.get("strength_delta") or 0)
+            # ── Constraint stage: use COMPANY signal trajectory, not theme age ──
+            # Theme `first_detected` is set once in 2020 for persistent themes →
+            # age=78 months → everything ends up Stage 4. Wrong.
+            # The correct signal is: how is THIS COMPANY's constraint evolving?
+            #   prior_c=0, c_count>0  → Stage 1 (just emerged, highest alpha)
+            #   delta>0 and prior_c>0 → Stage 2 (growing, still early)
+            #   delta=0 and prior_c>0 → Stage 3 (flat/persistent, consensus)
+            #   c_count < prior_c     → Stage 4 (declining, thesis resolving)
+            # supply_easing signal overrides → Stage 4 regardless.
+            # `trajectory` is the noise-guarded YoY classification computed above
+            # (±1 signal on small counts = "flat", not a real move).
+            if has_supply_easing:
+                c_stage = 4
+                stage_conf = 0.75
+                time_horizon_m = 6
+                conviction_tier = "⚫ REDUCE — Stage 4, thesis closing"
+                exit_triggers = ["supply_easing_detected"]
+            elif trajectory == "new":
+                c_stage = 1
+                stage_conf = round(0.55 + min(0.35, c_count * 0.05), 2)
+                time_horizon_m = 30 if k_count >= 1 else 24
+                conviction_tier = "🔴 STRONG BUY — Stage 1, early edge"
+                exit_triggers = []
+            elif trajectory == "rising":
+                c_stage = 2
+                stage_conf = 0.72
+                time_horizon_m = 24 if k_count >= 2 else 18
+                conviction_tier = "🟡 BUY — Stage 2, accelerating"
+                exit_triggers = []
+            elif trajectory == "flat":
+                c_stage = 3
+                stage_conf = 0.65
+                time_horizon_m = 12
+                conviction_tier = "🟢 HOLD — Stage 3, consensus forming"
+                exit_triggers = ["momentum_flat_watch_for_easing"]
+            else:
+                c_stage = 4
+                stage_conf = 0.60
+                time_horizon_m = 6
+                conviction_tier = "⚫ REDUCE — Stage 4, thesis closing"
+                exit_triggers = ["constraint_signals_declining"]
 
-            c_stage, stage_conf, time_horizon_m, conviction_tier, exit_triggers = (
-                _compute_constraint_stage(
-                    first_detected_str    = theme_first_det,
-                    quarters_with_signal  = theme_quarters,
-                    momentum_score        = theme_momentum,
-                    signal_acceleration   = theme_accel / max(abs(theme_accel), 1) if theme_accel else 0,
-                    has_realized_margin   = has_realized_margin,
-                    has_supply_easing     = has_supply_easing,
-                    c_count               = c_count,
-                    k_count               = k_count,
-                )
+            if has_realized_margin:
+                stage_conf = min(0.92, stage_conf + 0.10)
+            if k_count >= 2:
+                stage_conf = min(0.90, stage_conf + 0.08)
+
+            # Peer corroboration: other constrained companies in this
+            # company's domain families. Independent confirmation raises
+            # confidence; a lone claim in a domain nobody else sees stays low.
+            peer_corr = max(
+                (_family_counts.get(f, 0) for f in _co_families.get(name, ())),
+                default=0,
             )
+            peer_corr = max(0, peer_corr - 1)   # exclude self
+            stage_conf = min(0.95, stage_conf + min(peer_corr, 5) * 0.02)
+
+            # Easing language without a declining trajectory: not an exit, but
+            # worth watching — surface it as a trigger on any stage.
+            if has_easing_text and not has_supply_easing:
+                exit_triggers = exit_triggers + ["easing_language_watch"]
+
+            # ── Explosion potential: the full thesis chain lit up at once ──────
+            # Constraint (c) + a monetization pathway (pricing OR capex) +
+            # demand pressure (d) + early trajectory (new/rising) =
+            # the NVDA-2022 / GE-Vernova setup. Each leg is generic arithmetic.
+            explosion_legs = {
+                "constraint":      c_count >= 2,
+                # Monetization pathway: pricing power, capacity buildout, OR an
+                # impaired competitor (share gain needs no capex at all)
+                "pathway":         pricing_count >= 1 or k_count >= 2 or comp_constrained >= 1,
+                "demand_pressure": d_count >= max(c_count, 4),
+                "early_cycle":     trajectory in ("new", "rising"),
+            }
+            explosion_score = sum(explosion_legs.values())
+            explosion_potential = explosion_score == 4
 
             # Stage-adjusted rank score: Stage 1 gets 25% bonus, Stage 4 gets 30% penalty
             stage_mult = {1: 1.25, 2: 1.10, 3: 0.90, 4: 0.70}.get(c_stage, 1.0)
@@ -1530,9 +2488,12 @@ def get_investment_final_shortlist(
                 "company":           name,
                 "ticker":            meta["ticker"],
                 "company_role":      meta["role"],
-                "theme":             best_theme["theme_name"] if best_theme else "",
-                "theme_focus":       best_theme["focus"] if best_theme else "",
+                "theme":             best_theme["theme_name"] if (best_theme and theme_display_ok) else "",
+                "theme_focus":       best_theme["focus"] if (best_theme and theme_display_ok) else "",
                 "constraint_signals": c_count,
+                "prior_constraint":   prior_c,
+                "constraint_delta":   c_delta,
+                "is_new_constraint":  prior_c == 0 and c_count > 0,
                 "capex_signals":      k_count,
                 "demand_signals":     d_count,
                 "avg_confidence":    round(avg_conf, 3),
@@ -1540,9 +2501,9 @@ def get_investment_final_shortlist(
                     best_theme["constrained_components"][0]["component"]
                     if best_theme and best_theme.get("constrained_components") else ""
                 ),
-                "best_constraint_quote": (best_c.get("context_text","") or "")[:300] if best_c else "",
+                "best_constraint_quote": _quality_quote(best_c.get("context_text","") if best_c else ""),
                 "best_constraint_date":  str(best_c.get("filed_date","")) if best_c else "",
-                "capex_quote":           (best_k.get("context_text","") or "")[:200] if best_k else "",
+                "capex_quote":           _quality_quote(best_k.get("context_text","") if best_k else ""),
                 "theme_count":           n_themes,
                 "theme_names":           [theme_rows[tid]["theme_name"] for tid in theme_ids if tid in theme_rows],
                 "conviction":            conviction,
@@ -1556,11 +2517,39 @@ def get_investment_final_shortlist(
                 "exit_triggers":         exit_triggers,     # what to watch to sell
                 "has_margin_expansion":  has_realized_margin,
                 "has_supply_easing":     has_supply_easing,
+                "first_signal_date":     meta.get("first_ever_signal", "") or meta.get("first_filing", ""),
+                "last_signal_date":      meta.get("last_filing", ""),
+                "trajectory":            trajectory,
+                "explosion_potential":   explosion_potential,
+                "explosion_legs":        explosion_score,   # 0-4 of the thesis chain lit
+                "detection_path":        meta.get("detection_path", "hard_constraint"),
+                "competitor_constrained": comp_constrained,
+                "supply_easing_signals": easing_count,
+                # Selectivity: the conviction bar is set from MEASURED hit rates
+                # (mg_fundamental_eval): peer corroboration 5+ confirmed 39% vs
+                # 17% below it; top score band confirmed 50%; early trajectory
+                # is where the payoff asymmetry lives. Everything else stays
+                # visible as the watch list — nothing is hidden, only ranked.
+                "list_tier": (
+                    "conviction"
+                    if (trajectory in ("new", "rising")
+                        and peer_corr >= 5
+                        and explosion_score >= 3
+                        and rank_score_adjusted >= 80)
+                    else "watch"
+                ),
+                "peer_corroboration":    peer_corr,
+                "order_growth_pct":      _og or None,
+                "utilization_pct":       _ut or None,
+                "margin_expansion_bps":  _mb or None,
+                "book_to_bill":          _btb or None,
+                "intensity_bonus":       intensity_bonus,
             })
 
-        # Sort: Stage 1 (strongest alpha) → Stage 2 → Stage 3 → Stage 4 (weakest)
-        # Within same stage: sort by rank_score DESC
+        # Sort: conviction list first (measured-quality bar), then by stage
+        # (Stage 1 strongest alpha → Stage 4), then rank_score DESC.
         results.sort(key=lambda r: (
+            0 if r.get("list_tier") == "conviction" else 1,
             r.get("constraint_stage", 3),   # lower stage = better
             -r["rank_score"],
         ))
@@ -1582,11 +2571,18 @@ def get_investment_final_shortlist(
             "stats":           stats,
             "constraint_regimes": stage1_out,
             "final_shortlist": results[:50],
+            # Supply-chain propagation: domains confirmed constrained by ≥3
+            # independent companies, with the upstream input components to
+            # watch — their suppliers typically report constraint a quarter+
+            # later. This is where NEXT quarter's Stage-1 names come from.
+            "upstream_watch":  upstream_watch,
         }
 
     except Exception as e:
-        logging.error("investment_final_shortlist: %s", e, exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Final shortlist failed: {e}")
+        import traceback as _tb
+        tb = _tb.format_exc()
+        logging.error("investment_final_shortlist: %s\n%s", e, tb)
+        raise HTTPException(status_code=500, detail=f"Final shortlist failed: {e} | {tb[-500:]}")
 
 
 @app.get("/api/debug/window-end-dist")
