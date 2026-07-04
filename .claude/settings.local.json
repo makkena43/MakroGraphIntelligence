@@ -495,7 +495,8 @@
       "Bash(PYTHONPATH=src .venv/bin/python3)",
       "Bash(awk -F: '$1>1700 && $1<2700')",
       "Bash(awk 'NR>=1905 && NR<=1915' backend/main.py)",
-      "Bash(PYTHONPATH=src:. .venv/bin/python3 -m makrograph.evaluation.propagation_lag --country IN)"
+      "Bash(PYTHONPATH=src:. .venv/bin/python3 -m makrograph.evaluation.propagation_lag --country IN)",
+      "Bash(psql -h 127.0.0.1 -U postgres -d makrograph -t -A -c \"SELECT COUNT\\(*\\) FROM mg_embeddings;\")"
     ]
   }
 }
