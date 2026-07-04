@@ -39,6 +39,10 @@ _NUM = r"(\d{1,3}(?:[.,]\d{1,2})?)"          # 173, 95.5, 1,5 (euro style)
 
 
 def _f(x: str) -> float:
+    import re as _re
+    # "1,234" / "12,34,567" → thousands separators; "1,5" → euro decimal
+    if _re.fullmatch(r"\d{1,3}(,\d{2,3})+(\.\d+)?", x):
+        return float(x.replace(",", ""))
     return float(x.replace(",", "."))
 
 
@@ -76,6 +80,22 @@ _PATTERNS: list[tuple[str, re.Pattern, float, float]] = [
 
     ("capex_growth_pct", re.compile(
         rf"cap(?:ital\s+expenditure|ex)[^.%]{{0,60}}?(?:up|grew|growth|increase[d]?|higher|rose)\s*(?:by\s*)?{_NUM}\s*%", re.I), 5, 500),
+
+    # Absolute order-book values — the reconciliation anchor for integrity
+    # checks (percent claims that never tie to an absolute are a red flag).
+    ("orderbook_inr_cr", re.compile(
+        rf"order\s*(?:book|backlog|inflow|intake)[^.]{{0,60}}?"
+        rf"(?:₹|rs\.?|inr)\s*([\d,]+(?:\.\d+)?)\s*crore", re.I), 10, 10_000_000),
+    ("orderbook_inr_cr", re.compile(
+        rf"(?:₹|rs\.?|inr)\s*([\d,]+(?:\.\d+)?)\s*crore[^.]{{0,50}}?order\s*(?:book|backlog|inflow)", re.I), 10, 10_000_000),
+    ("orderbook_usd_bn", re.compile(
+        rf"(?:order\s*book|backlog)[^.]{{0,60}}?\$\s*([\d,]+(?:\.\d+)?)\s*billion", re.I), 0.1, 1000),
+    ("orderbook_usd_bn", re.compile(
+        rf"\$\s*([\d,]+(?:\.\d+)?)\s*billion[^.]{{0,50}}?(?:order\s*book|backlog)", re.I), 0.1, 1000),
+
+    # Revenue visibility in years — the DURATION of the constraint runway
+    ("backlog_years", re.compile(
+        rf"(?:revenue\s+visibility|order\s*book|backlog)[^.]{{0,60}}?{_NUM}\s*(?:\+\s*)?years?", re.I), 0.5, 15),
 ]
 
 

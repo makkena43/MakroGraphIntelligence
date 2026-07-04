@@ -1339,6 +1339,30 @@ UPSTREAM_COMPONENTS: dict[str, list[str]] = {
 }
 
 
+def _trim_to_sentence(text: str, max_len: int = 300) -> str:
+    """Clean quote edges: drop a leading word fragment (context windows often
+    start mid-word: 'ctors on both a regional...') and end on a sentence or
+    clause boundary instead of cutting mid-word."""
+    if not text:
+        return ""
+    t = text.strip()
+    # Leading fragment: first token isn't a real word start (lowercase start
+    # and the fragment is short) — drop through the first space.
+    first = t.split(" ", 1)
+    if len(first) == 2 and first[0] and first[0][0].islower() and len(first[0]) <= 4:
+        t = first[1].lstrip()
+    if len(t) > max_len:
+        cut = t[:max_len]
+        # Prefer sentence end, then clause break, then last full word
+        for sep in (". ", "; ", ", "):
+            pos = cut.rfind(sep)
+            if pos > max_len * 0.5:
+                return cut[:pos + 1].strip()
+        pos = cut.rfind(" ")
+        return (cut[:pos] + "…") if pos > 0 else cut
+    return t
+
+
 def _quality_quote(raw: str, max_len: int = 300) -> str:
     """Return the quote only if it contains real operational/supply language.
 
@@ -1564,11 +1588,122 @@ def _quality_quote(raw: str, max_len: int = 300) -> str:
         _OPERATIONAL_FALLBACK = [
             "backlog", "lead time", "capacity", "shortage",
             "constrain", "allocat", "capex", "capital expenditure",
+            # order-book vocabulary — how constrained suppliers express demand
+            "orders", "order book", "order inflow", "order intake",
+            "book-to-bill",
         ]
         if not any(w in lower for w in _OPERATIONAL_FALLBACK):
             return ""
 
     return text[:max_len]
+
+
+def _save_shortlist_snapshot(country: str, results: list[dict]) -> None:
+    """One row per company per run-day. Same-day reruns overwrite (idempotent)."""
+    pg = get_pg()
+    if pg is None or not results:
+        return
+    from datetime import date as _d
+    with pg._conn() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS mg_shortlist_snapshots (
+                id            BIGSERIAL PRIMARY KEY,
+                snapshot_date DATE        NOT NULL,
+                country       VARCHAR(4)  NOT NULL,
+                ticker        TEXT        NOT NULL,
+                company       TEXT,
+                stage         INT,
+                list_tier     TEXT,
+                trajectory    TEXT,
+                rank_score    DOUBLE PRECISION,
+                explosion_legs INT,
+                peer_corroboration INT,
+                exit_triggers TEXT[],
+                created_at    TIMESTAMPTZ DEFAULT now(),
+                UNIQUE (snapshot_date, country, ticker)
+            )""")
+        for r in results:
+            cur.execute(
+                """INSERT INTO mg_shortlist_snapshots
+                   (snapshot_date, country, ticker, company, stage, list_tier,
+                    trajectory, rank_score, explosion_legs, peer_corroboration,
+                    exit_triggers)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                   ON CONFLICT (snapshot_date, country, ticker) DO UPDATE SET
+                     stage=EXCLUDED.stage, list_tier=EXCLUDED.list_tier,
+                     trajectory=EXCLUDED.trajectory, rank_score=EXCLUDED.rank_score,
+                     explosion_legs=EXCLUDED.explosion_legs,
+                     peer_corroboration=EXCLUDED.peer_corroboration,
+                     exit_triggers=EXCLUDED.exit_triggers""",
+                (_d.today(), country, (r.get("ticker") or "").upper(),
+                 r.get("company"), r.get("constraint_stage"), r.get("list_tier"),
+                 r.get("trajectory"), r.get("rank_score"), r.get("explosion_legs"),
+                 r.get("peer_corroboration"), r.get("exit_triggers") or []),
+            )
+        conn.commit()
+
+
+@app.get("/api/changes-since-last-run")
+def get_changes_since_last_run(country: str = "US") -> dict:
+    """Diff the two most recent live-run snapshots: the weekly 'what changed'
+    feed — new entrants, dropped names, stage moves, conviction transitions,
+    fresh easing flags. This is what to read first every week.
+    """
+    pg = get_pg()
+    if pg is None:
+        raise HTTPException(status_code=503, detail="DB unavailable")
+    from psycopg2.extras import RealDictCursor
+    with pg._conn() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """SELECT DISTINCT snapshot_date FROM mg_shortlist_snapshots
+                   WHERE country=%s ORDER BY snapshot_date DESC LIMIT 2""",
+                (country,))
+            dates = [r["snapshot_date"] for r in cur.fetchall()]
+            if not dates:
+                return {"country": country, "runs_available": 0}
+            cur.execute(
+                "SELECT * FROM mg_shortlist_snapshots WHERE country=%s AND snapshot_date=%s",
+                (country, dates[0]))
+            now_rows = {r["ticker"]: dict(r) for r in cur.fetchall()}
+            prev_rows: dict = {}
+            if len(dates) > 1:
+                cur.execute(
+                    "SELECT * FROM mg_shortlist_snapshots WHERE country=%s AND snapshot_date=%s",
+                    (country, dates[1]))
+                prev_rows = {r["ticker"]: dict(r) for r in cur.fetchall()}
+
+    def _slim(r):
+        return {k: (str(v) if k == "snapshot_date" else v) for k, v in r.items()
+                if k in ("ticker","company","stage","list_tier","rank_score","trajectory")}
+
+    new_entrants = [_slim(r) for t, r in now_rows.items() if t not in prev_rows]
+    dropped      = [_slim(r) for t, r in prev_rows.items() if t not in now_rows]
+    stage_moves, tier_moves, new_easing = [], [], []
+    for t, r in now_rows.items():
+        p = prev_rows.get(t)
+        if not p:
+            continue
+        if r["stage"] != p["stage"]:
+            stage_moves.append({**_slim(r), "from_stage": p["stage"], "to_stage": r["stage"]})
+        if r["list_tier"] != p["list_tier"]:
+            tier_moves.append({**_slim(r), "from_tier": p["list_tier"], "to_tier": r["list_tier"]})
+        if ("easing_language_watch" in (r.get("exit_triggers") or [])
+                and "easing_language_watch" not in (p.get("exit_triggers") or [])):
+            new_easing.append(_slim(r))
+
+    return {
+        "country": country,
+        "runs_available": len(dates),
+        "current_run": str(dates[0]),
+        "previous_run": str(dates[1]) if len(dates) > 1 else None,
+        "new_entrants": new_entrants,
+        "dropped": dropped,
+        "stage_moves": stage_moves,
+        "tier_moves": tier_moves,
+        "new_easing_flags": new_easing,
+    }
 
 
 @app.get("/api/fundamental-calibration")
@@ -1680,12 +1815,13 @@ def get_investment_final_shortlist(
 
         actionable_slugs = [t["theme_slug"] for t in stage1_out if t["theme_slug"]]
 
+        # No theme snapshots in this window (common for LIVE runs before the
+        # theme stage has processed the latest months) is NOT fatal: company
+        # discovery is signal-primary (Stage 2). Themes are enrichment — the
+        # shortlist proceeds with blank theme fields rather than going dark.
         if not actionable_slugs:
-            return {
-                "year": yr, "country": country,
-                "stats": {"stage1_themes": 0},
-                "stages": [], "final_shortlist": [],
-            }
+            logging.info("final-shortlist %s/%s: no active themes in window — "
+                         "continuing signal-only", country, yr)
 
         # ─── Stage 2: Discover companies FROM SIGNALS (year-specific) ─────────
         # PRIMARY SOURCE: mg_signals.document_id → mg_documents.filed_at
@@ -1871,11 +2007,47 @@ def get_investment_final_shortlist(
                 for name, meta in co_meta.items():
                     raw_q = meta.get("best_quote", "")
                     filtered_q = _quality_quote(raw_q)
-                    meta["best_quote"] = filtered_q
+                    meta["best_quote"] = _trim_to_sentence(filtered_q)
                     # If the best quote is boilerplate, clear the quote but DO NOT zero
                     # c_count — the company may have other valid signals. The HAVING clause
                     # in SQL already screened for >= N seller signals; if best_quote is
                     # bad it's a display issue, not evidence of zero real signals.
+
+                # Quote FALLBACK: the SQL picked exactly one candidate per
+                # company (highest confidence); if _quality_quote rejected it,
+                # try the next-best texts instead of showing an empty evidence
+                # box — the quote is what the human verifies before investing.
+                _no_quote = [n for n, m in co_meta.items() if not m.get("best_quote")]
+                if _no_quote:
+                    _nq_tickers = [
+                        (co_meta[n].get("ticker") or "").upper() for n in _no_quote
+                        if co_meta[n].get("ticker")
+                    ]
+                    if _nq_tickers:
+                        cur.execute(
+                            f"""SELECT UPPER(TRIM(d.ticker)) AS tk, s.context_text,
+                                       s.confidence
+                                FROM mg_signals s
+                                JOIN mg_documents d ON d.id = s.document_id
+                                WHERE d.country = %s
+                                  AND d.filed_at BETWEEN %s AND %s
+                                  AND UPPER(TRIM(d.ticker)) = ANY(%s)
+                                  AND ({_CPRED} OR {_DS_SELLER})
+                                  AND s.context_text IS NOT NULL
+                                  AND LENGTH(s.context_text) > 60
+                                ORDER BY s.confidence DESC""",
+                            (country, from_d, to_d, _nq_tickers)
+                        )
+                        _cand: dict[str, list] = {}
+                        for r in cur.fetchall():
+                            _cand.setdefault(r["tk"], []).append(r["context_text"])
+                        for n in _no_quote:
+                            tk = (co_meta[n].get("ticker") or "").upper()
+                            for txt in _cand.get(tk, [])[:8]:
+                                q = _quality_quote(txt)
+                                if q:
+                                    co_meta[n]["best_quote"] = _trim_to_sentence(q)
+                                    break
 
                 _BLOCKED_SECTORS = frozenset({
                     "retail", "consumer_goods", "food", "beverage", "restaurant",
@@ -1911,7 +2083,23 @@ def get_investment_final_shortlist(
                     logging.warning("Sector gate failed: %s", _se)
 
                 if not co_meta:
+                    # Distinguish "no opportunities" from "no data": report how
+                    # fresh the signal extraction actually is so a stale
+                    # pipeline is visible instead of looking like a quiet market.
+                    cur.execute(
+                        """SELECT MAX(d.filed_at)::date AS latest FROM mg_signals s
+                           JOIN mg_documents d ON d.id = s.document_id
+                           WHERE d.country = %s""", (country,))
+                    _fr = cur.fetchone()
+                    _latest = str((_fr or {}).get("latest") or "")
                     return {"year": yr, "country": country,
+                            "period": f"{from_d} → {to_d}",
+                            "latest_signal_date": _latest,
+                            "data_note": (
+                                f"No signals in window; latest extracted signal is {_latest}. "
+                                "Run the NLP stage on newer filings."
+                                if _latest and str(_latest) < str(from_d) else ""
+                            ),
                             "stats": {"stage1_themes": len(stage1_out),
                                       "stage2_signal_companies": 0},
                             "stages": stage1_out, "final_shortlist": []}
@@ -2164,6 +2352,27 @@ def get_investment_final_shortlist(
                     "confirmed_by_peers": _family_counts.get(_dom, 0),
                     "early_candidates":   [t for t in _early if t],
                 })
+
+        # ─── Stage 4.6: Integrity pre-computation ────────────────────────────
+        # Language-only checks (no prices): these never disqualify a company,
+        # they surface a ⚠ telling the human where to dig before trusting the
+        # narrative. Calibrated against the candidate pool itself, so they are
+        # country- and year-relative, never absolute or hardcoded.
+        _PROMO_WORDS = (
+            "robust", "strong", "exceptional", "outstanding", "landmark",
+            "milestone", "best-ever", "best ever", "record ", "unprecedented",
+            "phenomenal", "stellar", "remarkable", "extraordinary",
+            "transformational", "marquee", "prestigious",
+        )
+        _CURRENCY_MARKS = ("₹", "rs.", "rs ", " crore", " lakh", "$", " million",
+                           " billion", "inr ", "usd ", " cr ", " mn ", " bn ")
+        _promo_density: dict[str, float] = {}
+        for _nm, _m in co_meta.items():
+            _blob = _m.get("ctx_blob","") or ""
+            _wc = max(len(_blob.split()), 1)
+            _promo_density[_nm] = sum(_blob.count(w) for w in _PROMO_WORDS) / _wc * 1000
+        _pd_vals = sorted(_promo_density.values())
+        _pd_median = _pd_vals[len(_pd_vals)//2] if _pd_vals else 0.0
 
         # ─── Stage 5: Score and rank ─────────────────────────────────────────
         FOCUS_SCORE = {"new":1.0,"escalating":0.9,"no_prior":0.6,"persistent":0.3}
@@ -2576,6 +2785,25 @@ def get_investment_final_shortlist(
                 "detection_path":        meta.get("detection_path", "hard_constraint"),
                 "competitor_constrained": comp_constrained,
                 "supply_easing_signals": easing_count,
+                # Integrity flags (language-only, human-verification pointers):
+                #   promotional_language — superlative density far above the
+                #     candidate-pool median (promotion-heavy communication)
+                #   unverified_narrative — demand-led story with ZERO peers
+                #     seeing the same domain constrained (nobody corroborates)
+                #   percent_only_claims — growth percentages announced but no
+                #     absolute figures anywhere (percentages don't reconcile)
+                "integrity_flags": [
+                    f for f, cond in (
+                        ("promotional_language",
+                         _pd_median > 0 and _promo_density.get(name, 0) > 2.5 * _pd_median
+                         and _promo_density.get(name, 0) > 2.0),
+                        ("unverified_narrative",
+                         meta.get("detection_path") == "demand_led" and peer_corr == 0),
+                        ("percent_only_claims",
+                         bool(_og) and not any(
+                             cm in (meta.get("ctx_blob","") or "") for cm in _CURRENCY_MARKS)),
+                    ) if cond
+                ],
                 # Selectivity: the conviction bar is set from MEASURED hit rates
                 # (mg_fundamental_eval): peer corroboration 5+ confirmed 39% vs
                 # 17% below it; top score band confirmed 50%; early trajectory
@@ -2614,6 +2842,15 @@ def get_investment_final_shortlist(
             "stage4_qualify":         len(results),
             "final_count":            min(len(results), 50),
         }
+
+        # Persist a run snapshot for LIVE runs only (current year / no year):
+        # the diff between consecutive snapshots is the weekly "what changed"
+        # feed. Historical-year queries are backtests, not runs — not stored.
+        if year is None or yr >= date.today().year:
+            try:
+                _save_shortlist_snapshot(country, results[:50])
+            except Exception as _se:
+                logging.warning("snapshot save failed: %s", _se)
 
         return {
             "year":            yr,

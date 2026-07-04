@@ -53,10 +53,43 @@ CREATE TABLE IF NOT EXISTS mg_fundamental_eval (
     next_easing      INT,
     next_order_growth DOUBLE PRECISION,
     outcome          TEXT,       -- confirmed | partial | decayed | no_filings
+    variant_flags    JSONB,      -- shadow gate variants evaluated at detection time
     evaluated_at     TIMESTAMPTZ DEFAULT now(),
     UNIQUE (country, detection_year, ticker)
 );
+ALTER TABLE mg_fundamental_eval ADD COLUMN IF NOT EXISTS variant_flags JSONB;
 """
+
+
+def shadow_variants(det: dict) -> dict:
+    """Candidate selection gates evaluated in SHADOW — never in production.
+
+    Each variant is a boolean computed from detection-time fields. The report
+    compares their confirmed/decayed rates against the incumbent explosion
+    flag; a variant is only promoted to production when it beats the incumbent
+    on BOTH. This is how the scorer evolves without abrupt changes.
+    """
+    legs  = int(det.get("explosion_legs") or 0)
+    corr  = int(det.get("peer_corroboration") or 0)
+    traj  = det.get("trajectory") or ""
+    og    = float(det.get("order_growth_pct") or 0)
+    ut    = float(det.get("utilization_pct") or 0)
+    score = float(det.get("rank_score") or 0)
+    exp   = bool(det.get("explosion_potential"))
+    return {
+        # incumbent, for side-by-side comparison
+        "incumbent_explosion": exp,
+        # demand leg must be QUANTIFIED, not just counted
+        "v_quant_demand": legs >= 3 and (og >= 25 or ut >= 90),
+        # explosion + independent confirmation
+        "v_corr_explosion": exp and corr >= 5,
+        # the production conviction gate (tracks its own hit rate over time)
+        "v_conviction": det.get("list_tier") == "conviction",
+        # early trajectory + quantified intensity, ignore legs entirely
+        "v_early_intense": traj in ("new", "rising") and (og >= 25 or ut >= 90),
+        # pure score bar
+        "v_score90": score >= 90,
+    }
 
 OUTCOME_SQL_TEMPLATE = """
 SELECT UPPER(TRIM(d.ticker)) AS tk,
@@ -152,25 +185,29 @@ def run(country: str, years: list[int], apply: bool = True) -> list[dict]:
                     "next_easing": int((nxt or {}).get("next_easing") or 0),
                     "next_order_growth": float((nxt or {}).get("next_og") or 0),
                     "outcome": outcome,
+                    "variant_flags": shadow_variants(det),
                 }
                 rows_out.append(row)
                 if apply:
+                    import json as _json
+                    row = {**row, "variant_flags": _json.dumps(row["variant_flags"])}
                     cur.execute(
                         """INSERT INTO mg_fundamental_eval
                            (country, detection_year, outcome_year, ticker, company,
                             stage, detection_path, trajectory, rank_score,
                             explosion_legs, explosion, peer_corroboration, c_count,
                             next_c_count, next_ds_seller, next_pricing, next_capex,
-                            next_easing, next_order_growth, outcome)
+                            next_easing, next_order_growth, outcome, variant_flags)
                            VALUES (%(country)s,%(detection_year)s,%(outcome_year)s,
                                    %(ticker)s,%(company)s,%(stage)s,%(detection_path)s,
                                    %(trajectory)s,%(rank_score)s,%(explosion_legs)s,
                                    %(explosion)s,%(peer_corroboration)s,%(c_count)s,
                                    %(next_c_count)s,%(next_ds_seller)s,%(next_pricing)s,
                                    %(next_capex)s,%(next_easing)s,%(next_order_growth)s,
-                                   %(outcome)s)
+                                   %(outcome)s,%(variant_flags)s)
                            ON CONFLICT (country, detection_year, ticker)
                            DO UPDATE SET outcome = EXCLUDED.outcome,
+                                         variant_flags = EXCLUDED.variant_flags,
                                          next_c_count = EXCLUDED.next_c_count,
                                          next_ds_seller = EXCLUDED.next_ds_seller,
                                          next_pricing = EXCLUDED.next_pricing,
@@ -219,6 +256,21 @@ def report(rows: list[dict]) -> str:
            "score band")
     _table(lambda r: f"corr {'0' if not r['peer_corroboration'] else '1-4' if r['peer_corroboration']<5 else '5+'}",
            "peer corroboration")
+
+    # Shadow-variant scoreboard: each candidate gate vs the incumbent.
+    # Promote a variant only when it beats incumbent on confirmed% AND decayed%.
+    vnames = sorted({k for r in graded for k in (r.get("variant_flags") or {})})
+    if vnames:
+        lines.append("\n-- shadow variant scoreboard (selected subset only) --")
+        for v in vnames:
+            sel = [r for r in graded if (r.get("variant_flags") or {}).get(v)]
+            if not sel:
+                lines.append(f"  {v:<22} n=0")
+                continue
+            n = len(sel)
+            conf = sum(1 for r in sel if r["outcome"] == "confirmed") / n * 100
+            dec  = sum(1 for r in sel if r["outcome"] == "decayed") / n * 100
+            lines.append(f"  {v:<22} n={n:<4} confirmed={conf:5.1f}%  decayed={dec:5.1f}%")
     return "\n".join(lines)
 
 
