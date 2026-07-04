@@ -1979,6 +1979,56 @@ def get_investment_final_shortlist(
                         else:
                             meta["first_ever_signal"] = str(fr["first_ever_c"] or "")
 
+                    # Shortlisted date: the day this company CROSSED the
+                    # qualification thresholds inside the window — i.e. when a
+                    # weekly pipeline run would first have surfaced it.
+                    #   Path A: date of the Nth hard-constraint signal
+                    #   Path B: latest of (3rd order-demand, 1st capex, 1st pricing)
+                    #   Both gated by the 3rd signal-bearing filing.
+                    cur.execute(
+                        f"""SELECT UPPER(TRIM(d.ticker)) AS tk,
+                                   d.filed_at::date AS dt,
+                                   d.id AS doc_id,
+                                   ({_CPRED})     AS is_c,
+                                   ({_DS_SELLER}) AS is_ds,
+                                   (s.signal_type = 'capex_increase') AS is_k,
+                                   (s.signal_type IN ('realized_margin_expansion',
+                                                      'pricing_power_emerging')) AS is_p
+                            FROM mg_signals s
+                            JOIN mg_documents d ON d.id = s.document_id
+                            WHERE d.country = %s
+                              AND d.filed_at BETWEEN %s AND %s
+                              AND UPPER(TRIM(d.ticker)) = ANY(%s)
+                            ORDER BY d.filed_at""",
+                        (country, from_d, to_d, tickers_for_delta)
+                    )
+                    _tl: dict[str, dict] = {}
+                    for r in cur.fetchall():
+                        t = _tl.setdefault(r["tk"], {"c": [], "ds": [], "k": [], "p": [], "docs": {}})
+                        if r["is_c"]:  t["c"].append(r["dt"])
+                        if r["is_ds"]: t["ds"].append(r["dt"])
+                        if r["is_k"]:  t["k"].append(r["dt"])
+                        if r["is_p"]:  t["p"].append(r["dt"])
+                        if r["doc_id"] not in t["docs"]:
+                            t["docs"][r["doc_id"]] = r["dt"]
+                    for nm, meta in co_meta.items():
+                        tk = (meta.get("ticker") or "").upper()
+                        t = _tl.get(tk)
+                        if not t:
+                            meta["shortlisted_date"] = ""
+                            continue
+                        n = max(int(min_constraint_signals), 1)
+                        path_a = t["c"][n - 1] if len(t["c"]) >= n else None
+                        path_b = (max(t["ds"][2], t["k"][0], t["p"][0])
+                                  if len(t["ds"]) >= 3 and t["k"] and t["p"] else None)
+                        qual = min((d for d in (path_a, path_b) if d), default=None)
+                        doc_dates = sorted(t["docs"].values())
+                        doc_gate = doc_dates[2] if len(doc_dates) >= 3 else None
+                        if qual and doc_gate:
+                            meta["shortlisted_date"] = str(max(qual, doc_gate))
+                        else:
+                            meta["shortlisted_date"] = str(qual or "")
+
                 # 2b. Resolve theme IDs — prefer SPECIFIC themes (≤40 companies).
                 # Generic catch-alls like "Materials: Constraint from Cloud Demand"
                 # with 138 companies tell us nothing useful about a specific company.
@@ -2519,6 +2569,7 @@ def get_investment_final_shortlist(
                 "has_supply_easing":     has_supply_easing,
                 "first_signal_date":     meta.get("first_ever_signal", "") or meta.get("first_filing", ""),
                 "last_signal_date":      meta.get("last_filing", ""),
+                "shortlisted_date":      meta.get("shortlisted_date", ""),
                 "trajectory":            trajectory,
                 "explosion_potential":   explosion_potential,
                 "explosion_legs":        explosion_score,   # 0-4 of the thesis chain lit

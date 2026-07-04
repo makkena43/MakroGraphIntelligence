@@ -128,7 +128,8 @@ function StockCard({ s, defaultOpen }: { s: Record<string, unknown>; defaultOpen
             <span>Stage confidence: <strong className="text-slate-300">{(stageConf*100).toFixed(0)}%</strong></span>
             <span>Signal confidence: <strong className="text-slate-300">{(conf*100).toFixed(0)}%</strong></span>
             <span>Multi-theme: <strong className="text-slate-300">{themes.length}</strong></span>
-            {firstDate && <span>First detected: <strong className="text-green-400">{firstDate}</strong></span>}
+            {firstDate && <span>First signal: <strong className="text-green-400">{firstDate}</strong></span>}
+            {Boolean(s.shortlisted_date) && <span>Shortlisted: <strong className="text-red-300">{String(s.shortlisted_date)}</strong></span>}
             {lastDate  && <span>Last signal: <strong className="text-slate-300">{lastDate}</strong></span>}
             <span>Thesis legs: <strong className={explosionLegs === 4 ? 'text-red-400' : 'text-slate-300'}>{explosionLegs}/4</strong></span>
             {Number(s.peer_corroboration ?? 0) > 0 && <span>Peer confirms: <strong className="text-cyan-400">{String(s.peer_corroboration)}</strong></span>}
