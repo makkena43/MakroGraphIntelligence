@@ -7558,6 +7558,109 @@ async def run_pipeline(body: PipelineRunBody):
 # PRICE DATA  (NSE/BSE bhavcopy + screener fundamentals + sector master)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def _ensure_deal_tables(cur) -> None:
+    """Create bulk-deal / block-deal / insider-trade tables (NSE + BSE) if
+    they don't already exist.  Schema mirrors the Algo_Test source tables;
+    ``id`` is copied verbatim from the source so re-running the copy is
+    idempotent (ON CONFLICT (id) DO NOTHING).
+    """
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS nse_bulk_deals (
+            id           BIGINT PRIMARY KEY,
+            trade_date   DATE NOT NULL,
+            symbol       VARCHAR(30),
+            security_name VARCHAR(200),
+            client_name  VARCHAR(300),
+            buy_sell     VARCHAR(10),
+            quantity     NUMERIC(20, 2),
+            trade_price  NUMERIC(14, 2),
+            remarks      VARCHAR(500),
+            created_at   TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_nse_bulk_deals_symbol ON nse_bulk_deals (symbol);
+        CREATE INDEX IF NOT EXISTS idx_nse_bulk_deals_date ON nse_bulk_deals (trade_date);
+
+        CREATE TABLE IF NOT EXISTS bse_bulk_deals (
+            id           BIGINT PRIMARY KEY,
+            trade_date   DATE NOT NULL,
+            symbol       VARCHAR(30),
+            security_name VARCHAR(200),
+            client_name  VARCHAR(300),
+            buy_sell     VARCHAR(10),
+            quantity     NUMERIC(20, 2),
+            trade_price  NUMERIC(14, 2),
+            remarks      VARCHAR(500),
+            created_at   TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_bse_bulk_deals_symbol ON bse_bulk_deals (symbol);
+        CREATE INDEX IF NOT EXISTS idx_bse_bulk_deals_date ON bse_bulk_deals (trade_date);
+
+        CREATE TABLE IF NOT EXISTS nse_block_deals (
+            id           BIGINT PRIMARY KEY,
+            trade_date   DATE NOT NULL,
+            symbol       VARCHAR(30),
+            security_name VARCHAR(200),
+            client_name  VARCHAR(300),
+            buy_sell     VARCHAR(10),
+            quantity     NUMERIC(20, 2),
+            trade_price  NUMERIC(14, 2),
+            remarks      VARCHAR(500),
+            created_at   TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_nse_block_deals_symbol ON nse_block_deals (symbol);
+        CREATE INDEX IF NOT EXISTS idx_nse_block_deals_date ON nse_block_deals (trade_date);
+
+        CREATE TABLE IF NOT EXISTS bse_block_deals (
+            id           BIGINT PRIMARY KEY,
+            trade_date   DATE NOT NULL,
+            symbol       VARCHAR(30),
+            security_name VARCHAR(200),
+            client_name  VARCHAR(300),
+            buy_sell     VARCHAR(10),
+            quantity     NUMERIC(20, 2),
+            trade_price  NUMERIC(14, 2),
+            remarks      VARCHAR(500),
+            created_at   TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_bse_block_deals_symbol ON bse_block_deals (symbol);
+        CREATE INDEX IF NOT EXISTS idx_bse_block_deals_date ON bse_block_deals (trade_date);
+
+        CREATE TABLE IF NOT EXISTS nse_insider_trades (
+            id           BIGINT PRIMARY KEY,
+            trade_date   DATE,
+            symbol       VARCHAR(30),
+            security_name VARCHAR(200),
+            insider_name VARCHAR(300),
+            designation  VARCHAR(200),
+            transaction_type VARCHAR(50),
+            quantity     NUMERIC(20, 2),
+            value_traded NUMERIC(20, 2),
+            post_transaction_holdings   NUMERIC(20, 2),
+            post_transaction_percentage NUMERIC(10, 4),
+            created_at   TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_nse_insider_symbol ON nse_insider_trades (symbol);
+        CREATE INDEX IF NOT EXISTS idx_nse_insider_date ON nse_insider_trades (trade_date);
+
+        CREATE TABLE IF NOT EXISTS bse_insider_trades (
+            id           BIGINT PRIMARY KEY,
+            trade_date   DATE,
+            symbol       VARCHAR(30),
+            security_name VARCHAR(200),
+            insider_name VARCHAR(300),
+            designation  VARCHAR(200),
+            transaction_type VARCHAR(50),
+            quantity     NUMERIC(20, 2),
+            value_traded NUMERIC(20, 2),
+            post_transaction_holdings   BIGINT,
+            post_transaction_percentage NUMERIC(10, 4),
+            created_at   TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_bse_insider_symbol ON bse_insider_trades (symbol);
+        CREATE INDEX IF NOT EXISTS idx_bse_insider_date ON bse_insider_trades (trade_date);
+    """)
+
+
 def _price_pg_config() -> dict:
     pg = CFG.get("postgresql", {})
     return {
@@ -7614,6 +7717,25 @@ async def price_data_status():
                 }
             else:
                 result["sector_master"] = {"exists": False, "row_count": 0, "last_updated": None}
+
+            deal_tables = [
+                ("nse_bulk_deals", "nse_bulk"), ("bse_bulk_deals", "bse_bulk"),
+                ("nse_block_deals", "nse_block"), ("bse_block_deals", "bse_block"),
+                ("nse_insider_trades", "nse_insider"), ("bse_insider_trades", "bse_insider"),
+            ]
+            for table, key in deal_tables:
+                cur.execute("SELECT to_regclass(%s)", (f"public.{table}",))
+                if cur.fetchone()[0] is None:
+                    result[key] = {"exists": False, "min_date": None, "max_date": None, "row_count": 0}
+                    continue
+                cur.execute(f"SELECT MIN(trade_date), MAX(trade_date), COUNT(*) FROM {table}")
+                min_d, max_d, count = cur.fetchone()
+                result[key] = {
+                    "exists": True,
+                    "min_date": min_d.isoformat() if min_d else None,
+                    "max_date": max_d.isoformat() if max_d else None,
+                    "row_count": count,
+                }
         conn.close()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -7629,6 +7751,125 @@ def _safe_float(v) -> float | None:
     if math.isnan(f) or math.isinf(f):
         return None
     return f
+
+
+@app.get("/api/price-data/deals")
+async def price_data_deals(
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    deal_type: str = Query("all"),      # "bulk" | "block" | "insider" | "all"
+    exchange: str = Query("both"),      # "nse" | "bse" | "both"
+    symbol: str | None = Query(None),
+    limit: int = Query(200),
+):
+    """Query bulk-deal / block-deal / insider-trade rows (migrated from
+    Algo_Test) filtered by date range, deal type, exchange, and optional
+    symbol.  Rows are unioned across matching tables, sorted by trade_date
+    descending.
+    """
+    pg_cfg = _price_pg_config()
+    start_d = date.fromisoformat(start_date)
+    end_d = date.fromisoformat(end_date)
+
+    type_table_map = {
+        "bulk":    {"nse": "nse_bulk_deals", "bse": "bse_bulk_deals"},
+        "block":   {"nse": "nse_block_deals", "bse": "bse_block_deals"},
+        "insider": {"nse": "nse_insider_trades", "bse": "bse_insider_trades"},
+    }
+    types = list(type_table_map.keys()) if deal_type == "all" else [deal_type]
+    if any(t not in type_table_map for t in types):
+        raise HTTPException(status_code=400, detail="deal_type must be 'bulk', 'block', 'insider', or 'all'")
+    exchanges = ["nse", "bse"] if exchange == "both" else [exchange]
+    if any(ex not in ("nse", "bse") for ex in exchanges):
+        raise HTTPException(status_code=400, detail="exchange must be 'nse', 'bse', or 'both'")
+
+    rows_out: list[dict] = []
+    try:
+        conn = psycopg2.connect(**pg_cfg)
+        with conn.cursor() as cur:
+            for t in types:
+                for ex in exchanges:
+                    table = type_table_map[t][ex]
+                    cur.execute("SELECT to_regclass(%s)", (f"public.{table}",))
+                    if cur.fetchone()[0] is None:
+                        continue
+                    sym_filter = " AND symbol = %s" if symbol else ""
+                    params: tuple = (start_d, end_d) + ((symbol.upper(),) if symbol else ())
+                    if t == "insider":
+                        cur.execute(
+                            f"""
+                            SELECT trade_date, symbol, security_name, insider_name, designation,
+                                   transaction_type, quantity, value_traded,
+                                   post_transaction_holdings, post_transaction_percentage
+                            FROM {table}
+                            WHERE trade_date BETWEEN %s AND %s{sym_filter}
+                            ORDER BY trade_date DESC
+                            LIMIT {limit}
+                            """,
+                            params,
+                        )
+                        for (trade_date, sym, sec_name, insider_name, designation,
+                             txn_type, qty, value_traded, post_hold, post_pct) in cur.fetchall():
+                            rows_out.append({
+                                "deal_type": "insider",
+                                "exchange": ex.upper(),
+                                "trade_date": trade_date.isoformat() if trade_date else None,
+                                "symbol": sym,
+                                "security_name": sec_name,
+                                "party_name": insider_name,
+                                "designation": designation,
+                                "buy_sell": txn_type,
+                                "quantity": _safe_float(qty),
+                                "trade_price": None,
+                                "value_traded": _safe_float(value_traded),
+                                "post_transaction_holdings": _safe_float(post_hold),
+                                "post_transaction_percentage": _safe_float(post_pct),
+                                "remarks": None,
+                            })
+                    else:
+                        cur.execute(
+                            f"""
+                            SELECT trade_date, symbol, security_name, client_name, buy_sell,
+                                   quantity, trade_price, remarks
+                            FROM {table}
+                            WHERE trade_date BETWEEN %s AND %s{sym_filter}
+                            ORDER BY trade_date DESC
+                            LIMIT {limit}
+                            """,
+                            params,
+                        )
+                        for (trade_date, sym, sec_name, client_name, buy_sell,
+                             qty, trade_price, remarks) in cur.fetchall():
+                            rows_out.append({
+                                "deal_type": t,
+                                "exchange": ex.upper(),
+                                "trade_date": trade_date.isoformat() if trade_date else None,
+                                "symbol": sym,
+                                "security_name": sec_name,
+                                "party_name": client_name,
+                                "designation": None,
+                                "buy_sell": buy_sell,
+                                "quantity": _safe_float(qty),
+                                "trade_price": _safe_float(trade_price),
+                                "value_traded": None,
+                                "post_transaction_holdings": None,
+                                "post_transaction_percentage": None,
+                                "remarks": remarks,
+                            })
+        conn.close()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    rows_out.sort(key=lambda r: r["trade_date"] or "", reverse=True)
+    return {
+        "start_date": start_date,
+        "end_date": end_date,
+        "deal_type": deal_type,
+        "exchange": exchange,
+        "count": len(rows_out[:limit]),
+        "total_matches": len(rows_out),
+        "results": rows_out[:limit],
+    }
 
 
 @app.get("/api/price-data/high-volume")
@@ -7778,12 +8019,14 @@ async def price_data_stock_volume(
 
 
 class PriceDataRunBody(BaseModel):
-    mode: str                       # "daily" | "historical" | "copy-from-algo" | "fundamentals" | "sector-master"
+    mode: str                       # "daily" | "historical" | "copy-from-algo" | "bulk-deals" | "block-deals" | "insider-trades" | "fundamentals" | "sector-master"
     exchange: str = "both"          # "nse" | "bse" | "both"
     start_date: str | None = None
     end_date: str | None = None
     days_back: int = 5
     symbols: list[str] = []
+    source: str = "algo"            # "algo" (copy from Algo_Test DB) | "live" (fetch directly from NSE/BSE)
+    period: str = "1W"              # live-fetch window: "1D" | "1W" | "1M" | "3M" | "6M" | "1Y"
 
 
 @app.post("/api/price-data/run")
@@ -7844,6 +8087,13 @@ async def run_price_data(body: PriceDataRunBody):
                 NSEPriceFetcher(pg_cfg).ensure_table()
                 BSEPriceFetcher(pg_cfg).ensure_table()
                 ScreenerFundamentalsFetcher(pg_cfg).ensure_table()
+                dst_setup_conn = psycopg2.connect(**pg_cfg)
+                try:
+                    with dst_setup_conn.cursor() as _setup_cur:
+                        _ensure_deal_tables(_setup_cur)
+                    dst_setup_conn.commit()
+                finally:
+                    dst_setup_conn.close()
 
                 date_filter_sql = ""
                 date_filter_params: tuple = ()
@@ -7863,7 +8113,10 @@ async def run_price_data(body: PriceDataRunBody):
                             SELECT table_name FROM information_schema.tables
                             WHERE table_schema = 'public'
                               AND table_name IN ('nse_bhavcopy_data', 'bse_bhavcopy_data',
-                                                 'fundamentals_snapshot')
+                                                 'fundamentals_snapshot',
+                                                 'nse_bulk_deals', 'bse_bulk_deals',
+                                                 'nse_block_deals', 'bse_block_deals',
+                                                 'nse_insider_trades', 'bse_insider_trades')
                         """)
                         available = {r[0] for r in cur.fetchall()}
 
@@ -7915,7 +8168,135 @@ async def run_price_data(body: PriceDataRunBody):
                             "peer_comparison_json", "price_data_json",
                         ] if c in src_cols]
                         _copy("fundamentals_snapshot", fund_cols)
+
+                    deal_cols = ["id", "trade_date", "symbol", "security_name", "client_name",
+                                 "buy_sell", "quantity", "trade_price", "remarks", "created_at"]
+                    insider_cols = ["id", "trade_date", "symbol", "security_name", "insider_name",
+                                     "designation", "transaction_type", "quantity", "value_traded",
+                                     "post_transaction_holdings", "post_transaction_percentage",
+                                     "created_at"]
+                    if body.exchange in ("nse", "both"):
+                        if "nse_bulk_deals" in available:
+                            _copy("nse_bulk_deals", deal_cols, date_filter_sql, date_filter_params)
+                        if "nse_block_deals" in available:
+                            _copy("nse_block_deals", deal_cols, date_filter_sql, date_filter_params)
+                        if "nse_insider_trades" in available:
+                            _copy("nse_insider_trades", insider_cols, date_filter_sql, date_filter_params)
+                    if body.exchange in ("bse", "both"):
+                        if "bse_bulk_deals" in available:
+                            _copy("bse_bulk_deals", deal_cols, date_filter_sql, date_filter_params)
+                        if "bse_block_deals" in available:
+                            _copy("bse_block_deals", deal_cols, date_filter_sql, date_filter_params)
+                        if "bse_insider_trades" in available:
+                            _copy("bse_insider_trades", insider_cols, date_filter_sql, date_filter_params)
+
                     logging.info("[DONE] Copy from Algo_Test complete")
+                finally:
+                    src_conn.close()
+                    dst_conn.close()
+
+            elif body.mode in ("bulk-deals", "block-deals", "insider-trades") and body.source == "live":
+                from makrograph.fetcher.nse_deals_fetcher import NSEDealsFetcher
+                from makrograph.fetcher.bse_deals_fetcher import BSEDealsFetcher
+
+                dst_setup_conn = psycopg2.connect(**pg_cfg)
+                try:
+                    with dst_setup_conn.cursor() as _setup_cur:
+                        _ensure_deal_tables(_setup_cur)
+                    dst_setup_conn.commit()
+                finally:
+                    dst_setup_conn.close()
+
+                fetch_method = {
+                    "bulk-deals": "fetch_bulk_deals",
+                    "block-deals": "fetch_block_deals",
+                    "insider-trades": "fetch_insider_trades",
+                }[body.mode]
+
+                if body.exchange in ("nse", "both"):
+                    logging.info(f"[nse_deals] Fetching {body.mode} live from NSE (period={body.period}) …")
+                    total = getattr(NSEDealsFetcher(pg_cfg), fetch_method)(body.period)
+                    logging.info(f"[DONE-NSE] {total} rows upserted")
+                if body.exchange in ("bse", "both"):
+                    logging.info(f"[bse_deals] Fetching {body.mode} live from BSE (period={body.period}) …")
+                    total = getattr(BSEDealsFetcher(pg_cfg), fetch_method)(body.period)
+                    logging.info(f"[DONE-BSE] {total} rows upserted")
+
+            elif body.mode in ("bulk-deals", "block-deals", "insider-trades"):
+                import psycopg2.extras as _pgx
+                algo_cfg = {
+                    "host": os.getenv("ALGO_TEST_PG_HOST", "localhost"),
+                    "port": int(os.getenv("ALGO_TEST_PG_PORT", "5432")),
+                    "dbname": os.getenv("ALGO_TEST_PG_DBNAME", "Algo_Test"),
+                    "user": os.getenv("ALGO_TEST_PG_USER", "postgres"),
+                    "password": os.getenv("ALGO_TEST_PG_PASSWORD", "mak43"),
+                }
+                dst_setup_conn = psycopg2.connect(**pg_cfg)
+                try:
+                    with dst_setup_conn.cursor() as _setup_cur:
+                        _ensure_deal_tables(_setup_cur)
+                    dst_setup_conn.commit()
+                finally:
+                    dst_setup_conn.close()
+
+                date_filter_sql = ""
+                date_filter_params: tuple = ()
+                if body.start_date:
+                    start_d = date.fromisoformat(body.start_date)
+                    end_d = date.fromisoformat(body.end_date) if body.end_date else date.today()
+                    date_filter_sql = " WHERE trade_date BETWEEN %s AND %s"
+                    date_filter_params = (start_d, end_d)
+                    logging.info(f"Filtering copy to trade_date range {start_d} → {end_d}")
+
+                table_suffix = {
+                    "bulk-deals": "bulk_deals",
+                    "block-deals": "block_deals",
+                    "insider-trades": "insider_trades",
+                }[body.mode]
+                deal_cols = ["id", "trade_date", "symbol", "security_name", "client_name",
+                             "buy_sell", "quantity", "trade_price", "remarks", "created_at"]
+                insider_cols = ["id", "trade_date", "symbol", "security_name", "insider_name",
+                                 "designation", "transaction_type", "quantity", "value_traded",
+                                 "post_transaction_holdings", "post_transaction_percentage",
+                                 "created_at"]
+                cols = insider_cols if body.mode == "insider-trades" else deal_cols
+
+                logging.info(f"Connecting to Algo_Test at {algo_cfg['host']}:{algo_cfg['port']}/{algo_cfg['dbname']}")
+                src_conn = psycopg2.connect(**algo_cfg)
+                dst_conn = psycopg2.connect(**pg_cfg)
+                try:
+                    with src_conn.cursor() as cur:
+                        cur.execute("""
+                            SELECT table_name FROM information_schema.tables
+                            WHERE table_schema = 'public'
+                              AND table_name IN (%s, %s)
+                        """, (f"nse_{table_suffix}", f"bse_{table_suffix}"))
+                        available = {r[0] for r in cur.fetchall()}
+
+                    def _copy(table, columns, filter_sql="", filter_params=()):
+                        cols_str = ", ".join(columns)
+                        with src_conn.cursor() as scur:
+                            scur.execute(f"SELECT {cols_str} FROM {table}{filter_sql}", filter_params)
+                            rows = scur.fetchall()
+                        if not rows:
+                            logging.info(f"  {table}: no rows in source")
+                            return 0
+                        with dst_conn.cursor() as dcur:
+                            _pgx.execute_values(
+                                dcur,
+                                f"INSERT INTO {table} ({cols_str}) VALUES %s ON CONFLICT DO NOTHING",
+                                rows, page_size=1000,
+                            )
+                        dst_conn.commit()
+                        logging.info(f"  {table}: copied {len(rows)} rows")
+                        return len(rows)
+
+                    if body.exchange in ("nse", "both") and f"nse_{table_suffix}" in available:
+                        _copy(f"nse_{table_suffix}", cols, date_filter_sql, date_filter_params)
+                    if body.exchange in ("bse", "both") and f"bse_{table_suffix}" in available:
+                        _copy(f"bse_{table_suffix}", cols, date_filter_sql, date_filter_params)
+
+                    logging.info(f"[DONE] {body.mode} copy from Algo_Test complete")
                 finally:
                     src_conn.close()
                     dst_conn.close()

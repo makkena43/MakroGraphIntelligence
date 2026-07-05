@@ -22,6 +22,7 @@ import CompanyDiveTab from './components/tabs/CompanyDiveTab'
 import SentimentBoardTab from './components/tabs/SentimentBoardTab'
 import PriceDataTab from './components/tabs/PriceDataTab'
 import HighVolumeTab from './components/tabs/HighVolumeTab'
+import DealsTab from './components/tabs/DealsTab'
 import BreakoutScannerTab from './components/tabs/BreakoutScannerTab'
 import WeeklyRitualTab from './components/tabs/WeeklyRitualTab'
 
@@ -47,6 +48,7 @@ const TABS = [
   { id: 'company',           label: '🏢 Company Explorer' },
   { id: 'price-data',        label: '📈 Price Data' },
   { id: 'high-volume',       label: '🔥 High Volume Days' },
+  { id: 'deals',             label: '🤝 Bulk/Block/Insider Deals' },
 ]
 
 export default function App() {
@@ -142,6 +144,7 @@ export default function App() {
           {activeTab === 'company'     && <CompanyTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'price-data'  && <PriceDataTab />}
           {activeTab === 'high-volume' && <HighVolumeTab />}
+          {activeTab === 'deals'       && <DealsTab />}
         </main>
       </div>
     </div>

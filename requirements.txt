@@ -85,9 +85,11 @@ nsepython>=2.9
 # NSE bhavcopy downloader (used by nse_price_fetcher for OHLCV + delivery data)
 nse>=2.0
 
-# Selenium (optional — only needed if screener.use_selenium: true)
+# Selenium (optional — only needed if screener.use_selenium: true, or for
+# live NSE/BSE bulk/block/insider-deal fetching)
 # Also requires ChromeDriver matching your Chrome version
 selenium>=4.20.0
+webdriver-manager>=4.0.0
 
 # Presentation parsing (investor decks, annual reports)
 python-pptx>=0.6.23

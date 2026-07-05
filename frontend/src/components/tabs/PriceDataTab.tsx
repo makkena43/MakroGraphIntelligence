@@ -16,7 +16,7 @@ function logLineClass(line: string): string {
   return 'text-slate-400'
 }
 
-type Mode = 'daily' | 'historical' | 'copy-from-algo' | 'fundamentals' | 'sector-master'
+type Mode = 'daily' | 'historical' | 'copy-from-algo' | 'bulk-deals' | 'block-deals' | 'insider-trades' | 'fundamentals' | 'sector-master'
 
 function StatusCard({ label, exists, minDate, maxDate, rowCount, lastUpdated }: {
   label: string; exists: boolean; minDate?: string | null; maxDate?: string | null
@@ -56,6 +56,8 @@ export default function PriceDataTab() {
   const [endDate, setEndDate] = useState(today)
   const [useDateRange, setUseDateRange] = useState(true)
   const [daysBack, setDaysBack] = useState(5)
+  const [dealSource, setDealSource] = useState<'algo' | 'live'>('algo')
+  const [period, setPeriod] = useState<'1D' | '1W' | '1M' | '3M' | '6M' | '1Y'>('1W')
   const [symbolsInput, setSymbolsInput] = useState('')
   const [running, setRunning] = useState(false)
   const [logs, setLogs] = useState<string[]>([])
@@ -79,6 +81,8 @@ export default function PriceDataTab() {
     navigator.clipboard.writeText(logs.join('\n'))
   }, [logs])
 
+  const isDealMode = mode === 'bulk-deals' || mode === 'block-deals' || mode === 'insider-trades'
+
   const runFetch = async () => {
     setLogs([])
     setDone(false)
@@ -86,7 +90,12 @@ export default function PriceDataTab() {
     sseBuffer.current = ''
     try {
       const body: Record<string, unknown> = { mode, exchange }
-      if (mode === 'historical' || (mode === 'copy-from-algo' && useDateRange)) {
+      if (isDealMode) {
+        body.source = dealSource
+        if (dealSource === 'live') body.period = period
+      }
+      if (mode === 'historical' ||
+        ((mode === 'copy-from-algo' || (isDealMode && dealSource === 'algo')) && useDateRange)) {
         body.start_date = startDate
         body.end_date = endDate
       }
@@ -138,6 +147,12 @@ export default function PriceDataTab() {
   const bse = s.bse ?? {}
   const fundamentals = s.fundamentals ?? {}
   const sectorMaster = s.sector_master ?? {}
+  const nseBulk = s.nse_bulk ?? {}
+  const bseBulk = s.bse_bulk ?? {}
+  const nseBlock = s.nse_block ?? {}
+  const bseBlock = s.bse_block ?? {}
+  const nseInsider = s.nse_insider ?? {}
+  const bseInsider = s.bse_insider ?? {}
 
   return (
     <div className="space-y-4">
@@ -159,22 +174,47 @@ export default function PriceDataTab() {
           lastUpdated={sectorMaster.last_updated as string} />
       </div>
 
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+        <StatusCard label="NSE Bulk Deals" exists={Boolean(nseBulk.exists)}
+          minDate={nseBulk.min_date as string} maxDate={nseBulk.max_date as string}
+          rowCount={Number(nseBulk.row_count ?? 0)} />
+        <StatusCard label="NSE Block Deals" exists={Boolean(nseBlock.exists)}
+          minDate={nseBlock.min_date as string} maxDate={nseBlock.max_date as string}
+          rowCount={Number(nseBlock.row_count ?? 0)} />
+        <StatusCard label="NSE Insider Trades" exists={Boolean(nseInsider.exists)}
+          minDate={nseInsider.min_date as string} maxDate={nseInsider.max_date as string}
+          rowCount={Number(nseInsider.row_count ?? 0)} />
+        <StatusCard label="BSE Bulk Deals" exists={Boolean(bseBulk.exists)}
+          minDate={bseBulk.min_date as string} maxDate={bseBulk.max_date as string}
+          rowCount={Number(bseBulk.row_count ?? 0)} />
+        <StatusCard label="BSE Block Deals" exists={Boolean(bseBlock.exists)}
+          minDate={bseBlock.min_date as string} maxDate={bseBlock.max_date as string}
+          rowCount={Number(bseBlock.row_count ?? 0)} />
+        <StatusCard label="BSE Insider Trades" exists={Boolean(bseInsider.exists)}
+          minDate={bseInsider.min_date as string} maxDate={bseInsider.max_date as string}
+          rowCount={Number(bseInsider.row_count ?? 0)} />
+      </div>
+
       <SectionHeader>Configure & Run</SectionHeader>
 
       {/* Mode selector */}
       <div>
         <label className="text-xs text-slate-400 mb-1 block">Mode</label>
         <select value={mode} onChange={e => setMode(e.target.value as Mode)} className="select w-full max-w-md">
-          <option value="copy-from-algo">Copy from Algo_Test DB (fast — direct PG-to-PG)</option>
+          <option value="copy-from-algo">Copy from Algo_Test DB (bhavcopy + fundamentals + bulk/block/insider deals)</option>
           <option value="historical">Historical fetch from NSE/BSE APIs (slow)</option>
           <option value="daily">Daily incremental fetch (last N days)</option>
+          <option value="bulk-deals">Bulk deals only (Algo_Test DB or live NSE/BSE)</option>
+          <option value="block-deals">Block deals only (Algo_Test DB or live NSE/BSE)</option>
+          <option value="insider-trades">Insider trades only (Algo_Test DB or live NSE/BSE)</option>
           <option value="fundamentals">Screener.in fundamentals (by symbol)</option>
           <option value="sector-master">Sector master (BSE downloads)</option>
         </select>
       </div>
 
       {/* Exchange selector */}
-      {(mode === 'copy-from-algo' || mode === 'historical' || mode === 'daily') && (
+      {(mode === 'copy-from-algo' || mode === 'historical' || mode === 'daily' ||
+        mode === 'bulk-deals' || mode === 'block-deals' || mode === 'insider-trades') && (
         <div className="flex gap-3">
           {(['both', 'nse', 'bse'] as const).map(ex => (
             <button
@@ -192,15 +232,59 @@ export default function PriceDataTab() {
         </div>
       )}
 
+      {/* Deal source selector — Algo_Test DB copy vs live NSE/BSE fetch */}
+      {isDealMode && (
+        <div>
+          <label className="text-xs text-slate-400 mb-1 block">Source</label>
+          <div className="flex gap-3">
+            {([
+              { key: 'algo', label: 'Copy from Algo_Test DB' },
+              { key: 'live', label: 'Fetch live from NSE/BSE' },
+            ] as const).map(opt => (
+              <button
+                key={opt.key}
+                onClick={() => setDealSource(opt.key)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  dealSource === opt.key
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Period selector — live NSE/BSE deal fetch */}
+      {isDealMode && dealSource === 'live' && (
+        <div>
+          <label className="text-xs text-slate-400 mb-1 block">Period</label>
+          <select value={period} onChange={e => setPeriod(e.target.value as typeof period)} className="select w-32">
+            <option value="1D">1 Day</option>
+            <option value="1W">1 Week</option>
+            <option value="1M">1 Month</option>
+            <option value="3M">3 Months</option>
+            <option value="6M">6 Months</option>
+            <option value="1Y">1 Year</option>
+          </select>
+          <p className="text-[11px] text-slate-500 mt-1">
+            Live fetch drives a headless browser against NSE/BSE — this can take 1-3 minutes per exchange.
+          </p>
+        </div>
+      )}
+
       {/* Date range — historical always, copy-from-algo optional */}
-      {mode === 'copy-from-algo' && (
+      {(mode === 'copy-from-algo' || (isDealMode && dealSource === 'algo')) && (
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={useDateRange} onChange={e => setUseDateRange(e.target.checked)}
             className="accent-indigo-500" />
           <span className="text-sm text-slate-300">Filter by trade date range (leave unchecked to copy all history)</span>
         </label>
       )}
-      {(mode === 'historical' || (mode === 'copy-from-algo' && useDateRange)) && (
+      {(mode === 'historical' ||
+        ((mode === 'copy-from-algo' || (isDealMode && dealSource === 'algo')) && useDateRange)) && (
         <div className="grid grid-cols-2 gap-3 max-w-md">
           <div>
             <label className="text-xs text-slate-400 mb-1 block">Start date</label>

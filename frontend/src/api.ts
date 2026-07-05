@@ -236,3 +236,11 @@ export const fetchStockVolumeHistory = (
   api.get('/price-data/stock-volume', {
     params: { symbol, start_date: startDate, end_date: endDate, exchange }
   }).then(r => r.data)
+
+export const fetchDeals = (
+  startDate: string, endDate: string, dealType = 'all', exchange = 'both',
+  symbol?: string, limit = 200
+) =>
+  api.get('/price-data/deals', {
+    params: { start_date: startDate, end_date: endDate, deal_type: dealType, exchange, symbol, limit }
+  }).then(r => r.data)
