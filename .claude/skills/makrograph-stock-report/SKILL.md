@@ -51,9 +51,19 @@ Write the analytical narratives:
    first appeared (`first_detected`, `first_seen_at`), current stage as of the report date
    (`stage_label`, `stage_history_asof`, `snapshots_asof` trend), and whether momentum is
    building or fading.
-2. **Constraints** — same treatment for `constraint_themes`, `capacity_gaps`,
-   `import_dependencies`, and `constrained_product` entries in `india_beneficiary_mappings`:
-   what is the bottleneck, since when, what stage now.
+2. **Constraints** — DETAILED treatment of `constraint_themes`, `capacity_gaps`,
+   `import_dependencies`, and `constrained_product` entries in `india_beneficiary_mappings`.
+   For each constraint write three parts:
+   - **What & since when**: the bottleneck, first-appeared date, current stage.
+   - **Why it is happening**: root-cause the demand side (govt capex, orders, tenders,
+     policy) vs the supply side (capacity limits, import dependence, qualification
+     barriers, lead times) using `constraint_evidence.evidence_quotes` — quote 2-3
+     dated extracts from actual filings and cite the doc (with link).
+   - **Authenticity check**: is the constraint corroborated by HARD signals (order
+     wins, capex commitments, tender pipelines recurring across multiple quarters —
+     see `constraint_evidence.signal_counts` first_seen→last_seen spans) or is it
+     narrative-only (few signals, single doc, no follow-through)? Give a verdict:
+     Authentic / Partially corroborated / Narrative-only.
 3. **Benefit verdict** — one clear paragraph: does this company actually benefit from these
    themes/constraints? Use `beneficiary_type`, `company_role`, `reasoning`, `rationale`,
    `has_order_book_signals`, `import_substitution_play`. Be direct — say "primary
@@ -89,7 +99,18 @@ Write the analytical narratives:
 11. **Corporate events** — from `corporate_events`: order wins, acquisitions, QIP/rights,
     capacity additions in the window — a short dated timeline of the material ones.
 12. **Policy tailwinds** — from `policy_events`: government policies touching the
-    company's themes, with dates and direction.
+    company's themes, with dates, direction, and `raw_url` rendered as clickable links.
+12b. **Key links & sources** — a dedicated section of clickable public links so the
+    reader can verify and read further (Chrome print-to-pdf keeps `<a href>` clickable):
+    - Concall documents: date + kind + link for every doc used in the concall section
+      (from `concalls[].url`) — transcripts, recordings, presentations.
+    - Latest investor presentations / annual reports (`key_links.filing_documents`).
+    - Policy source links (`policy_events[].raw_url`).
+    - Company pages (`key_links.company_pages`): Screener, NSE quote page, NSE
+      corporate announcements, NSE insider-trading page, Trendlyne, Tijori, BSE.
+    - Constraint evidence source docs (`constraint_evidence.evidence_quotes[].doc_url`).
+    Render links with a short human label (e.g., "Q1 FY24 transcript (NSE, 27-Jul-23)"),
+    never bare URLs longer than one line.
 13. **SUMMARY & RECOMMENDATION** (rendered FIRST in the PDF, right after the snapshot
     strip): a verdict box with:
     - **Call: BUY / HOLD / SELL / AVOID** + conviction (High/Medium/Low)
@@ -133,9 +154,10 @@ Write the analytical narratives:
 9. Price action: VCP / lifetime high volume / breakout / accumulation days
 10. Bulk deals, block deals, insider trading insights
 11. Corporate events timeline (order wins, M&A, capital raises)
-12. Policy tailwinds
+12. Policy tailwinds (with source links)
 13. Peers table
 14. Sub-themes & underlying constraints with company lists
+15. Key links & sources (clickable: concalls, presentations, policy, company pages)
 
 ## Hard rules
 

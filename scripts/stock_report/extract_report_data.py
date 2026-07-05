@@ -626,7 +626,7 @@ def fetch_policy_events(cur, themes, sector, as_of, months=24):
     return q(cur, f"""
         SELECT COALESCE(introduced_date, enacted_date, effective_date, fetched_at::date) AS event_date,
                (introduced_date IS NULL AND enacted_date IS NULL AND effective_date IS NULL) AS date_is_fetch_date,
-               policy_type, source, left(title, 200) AS title,
+               policy_type, source, left(title, 200) AS title, raw_url,
                impact_direction, impact_magnitude, status
         FROM mg_policy_events
         WHERE country='IN'
@@ -636,6 +636,64 @@ def fetch_policy_events(cur, themes, sector, as_of, months=24):
           AND ({' OR '.join(conds)})
         ORDER BY event_date DESC LIMIT 12
     """, params)
+
+
+CONSTRAINT_SIGNAL_TYPES = (
+    "supply_shortage", "supply_constraint", "capacity_constraint", "demand_surge",
+    "capex_increase", "tender_pipeline", "order_win", "regulatory_tailwind",
+    "policy_support", "localization_opportunity", "import_dependency", "price_increase",
+)
+
+
+def fetch_constraint_evidence(cur, symbol, as_of, limit=15):
+    """Dated signal quotes (with source-document links) explaining WHY the
+    demand/supply tension exists for this company — the authenticity trail."""
+    rows = q(cur, """
+        SELECT s.signal_type, s.direction, s.filed_at, s.confidence,
+               left(regexp_replace(s.context_text, '\\s+', ' ', 'g'), 240) AS evidence,
+               left(d.title, 150) AS doc_title, d.url AS doc_url, d.filing_type
+        FROM mg_signals s
+        JOIN mg_documents d ON d.id = s.document_id
+        WHERE upper(d.ticker) = %s AND s.filed_at <= %s
+          AND s.signal_type = ANY(%s)
+        ORDER BY s.filed_at DESC, s.confidence DESC
+        LIMIT %s
+    """, (symbol, as_of, list(CONSTRAINT_SIGNAL_TYPES), limit))
+    counts = q(cur, """
+        SELECT s.signal_type, count(*) AS n, min(s.filed_at) AS first_seen, max(s.filed_at) AS last_seen
+        FROM mg_signals s JOIN mg_documents d ON d.id = s.document_id
+        WHERE upper(d.ticker) = %s AND s.filed_at <= %s
+        GROUP BY s.signal_type ORDER BY n DESC LIMIT 15
+    """, (symbol, as_of))
+    return {"signal_counts": counts, "evidence_quotes": rows,
+            "note": ("evidence_quotes are verbatim extracts from filings with source links — "
+                     "use for constraint root-cause + authenticity assessment")}
+
+
+def fetch_key_links(cur, symbol, bse_symbol, as_of):
+    """Public web links: company pages + latest filings with document URLs."""
+    links = {
+        "screener": f"https://www.screener.in/company/{symbol}/consolidated/",
+        "nse_quote": f"https://www.nseindia.com/get-quotes/equity?symbol={symbol}",
+        "nse_announcements": f"https://www.nseindia.com/companies-listing/corporate-filings-announcements?symbol={symbol}",
+        "nse_insider_trading": f"https://www.nseindia.com/companies-listing/corporate-filings-insider-trading?symbol={symbol}",
+        "trendlyne": f"https://trendlyne.com/equity/{symbol}/",
+        "tijorifinance": f"https://www.tijorifinance.com/company/{symbol.lower()}/",
+    }
+    if bse_symbol:
+        links["bse_search"] = f"https://www.bseindia.com/stock-share-price/x/x/{bse_symbol}/"
+    row = q(cur, "SELECT screener_url FROM fundamentals_snapshot WHERE upper(nse_symbol)=%s LIMIT 1", (symbol,))
+    if row and row[0].get("screener_url"):
+        links["screener"] = row[0]["screener_url"]
+    presentations = q(cur, """
+        SELECT filed_at, filing_type, left(title, 130) AS title, url
+        FROM mg_documents
+        WHERE country='IN' AND upper(ticker)=%s AND filed_at <= %s
+          AND (filing_type ILIKE '%%presentation%%' OR filing_type ILIKE '%%annual report%%')
+        ORDER BY filed_at DESC LIMIT 5
+    """, (symbol, as_of))
+    return {"company_pages": links, "filing_documents": presentations,
+            "note": "concall links are in the concalls section (url per doc); policy links in policy_events.raw_url"}
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -770,6 +828,8 @@ def main():
         "shareholding_trend": fetch_shareholding_trend(cur, symbol, company, as_of),
         "corporate_events": fetch_corporate_events(cur, symbol, company_name, as_of),
         "policy_events": fetch_policy_events(cur, themes, company.get("sector") or company.get("industry"), as_of),
+        "constraint_evidence": fetch_constraint_evidence(cur, symbol, as_of),
+        "key_links": fetch_key_links(cur, symbol, master.get("bse_symbol"), as_of),
     }
 
     os.makedirs(REPORTS_DIR, exist_ok=True)
