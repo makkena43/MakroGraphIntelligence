@@ -1045,7 +1045,18 @@ def main():
     with open(out_path, "w") as f:
         json.dump(report, f, default=jsonify, indent=1)
     conn.close()
+
+    # Compact stdout summary — read THIS instead of dumping the JSON to inspect it.
+    summary = {
+        "path": out_path, "country": country, "company": company.get("company_name"),
+        "themes": len(themes), "concalls": len(concalls),
+        "red_flags": len(report.get("red_flags", {}).get("flags", [])) if country == "IN" else None,
+        "price_last_close": report.get("price_action", {}).get("last_close") if country == "IN" else None,
+        "bulk_deals": report.get("bulk_deals", {}).get("deal_count") if country == "IN" else None,
+        "insider_txns": report.get("insider_trades", {}).get("total_transactions") if country == "IN" else None,
+    }
     print(out_path)
+    print("SUMMARY:", json.dumps(summary, default=jsonify))
 
 
 if __name__ == "__main__":

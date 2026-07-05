@@ -18,6 +18,17 @@ One command replaces clicking through the UI tabs: for a given date, what themes
 happening/emerging (last 6-12 months), what constraints drive them and why, which
 supply-side companies benefit, and which stocks deserve a full report next.
 
+## Process efficiency (read before Step 1)
+
+- **Check the printed `SUMMARY:` line first** (theme/candidate counts, top-5 tickers)
+  instead of dumping the full JSON with a Python heredoc — it's usually enough to
+  confirm the run worked before you start writing the briefing.
+- **Use `jq` for targeted pulls** (e.g., `jq '.ranked_candidates[:15]' file.json`)
+  rather than printing entire arrays to inspect them.
+- The chat briefing is text you write directly from the JSON fields — no HTML/PDF
+  step unless asked, so there's no multi-draft rewrite cost here; just avoid
+  re-reading the same JSON section more than once.
+
 ## Workflow
 
 ### Step 1 — Extract
@@ -48,7 +59,6 @@ Present: what the theme/constraint is + why it exists, key dates (first_detected
 first_mapped), stage now, then the beneficiary table (rank, ticker, type, conviction,
 order-book), and suggest full reports for the top 2-3 names. If the name matches
 nothing, list a few available theme names (query mg_themes) and ask which one.
-Read the JSON in parts / with jq — it can be large.
 
 ### Step 2 — Analyze and present (chat answer by default)
 

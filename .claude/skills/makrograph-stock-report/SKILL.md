@@ -15,6 +15,26 @@ Produce a professional PDF research report for one Indian listed company, using 
 information available on or before the user's as-of date (no look-ahead). The user gives
 just a stock name/symbol and optionally a date (formats like 2025/06/01 or 2025-06-01).
 
+## Process efficiency (read before Step 1)
+
+This workflow can burn a lot of tokens if run carelessly. Follow these rules — they
+do not reduce report quality, only how much irrelevant text passes through the chat:
+
+- **Don't dump the whole JSON to inspect it.** The extractor prints a one-line
+  `SUMMARY: {...}` after saving (theme/concall counts, red-flag count, last close,
+  deal counts) — check that first. It's usually enough to know the data landed.
+- **Targeted inspection only.** When you do need specific values, use `jq` on the
+  file (e.g., `jq '.themes[] | {theme_name, stage_label}' file.json`) or Read with a
+  narrow line range — not a Python heredoc that `print()`s entire arrays or long
+  `text_excerpt` fields. Never print all of `concalls[].text_excerpt` at once; read
+  one excerpt at a time, only for the 4 calls you're actually going to analyze.
+- **Write the HTML once.** Plan the full section list and content mentally (or in a
+  short scratch note) before the first Write, using the structure below. Prefer the
+  Edit tool for any correction afterward instead of rewriting the entire file — a
+  full-file Write costs tokens on every regeneration even for a one-line fix.
+- **Don't re-read files the harness already confirms.** Write/Edit tool results
+  don't need a follow-up Read to "double check" — trust the success response.
+
 ## Workflow
 
 ### Step 1 — Extract data (deterministic)
@@ -37,13 +57,12 @@ just a stock name/symbol and optionally a date (formats like 2025/06/01 or 2025-
   dated after the as-of date.
 - If the symbol is ambiguous/not found, the script errors — try the company-name fragment,
   or query `security_master` yourself to resolve, then re-run.
-- Read the JSON in parts if large (it can be a few hundred KB — read with offset/limit or
-  use `jq` per section).
 
 ### Step 2 — Fill concall gaps (only when needed)
 
 The `concalls` section has the last ~10 concall-related docs with `text_excerpt`, `url`,
-`doc_kind`. You need the **last 4 quarters** of management commentary:
+`doc_kind`. You need the **last 4 quarters** of management commentary. Pick those 4
+by `doc_kind`/`text_len` via `jq` first, then read only their excerpts — not all 10-20:
 
 - Prefer docs with `doc_kind: transcript` and meaningful `text_len` (> 2000).
 - If fewer than 4 usable transcripts, fetch the `url` of the thin ones (they are NSE/BSE
