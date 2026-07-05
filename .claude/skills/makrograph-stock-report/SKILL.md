@@ -102,12 +102,20 @@ Write the analytical narratives:
     company's themes, with dates, direction, and `raw_url` rendered as clickable links.
 12b. **Key links & sources** — a dedicated section of clickable public links so the
     reader can verify and read further (Chrome print-to-pdf keeps `<a href>` clickable):
-    - Concall documents: date + kind + link for every doc used in the concall section
-      (from `concalls[].url`) — transcripts, recordings, presentations.
+    - **Concall documents — list ALL of them, not just the 4 analyzed**: every
+      transcript, recording and presentation in `concalls[]` (url per doc). If more
+      exist beyond the JSON's limit, query mg_documents directly for the full set
+      (filing_type concall/transcript/presentation, filed_at <= as-of).
+    - **Major update documents — a dated link list** from `corporate_events[].url`
+      plus a direct mg_documents query for: Bagging/Awarding of orders, Press
+      Release, Acquisition, Amalgamation/Merger, MoU/Agreements, QIP/Rights/Buyback,
+      results board-outcomes. Label each like "Order LoA disclosure — 12-Feb-2025".
     - Latest investor presentations / annual reports (`key_links.filing_documents`).
     - Policy source links (`policy_events[].raw_url`).
     - Company pages (`key_links.company_pages`): Screener, NSE quote page, NSE
       corporate announcements, NSE insider-trading page, Trendlyne, Tijori, BSE.
+      BSE filings are usually deduplicated against NSE at ingestion — link the BSE
+      company page (bseindia.com stock page) rather than claiming BSE docs exist.
     - Constraint evidence source docs (`constraint_evidence.evidence_quotes[].doc_url`).
     Render links with a short human label (e.g., "Q1 FY24 transcript (NSE, 27-Jul-23)"),
     never bare URLs longer than one line.

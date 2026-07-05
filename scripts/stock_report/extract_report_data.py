@@ -236,7 +236,7 @@ def fetch_capacity_and_imports(cur, theme_names, sector, as_of):
 # Concalls
 # ──────────────────────────────────────────────────────────────────────────
 
-def fetch_concalls(cur, symbol, company_name, as_of, limit=10, excerpt_chars=7000):
+def fetch_concalls(cur, symbol, company_name, as_of, limit=20, excerpt_chars=7000):
     rows = q(cur, f"""
         SELECT id, source_name, filing_type, fiscal_period, filed_at, title, url,
                sentiment_score, nlp_summary, word_count,
