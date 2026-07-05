@@ -85,10 +85,15 @@ pipeline as the stock-report skill). Structure:
    why (domestic capacity vs demand, import dependence + origin country, qualification
    barriers), how broad (n_companies mapped), how convinced the pipeline is
    (avg/max conviction), and whether order-book evidence exists (any_order_book).
-4. **Supply-side beneficiaries** (from `supply_side_beneficiaries`): per top constraint,
-   the top 3-5 companies with ticker, beneficiary_type (direct/critical/input supplier),
-   conviction, order-book flag, one-phrase rationale. Supply side is the focus — these
-   are the capacity owners, not demand-side consumers.
+4. **Beneficiary stocks under EVERY theme/constraint (MANDATORY)** (from
+   `supply_side_beneficiaries`): each theme or constraint presented in the briefing
+   must carry its own beneficiary stock list (top 5-8 tickers in theme-rank order) —
+   never present a theme without its stocks. For IN include beneficiary_type
+   (direct/critical/input supplier), conviction, order-book flag. Supply side is the
+   focus — capacity owners, not demand-side consumers; flag demand-side names that
+   appear inside supply themes (e.g. software names in an energy-constraint theme)
+   as noise instead of hiding them. Group related theme-chains (e.g. five utility
+   variants) into one row with the union of their top names.
 5. **Ranked candidate list** (from `ranked_candidates`): a table of the top 10-15:
    ticker, company, products/themes it spans, conviction, order-book, technical state
    (above 200DMA? % from 52w high). Explain the composite score briefly (see

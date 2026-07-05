@@ -90,7 +90,7 @@ def fetch_theme_landscape(cur, as_of, window_months, country="IN"):
     major = sorted(out, key=lambda x: -(x["strength_now"] or 0))[:15]
     emerging = sorted([t for t in out if t["is_emerging_window"]],
                       key=lambda x: -x["new_beneficiaries_in_window"])[:15]
-    return major, emerging
+    return major, emerging, out
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -403,22 +403,28 @@ def main():
         }))
         return
 
-    major, emerging = fetch_theme_landscape(cur, as_of, args.window_months, args.country)
+    major, emerging, landscape = fetch_theme_landscape(cur, as_of, args.window_months, args.country)
     if args.country == "IN":
         products, gaps, imports = fetch_constraints(cur, as_of, args.window_months)
         supply = fetch_supply_beneficiaries(cur, as_of, args.window_months)
         candidates = rank_candidates(cur, supply, as_of)
         us_note = None
     else:
-        constraint_themes = [t for t in major + emerging
-                             if t["is_bottleneck"] or (t["supply_constraint_count"] or 0) >= 5]
+        # beneficiaries for every major + emerging theme, PLUS any strongly
+        # supply-constrained theme from the full landscape (catches chains like
+        # "Wafer Critical Shortage" / "<sector> <- Semiconductor Demand" whose
+        # beneficiaries (MU, LRCX, STX...) would otherwise never surface)
+        constraint_extra = sorted(
+            [t for t in landscape
+             if t["is_bottleneck"] or (t["supply_constraint_count"] or 0) >= 5],
+            key=lambda x: -(x["strength_now"] or 0))
         seen, uniq = set(), []
-        for t in constraint_themes:
+        for t in major + emerging + constraint_extra:
             if t["theme_id"] not in seen:
                 seen.add(t["theme_id"]); uniq.append(t)
         products, gaps, imports = [], [], []
-        supply = fetch_us_beneficiaries(cur, uniq[:12], as_of, win_start)
-        candidates = rank_us_candidates(supply)
+        supply = fetch_us_beneficiaries(cur, uniq[:30], as_of, win_start, per_theme=10)
+        candidates = rank_us_candidates(supply, top_n=30)
         us_note = ("US mode: constraints derived from bottleneck themes in the theme graph "
                    "(no constrained-product mapper or capacity-gap tables for US); no "
                    "technical overlay (no US price data in DB) — verify charts on "
