@@ -97,8 +97,43 @@ _NEGATIVE_SIG = {
 # Generic signals (hiring_freeze, partnership_formed, acquisition_intent)
 # are excluded — they don't indicate supply-chain bottleneck presence.
 _BOTTLENECK_SIGNALS: set[str] = {
-    "supply_bottleneck", "capex_increase", "inventory_drawdown",
-    "supply_constraint", "capacity_expansion", "infrastructure_spend",
+    # Core supply constraint (seller perspective = pricing power)
+    "supply_bottleneck", "inventory_drawdown", "capacity_shortage",
+    "demand_exceeds_supply", "capacity_constraint_seller",
+    # Quantified evidence of constraint severity
+    "backlog_duration",           # company has months of orders pre-booked
+    "capacity_utilization_high",  # ≥90% utilization = constraint imminent
+    "supply_concentration",       # monopoly position = durable pricing power
+    "demand_pull",                # customers ordering ahead = inelastic demand
+    "competitor_constrained",     # rivals also at capacity = systemic shortage
+    # Pricing power REALIZED
+    "realized_margin_expansion",  # actual ASP/margin lift = economic validation
+    "pricing_power_emerging",
+    # Capacity expansion
+    "capex_increase", "capacity_expansion", "infrastructure_spend",
+}
+
+# ── Tier 1 Quality Signals (multi-decade compounders) ────────────────────────
+# These identify companies that will compound wealth for 5-20 years.
+# Different from Tier 2 (constraint trades) — these are QUALITY signals,
+# not constraint signals. Peter Lynch, Jhunjhunwala, Buffett found companies
+# with these characteristics BEFORE they became famous.
+_QUALITY_SIGNALS: set[str] = {
+    "roic_high_sustained",        # >20% ROIC = exponential compounder
+    "roic_reinvestment",          # reinvesting at high ROIC = growth engine
+    "earnings_quality_high",      # FCF > reported earnings = cash generation
+    "competitive_moat",           # brand/distribution/switching cost moat
+    "tam_expansion_structural",   # TAM growing 10%+ = long runway ahead
+    "management_quality",         # long-term capital allocation thinking
+    "margin_sustainability",      # margins held through cycles = quality business
+}
+
+# ── Tier 3 Policy Signals (1-3 year PLI/budget windows) ─────────────────────
+_POLICY_SIGNALS: set[str] = {
+    "localization_opportunity",  # PLI / import substitution
+    "tender_pipeline",           # government contract flow
+    "policy_support",            # budget allocation / government scheme
+    "regulatory_tailwind",       # regulatory environment favoring company
 }
 
 # ── Category weights ──────────────────────────────────────────────────────────
@@ -299,16 +334,29 @@ class RankingEngine:
 
     def run(
         self,
-        date_from:       date,
-        date_to:         date,
-        top_n_themes:    int   = 15,   # raised from 10; dual-criterion adds more
-        min_final_score: float = 0.0,
-        country:         str   = "US",
+        date_from:          date,
+        date_to:            date,
+        top_n_themes:       int        = 15,
+        min_final_score:    float      = 0.0,
+        country:            str        = "US",
+        focus_theme_slugs:  list[str]  = [],  # noqa: B006
     ) -> tuple[list[ThemeScore], list[StockRanking]]:
-        """Full ranking pass.  Returns (ranked_themes, ranked_stocks)."""
-        logger.info("RankingEngine v6  %s → %s  top_n=%d  country=%s", date_from, date_to, top_n_themes, country)
+        """Full ranking pass.  Returns (ranked_themes, ranked_stocks).
 
-        data = self._pg.get_ranking_data(date_from=date_from, date_to=date_to, country=country)
+        focus_theme_slugs: when provided, the theme pool is restricted to only
+        these slugs (e.g. the NEW + ESCALATING themes from year-focus analysis).
+        This makes the stock ranking reflect only the themes that changed this
+        year rather than the full persistent universe.
+        """
+        logger.info(
+            "RankingEngine v6  %s → %s  top_n=%d  country=%s  focused=%d",
+            date_from, date_to, top_n_themes, country, len(focus_theme_slugs),
+        )
+
+        data = self._pg.get_ranking_data(
+            date_from=date_from, date_to=date_to, country=country,
+            focus_theme_slugs=focus_theme_slugs,
+        )
 
         # ── Step 1: Score themes (6-factor + theme_cq) ────────────────────────
         theme_scores = self._score_themes(data)
@@ -824,11 +872,26 @@ class RankingEngine:
         """
         if not sigs:
             return 0.0
-        bn_count = sum(
-            1 for s in sigs
-            if s.get("signal_type") in _BOTTLENECK_SIGNALS
-            and s.get("direction") not in ("negative", "decreasing")
-        )
+        # Count bottleneck signals regardless of direction for capacity_constraint_seller
+        # (it has direction='positive' meaning company benefits).
+        # For supply_bottleneck: count if perspective='seller' (THEY are the constrained supplier).
+        # This is the core quality gate — only seller-perspective bottleneck signals count.
+        bn_count = 0
+        for s in sigs:
+            stype = s.get("signal_type","")
+            if stype not in _BOTTLENECK_SIGNALS:
+                continue
+            perspective = s.get("perspective", "neutral")
+            direction   = s.get("direction", "neutral")
+            # capacity_constraint_seller is always seller — always count
+            if stype == "capacity_constraint_seller":
+                bn_count += 1
+            # For other bottleneck types, prefer seller perspective
+            elif perspective == "seller":
+                bn_count += 1
+            # Legacy: if no perspective set, use direction heuristic
+            elif perspective == "neutral" and direction not in ("negative", "decreasing"):
+                bn_count += 1
         return min(1.0, bn_count / max(1, len(sigs)))
 
     # ─────────────────────────────────────────────────────────────────────────

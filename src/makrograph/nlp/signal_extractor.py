@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 # Maximum characters of document text to scan with regex.
 # SEC 10-K filings can be 500k+ chars. Signal-rich sections (MD&A, risk
 # factors, earnings call) are almost always in the first 80k characters.
-MAX_TEXT_CHARS = 80_000
+MAX_TEXT_CHARS = 0   # 0 = no limit; full document is scanned via chunking (see extract())
 
 
 @dataclass
@@ -52,6 +52,13 @@ class InvestmentSignal:
     entity_text: str = ""
     extracted_by: str = "rule"
     position: int = 0
+    perspective: str = "neutral"            # seller | buyer | neutral
+    # perspective = 'seller': company IS the constrained supplier
+    #               (customers can't get enough FROM THEM → pricing power)
+    # perspective = 'buyer':  company NEEDS the constrained item
+    #               (they can't source inputs → margin pressure)
+    # This is the critical field for investment decisions:
+    # Only 'seller' perspective supply constraints = investable bullish signal
 
     @property
     def is_bullish(self) -> bool:
@@ -107,17 +114,73 @@ _RAW_PATTERNS: list[tuple[str, str, str, float]] = [
     (r"\b(?:demand|orders?|customer(?:s)?|request(?:s)?)\b.{0,80}"
      r"(?:exceed|outstrip|outpac|overwhelm|surpass).{0,50}(?:supply|capacity|production|output)",
      "demand_surge", "positive", 0.92),
+    # ── CAPACITY CONSTRAINT — SELLER perspective ──────────────────────────
+    # Company IS the constrained supplier — FACTUAL present/past tense only.
+    # "We cannot meet" / "We are currently unable to" = real constraint.
+    # "If we are unable to" / "We may be unable to" = hypothetical risk-factor boilerplate.
+    # Note: "may be unable" is excluded because every 10-K includes this as a risk disclosure.
+    (r"\b[Ww]e\s+(?:cannot|can't|are\s+currently\s+unable\s+to|"
+     r"were\s+unable\s+to|have\s+been\s+unable\s+to)\s+"
+     r"(?:meet|satisfy|fulfill|supply)\s.{0,50}(?:demand|orders?|need)",
+     "capacity_constraint_seller", "positive", 0.94),
+    # Also capture passive: "demand cannot be met by us" / "our supply is insufficient"
+    (r"\b(?:demand|orders?).{0,30}(?:cannot|could\s+not|may\s+not).{0,30}"
+     r"(?:be\s+met|be\s+fulfilled|be\s+satisfied).{0,30}(?:by\s+us|by\s+our|we\s+)",
+     "capacity_constraint_seller", "positive", 0.89),
+    # Backlog increased/grew with segment context = genuine industrial backlog
+    (r"\b(?:segment\s+)?backlog\s+(?:as\s+of|at).{0,40}(?:increased|grew|higher|above)",
+     "capacity_constraint_seller", "positive", 0.89),
+    # "sold out" / "fully allocated" — clear seller language
+    (r"\b(?:sold\s+out|fully\s+booked|fully\s+allocated|"
+     r"(?:supplier|capacity)\s+allocation.{0,30}(?:limit|constrain|scarc)|"
+     r"oversubscribed.{0,30}(?:demand|order|request))",
+     "capacity_constraint_seller", "positive", 0.93),
+    # "our lead times extended" — their delivery queue grew (customers waiting for them)
+    (r"\b(?:our\s+)?lead.?time(?:s)?\s+(?:extend|lengthen|stretch|grow|increas).{0,40}"
+     r"(?:week|month|quarter|year|\d+)",
+     "capacity_constraint_seller", "positive", 0.91),
+    (r"\bwaiting\s+(?:list|time|period).{0,40}(?:grow|increas|lengthen|extend)",
+     "capacity_constraint_seller", "positive", 0.90),
+    # "OUR backlog growing / at record" — customers pre-ordering FROM the company.
+    # Requires "our" ownership OR explicit revenue link to avoid matching
+    # "customers/contractors experience backlogs" (third-party backlog = not investable)
+    (r"\bour\s+backlog.{0,80}(?:record|all.time|highest|grow|increas|strong|robust|extend|months|quarters)",
+     "capacity_constraint_seller", "positive", 0.92),
+    # Backlog + revenue recognition = genuine seller order book
+    (r"\bbacklog.{0,80}(?:to\s+be\s+recognized\s+as\s+revenue|expected\s+to\s+be\s+recognized|"
+     r"convert(?:ed|s)?\s+to\s+revenue)",
+     "capacity_constraint_seller", "positive", 0.91),
+    # Backlog + record/increase without third-party subject
+    (r"\bbacklog\s+(?:increased|grew|reached\s+(?:a\s+)?record|at\s+(?:an?\s+)?(?:all.time|record))",
+     "capacity_constraint_seller", "positive", 0.90),
+    # "supply-constrained" / "remain constrained" — direct MD&A language from 10-Q/10-K
+    # NVDA Q3 FY22: "We expect to remain supply-constrained into fiscal year 2023"
+    (r"\b(?:remain|expect\s+to\s+remain|continue\s+to\s+be|are|were)\s+"
+     r"(?:supply.constrained|capacity.constrained|demand.constrained)",
+     "capacity_constraint_seller", "positive", 0.93),
+    # "placed non-cancellable orders to secure supply" — buying ahead = they're in demand
+    (r"\b(?:non.cancellable|advance)\s+(?:inventory\s+)?orders?.{0,60}"
+     r"(?:secure|future\s+supply|capacity|allocation)",
+     "capacity_constraint_seller", "positive", 0.88),
+    # "customers ordering in advance" / "abnormal order patterns"
+    (r"\b(?:customers?.{0,20}(?:ordering|order).{0,20}(?:in\s+advance|early|ahead)|"
+     r"abnormal\s+(?:order|demand)\s+patterns?)",
+     "capacity_constraint_seller", "positive", 0.87),
+    # "tight supply" / "supply tightness" — from company's own perspective
+    (r"\b(?:tight|tightening|constrained)\s+(?:supply|capacity|availability).{0,40}"
+     r"(?:our|we|expect|continue|persist|remain)",
+     "capacity_constraint_seller", "positive", 0.86),
+    # "demand exceeds our capacity/supply" — direct
+    (r"\bdemand\s+(?:significantly\s+)?(?:exceed|outstrip|outpac).{0,40}"
+     r"(?:our\s+)?(?:supply|capacity|production|output)",
+     "demand_exceeds_supply", "positive", 0.91),
+    # "we are at capacity" / "operating at full capacity"
+    (r"\b(?:at|near|approaching|running\s+at)\s+(?:full|maximum|peak)?\s*capacity\b",
+     "capacity_utilization_high", "positive", 0.88),
+    # Original supply_bottleneck negative direction kept for buyer ambiguous cases
     (r"\b(?:can(?:not|'t)\s+(?:meet|keep\s+up\s+with|satisfy|fulfill)|"
      r"unable\s+to\s+(?:meet|satisfy|fulfill)).{0,60}(?:demand|orders?|request|need)",
      "supply_bottleneck", "negative", 0.92),
-    # "sold out" / "allocation constrained" — but NOT "fully subscribed" (oversubscribed rights
-    # issue / IPO is investor demand signal, not a supply bottleneck in goods/services)
-    (r"\b(?:sold\s+out|fully\s+booked|"
-     r"allocation.{0,30}(?:limit|constrain|scarc)|"
-     r"lead.?time(?:s)?\s+(?:extend|lengthen|stretch|grow|increas))",
-     "supply_bottleneck", "negative", 0.90),
-    (r"\bwaiting\s+(?:list|time|period).{0,40}(?:grow|increas|lengthen|extend)",
-     "supply_bottleneck", "negative", 0.88),
 
     # ── DEMAND SURGE ─────────────────────────────────────────────────────
     (r"\b(?:demand|orders?|backlog|pipeline)\b.{0,60}"
@@ -158,7 +221,10 @@ _RAW_PATTERNS: list[tuple[str, str, str, float]] = [
     (r"\bdeclin\w*\b.{0,30}\d+\s*%\b.{0,30}(?:YOY|year.on.year|QOQ|quarter)",
      "demand_slowdown", "negative", 0.75),
 
-    # ── SUPPLY BOTTLENECK ─────────────────────────────────────────────────
+    # ── SUPPLY BOTTLENECK — BUYER perspective ────────────────────────────
+    # Company NEEDS the constrained item — their inputs are scarce.
+    # This is margin-compressive for them. NOT the investable signal.
+    # (The supplier of these scarce components is the investable play.)
     (r"\b(?:supply\s+(?:chain\s+)?(?:shortage|constraint|crunch|tightness|disruption|bottleneck)|"
      r"capacity\s+(?:constraint|crunch|limit|shortfall|tighten)|"
      r"component\s+(?:shortage|scarcity|crunch)|"
@@ -245,6 +311,288 @@ _RAW_PATTERNS: list[tuple[str, str, str, float]] = [
      "hiring_surge", "positive", 0.75),
     (r"\b(?:layoff|headcount.{0,20}reduc|workforce.{0,20}reduc|restructur|right.?siz)",
      "hiring_freeze", "negative", 0.80),
+
+    # ── CAPACITY SHORTAGE ────────────────────────────────────────────────
+    # Explicit capacity shortage language — higher conviction than supply_bottleneck
+    (r"\b(?:capacity\s+(?:fully\s+booked|oversubscribed|saturated|maxed\s+out|"
+     r"running\s+at\s+full|at\s+(?:full|max|peak)\s+utiliz))",
+     "capacity_shortage", "negative", 0.88),
+    (r"\b(?:no\s+(?:additional\s+)?capacity|capacity\s+not\s+available|"
+     r"capacity\s+(?:crunch|crunch|dearth|deficit)|utilization.{0,20}(?:9[0-9]|100)\s*%)",
+     "capacity_shortage", "negative", 0.85),
+    (r"\b(?:backlog|order\s+backlog).{0,40}(?:\d+\s*(?:months?|quarters?|years?))",
+     "capacity_shortage", "negative", 0.82),
+
+    # ── LOCALIZATION OPPORTUNITY ─────────────────────────────────────────
+    # Import substitution / Make in India / PLI-driven domestic production
+    (r"\b(?:import\s+substitut|localiz(?:ation|ing|ed?)|indigeniz(?:ation|ing)|"
+     r"domestic(?:ally)?\s+(?:manufactur|produc|sourc)|make\s+in\s+india)\b",
+     "localization_opportunity", "positive", 0.85),
+    (r"\b(?:PLI|production.linked\s+incentive|FAME|phased\s+manufacturing\s+programme|PMP)\b"
+     r".{0,60}(?:approv|eligibl|benefit|receiv|sanction|disburse|claim)",
+     "localization_opportunity", "positive", 0.87),
+    # PLI scheme mentions with specific sector context (higher conviction)
+    (r"\bPLI\b.{0,40}(?:semiconductor|solar|battery|ACC|automobile|auto\s+component|"
+     r"telecom|textile|pharma|bulk\s+drug|medical\s+device|white\s+goods|"
+     r"food\s+processing|specialty\s+steel|drone)",
+     "localization_opportunity", "positive", 0.90),
+    (r"\b(?:import\s+duty|custom\s+duty|BCD|anti.dumping)\b.{0,40}"
+     r"(?:increas|hike|impos|rais|raised|hiked).{0,40}"
+     r"(?:solar|semiconductor|electron|steel|chemical|battery|EV|telecom)",
+     "localization_opportunity", "positive", 0.83),
+
+    # ── TENDER PIPELINE ──────────────────────────────────────────────────
+    # Active tender / bid pipeline signals — India-specific
+    (r"\b(?:L1|lowest\s+bidder|lowest\s+quoted|emerged\s+L1|declared\s+L1)\b",
+     "tender_pipeline", "positive", 0.88),
+    (r"\b(?:tender|bid|RFP|RFQ|request\s+for\s+(?:proposal|quotation))\b.{0,60}"
+     r"(?:win|won|award|bagg|secur|receiv|approv|issue)",
+     "tender_pipeline", "positive", 0.85),
+    (r"\b(?:tender\s+(?:floated|issued|called|invit)|SECI\s+tender|PGCIL\s+tender|"
+     r"Railways\s+tender|CPWD\s+tender|NTPC\s+tender|PowerGrid\s+tender)\b",
+     "tender_pipeline", "positive", 0.82),
+    # GeM portal — Government e-Marketplace (major India procurement channel)
+    (r"\b(?:GeM|GEM|government\s+e.?marketplace)\b.{0,60}"
+     r"(?:order|bid|tender|procure|win|award|portal|purchase)",
+     "tender_pipeline", "positive", 0.83),
+    # SECI power purchase agreements — key demand signal for solar/wind
+    (r"\bSECI\b.{0,60}(?:power\s+purchase\s+agreement|PPA|allocated|awarded|MW|GW)",
+     "tender_pipeline", "positive", 0.85),
+    (r"(?:Rs\.?\s*|INR\s*|₹\s*)\d[\d,]*\s*(?:crores?|Crs?\b).{0,40}"
+     r"(?:tender|order|contract|project|EPC|bid)",
+     "tender_pipeline", "positive", 0.82),
+
+    # ── QUANTIFIED CONSTRAINT METRICS (world-class accuracy signals) ─────
+    # These extract NUMBERS from management commentary, turning vague statements
+    # into investable facts. Backlog of 12 months vs 2 months = very different.
+
+    # Backlog duration — how many months/quarters of production are already booked
+    # "18-month backlog", "backlog extends into Q4 2025", "2.5 years of orders"
+    # This is the STRONGEST indicator of pricing power — customer willingness to
+    # commit far in advance = inelastic demand.
+    (r"\bbacklog\b.{0,60}(?:cover|extend|span|reach|vis[ib]+ilit).{0,30}"
+     r"(?:\d+\s*(?:month|quarter|year|week)s?|through|into\s+(?:Q[1-4]|20\d{2}))",
+     "backlog_duration", "positive", 0.88),
+    (r"(?:order\s+book|backlog)\b.{0,40}"
+     r"(?:of\s+)?\d+[\.,]?\d*\s*(?:months?|quarters?|years?)",
+     "backlog_duration", "positive", 0.86),
+
+    # Capacity utilization — percentage of production capacity in use
+    # HIGH utilization (≥90%) = approaching constraint → pricing power incoming
+    # "Operating at 94% utilization", "running at full capacity"
+    (r"\b(?:operat|run(?:ning)?|utiliz)\b.{0,40}"
+     r"(?:at\s+)?(?:9[0-9]|100)\s*%\s*(?:capacity|utilization|util)",
+     "capacity_utilization_high", "positive", 0.87),
+    (r"\b(?:capacity|plant|facility)\b.{0,40}"
+     r"(?:fully\s+(?:loaded|utilized|booked)|at\s+(?:full|peak|maximum)\s+(?:capacity|utilization|load))",
+     "capacity_utilization_high", "positive", 0.88),
+    # Extract the actual % when stated explicitly
+    (r"\butilization\b.{0,20}(?:rate\b.{0,10})?(?:of\s+)?(\d{2,3})\s*%",
+     "capacity_utilization_high", "positive", 0.84),
+
+    # Realized margin expansion from pricing / product mix
+    # This is the ECONOMIC VALIDATION of pricing power — not just "we can raise prices"
+    # but "our gross margin expanded 400 basis points due to better product mix"
+    (r"\b(?:gross\s+)?margin\b.{0,60}"
+     r"(?:expand|improv|increas|widen|higher).{0,40}"
+     r"(?:\d+\s*(?:basis\s+)?(?:points?|bps?|pp)|%)",
+     "realized_margin_expansion", "positive", 0.85),
+    (r"\b(?:ASP|average\s+selling\s+price|realization|realisation)\b.{0,60}"
+     r"(?:increase|rise|grow|improv|higher|up).{0,30}(?:\d+\s*%|\d+\s*(?:rs\.|inr|₹|\$))",
+     "realized_margin_expansion", "positive", 0.84),
+    (r"\b(?:better\s+(?:pricing|realiz|product\s+mix)|pricing\s+(?:power\s+)?(?:realiz|materializ|captur|seen))\b",
+     "realized_margin_expansion", "positive", 0.80),
+
+    # Supply concentration — company claims monopoly/near-monopoly position
+    # "We are the only domestic manufacturer", "only 2 global suppliers"
+    # This is the MOAT signal — scarcity of supply creates lasting pricing power.
+    (r"\b(?:only|sole|lone|singular)\b.{0,30}"
+     r"(?:domestic|local|indigenous|indian)?\s*(?:manufacturer|supplier|producer|maker|vendor)\b",
+     "supply_concentration", "positive", 0.88),
+    (r"\b(?:few|limited|scarce)\s+(?:global\s+)?(?:supplier|manufacturer|producer)s?\b.{0,40}"
+     r"(?:world\s*wide|global(?:ly)?|across\s+(?:the\s+)?world|internationally)",
+     "supply_concentration", "positive", 0.83),
+    (r"\b(?:import\s+substit|indigenis|localiz)\w*.{0,40}"
+     r"(?:leader|dominant|largest|only|biggest|pioneer)",
+     "supply_concentration", "positive", 0.82),
+
+    # Competitor capacity constraint — rivals at capacity too (validates constraint)
+    # When a competitor says "our rival is fully booked too" = systemic shortage
+    (r"\b(?:compet|rival|peer|industry).{0,50}"
+     r"(?:also\s+)?(?:constrain|tight|limit|strain|at\s+(?:full|peak)\s+cap|fully\s+(?:book|allocat))",
+     "competitor_constrained", "positive", 0.75),
+
+    # Demand pull from customer side — customers ordering early due to scarcity
+    # "Customers are placing orders 12 months in advance", "advance booking surge"
+    (r"\b(?:customer|client)s?\b.{0,60}"
+     r"(?:order(?:ing|ed)?\s+(?:ahead|early|in\s+advance|forward|long.lead)|"
+     r"commit(?:ting|ted)\s+(?:capacity|production|allocation|future))",
+     "demand_pull", "positive", 0.83),
+
+    # ── POLICY SUPPORT ───────────────────────────────────────────────────
+    # Government scheme / budgetary / policy support signals
+    (r"\b(?:budget\s+(?:allocation|outlay|provision|support|boost)|"
+     r"budgetary\s+(?:support|allocation|outlay))\b",
+     "policy_support", "positive", 0.82),
+    (r"\b(?:viability\s+gap\s+funding|VGF|capital\s+subsidy|interest\s+subvention|"
+     r"government\s+(?:grant|subsidy|incentive|support|push|thrust))\b",
+     "policy_support", "positive", 0.83),
+    (r"\b(?:national\s+(?:mission|policy|programme|plan)|mission\s+shakti|"
+     r"PM\s+(?:KUSUM|Gati\s+Shakti|MITRA|PRANAM|Surya\s+Ghar)|"
+     r"Sagarmala|Bharatmala|UDAY|RDSS|DDUGJY)\b",
+     "policy_support", "positive", 0.80),
+    # MNRE (Ministry of New & Renewable Energy) — critical India policy driver
+    (r"\bMNRE\b.{0,80}(?:approv|sanction|allocat|target|tender|award|notif|fund|GW|MW)",
+     "policy_support", "positive", 0.84),
+    # Union Budget capex signals — infrastructure push is investable theme
+    (r"\b(?:union\s+budget|annual\s+budget)\b.{0,80}"
+     r"(?:capex|capital\s+expenditure|infrastructure|allocat|outlay).{0,40}"
+     r"(?:lakh\s+crore|trillion|billion|\d+\s*%)",
+     "policy_support", "positive", 0.86),
+    # Railways capex — direct order driver for Titagarh, RVNL, Texmaco etc.
+    (r"\b(?:indian\s+railways?|railways?\s+(?:ministry|board|capex|invest))\b"
+     r".{0,80}(?:crore|lakh|billion|wagon|locomotive|coach|electrif|loco|tender)",
+     "policy_support", "positive", 0.83),
+    # Defence indigenization — banned imports = captive demand for domestic suppliers
+    (r"\b(?:indigenis|indigeniz|Make\s+in\s+India\s+defence|"
+     r"defence\s+(?:indigenis|indigeniz|corridor|export|offset)|"
+     r"positive\s+indigenisation\s+list|import\s+embargo\s+defence|"
+     r"banned\s+(?:import|procurement)\s+list)\b",
+     "policy_support", "positive", 0.87),
+
+    # ── US MARKET: GUIDANCE & ALLOCATION SIGNALS ─────────────────────────
+    # Revenue / earnings guidance — forward-looking management confidence
+    (r"\b(?:we|the\s+company|management)\s+(?:expect|project|anticipate|forecast|"
+     r"guide|guided|reiterate)\b.{0,60}"
+     r"(?:revenue|sales|earnings|EPS|EBITDA|margin|growth).{0,40}"
+     r"(?:\$|\d+\s*(?:billion|million|B\b|M\b)|%)",
+     "guidance_revenue", "positive", 0.86),
+    # "Visibility into" — management signaling multi-quarter order confidence
+    (r"\b(?:visibility|confidence|comfort|clarity)\b.{0,40}"
+     r"(?:into|through|for|over)\b.{0,40}"
+     r"(?:next\s+(?:quarter|year|12\s*months|18\s*months)|"
+     r"(?:Q[1-4]|FY)\s*2[0-9]|(?:fiscal|calendar)\s+20[0-9]{2})",
+     "guidance_revenue", "positive", 0.83),
+    # Customer allocation language — clearest pricing power signal for US tech
+    (r"\b(?:allocat|ration|priorit)\w*\b.{0,60}"
+     r"(?:customer|client|partner).{0,40}"
+     r"(?:through\s+(?:Q[1-4]|H[12]|FY)|limit|capac|constrain)",
+     "capacity_constraint_seller", "positive", 0.91),
+    # "Sold through / booked through" — capacity committed to customers
+    (r"\b(?:sold|booked|committed|locked|contracted)\b.{0,30}"
+     r"(?:through|out\s+through|for)\b.{0,40}"
+     r"(?:Q[1-4]|H[12]|(?:next|fiscal|coming)\s+(?:year|quarter|12|18|24))",
+     "capacity_constraint_seller", "positive", 0.92),
+    # Pricing power from constraint — margin expansion explicitly from price
+    (r"\b(?:gross\s+margin|operating\s+margin|profitab)\w*\b.{0,60}"
+     r"(?:expand|improve|higher|increas).{0,60}"
+     r"(?:pric|mix|ASP|average\s+selling\s+price|pricing\s+power)",
+     "pricing_power_emerging", "positive", 0.82),
+    # "Customers placing orders in advance" — demand pull exceeding normal lead times
+    (r"\b(?:customer|client)s?\b.{0,40}"
+     r"(?:placing|placing\s+orders|ordering|booking|committing)\b.{0,40}"
+     r"(?:in\s+advance|ahead|early|long.lead|future\s+delivery|future\s+need)",
+     "capacity_constraint_seller", "positive", 0.88),
+    # ═══════════════════════════════════════════════════════════════════════
+    # TIER 1 SIGNALS — Multi-Decade Compounder Detection
+    # These signals identify companies that will compound wealth for 5-20 years.
+    # Peter Lynch found Taco Bell. Jhunjhunwala found Titan. Buffett found Coke.
+    # They ALL had these patterns in management commentary BEFORE they were famous.
+    # ═══════════════════════════════════════════════════════════════════════
+
+    # ── ROIC & REINVESTMENT QUALITY ──────────────────────────────────────
+    # The single most predictive signal for wealth creation over decades.
+    # Companies earning >20% ROIC and reinvesting = exponential compounders.
+    # Titan in 2003: "22% return on capital deployed in new stores" → found this.
+    (r"\b(?:return\s+on\s+(?:incremental\s+|invested\s+)?capital|ROIC|ROCE)\b"
+     r".{0,60}(?:\d{2,3}\s*%|(\d{2,3})\s*(?:percent|per\s*cent))",
+     "roic_high_sustained", "positive", 0.88),
+    (r"\b(?:capital\s+(?:efficiency|light|deployed|allocation)|asset.light)\b"
+     r".{0,60}(?:generat|return|compounding|high|improv)",
+     "roic_high_sustained", "positive", 0.82),
+    (r"\b(?:reinvest|plough\s+back|retained\s+earnings|internal\s+accruals)\b"
+     r".{0,60}(?:at\s+high|efficiently|compounding|back\s+into\s+(?:the\s+)?business)",
+     "roic_reinvestment", "positive", 0.83),
+    (r"\b(?:free\s+cash\s+flow|FCF)\b.{0,40}"
+     r"(?:exceed|greater\s+than|convert|(\d{2,3})\s*%\s*of\s+(?:net\s+)?(?:earnings|profit))",
+     "earnings_quality_high", "positive", 0.85),
+
+    # ── COMPETITIVE MOAT SIGNALS ─────────────────────────────────────────
+    # Brand, distribution, technology, switching costs — what makes a business
+    # DURABLE. HDFC Bank's distribution moat, Titan's brand preference,
+    # Asian Paints' distribution reach — all extractable from MD&A.
+    (r"\b(?:brand\s+(?:preference|equity|loyalty|recognition|strength))\b"
+     r".{0,60}(?:\d{1,3}\s*%|higher|stronger|leading|dominant|first\s+choice)",
+     "competitive_moat", "positive", 0.86),
+    (r"\b(?:switching\s+cost|customer\s+(?:stickiness|retention|lock.in|loyalty))\b"
+     r".{0,60}(?:high|strong|significant|barrier|difficult\s+to\s+switch)",
+     "competitive_moat", "positive", 0.83),
+    (r"\b(?:distribution\s+(?:network|reach|advantage|depth|width)|"
+     r"network\s+(?:effect|advantage)|ecosystem\s+(?:lock.in|advantage))\b"
+     r".{0,60}(?:largest|deepest|strongest|unmatched|decades|built\s+over)",
+     "competitive_moat", "positive", 0.82),
+    (r"\b(?:pricing\s+power|ability\s+to\s+(?:raise|increase)\s+prices|"
+     r"pass.?through\s+(?:costs?|inflation))\b"
+     r".{0,60}(?:sustained|confirmed|demonstrated|years|customers\s+accept)",
+     "competitive_moat", "positive", 0.84),
+    (r"\b(?:only|sole|dominant|leading)\s+(?:domestic\s+)?(?:player|manufacturer|provider)\b"
+     r".{0,40}(?:in\s+this|in\s+our|category|segment|niche)",
+     "competitive_moat", "positive", 0.87),
+
+    # ── MARKET SIZE EXPANSION (TAM) ──────────────────────────────────────
+    # Multi-decade compounders sit in GROWING markets. The jewelry market grew
+    # 8% annually in India for 20 years. Pharmaceutical market grew 12%.
+    # These TAM signals identify companies with long runways ahead.
+    (r"\b(?:market\s+(?:size|growing|growth)|TAM|addressable\s+market)\b"
+     r".{0,80}(?:grow|expand|double|triple).{0,40}"
+     r"(?:\d{1,3}\s*%\s*(?:CAGR|annually|per\s+year)|over\s+(?:next\s+)?(?:\d+|decade))",
+     "tam_expansion_structural", "positive", 0.83),
+    (r"\b(?:penetration\s+(?:rate|level)|per\s+capita\s+consumption|"
+     r"underpenetrated|low\s+penetration)\b"
+     r".{0,60}(?:opportunity|growing|room\s+to\s+grow|significant|large)",
+     "tam_expansion_structural", "positive", 0.81),
+    (r"\b(?:secular\s+(?:trend|growth|tailwind)|structural\s+(?:shift|opportunity|growth))\b"
+     r".{0,60}(?:decade|multi.year|long.term|sustained|irreversible)",
+     "tam_expansion_structural", "positive", 0.80),
+
+    # ── MANAGEMENT QUALITY (CAPITAL ALLOCATION & LONG-TERM THINKING) ─────
+    # The great investors identify management quality from HOW they communicate.
+    # Buffett reads annual letters. Lynch attended store visits.
+    # These patterns extract management quality signals from earnings calls.
+    (r"\b(?:decade|multi.year|long.?term|10.?year|20.?year)\b"
+     r".{0,60}(?:vision|thinking|strategy|investment|commitment|compounding|wealth)",
+     "management_quality", "positive", 0.78),
+    (r"\b(?:disciplined|prudent|measured|patient|conservative)\s+"
+     r"(?:capital|investment|allocation|balance\s+sheet|approach|deployment)",
+     "management_quality", "positive", 0.79),
+    (r"\b(?:return\s+(?:to\s+)?shareholders|shareholder\s+(?:value|wealth|returns))\b"
+     r".{0,60}(?:long.term|compounding|sustained|over\s+(?:decade|years))",
+     "management_quality", "positive", 0.76),
+    (r"\b(?:consistent|predictable|repeatable|sustained)\s+"
+     r"(?:earnings|performance|delivery|execution|cash\s+flow|growth)",
+     "management_quality", "positive", 0.77),
+
+    # ── MARGIN SUSTAINABILITY (NOT TEMPORARY) ────────────────────────────
+    # Temporary margin expansion ≠ quality. Sustained margins over 5+ years = quality.
+    # Asian Paints: "maintained 20%+ margins for 15 years despite input cost cycles"
+    (r"\b(?:gross\s+)?margin\b.{0,40}"
+     r"(?:sustain|maintain|hold|preserve|consistent|structurally).{0,40}"
+     r"(?:\d{1,3}\s*%|historically|over\s+(?:year|cycle|period))",
+     "margin_sustainability", "positive", 0.84),
+    (r"\b(?:historically|over\s+(?:the\s+)?(?:decade|years|cycle))\b"
+     r".{0,60}(?:margin|profitab|returns|performance).{0,40}"
+     r"(?:consistent|sustained|stable|maintained|above\s+\d{1,3}\s*%)",
+     "margin_sustainability", "positive", 0.82),
+
+    # ── POLICY TAILWIND SIGNALS (Tier 3) ─────────────────────────────────
+    # Government policy creates time-bounded windows. PLI schemes, budget allocations,
+    # import duties — these are 3-5 year windows for domestic manufacturers.
+    # Already captured above, but ensure we have high-conviction PLI patterns.
+    (r"\bPLI\b.{0,30}(?:beneficiary|approved|eligible|receiving|disburse)",
+     "policy_support", "positive", 0.90),
+    (r"\b(?:budget\s+outlay|budget\s+allocation)\b.{0,60}"
+     r"(?:crore|billion|lakh).{0,30}(?:our\s+sector|our\s+industry|support)",
+     "policy_support", "positive", 0.85),
 ]
 
 # Pre-compiled at module import — shared across all SignalExtractor instances.
@@ -273,38 +621,78 @@ _MONEY_INR_RE = re.compile(
 # Order matters: longer/more specific matches are listed first so they win
 # over generic overlapping terms (e.g. "data center" before "data").
 _THEME_ENTITY_PATTERNS: list[tuple[re.Pattern, str]] = [
-    (re.compile(r"\bdata\s+cent(?:er|re)s?\b",          re.I), "Data Center"),
-    (re.compile(r"\bartificial\s+intelligence\b",        re.I), "Artificial Intelligence"),
+    # ── Highly specific (match first to avoid false positives) ──────────
+    # Semiconductor components
+    (re.compile(r"\bHBM\b|\bhigh.bandwidth\s+memory\b",  re.I), "HBM Memory"),
+    (re.compile(r"\badvanced\s+packaging\b|\bCoWoS\b|\bSoIC\b", re.I), "Advanced Packaging"),
+    (re.compile(r"\bEUV\b|\bextreme\s+ultraviolet\b",    re.I), "EUV Lithography"),
+    (re.compile(r"\bAI\s+(?:chip|accelerator|processor|inference|GPU)\b", re.I), "AI Chip"),
+    (re.compile(r"\bNAND\s+flash\b|\bNAND\b",            re.I), "NAND Flash"),
+    (re.compile(r"\bDRAM\b",                             re.I), "DRAM Memory"),
+    # Power & Grid components
+    (re.compile(r"\bpower\s+transformer\b|\btransformer\s+manufactur\b", re.I), "Power Transformer"),
+    (re.compile(r"\b(?:400|765|220|132)\s*kV\s*(?:transformer|substation)\b", re.I), "HV Transformer"),
+    (re.compile(r"\btransmission\s+(?:line|tower|cable|conductor)\b", re.I), "Transmission Infrastructure"),
+    (re.compile(r"\bsubstation\b",                       re.I), "Substation Equipment"),
+    (re.compile(r"\bgrid.scale\s+storage|grid\s+battery\b", re.I), "Grid Storage"),
+    (re.compile(r"\bsolar\s+(?:panel|module|cell|glass|wafer|PV)\b", re.I), "Solar PV"),
+    (re.compile(r"\bwind\s+turbine\b|\bturbine\s+blade\b", re.I), "Wind Turbine"),
+    # Railways & Defence
+    (re.compile(r"\brailway\s+wagon|freight\s+wagon|gondola\s+wagon\b", re.I), "Railway Wagon"),
+    (re.compile(r"\bVande\s+Bharat|train\s+18\b",        re.I), "Vande Bharat"),
+    (re.compile(r"\blocomotive\b",                       re.I), "Locomotive"),
+    (re.compile(r"\bdefence\s+(?:drone|UAV|missile|radar|electronics)\b", re.I), "Defence Electronics"),
+    (re.compile(r"\bmilitary\s+(?:aircraft|helicopter)\b", re.I), "Military Aviation"),
+    (re.compile(r"\bammunition\b|\bexplosive\b",          re.I), "Ammunition"),
+    # Industrial & Manufacturing
+    (re.compile(r"\bstainless\s+steel\b|\bspecialty\s+steel\b", re.I), "Specialty Steel"),
+    (re.compile(r"\bCRGO\b|cold.rolled\s+grain.oriented\b", re.I), "CRGO Steel"),
+    (re.compile(r"\bforging\b|\bforgings?\b",             re.I), "Forging"),
+    (re.compile(r"\bcasting\b",                          re.I), "Casting"),
+    (re.compile(r"\bprecision\s+(?:component|part|machining)\b", re.I), "Precision Components"),
+    (re.compile(r"\bPCB\b|printed\s+circuit\s+board\b",  re.I), "PCB"),
+    (re.compile(r"\bcompressor\b",                       re.I), "Compressor"),
+    (re.compile(r"\bpump\b",                             re.I), "Pump"),
+    (re.compile(r"\bvalve\b",                            re.I), "Valve"),
+    (re.compile(r"\bcable\s+(?:manufactur|industry)\b|\bpower\s+cable\b", re.I), "Power Cable"),
+    (re.compile(r"\bACC\s+battery\b|advanced\s+chemistry\s+cell\b", re.I), "ACC Battery"),
+    (re.compile(r"\belectrolyzer\b|\bgreen\s+hydrogen\b", re.I), "Green Hydrogen"),
+    # Pharma & Healthcare
+    (re.compile(r"\bbulk\s+drug|API\b|active\s+pharmaceutical\b", re.I), "API/Bulk Drug"),
+    (re.compile(r"\bbiologic|biosimilar\b",               re.I), "Biologics"),
+    (re.compile(r"\bmedical\s+device\b",                  re.I), "Medical Device"),
+    # Tech & Software
+    (re.compile(r"\bdata\s+cent(?:er|re)s?\b",           re.I), "Data Center"),
     (re.compile(r"\bgenerative\s+ai\b",                  re.I), "Generative AI"),
+    (re.compile(r"\bartificial\s+intelligence\b",        re.I), "Artificial Intelligence"),
     (re.compile(r"\bmachine\s+learning\b",               re.I), "Machine Learning"),
-    (re.compile(r"\belectric\s+vehicle|ev\s+(?:charging|manufactur|segment)\b", re.I), "Electric Vehicle"),
-    (re.compile(r"\bvande\s+bharat\b",                   re.I), "Vande Bharat"),
+    (re.compile(r"\bcybersecurit\w+\b",                  re.I), "Cybersecurity"),
+    (re.compile(r"\bcloud\b",                            re.I), "Cloud"),
+    # ── Broader sector matches (lower priority) ──────────────────────────
+    (re.compile(r"\belectric\s+vehicle\b|\bEV\s+(?:charging|manufactur|segment)\b", re.I), "Electric Vehicle"),
     (re.compile(r"\bspecialty\s+chem(?:ical)?s?\b",      re.I), "Specialty Chemicals"),
     (re.compile(r"\bsemiconductor\b",                    re.I), "Semiconductor"),
-    (re.compile(r"\breal\s+estate\b",                    re.I), "Real Estate"),
     (re.compile(r"\brenewable\s+energy\b",               re.I), "Renewable Energy"),
-    (re.compile(r"\bcybersecurit\w+\b",                  re.I), "Cybersecurity"),
     (re.compile(r"\bagrochemic(?:al)?s?\b",              re.I), "Agrochemicals"),
-    (re.compile(r"\bherbicid\w+\b",                      re.I), "Herbicides"),
     (re.compile(r"\baerospace\b",                        re.I), "Aerospace"),
     (re.compile(r"\bdefence|defense\b",                  re.I), "Defense"),
     (re.compile(r"\bautomotive\b",                       re.I), "Automotive"),
     (re.compile(r"\btextile\b",                          re.I), "Textiles"),
     (re.compile(r"\bpharmaceut\w+|pharma\b",             re.I), "Pharma"),
-    (re.compile(r"\bhealthcare|hospital\b",              re.I), "Healthcare"),
     (re.compile(r"\bsolar\b",                            re.I), "Solar"),
-    (re.compile(r"\bwind\s+(?:energy|power|turbine|farm|project)\b", re.I), "Wind"),
+    (re.compile(r"\bwind\s+(?:energy|power|farm|project)\b", re.I), "Wind"),
     (re.compile(r"\bbattery\b",                          re.I), "Battery"),
     (re.compile(r"\blithium\b",                          re.I), "Lithium"),
     (re.compile(r"\bcement\b",                           re.I), "Cement"),
     (re.compile(r"\bsteel\b",                            re.I), "Steel"),
-    (re.compile(r"\bcloud\b",                            re.I), "Cloud"),
     (re.compile(r"\brobotics?\b",                        re.I), "Robotics"),
     (re.compile(r"\bfoundr(?:y|ies)\b",                  re.I), "Foundry"),
     (re.compile(r"\btransformer\b",                      re.I), "Transformer"),
     (re.compile(r"\bwafer\b",                            re.I), "Wafer"),
     (re.compile(r"\bbiotech\b",                          re.I), "Biotech"),
+    (re.compile(r"\breal\s+estate\b",                    re.I), "Real Estate"),
     (re.compile(r"\bnbfc\b",                             re.I), "NBFC"),
+    (re.compile(r"\bhealthcare\b|\bhospital\b",          re.I), "Healthcare"),
 ]
 
 def _extract_theme_entity(context: str) -> str:
@@ -322,55 +710,75 @@ def _extract_theme_entity(context: str) -> str:
 class SignalExtractor:
     """Extracts investment signals from financial document text using pre-compiled pattern rules."""
 
+    # Chunk size for full-document scanning.
+    # Each chunk is processed independently; overlap ensures signals that span
+    # a chunk boundary are not missed. 50K chars per chunk = ~35 pages of text.
+    _CHUNK_SIZE    = 50_000
+    _CHUNK_OVERLAP =    500   # chars shared between adjacent chunks
+
     def __init__(self, config: dict = None):
         cfg = config or {}
-        self.min_confidence = cfg.get("min_confidence", 0.65)
-        self.context_window = cfg.get("context_window_chars", 200)
-        self.max_signals_per_doc = cfg.get("max_signals_per_doc", 100)
-        # Cap text length scanned per document. SEC filings can be 500k+ chars;
-        # signal-rich content is almost always within the first 80k chars.
-        self.max_text_chars = cfg.get("max_text_chars_for_signals", MAX_TEXT_CHARS)
+        self.min_confidence      = cfg.get("min_confidence", 0.65)
+        self.context_window      = cfg.get("context_window_chars", 200)
+        self.max_signals_per_doc = cfg.get("max_signals_per_doc", 300)  # raised for full-doc scan
 
     def extract(self, text: str, document_id: int = None) -> list[InvestmentSignal]:
-        """Extract all investment signals from document text."""
+        """Extract all investment signals from the FULL document text via chunking.
+
+        Why chunking instead of a single pass on the full text:
+        - regex finditer on a 1MB string is fast, but collecting thousands of matches
+          across 38+ patterns would be slow and produce too many low-value hits
+        - Chunking lets us process large 10-K/10-Q filings completely without any
+          character cap while keeping each regex scan bounded (~50K chars per chunk)
+        - Overlap (500 chars) prevents missing signals that span a chunk boundary
+
+        Every chunk's signals carry the absolute position (chunk_offset + local_pos)
+        so deduplication works correctly across chunks.
+        """
         if not text:
             return []
 
-        # Truncate to signal-rich portion — avoids scanning boilerplate footnotes
-        scan_text = text[:self.max_text_chars]
+        all_signals: list[InvestmentSignal] = []
+        text_len = len(text)
 
-        signals: list[InvestmentSignal] = []
+        # Generate chunk windows across the full document
+        offset = 0
+        while offset < text_len:
+            chunk_end = min(offset + self._CHUNK_SIZE, text_len)
+            chunk = text[offset:chunk_end]
 
-        for compiled_pattern, signal_type, direction, confidence in SIGNAL_PATTERNS:
-            if confidence < self.min_confidence:
-                continue
-            for match in compiled_pattern.finditer(scan_text):
-                start = match.start()
-                ctx_start = max(0, start - self.context_window // 2)
-                ctx_end = min(len(scan_text), match.end() + self.context_window // 2)
-                context = scan_text[ctx_start:ctx_end].strip()
+            for compiled_pattern, signal_type, direction, confidence in SIGNAL_PATTERNS:
+                if confidence < self.min_confidence:
+                    continue
+                for match in compiled_pattern.finditer(chunk):
+                    local_start = match.start()
+                    abs_start   = offset + local_start
 
-                value, unit = self._extract_amount(context)
-                # Extract the theme entity (technology/sector keyword) from context.
-                # This links the signal to WHAT it's about, not just WHO filed it.
-                # e.g. "50% capacity expansion in Solar Glass" → entity_text="Solar"
-                theme_entity = _extract_theme_entity(context)
-                signals.append(InvestmentSignal(
-                    signal_type=signal_type,
-                    direction=direction,
-                    confidence=confidence,
-                    signal_value=value,
-                    signal_unit=unit,
-                    context_text=context,
-                    entity_text=theme_entity,
-                    extracted_by="rule",
-                    position=start,
-                ))
+                    ctx_start = max(0, local_start - self.context_window // 2)
+                    ctx_end   = min(len(chunk), match.end() + self.context_window // 2)
+                    context   = chunk[ctx_start:ctx_end].strip()
 
-            if len(signals) >= self.max_signals_per_doc:
+                    value, unit  = self._extract_amount(context)
+                    theme_entity = _extract_theme_entity(context)
+
+                    all_signals.append(InvestmentSignal(
+                        signal_type  = signal_type,
+                        direction    = direction,
+                        confidence   = confidence,
+                        signal_value = value,
+                        signal_unit  = unit,
+                        context_text = context,
+                        entity_text  = theme_entity,
+                        extracted_by = "rule",
+                        position     = abs_start,
+                    ))
+
+            # Advance by chunk_size minus overlap so signals near boundaries aren't missed
+            if chunk_end == text_len:
                 break
+            offset = chunk_end - self._CHUNK_OVERLAP
 
-        return self._deduplicate(signals)
+        return self._deduplicate(all_signals)
 
     def _extract_amount(self, context: str) -> tuple[Optional[float], Optional[str]]:
         """Extract a monetary value from surrounding context."""
@@ -386,14 +794,64 @@ class SignalExtractor:
         return None, None
 
     def _deduplicate(self, signals: list[InvestmentSignal]) -> list[InvestmentSignal]:
-        """Remove near-duplicate signals (same type within 500-char window)."""
-        seen: dict[str, int] = {}
+        """Remove near-duplicate signals across chunks and across the full document.
+
+        Two signals are duplicates if:
+        1. Same signal_type AND their positions are within 300 chars (chunk overlap area)
+        2. Same signal_type AND identical context_text (regex matched same text twice)
+
+        Keeps the highest-confidence signal when duplicates exist.
+        Also caps per-signal-type count to avoid one pattern flooding the output
+        (e.g. "competition_threat" appearing 200x in a 10-K risk factors section).
+        """
+        # Sort by confidence desc so we keep highest-confidence copy on collision
+        sorted_sigs = sorted(signals, key=lambda s: -s.confidence)
+
+        seen_positions: dict[str, list[int]] = {}   # signal_type → [positions kept]
+        seen_contexts:  set[str]             = set() # exact context dedup
+        type_counts:    dict[str, int]       = {}    # per-type cap
+
+        # Max signals per type — prevents risk-factor boilerplate flooding
+        # High-value signal types get higher caps (they're rare and important)
+        _TYPE_CAPS: dict[str, int] = {
+            "capacity_constraint_seller": 20,
+            "backlog_duration":           15,
+            "capacity_utilization_high":  15,
+            "demand_exceeds_supply":      15,
+            "supply_concentration":       10,
+            "roic_high_sustained":        10,
+            "competitive_moat":           10,
+            "realized_margin_expansion":  10,
+        }
+        _DEFAULT_CAP = 8   # generic signals like competition_threat, acquisition_intent
+
         result = []
-        for sig in sorted(signals, key=lambda s: -s.confidence):
-            key = sig.signal_type
-            if key not in seen or abs(sig.position - seen[key]) > 500:
-                seen[key] = sig.position
-                result.append(sig)
+        for sig in sorted_sigs:
+            stype = sig.signal_type
+            ctx   = sig.context_text or ""
+
+            # Exact context duplicate (same text matched in overlapping chunk)
+            if ctx and ctx in seen_contexts:
+                continue
+
+            # Position-proximity duplicate (within chunk overlap window of 500 chars)
+            prev_positions = seen_positions.get(stype, [])
+            too_close = any(abs(sig.position - p) < 300 for p in prev_positions)
+            if too_close:
+                continue
+
+            # Per-type cap
+            cap = _TYPE_CAPS.get(stype, _DEFAULT_CAP)
+            if type_counts.get(stype, 0) >= cap:
+                continue
+
+            # Accept this signal
+            seen_positions.setdefault(stype, []).append(sig.position)
+            if ctx:
+                seen_contexts.add(ctx)
+            type_counts[stype] = type_counts.get(stype, 0) + 1
+            result.append(sig)
+
         return result
 
     def extract_batch(

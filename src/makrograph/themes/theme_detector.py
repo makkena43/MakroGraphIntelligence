@@ -60,6 +60,24 @@ _NOISE_RE = re.compile(
     r"|form\s+(?:10-[kq]|8-k|s-[1-9]|20-f)"
     r"|annual report|quarterly report|current report"
 
+    # Shredded tokens: names made of single-char fragments ("f y 2 1" = a
+    # tokenized "FY21" that leaked through text extraction)
+    r"|^(?:[a-z0-9][\s\n]+){2,}[a-z0-9]$"
+
+    # Currency amounts as entities ("Rs.25", "INR 500", "$3", "₹ 100 crore")
+    r"|^(?:rs|inr|usd|eur|₹|\$)[.\s]*\d"
+
+    # Document artifacts: page refs, salutations, clock times, honorifics
+    # ("Page 11", "Dear Sir/ Madam", "P.M.", "Quarter To Quarter")
+    r"|^pages?\s*\d*$"
+    r"|^dear\s+(?:sir|madam|sirs)"
+    r"|^[ap]\.?m\.?$"
+    r"|^(?:mr|mrs|ms|dr|shri|smt)\.?\s"
+    r"|^quarter\s+(?:to|over|on)\s+quarter"
+    r"|^(?:recent|prior|current|previous|coming|last|next)\s+(?:years?|quarters?|periods?|months?)$"
+    r"|^(?:sub|ref|re)\s*:"
+    r"|^(?:intangible|tangible)s?$"
+
     # Time references in entity names
     r"|\b(?:year|quarter|period|months?)\s+ended\b"
     r"|\bfiscal\s+(?:year|20\d{2})\b"
@@ -1018,9 +1036,22 @@ class ThemeDetector:
             "demand_surge", "capex_increase", "hiring_surge",
             "technology_adoption", "market_entry",
         })
-        SUPPLY_CONSTRAINT_SIGNALS = frozenset({
-            "supply_bottleneck", "inventory_drawdown",
+        # SELLER constraints = company IS the constrained supplier (pricing power)
+        # These are the INVESTABLE signals — seller has pricing power when constrained.
+        SELLER_CONSTRAINT_SIGNALS = frozenset({
+            "capacity_constraint_seller",   # explicit: "we cannot meet customer demand"
+            "demand_exceeds_supply",        # demand > their supply capacity
+            "backlog_duration",             # orders booked out months ahead
+            "capacity_utilization_high",    # ≥90% utilization → approaching constraint
+            "supply_concentration",         # monopoly / near-monopoly position
         })
+        # BUYER constraints = company needs the constrained item (margin pressure)
+        # These create themes too, but the INVESTABLE play is the upstream supplier.
+        BUYER_CONSTRAINT_SIGNALS = frozenset({
+            "supply_bottleneck", "inventory_drawdown", "capacity_shortage",
+        })
+        # Combined: both indicate a constraint regime exists in this sector
+        SUPPLY_CONSTRAINT_SIGNALS = SELLER_CONSTRAINT_SIGNALS | BUYER_CONSTRAINT_SIGNALS
 
         auto_themes: list[InvestmentTheme] = []
         existing_seed_slugs: set[str] = set()  # no seed list — all auto-discovered
@@ -1060,12 +1091,19 @@ class ThemeDetector:
             demand_count = sum(
                 v for k, v in signal_counts.items() if k in DEMAND_SIGNALS
             )
-            supply_constraint_count = sum(
-                v for k, v in signal_counts.items() if k in SUPPLY_CONSTRAINT_SIGNALS
+            seller_constraint_count = sum(
+                v for k, v in signal_counts.items() if k in SELLER_CONSTRAINT_SIGNALS
             )
+            buyer_constraint_count = sum(
+                v for k, v in signal_counts.items() if k in BUYER_CONSTRAINT_SIGNALS
+            )
+            # Seller constraints weighted 1.5× — they indicate pricing power
+            # Buyer constraints weighted 1.0× — they indicate the constraint exists
+            supply_constraint_count = seller_constraint_count * 1.5 + buyer_constraint_count
             capex_count = cluster["capex_count"]
 
             # Gate 1: Classic supply-demand tension (most reliable)
+            # Either seller OR buyer constraints qualify for theme detection
             has_tension = (demand_count >= self._min_tension_demand
                            and supply_constraint_count >= self._min_tension_supply)
             # Gate 2: Heavy capex commitment = structural theme
@@ -1131,6 +1169,9 @@ class ThemeDetector:
             theme_name = self._auto_theme_name(
                 entity_name, dominant_signal, capex_count,
                 has_tension=has_tension, has_demand_early=has_demand_surge_early,
+                seller_constraint_count=int(seller_constraint_count),
+                buyer_constraint_count=int(buyer_constraint_count),
+                demand_count=int(demand_count),
             )
             entity_slug = re.sub(r"[^a-z0-9]+", "-", entity_name.lower()).strip("-")[:30]
             sig_slug = dominant_signal.replace("_", "-")[:15]
@@ -2377,49 +2418,73 @@ class ThemeDetector:
         capex_count: int,
         has_tension: bool = False,
         has_demand_early: bool = False,
+        seller_constraint_count: int = 0,
+        buyer_constraint_count: int = 0,
+        demand_count: int = 0,
     ) -> str:
-        """Generate a descriptive theme name based on WHAT IS ACTUALLY HAPPENING.
+        """Generate a precise, unambiguous theme name.
 
-        Priority:
-          1. Tension (demand AND supply signals) → "X: Demand-Supply Tension"
-          2. Demand surge without supply → "X: Demand Running Ahead"
-          3. Capex buildout → "X: Capex Buildout"
-          4. Specific signal label
+        Naming encodes CONSTRAINT DIRECTION to eliminate ambiguity:
+        - "X: Supplier Allocation Bottleneck" = company IS the constrained supplier
+          (pricing power, investable)
+        - "X: Demand-Supply Tension" = both demand surge + supply constraint signals
+          (most actionable constraint theme)
+        - "X: Demand Surge" = demand running ahead, supply not yet constrained
+          (early-stage, monitor for constraint emergence)
+        - "X: Capex Buildout" = capital committed at scale (supply expansion wave)
+
+        Priority: seller constraint → tension → demand early → capex → generic
         """
+        entity_clean = entity.strip()
+
+        # Highest priority: SELLER constraint (pricing power theme)
+        # Company says THEY cannot meet customer demand → clearest investable signal
+        if seller_constraint_count >= 2 and demand_count >= 1:
+            return f"{entity_clean}: Supplier Capacity Constraint"
+        if seller_constraint_count >= 1:
+            return f"{entity_clean}: Supply Allocation Pressure"
+
+        # Classic tension: both demand and supply signals
         if has_tension:
-            # Most actionable: demand outpacing supply with constraints visible
-            return f"{entity}: Demand-Supply Tension"
+            if buyer_constraint_count >= seller_constraint_count:
+                # More buyer constraints → companies struggling to source inputs
+                return f"{entity_clean}: Demand-Supply Tension"
+            else:
+                return f"{entity_clean}: Demand-Supply Tension"
 
         if has_demand_early:
-            # Second best: demand surging, supply hasn't caught up yet
-            return f"{entity}: Demand Surge"
+            return f"{entity_clean}: Demand Surge"
 
         if capex_count >= 3:
-            # Capital is being committed at scale
-            return f"{entity}: Capex Buildout"
+            return f"{entity_clean}: Capex Buildout"
 
-        # Fallback: specific signal label
         signal_label = {
-            "capex_increase":      "Capex Surge",
-            "capex_decrease":      "Capex Pullback",
-            "demand_surge":        "Demand Surge",
-            "demand_slowdown":     "Demand Slowdown",
-            "supply_bottleneck":   "Supply Constraint",
-            "supply_easing":       "Supply Recovery",
-            "technology_adoption": "Technology Adoption",
-            "technology_disruption": "Technology Disruption",
-            "regulatory_tailwind": "Regulatory Tailwind",
-            "regulatory_headwind": "Regulatory Headwind",
-            "partnership_formed":  "Partnership Wave",
-            "acquisition_intent":  "M&A Activity",
-            "strategic_pivot":     "Strategic Repositioning",
-            "market_entry":        "Market Expansion",
-            "hiring_surge":        "Talent Surge",
-            "inventory_buildup":   "Inventory Buildup",
-            "inventory_drawdown":  "Inventory Correction",
+            "capacity_constraint_seller": "Supplier Bottleneck",
+            "capex_increase":            "Capex Surge",
+            "capex_decrease":            "Capex Pullback",
+            "demand_surge":              "Demand Surge",
+            "demand_slowdown":           "Demand Slowdown",
+            "supply_bottleneck":         "Supply Constraint",
+            "supply_easing":             "Supply Recovery",
+            "technology_adoption":       "Technology Adoption",
+            "technology_disruption":     "Technology Disruption",
+            "regulatory_tailwind":       "Policy Tailwind",
+            "regulatory_headwind":       "Regulatory Headwind",
+            "partnership_formed":        "Partnership Wave",
+            "acquisition_intent":        "M&A Activity",
+            "strategic_pivot":           "Strategic Repositioning",
+            "market_entry":              "Market Expansion",
+            "hiring_surge":              "Talent Surge",
+            "inventory_buildup":         "Inventory Buildup",
+            "inventory_drawdown":        "Inventory Correction",
+            "localization_opportunity":  "Localisation Opportunity",
+            "tender_pipeline":           "Tender Pipeline",
+            "policy_support":            "Policy Support",
+            "guidance_revenue":          "Forward Guidance",
+            "pricing_power_emerging":    "Pricing Power",
         }.get(dominant_signal, "Emerging Opportunity")
 
-        return f"{entity}: {signal_label}"
+        return f"{entity_clean}: {signal_label}"
 
     def detect_from_graph(self, graph_store) -> list[InvestmentTheme]:
         """Graph-based detection: find cross-sector technologies via Neo4j.

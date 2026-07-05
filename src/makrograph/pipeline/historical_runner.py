@@ -357,6 +357,19 @@ class HistoricalRunner:
                 causal_stats = self._causal_month(window_end)
                 result.causal_score = causal_stats.get("top_score", 0.0)
 
+            # ---- STAGE 5b: INDIA INTELLIGENCE LAYERS (Change 2) --------
+            # Run L1-L10 BEFORE themes for India so capacity gaps, localization
+            # opportunities, and causal chains influence theme generation.
+            # Pass window_end as as_of_date for Change 3 (static target leakage).
+            if _country == "IN" and not self.skip_themes:
+                try:
+                    self._pipeline.run_india_intelligence(
+                        as_of_date=window_end,
+                        pg_store=self._pg_store,
+                    )
+                except Exception as _ie:
+                    logger.warning(f"India intelligence layers failed for {replay_batch}: {_ie}")
+
             # ---- STAGE 6: THEMES (as_of=replay_date) --------------------
             if not self.skip_themes:
                 theme_stats = self._themes_month(window_end)
@@ -614,9 +627,10 @@ class HistoricalRunner:
                 doc_id = doc["id"]
                 doc_filed_at = doc.get("filed_at")
 
-                # ── Read text — DB raw_text first, then fall back to file ─────
+                # ── Read text: DB → local file → SEC URL ─────────────────────
                 raw_text = doc.get("raw_text", "") or ""
 
+                # Strategy 1: local file
                 if not raw_text:
                     raw_path = doc.get("local_path", "")
                     if raw_path and raw_path not in ("UNSUPPORTED_FORMAT",):
@@ -638,6 +652,49 @@ class HistoricalRunner:
                                     raw_text = lp.read_text(encoding="utf-8", errors="ignore")
                             except Exception as e:
                                 logger.warning(f"Text read failed {lp}: {e}")
+
+                # Strategy 2: fetch from URL (handles US EDGAR docs where local
+                # file was never saved — fetcher stored metadata but not content)
+                if not raw_text:
+                    doc_url = doc.get("url") or ""
+                    if doc_url and doc_url.startswith("http"):
+                        try:
+                            import urllib.request, time as _time
+                            req = urllib.request.Request(
+                                doc_url,
+                                headers={
+                                    "User-Agent": "MakroGraphIntelligence/1.0 research@makrograph.com",
+                                    "Accept": "text/html,application/xhtml+xml",
+                                }
+                            )
+                            # 10-K/10-Q iXBRL filings can be 1-3MB — use larger cap
+                            # to get full MD&A text, not just the filing header
+                            _filing_type = doc.get("filing_type","")
+                            _read_cap = 2_000_000 if _filing_type in ("10-K","10-Q") else 512_000
+                            with urllib.request.urlopen(req, timeout=30) as resp:
+                                html_bytes = resp.read(_read_cap)
+                            html = html_bytes.decode("utf-8", errors="ignore")
+                            from bs4 import BeautifulSoup
+                            import warnings as _w
+                            from bs4 import XMLParsedAsHTMLWarning
+                            _w.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
+                            # Use html.parser for iXBRL (10-K/10-Q inline XBRL filings)
+                            # lxml misidentifies iXBRL as XML and strips human-readable text
+                            _parser = "html.parser" if _filing_type in ("10-K","10-Q") else "lxml"
+                            soup = BeautifulSoup(html, _parser)
+                            for tag in soup(["script", "style", "header", "footer", "nav"]):
+                                tag.decompose()
+                            raw_text = soup.get_text(separator=" ", strip=True)
+                            # Cache up to 400KB for 10-K/10-Q (more content, need more signal)
+                            _cache_cap = 400_000 if _filing_type in ("10-K","10-Q") else 200_000
+                            if raw_text and len(raw_text) > 100:
+                                try:
+                                    self._pg_store.update_raw_text(doc_id, raw_text[:_cache_cap])
+                                except Exception:
+                                    pass
+                            _time.sleep(0.15)  # stay under SEC 10 req/s rate limit
+                        except Exception as e:
+                            logger.debug(f"URL fetch failed doc {doc_id}: {e}")
 
                 if not raw_text:
                     failed_ids.append(doc_id)
@@ -673,20 +730,43 @@ class HistoricalRunner:
 
                 # ── Signal extraction — batch insert ──────────────────────────
                 signals = p._signal_extractor.extract(raw_text, document_id=doc_id)
-                signal_dicts = [
-                    {
+
+                _SELLER_TYPES = frozenset({
+                    "capacity_constraint_seller", "backlog_duration",
+                    "capacity_utilization_high", "supply_concentration",
+                    "demand_pull", "realized_margin_expansion",
+                    "roic_high_sustained", "competitive_moat",
+                    "pricing_power_emerging", "demand_surge",
+                    "capex_increase", "tender_pipeline",
+                    "localization_opportunity", "policy_support",
+                    "tam_expansion_structural", "management_quality",
+                })
+                _BUYER_TYPES = frozenset({
+                    "supply_bottleneck", "inventory_drawdown",
+                    "capacity_shortage", "demand_exceeds_supply",
+                })
+
+                signal_dicts = []
+                for sig in signals:
+                    _persp = getattr(sig, "perspective", "neutral") or "neutral"
+                    if _persp == "neutral":
+                        if sig.signal_type in _SELLER_TYPES:
+                            _persp = "seller"
+                        elif sig.signal_type in _BUYER_TYPES:
+                            _persp = "buyer"
+                    signal_dicts.append({
                         "document_id": doc_id,
                         "signal_type": sig.signal_type,
-                        "direction": sig.direction,
-                        "confidence": sig.confidence,
+                        "direction":   sig.direction,
+                        "confidence":  sig.confidence,
                         "signal_value": sig.signal_value,
-                        "signal_unit": sig.signal_unit,
+                        "signal_unit":  sig.signal_unit,
                         "context_text": sig.context_text[:500],
                         "extracted_by": sig.extracted_by,
-                        "filed_at": doc_filed_at,
-                    }
-                    for sig in signals
-                ]
+                        "filed_at":    doc_filed_at,
+                        "perspective": _persp,
+                        "country":     _country,
+                    })
                 try:
                     self._pg_store.batch_insert_signals(signal_dicts)
                 except Exception as e:
@@ -1045,6 +1125,14 @@ class HistoricalRunner:
                                 result.replay_batch,
                             ))
 
+                    # Deduplicate on conflict key before INSERT to avoid
+                    # "ON CONFLICT DO UPDATE command cannot affect row a second time"
+                    # when a ticker appears under multiple beneficiary_types for the same theme.
+                    _seen: dict[tuple, tuple] = {}
+                    for row in perf_rows:
+                        _seen[(row[1], row[2], row[4])] = row  # (slug, ticker, detection_date)
+                    perf_rows = list(_seen.values())
+
                     # Step 3: batch INSERT (same cursor — not yet closed)
                     if perf_rows:
                         perf_sql = """
@@ -1074,6 +1162,10 @@ class HistoricalRunner:
             return
 
         self._pipeline = IntelligencePipeline(self.config)
+        # Skip ALTER TABLE migrations in replay mode — schema already exists and
+        # ALTER TABLE holds AccessExclusiveLock that blocks all readers for minutes.
+        if self.replay_mode:
+            self._pipeline._skip_migrations = True
         self._pipeline._init_storage()
         self._pg_store = self._pipeline._pg_store
         try:
@@ -1081,13 +1173,15 @@ class HistoricalRunner:
         except Exception as e:
             logger.debug(f"Macro init skipped (will retry per-month): {e}")
 
-        # Apply any new schema tables created in this release
-        try:
-            schema_path = Path(__file__).resolve().parent.parent.parent.parent / "schema" / "postgres_schema.sql"
-            if schema_path.exists():
-                self._pg_store.apply_schema(str(schema_path))
-        except Exception as e:
-            logger.debug(f"Schema re-apply skipped: {e}")
+        # Apply any new schema tables created in this release.
+        # Skip in replay mode — schema already exists; apply_schema holds locks.
+        if not self.replay_mode:
+            try:
+                schema_path = Path(__file__).resolve().parent.parent.parent.parent / "schema" / "postgres_schema.sql"
+                if schema_path.exists():
+                    self._pg_store.apply_schema(str(schema_path))
+            except Exception as e:
+                logger.debug(f"Schema re-apply skipped: {e}")
 
         # Build the company CIK list once for this entire run.
         # This advances the batch offset a single time regardless of how many
