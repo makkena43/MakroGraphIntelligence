@@ -396,6 +396,11 @@ def main():
             json.dump(report, f, default=jsonify, indent=1)
         conn.close()
         print(out_path)
+        print("SUMMARY:", json.dumps({
+            "matched_themes": len(focus["matched_themes"]),
+            "matched_constrained_products": len(focus["matched_constrained_products"]),
+            "supply_side_companies": len(focus.get("matched_supply_side_companies", [])),
+        }))
         return
 
     major, emerging = fetch_theme_landscape(cur, as_of, args.window_months, args.country)
@@ -445,6 +450,11 @@ def main():
         json.dump(report, f, default=jsonify, indent=1)
     conn.close()
     print(out_path)
+    print("SUMMARY:", json.dumps({
+        "major_themes": len(major), "emerging_themes": len(emerging),
+        "constrained_products": len(products), "candidates": len(candidates),
+        "top5_candidates": [c["ticker"] for c in candidates[:5]],
+    }))
 
 
 if __name__ == "__main__":
