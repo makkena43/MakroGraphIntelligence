@@ -1,12 +1,12 @@
 ---
 name: makrograph-stock-report
 description: >
-  Generate a PDF research report for an Indian stock as of a user-given date.
-  Trigger whenever the user asks for a "report", "stock report", "research report",
-  or "generate report" for a stock/company — e.g. "generate report for TITAGARH as of
-  2025/06/01", "give me report of Kaynes for 2024-12-31", "report on HAL". If no date
-  is given, use today. The report is strictly point-in-time: NOTHING dated after the
-  as-of date may appear in it.
+  Generate a PDF research report for an Indian (NSE/BSE) or US (EDGAR) stock as of a
+  user-given date. Trigger whenever the user asks for a "report", "stock report",
+  "research report", or "generate report" for a stock/company — e.g. "generate report
+  for TITAGARH as of 2025/06/01", "report of Kaynes for 2024-12-31", "report on NVDA",
+  "US report for Apple". If no date is given, use today. The report is strictly
+  point-in-time: NOTHING dated after the as-of date may appear in it.
 ---
 
 # Stock Research Report (as-of-date PDF)
@@ -20,10 +20,19 @@ just a stock name/symbol and optionally a date (formats like 2025/06/01 or 2025-
 ### Step 1 — Extract data (deterministic)
 
 ```bash
-.venv/bin/python scripts/stock_report/extract_report_data.py --symbol "<SYMBOL_OR_NAME>" --as-of <YYYY-MM-DD>
+.venv/bin/python scripts/stock_report/extract_report_data.py --symbol "<SYMBOL_OR_NAME>" --as-of <YYYY-MM-DD> [--country IN|US]
 ```
 
 - Run from the project root. It prints the JSON path (data/reports/<SYMBOL>_<date>_data.json).
+- **Country auto-detects** (India first, then US EDGAR tickers). Pass --country US only
+  if a symbol exists in both markets or the user says "US". The JSON's `country` field
+  says which market was matched.
+- **US reports**: sections differ — "concalls" become the last 10-K/10-Q/8-K filings
+  (MD&A + earnings 8-Ks serve as management commentary; rate them on the same 1-5
+  scale), constraints come from the theme graph, policy events are Congress/Federal
+  Register. NOT available for US (omit sections with a one-line note, point to the
+  finviz/openinsider/stockanalysis links instead): price action/VCP, bulk/block deals,
+  insider trades, quarterly financials, shareholding. See `us_data_note` in the JSON.
 - The script already enforces `<= as_of` on every table. Do not query the DB for anything
   dated after the as-of date.
 - If the symbol is ambiguous/not found, the script errors — try the company-name fragment,

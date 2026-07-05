@@ -77,24 +77,37 @@ def parse_as_of(raw: str) -> date:
 # Symbol resolution
 # ──────────────────────────────────────────────────────────────────────────
 
-def resolve_symbol(cur, user_input: str):
-    """Accept an NSE symbol, BSE symbol, or company-name fragment."""
+def resolve_symbol(cur, user_input: str, country: str = "auto"):
+    """Accept an NSE/BSE symbol, US ticker, or company-name fragment.
+    Returns (master_dict, country)."""
     token = user_input.strip().upper()
-    rows = q(cur, "SELECT * FROM security_master WHERE upper(nse_symbol)=%s OR upper(bse_symbol)=%s", (token, token))
-    if rows:
-        return rows[0]
-    rows = q(cur,
-             "SELECT * FROM security_master WHERE company_name ILIKE %s ORDER BY length(company_name) LIMIT 5",
-             (f"%{user_input.strip()}%",))
-    if rows:
-        return rows[0]
-    # last resort: symbol present in bhavcopy but not in security_master
-    rows = q(cur, "SELECT DISTINCT symbol FROM nse_bhavcopy_data WHERE symbol=%s LIMIT 1", (token,))
-    if rows:
-        return {"nse_symbol": token, "bse_symbol": None, "company_name": token,
-                "sector_nse": None, "industry_nse": None, "sector_bse": None, "industry_bse": None,
-                "isin": None}
-    return None
+    if country in ("auto", "IN"):
+        rows = q(cur, "SELECT * FROM security_master WHERE upper(nse_symbol)=%s OR upper(bse_symbol)=%s", (token, token))
+        if rows:
+            return rows[0], "IN"
+        rows = q(cur,
+                 "SELECT * FROM security_master WHERE company_name ILIKE %s ORDER BY length(company_name) LIMIT 5",
+                 (f"%{user_input.strip()}%",))
+        if rows:
+            return rows[0], "IN"
+        rows = q(cur, "SELECT DISTINCT symbol FROM nse_bhavcopy_data WHERE symbol=%s LIMIT 1", (token,))
+        if rows:
+            return {"nse_symbol": token, "bse_symbol": None, "company_name": token,
+                    "sector_nse": None, "industry_nse": None, "sector_bse": None, "industry_bse": None,
+                    "isin": None}, "IN"
+    if country in ("auto", "US"):
+        rows = q(cur, """
+            SELECT ticker, company, cik FROM mg_documents
+            WHERE country='US' AND (upper(ticker)=%s OR company ILIKE %s)
+            ORDER BY filed_at DESC LIMIT 1
+        """, (token, f"%{user_input.strip()}%"))
+        if rows:
+            r = rows[0]
+            return {"nse_symbol": r["ticker"].upper(), "bse_symbol": None,
+                    "company_name": r["company"], "cik": r["cik"],
+                    "sector_nse": None, "industry_nse": None, "sector_bse": None,
+                    "industry_bse": None, "isin": None}, "US"
+    return None, None
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -155,7 +168,7 @@ def _stage_history_upto(meta, as_of):
     return out
 
 
-def fetch_themes(cur, symbol, company_name, as_of):
+def fetch_themes(cur, symbol, company_name, as_of, country="IN"):
     rows = q(cur, """
         SELECT t.id AS theme_id, t.theme_name, t.theme_slug, t.description, t.sectors,
                t.conviction, t.first_detected, t.last_updated, t.stage, t.stage_label,
@@ -166,13 +179,13 @@ def fetch_themes(cur, symbol, company_name, as_of):
                b.quarterly_mentions
         FROM mg_theme_beneficiaries b
         JOIN mg_themes t ON t.id = b.theme_id
-        WHERE t.country='IN' AND t.is_active
+        WHERE t.country=%s AND t.is_active
           AND upper(b.ticker)=%s
           AND t.first_detected <= %s
           AND (b.first_seen_at IS NULL OR b.first_seen_at <= %s)
         ORDER BY b.relevance_score DESC NULLS LAST
         LIMIT 25
-    """, (symbol, as_of, as_of))
+    """, (country, symbol, as_of, as_of))
 
     themes, constraints = [], []
     for r in rows:
@@ -236,20 +249,28 @@ def fetch_capacity_and_imports(cur, theme_names, sector, as_of):
 # Concalls
 # ──────────────────────────────────────────────────────────────────────────
 
-def fetch_concalls(cur, symbol, company_name, as_of, limit=20, excerpt_chars=7000):
+def fetch_concalls(cur, symbol, company_name, as_of, limit=20, excerpt_chars=7000, country="IN"):
+    # US has no exchange concall filings — EDGAR 10-K/10-Q/8-K carry the management
+    # commentary (MD&A, earnings 8-Ks) and serve the same role in the report
+    doc_filter = CONCALL_FILING_PATTERN if country == "IN" else \
+        "(filing_type IN ('10-K','10-Q','8-K'))"
     rows = q(cur, f"""
         SELECT id, source_name, filing_type, fiscal_period, filed_at, title, url,
                sentiment_score, nlp_summary, word_count,
                CASE WHEN raw_text IS NOT NULL THEN length(raw_text) ELSE 0 END AS text_len,
                left(raw_text, {int(excerpt_chars)}) AS text_excerpt
         FROM mg_documents
-        WHERE country='IN'
+        WHERE country=%s
           AND (upper(ticker)=%s OR company ILIKE %s)
-          AND {CONCALL_FILING_PATTERN}
+          AND {doc_filter}
           AND filed_at <= %s
         ORDER BY filed_at DESC
         LIMIT %s
-    """, (symbol, f"%{company_name}%", as_of, limit))
+    """, (country, symbol, f"%{company_name}%", as_of, limit))
+    if country == "US":
+        for r in rows:
+            r["doc_kind"] = "sec_filing_" + (r.get("filing_type") or "")
+        return rows
     for r in rows:
         # transcripts/recordings > schedule intimations — tag so the model can prioritise
         blob = f"{r.get('filing_type','')} {r.get('title','')}".lower()
@@ -589,22 +610,25 @@ CORP_EVENT_TYPES = (
 )
 
 
-def fetch_corporate_events(cur, symbol, company_name, as_of, months=18):
+def fetch_corporate_events(cur, symbol, company_name, as_of, months=18, country="IN"):
     start = as_of - timedelta(days=months * 30)
     like = " OR ".join(f"filing_type ILIKE '%%{t}%%'" for t in CORP_EVENT_TYPES)
+    if country == "US":
+        like = "filing_type = '8-K'"   # material corporate events on EDGAR
     rows = q(cur, f"""
         SELECT filed_at, filing_type, left(title, 220) AS title, url,
                left(nlp_summary, 300) AS summary
         FROM mg_documents
-        WHERE country='IN' AND (upper(ticker)=%s OR company ILIKE %s)
+        WHERE country=%s AND (upper(ticker)=%s OR company ILIKE %s)
           AND filed_at BETWEEN %s AND %s AND ({like})
         ORDER BY filed_at DESC LIMIT 25
-    """, (symbol, f"%{company_name}%", start, as_of))
+    """, (country, symbol, f"%{company_name}%", start, as_of))
     return {"window_months": months, "events": rows}
 
 
-def fetch_policy_events(cur, themes, sector, as_of, months=24):
-    """India policy events touching the company's theme keywords, before as_of."""
+def fetch_policy_events(cur, themes, sector, as_of, months=24, country="IN"):
+    """Policy events (IN: PIB/SEBI/ministries; US: Congress/Federal Register)
+    touching the company's theme keywords, before as_of."""
     tokens = set()
     for t in themes[:5]:
         for w in re.split(r"[^a-zA-Z]+", t["theme_name"].lower()):
@@ -622,14 +646,14 @@ def fetch_policy_events(cur, themes, sector, as_of, months=24):
     # many India policy rows are undated scrapes — fall back through the date fields;
     # fetched_at is when the pipeline first saw it (safe upper bound for as-of checks)
     start = as_of - timedelta(days=months * 30)
-    params = [as_of, start] + params
+    params = [country, as_of, start] + params
     return q(cur, f"""
         SELECT COALESCE(introduced_date, enacted_date, effective_date, fetched_at::date) AS event_date,
                (introduced_date IS NULL AND enacted_date IS NULL AND effective_date IS NULL) AS date_is_fetch_date,
                policy_type, source, left(title, 200) AS title, raw_url,
                impact_direction, impact_magnitude, status
         FROM mg_policy_events
-        WHERE country='IN'
+        WHERE country=%s
           AND COALESCE(introduced_date, enacted_date, effective_date, fetched_at::date) <= %s
           AND (COALESCE(introduced_date, enacted_date, effective_date) IS NULL
                OR COALESCE(introduced_date, enacted_date, effective_date) >= %s)
@@ -670,8 +694,26 @@ def fetch_constraint_evidence(cur, symbol, as_of, limit=15):
                      "use for constraint root-cause + authenticity assessment")}
 
 
-def fetch_key_links(cur, symbol, bse_symbol, as_of):
+def fetch_key_links(cur, symbol, bse_symbol, as_of, country="IN", cik=None):
     """Public web links: company pages + latest filings with document URLs."""
+    if country == "US":
+        links = {
+            "sec_edgar_filings": f"https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={cik or symbol}&type=&dateb=&owner=include&count=40",
+            "edgar_full_text_search": f"https://efts.sec.gov/LATEST/search-index?q=%22{symbol}%22",
+            "yahoo_finance": f"https://finance.yahoo.com/quote/{symbol}",
+            "stockanalysis": f"https://stockanalysis.com/stocks/{symbol.lower()}/",
+            "finviz": f"https://finviz.com/quote.ashx?t={symbol}",
+            "openinsider": f"http://openinsider.com/screener?s={symbol}",
+        }
+        filings = q(cur, """
+            SELECT filed_at, filing_type, left(title, 130) AS title, url
+            FROM mg_documents
+            WHERE country='US' AND upper(ticker)=%s AND filed_at <= %s
+              AND filing_type IN ('10-K','10-Q')
+            ORDER BY filed_at DESC LIMIT 6
+        """, (symbol, as_of))
+        return {"company_pages": links, "filing_documents": filings,
+                "note": "US links: EDGAR archive links are permanent; aggregator pages show current data"}
     links = {
         "screener": f"https://www.screener.in/company/{symbol}/consolidated/",
         "nse_quote": f"https://www.nseindia.com/get-quotes/equity?symbol={symbol}",
@@ -736,7 +778,7 @@ def fetch_peers(cur, master, symbol, themes, as_of):
                      "comparables by judgment; theme_peers share the same detected themes")}
 
 
-def fetch_sub_themes(cur, themes, symbol, as_of):
+def fetch_sub_themes(cur, themes, symbol, as_of, country="IN"):
     """Child themes of the company's themes + sibling companies on the same constrained products."""
     slugs = [t["theme_slug"] for t in themes]
     names = [t["theme_name"] for t in themes]
@@ -746,21 +788,21 @@ def fetch_sub_themes(cur, themes, symbol, as_of):
             SELECT t.theme_name, t.theme_slug, t.parent_theme_slug, t.first_detected,
                    t.stage_label, t.conviction, t.strength_score
             FROM mg_themes t
-            WHERE t.country='IN' AND t.is_active AND t.parent_theme_slug = ANY(%s)
+            WHERE t.country=%s AND t.is_active AND t.parent_theme_slug = ANY(%s)
               AND t.first_detected <= %s
             ORDER BY t.strength_score DESC LIMIT 12
-        """, (slugs, as_of))
+        """, (country, slugs, as_of))
         for c in children:
             c["top_companies"] = [r["v"] for r in q(cur, """
                 SELECT COALESCE(b.ticker, b.company_name) AS v
                 FROM mg_theme_beneficiaries b
                 JOIN mg_themes t ON t.id=b.theme_id
-                WHERE t.theme_slug=%s AND t.country='IN'
+                WHERE t.theme_slug=%s AND t.country=%s
                   AND (b.first_seen_at IS NULL OR b.first_seen_at <= %s)
                 ORDER BY b.relevance_score DESC NULLS LAST LIMIT 8
-            """, (c["theme_slug"], as_of))]
+            """, (c["theme_slug"], country, as_of))]
         out["child_themes"] = children
-    if names:
+    if names and country == "IN":
         rows = q(cur, """
             SELECT constrained_product, theme_name,
                    array_agg(DISTINCT COALESCE(ticker, company)) AS companies
@@ -782,8 +824,10 @@ def fetch_sub_themes(cur, themes, symbol, as_of):
 
 def main():
     ap = argparse.ArgumentParser(description="Extract as-of-date stock report data to JSON")
-    ap.add_argument("--symbol", required=True, help="NSE/BSE symbol or company name fragment")
+    ap.add_argument("--symbol", required=True, help="NSE/BSE symbol, US ticker, or company name fragment")
     ap.add_argument("--as-of", required=True, help="Report date YYYY-MM-DD (also accepts YYYY/MM/DD)")
+    ap.add_argument("--country", default="auto", choices=["auto", "IN", "US"],
+                    help="market (default: auto-detect — India first, then US)")
     ap.add_argument("--out", default=None, help="Output JSON path (default: data/reports/...)")
     args = ap.parse_args()
 
@@ -791,46 +835,59 @@ def main():
     conn = connect()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    master = resolve_symbol(cur, args.symbol)
+    master, country = resolve_symbol(cur, args.symbol, args.country)
     if not master:
-        print(json.dumps({"error": f"symbol/company not found: {args.symbol}"}))
+        print(json.dumps({"error": f"symbol/company not found in IN or US data: {args.symbol}"}))
         sys.exit(2)
     symbol = master["nse_symbol"].upper()
     company_name = (master.get("company_name") or symbol).split(" LIMITED")[0].split(" Limited")[0].strip()
 
     company = fetch_company(cur, master, as_of)
-    themes, constraint_themes = fetch_themes(cur, symbol, company_name, as_of)
-    india_benef = fetch_india_beneficiary_view(cur, symbol, company_name, as_of)
-    theme_names = list({t["theme_name"] for t in themes} | {b["theme_name"] for b in india_benef if b.get("theme_name")})
-    gaps, imports = fetch_capacity_and_imports(cur, theme_names, company.get("sector"), as_of)
-    concalls = fetch_concalls(cur, symbol, company_name, as_of)
-    series = fetch_price_series(cur, symbol, as_of)
-    price_action = compute_price_action(series, as_of) if series else {"error": "no NSE price data for symbol"}
+    themes, constraint_themes = fetch_themes(cur, symbol, company_name, as_of, country)
+    concalls = fetch_concalls(cur, symbol, company_name, as_of, country=country)
 
     report = {
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "as_of_date": as_of.isoformat(),
+        "country": country,
         "as_of_rule": "every query is filtered to dates <= as_of_date; fundamentals/peers snapshots are current-day and flagged",
         "company": company,
         "themes": themes,
         "constraint_themes": constraint_themes,
-        "india_beneficiary_mappings": india_benef,
-        "capacity_gaps": gaps,
-        "import_dependencies": imports,
         "concalls": concalls,
-        "price_action": price_action,
-        "bulk_deals": fetch_deals(cur, "nse_bulk_deals", symbol, as_of),
-        "block_deals": fetch_deals(cur, "nse_block_deals", symbol, as_of),
-        "insider_trades": fetch_insider(cur, symbol, as_of),
         "peers": fetch_peers(cur, master, symbol, themes, as_of),
-        "sub_themes": fetch_sub_themes(cur, themes, symbol, as_of),
-        "quarterly_financials": fetch_quarterly_financials(company, as_of),
-        "shareholding_trend": fetch_shareholding_trend(cur, symbol, company, as_of),
-        "corporate_events": fetch_corporate_events(cur, symbol, company_name, as_of),
-        "policy_events": fetch_policy_events(cur, themes, company.get("sector") or company.get("industry"), as_of),
+        "sub_themes": fetch_sub_themes(cur, themes, symbol, as_of, country),
+        "corporate_events": fetch_corporate_events(cur, symbol, company_name, as_of, country=country),
+        "policy_events": fetch_policy_events(cur, themes, company.get("sector") or company.get("industry"),
+                                             as_of, country=country),
         "constraint_evidence": fetch_constraint_evidence(cur, symbol, as_of),
-        "key_links": fetch_key_links(cur, symbol, master.get("bse_symbol"), as_of),
+        "key_links": fetch_key_links(cur, symbol, master.get("bse_symbol"), as_of,
+                                     country=country, cik=master.get("cik")),
     }
+
+    if country == "IN":
+        india_benef = fetch_india_beneficiary_view(cur, symbol, company_name, as_of)
+        theme_names = list({t["theme_name"] for t in themes}
+                           | {b["theme_name"] for b in india_benef if b.get("theme_name")})
+        gaps, imports = fetch_capacity_and_imports(cur, theme_names, company.get("sector"), as_of)
+        series = fetch_price_series(cur, symbol, as_of)
+        report.update({
+            "india_beneficiary_mappings": india_benef,
+            "capacity_gaps": gaps,
+            "import_dependencies": imports,
+            "price_action": compute_price_action(series, as_of) if series else {"error": "no NSE price data for symbol"},
+            "bulk_deals": fetch_deals(cur, "nse_bulk_deals", symbol, as_of),
+            "block_deals": fetch_deals(cur, "nse_block_deals", symbol, as_of),
+            "insider_trades": fetch_insider(cur, symbol, as_of),
+            "quarterly_financials": fetch_quarterly_financials(company, as_of),
+            "shareholding_trend": fetch_shareholding_trend(cur, symbol, company, as_of),
+        })
+    else:
+        report["us_data_note"] = (
+            "US coverage: EDGAR filings (10-K/10-Q/8-K), themes/constraints, policy events, "
+            "theme peers and links. NOT in DB for US: price data, bulk/block deals, insider "
+            "trades, fundamentals/shareholding — omit those report sections, state why in one "
+            "line, and point the reader to the finviz/openinsider/stockanalysis links instead.")
 
     os.makedirs(REPORTS_DIR, exist_ok=True)
     out_path = args.out or os.path.join(REPORTS_DIR, f"{symbol}_{as_of.isoformat()}_data.json")

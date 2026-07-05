@@ -1,12 +1,13 @@
 ---
 name: makrograph-stock-selector
 description: >
-  Surface a ranked list of Indian stocks worth analyzing for a given date, from the
-  MakroGraph DB — major + emerging themes (6-12 month window), major constraints with
-  explanations, and supply-side beneficiaries. Trigger on: "which stocks should I
+  Surface a ranked list of Indian or US stocks worth analyzing for a given date, from
+  the MakroGraph DB — major + emerging themes (6-12 month window), major constraints
+  with explanations, and supply-side beneficiaries. Trigger on: "which stocks should I
   analyze", "stock selector", "today's opportunities", "give me stocks for <date>",
-  "what themes are emerging", "shortlist stocks". If no date given, use today.
-  Strictly point-in-time: nothing dated after the given date.
+  "what themes are emerging", "shortlist stocks", "US opportunities". Default country
+  is India; use US when the user says US/America/NASDAQ/NYSE. If no date given, use
+  today. Strictly point-in-time: nothing dated after the given date.
 ---
 
 # Stock Selector (as-of-date opportunity scan)
@@ -20,11 +21,15 @@ supply-side companies benefit, and which stocks deserve a full report next.
 ### Step 1 — Extract
 
 ```bash
-.venv/bin/python scripts/stock_report/select_stocks.py --as-of <YYYY-MM-DD>
+.venv/bin/python scripts/stock_report/select_stocks.py --as-of <YYYY-MM-DD> [--country IN|US]
 ```
 
-Run from project root; prints the JSON path (data/reports/stock_selector_<date>_data.json).
+Run from project root; prints the JSON path (data/reports/stock_selector_<country>_<date>_data.json).
 Default emergence window is 12 months (`--window-months 6` for a tighter scan).
+**US mode** (`--country US`): constraints come from bottleneck themes in the theme
+graph (no constrained-product mapper / capacity-gap / import tables for US), and
+there is NO technical overlay (no US price data in DB) — say so and point to
+finviz/stockanalysis for chart checks. See `us_data_note` in the JSON.
 Read the JSON in parts / with jq — it can be large.
 
 ### Step 2 — Analyze and present (chat answer by default)

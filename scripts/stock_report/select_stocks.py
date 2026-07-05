@@ -30,7 +30,7 @@ from extract_report_data import connect, q, jsonify, parse_as_of, REPORTS_DIR  #
 # Themes
 # ──────────────────────────────────────────────────────────────────────────
 
-def fetch_theme_landscape(cur, as_of, window_months):
+def fetch_theme_landscape(cur, as_of, window_months, country="IN"):
     win_start = as_of - timedelta(days=window_months * 30)
     themes = q(cur, """
         SELECT id AS theme_id, theme_name, theme_slug, description, sectors, conviction,
@@ -38,11 +38,11 @@ def fetch_theme_landscape(cur, as_of, window_months):
                momentum_score, company_count, doc_count, metadata,
                is_canonical, parent_theme_slug
         FROM mg_themes
-        WHERE country='IN' AND is_active
+        WHERE country=%s AND is_active
           AND first_detected <= %s
         ORDER BY strength_score DESC NULLS LAST
         LIMIT 400
-    """, (as_of,))
+    """, (country, as_of,))
 
     out = []
     for t in themes:
@@ -163,6 +163,56 @@ def fetch_supply_beneficiaries(cur, as_of, window_months, per_product=8):
     return result
 
 
+def fetch_us_beneficiaries(cur, constraint_themes, as_of, win_start, per_theme=8):
+    """US supply-side proxies: top-ranked beneficiaries of bottleneck/constraint
+    themes from the theme graph (no supply-chain-node classification for US)."""
+    result = {}
+    for t in constraint_themes:
+        rows = q(cur, """
+            SELECT b.ticker, b.company_name AS company, b.beneficiary_type,
+                   b.company_role, b.relevance_score, b.rank_in_theme,
+                   b.signal_count, b.capex_signals, b.first_seen_at,
+                   left(b.reasoning, 200) AS rationale
+            FROM mg_theme_beneficiaries b
+            WHERE b.theme_id=%s AND b.ticker IS NOT NULL
+              AND (b.first_seen_at IS NULL OR b.first_seen_at <= %s)
+            ORDER BY b.rank_in_theme ASC NULLS LAST, b.relevance_score DESC
+            LIMIT %s
+        """, (t["theme_id"], as_of, per_theme))
+        if rows:
+            result[t["theme_name"]] = rows
+    return result
+
+
+def rank_us_candidates(themes_by_name, top_n=25):
+    agg = {}
+    for theme, lst in themes_by_name.items():
+        for r in lst:
+            tick = (r["ticker"] or "").strip().upper()
+            if not tick:
+                continue
+            a = agg.setdefault(tick, {"ticker": tick, "company": r["company"],
+                                      "themes": set(), "best_rank": 999,
+                                      "max_relevance": 0.0, "capex_signals": 0,
+                                      "signal_count": 0})
+            a["themes"].add(theme)
+            a["best_rank"] = min(a["best_rank"], r["rank_in_theme"] or 999)
+            a["max_relevance"] = max(a["max_relevance"], float(r["relevance_score"] or 0))
+            a["capex_signals"] += int(r["capex_signals"] or 0)
+            a["signal_count"] += int(r["signal_count"] or 0)
+    out = list(agg.values())
+    for a in out:
+        a["themes"] = sorted(a["themes"])[:6]
+        breadth = min(len(a["themes"]), 5) / 5.0
+        rank_score = max(0.0, 1.0 - (a["best_rank"] / 30.0)) if a["best_rank"] < 999 else 0
+        a["fundamental_score"] = round(0.4 * min(a["max_relevance"] / 100.0, 1.0)
+                                       + 0.3 * breadth + 0.3 * rank_score, 3)
+        a["composite_score"] = a["fundamental_score"]
+        a["technical"] = None  # no US price data in DB
+    out.sort(key=lambda a: -a["composite_score"])
+    return out[:top_n]
+
+
 # ──────────────────────────────────────────────────────────────────────────
 # Candidate ranking + technical overlay
 # ──────────────────────────────────────────────────────────────────────────
@@ -245,23 +295,43 @@ def rank_candidates(cur, supply_by_product, as_of, top_n=25):
 def main():
     ap = argparse.ArgumentParser(description="As-of-date stock selector extraction")
     ap.add_argument("--as-of", required=True)
+    ap.add_argument("--country", default="IN", choices=["IN", "US"])
     ap.add_argument("--window-months", type=int, default=12,
                     help="emergence lookback window in months (default 12)")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
     as_of = parse_as_of(args.as_of)
+    win_start = as_of - timedelta(days=args.window_months * 30)
     conn = connect()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    major, emerging = fetch_theme_landscape(cur, as_of, args.window_months)
-    products, gaps, imports = fetch_constraints(cur, as_of, args.window_months)
-    supply = fetch_supply_beneficiaries(cur, as_of, args.window_months)
-    candidates = rank_candidates(cur, supply, as_of)
+    major, emerging = fetch_theme_landscape(cur, as_of, args.window_months, args.country)
+    if args.country == "IN":
+        products, gaps, imports = fetch_constraints(cur, as_of, args.window_months)
+        supply = fetch_supply_beneficiaries(cur, as_of, args.window_months)
+        candidates = rank_candidates(cur, supply, as_of)
+        us_note = None
+    else:
+        constraint_themes = [t for t in major + emerging
+                             if t["is_bottleneck"] or (t["supply_constraint_count"] or 0) >= 5]
+        seen, uniq = set(), []
+        for t in constraint_themes:
+            if t["theme_id"] not in seen:
+                seen.add(t["theme_id"]); uniq.append(t)
+        products, gaps, imports = [], [], []
+        supply = fetch_us_beneficiaries(cur, uniq[:12], as_of, win_start)
+        candidates = rank_us_candidates(supply)
+        us_note = ("US mode: constraints derived from bottleneck themes in the theme graph "
+                   "(no constrained-product mapper or capacity-gap tables for US); no "
+                   "technical overlay (no US price data in DB) — verify charts on "
+                   "finviz/stockanalysis before acting.")
 
     report = {
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "as_of_date": as_of.isoformat(),
+        "country": args.country,
+        "us_data_note": us_note,
         "window_months": args.window_months,
         "as_of_rule": "all queries filtered to <= as_of; emergence window = as_of minus window_months",
         "major_themes": major,
@@ -278,7 +348,7 @@ def main():
     }
 
     os.makedirs(REPORTS_DIR, exist_ok=True)
-    out_path = args.out or os.path.join(REPORTS_DIR, f"stock_selector_{as_of.isoformat()}_data.json")
+    out_path = args.out or os.path.join(REPORTS_DIR, f"stock_selector_{args.country}_{as_of.isoformat()}_data.json")
     with open(out_path, "w") as f:
         json.dump(report, f, default=jsonify, indent=1)
     conn.close()
