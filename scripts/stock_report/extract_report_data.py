@@ -430,9 +430,31 @@ def compute_price_action(series, as_of):
         c0 = closes[prior[-1]]
         return round((last_close - c0) / c0 * 100.0, 2) if c0 else None
 
+    # institutional accumulation days (last 6 months): delivered quantity spikes to
+    # >2.5x its own 50d average on an up close — normalizes across high/low-churn stocks
+    six_mo = as_of - timedelta(days=182)
+    delivered = [vols[i] * float(series[i]["delivery_pct"]) / 100.0
+                 if series[i].get("delivery_pct") is not None else None
+                 for i in range(len(series))]
+    accumulation_days = []
+    for i in range(50, len(series)):
+        if dates[i] < six_mo or delivered[i] is None:
+            continue
+        d50 = _sma([x for x in delivered], 50, i - 1)
+        up = closes[i] is not None and closes[i - 1] and closes[i] > closes[i - 1]
+        if d50 and delivered[i] > 2.5 * d50 and up:
+            accumulation_days.append({
+                "date": dates[i],
+                "delivered_qty_x_50d": round(delivered[i] / d50, 1),
+                "delivery_pct": float(series[i]["delivery_pct"]),
+                "close_change_pct": round((closes[i] - closes[i - 1]) / closes[i - 1] * 100, 2),
+            })
+    accumulation_days = accumulation_days[-8:]
+
     return {
         "as_of_trading_date": last_date,
         "last_close": last_close,
+        "accumulation_days_6mo": accumulation_days,
         "week52_high": round(hi52, 2), "week52_high_date": hi52_date,
         "week52_low": round(lo52, 2),
         "pct_from_52w_high": round(pct_from_hi52, 2),
@@ -496,6 +518,124 @@ def fetch_insider(cur, symbol, as_of, months=24):
         "sell_value_total": sum(float(r["value_traded"] or 0) for r in sells),
         "transactions": rows[:40],
     }
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Quarterly financials, shareholding, corporate & policy events
+# ──────────────────────────────────────────────────────────────────────────
+
+MONTHS = {"jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+          "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12}
+
+
+def _period_end(label):
+    """'Mar 2025' -> date(2025,3,31) (approx month end)."""
+    try:
+        mon, yr = label.strip().split()
+        m = MONTHS[mon.lower()[:3]]
+        y = int(yr)
+        nxt = date(y + (m == 12), (m % 12) + 1, 1)
+        return nxt - timedelta(days=1)
+    except (ValueError, KeyError):
+        return None
+
+
+def _clean_keys(d):
+    return {re.sub(r"[\xa0+]+$", "", k).strip(): v for k, v in d.items()}
+
+
+def fetch_quarterly_financials(company, as_of, publish_lag_days=45):
+    """Quarters from the screener scrape whose results were public before as_of.
+    A quarter ending E is included only if E + publish_lag_days <= as_of."""
+    qd = company.get("quarterly_data") or {}
+    rows = qd.get("quarters_data") or []
+    out = []
+    for r in rows:
+        r = _clean_keys(r)
+        pe = _period_end(r.get("quarter", ""))
+        if pe and pe + timedelta(days=publish_lag_days) <= as_of:
+            out.append({"quarter": r.get("quarter"), "sales": r.get("Sales"),
+                        "opm_pct": r.get("OPM %"), "net_profit": r.get("Net Profit"),
+                        "eps": r.get("EPS in Rs")})
+    return {"note": f"quarters included only if quarter-end + {publish_lag_days}d <= as-of (results public)",
+            "quarters": out[-10:]}
+
+
+def fetch_shareholding_trend(cur, symbol, company, as_of, publish_lag_days=45):
+    sh_rows = []
+    row = q(cur, "SELECT shareholding_json FROM fundamentals_snapshot WHERE upper(nse_symbol)=%s LIMIT 1", (symbol,))
+    if row and row[0].get("shareholding_json"):
+        try:
+            data = json.loads(row[0]["shareholding_json"]).get("periods_data") or []
+        except (ValueError, TypeError):
+            data = []
+        for r in data:
+            r = _clean_keys(r)
+            pe = _period_end(r.get("period", ""))
+            if pe and pe + timedelta(days=publish_lag_days) <= as_of:
+                sh_rows.append({"period": r.get("period"), "promoters": r.get("Promoters"),
+                                "fii": r.get("FIIs"), "dii": r.get("DIIs"),
+                                "public": r.get("Public"),
+                                "n_shareholders": r.get("No. of Shareholders")})
+    return {"note": "quarterly shareholding pattern (published historically — as-of safe)",
+            "periods": sh_rows[-8:]}
+
+
+CORP_EVENT_TYPES = (
+    "press release", "bagging", "awarding", "acquisition", "amalgamation", "merger",
+    "scheme of arrangement", "capacity addition", "buyback", "rights issue",
+    "qualified institution", "open offer", "demerger", "agreements", "memorandum",
+    "commencement of commercial", "outcome of board meeting",
+)
+
+
+def fetch_corporate_events(cur, symbol, company_name, as_of, months=18):
+    start = as_of - timedelta(days=months * 30)
+    like = " OR ".join(f"filing_type ILIKE '%%{t}%%'" for t in CORP_EVENT_TYPES)
+    rows = q(cur, f"""
+        SELECT filed_at, filing_type, left(title, 220) AS title, url,
+               left(nlp_summary, 300) AS summary
+        FROM mg_documents
+        WHERE country='IN' AND (upper(ticker)=%s OR company ILIKE %s)
+          AND filed_at BETWEEN %s AND %s AND ({like})
+        ORDER BY filed_at DESC LIMIT 25
+    """, (symbol, f"%{company_name}%", start, as_of))
+    return {"window_months": months, "events": rows}
+
+
+def fetch_policy_events(cur, themes, sector, as_of, months=24):
+    """India policy events touching the company's theme keywords, before as_of."""
+    tokens = set()
+    for t in themes[:5]:
+        for w in re.split(r"[^a-zA-Z]+", t["theme_name"].lower()):
+            if len(w) > 4 and w not in ("demand", "supply", "tension", "severe",
+                                        "constraint", "infrastructure", "theme"):
+                tokens.add(w)
+    if sector:
+        tokens.add(sector.lower())
+    if not tokens:
+        return []
+    conds, params = [], []
+    for tok in list(tokens)[:8]:
+        conds.append("(title ILIKE %s OR sectors_affected::text ILIKE %s OR keywords::text ILIKE %s)")
+        params.extend([f"%{tok}%"] * 3)
+    # many India policy rows are undated scrapes — fall back through the date fields;
+    # fetched_at is when the pipeline first saw it (safe upper bound for as-of checks)
+    start = as_of - timedelta(days=months * 30)
+    params = [as_of, start] + params
+    return q(cur, f"""
+        SELECT COALESCE(introduced_date, enacted_date, effective_date, fetched_at::date) AS event_date,
+               (introduced_date IS NULL AND enacted_date IS NULL AND effective_date IS NULL) AS date_is_fetch_date,
+               policy_type, source, left(title, 200) AS title,
+               impact_direction, impact_magnitude, status
+        FROM mg_policy_events
+        WHERE country='IN'
+          AND COALESCE(introduced_date, enacted_date, effective_date, fetched_at::date) <= %s
+          AND (COALESCE(introduced_date, enacted_date, effective_date) IS NULL
+               OR COALESCE(introduced_date, enacted_date, effective_date) >= %s)
+          AND ({' OR '.join(conds)})
+        ORDER BY event_date DESC LIMIT 12
+    """, params)
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -626,6 +766,10 @@ def main():
         "insider_trades": fetch_insider(cur, symbol, as_of),
         "peers": fetch_peers(cur, master, symbol, themes, as_of),
         "sub_themes": fetch_sub_themes(cur, themes, symbol, as_of),
+        "quarterly_financials": fetch_quarterly_financials(company, as_of),
+        "shareholding_trend": fetch_shareholding_trend(cur, symbol, company, as_of),
+        "corporate_events": fetch_corporate_events(cur, symbol, company_name, as_of),
+        "policy_events": fetch_policy_events(cur, themes, company.get("sector") or company.get("industry"), as_of),
     }
 
     os.makedirs(REPORTS_DIR, exist_ok=True)

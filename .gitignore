@@ -1,5 +1,11 @@
 # IDE session files (may contain secrets in shell history)
-.claude/
+# (.claude/* ignored except versioned skills)
+.claude/*
+!.claude/skills/
+!.claude/settings.local.json
+
+# Generated stock reports (PDF/HTML/JSON artifacts)
+data/reports/
 
 # Python
 __pycache__/
