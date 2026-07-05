@@ -35,12 +35,13 @@ def fetch_theme_landscape(cur, as_of, window_months):
     themes = q(cur, """
         SELECT id AS theme_id, theme_name, theme_slug, description, sectors, conviction,
                first_detected, stage, stage_label, stage_evidence, strength_score,
-               momentum_score, company_count, doc_count, metadata
+               momentum_score, company_count, doc_count, metadata,
+               is_canonical, parent_theme_slug
         FROM mg_themes
-        WHERE country='IN' AND is_active AND is_canonical
+        WHERE country='IN' AND is_active
           AND first_detected <= %s
         ORDER BY strength_score DESC NULLS LAST
-        LIMIT 120
+        LIMIT 400
     """, (as_of,))
 
     out = []
