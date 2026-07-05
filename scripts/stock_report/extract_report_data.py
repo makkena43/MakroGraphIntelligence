@@ -472,10 +472,39 @@ def compute_price_action(series, as_of):
             })
     accumulation_days = accumulation_days[-8:]
 
+    # distribution days: mirror image — delivered-quantity spikes on DOWN closes,
+    # plus a simple count of high-volume down days in the last quarter
+    distribution_days = []
+    high_vol_down_count_3mo = 0
+    three_mo = as_of - timedelta(days=91)
+    for i in range(50, len(series)):
+        if dates[i] < six_mo:
+            continue
+        v50_i = _sma(vols, 50, i - 1)
+        down = closes[i] is not None and closes[i - 1] and closes[i] < closes[i - 1]
+        if dates[i] >= three_mo and v50_i and vols[i] > 1.5 * v50_i and down:
+            high_vol_down_count_3mo += 1
+        if delivered[i] is None:
+            continue
+        d50 = _sma(delivered, 50, i - 1)
+        if d50 and delivered[i] > 2.5 * d50 and down:
+            distribution_days.append({
+                "date": dates[i],
+                "delivered_qty_x_50d": round(delivered[i] / d50, 1),
+                "delivery_pct": float(series[i]["delivery_pct"]),
+                "close_change_pct": round((closes[i] - closes[i - 1]) / closes[i - 1] * 100, 2),
+            })
+    distribution_days = distribution_days[-8:]
+
     return {
         "as_of_trading_date": last_date,
         "last_close": last_close,
         "accumulation_days_6mo": accumulation_days,
+        "distribution_days_6mo": distribution_days,
+        "high_volume_down_days_3mo": high_vol_down_count_3mo,
+        "smart_money_balance_note": ("compare accumulation vs distribution days: "
+                                     "net accumulation with few high-volume down days = "
+                                     "institutions building; the reverse = distribution"),
         "week52_high": round(hi52, 2), "week52_high_date": hi52_date,
         "week52_low": round(lo52, 2),
         "pct_from_52w_high": round(pct_from_hi52, 2),
@@ -490,6 +519,124 @@ def compute_price_action(series, as_of):
         "vcp": vcp,
         "breakout": breakout,
     }
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Result-day reactions, PE band, red flags
+# ──────────────────────────────────────────────────────────────────────────
+
+def fetch_result_reactions(cur, symbol, company_name, as_of, series, max_results=8):
+    """How the market received the last N results: price/volume reaction around
+    each results announcement. Persistent positive reactions = trusted numbers."""
+    rows = q(cur, """
+        SELECT DISTINCT filed_at FROM mg_documents
+        WHERE country='IN' AND (upper(ticker)=%s OR company ILIKE %s)
+          AND (filing_type ILIKE '%%financial result%%'
+               OR (filing_type ILIKE '%%outcome of board meeting%%' AND title ILIKE '%%result%%'))
+          AND filed_at <= %s
+        ORDER BY filed_at DESC LIMIT 20
+    """, (symbol, f"%{company_name}%", as_of))
+    result_dates = []
+    for r in rows:                       # dedupe clusters (same result filed 2-3x)
+        if not result_dates or (result_dates[-1] - r["filed_at"]).days > 5:
+            result_dates.append(r["filed_at"])
+    result_dates = result_dates[:max_results]
+
+    by_date = {r["trade_date"]: i for i, r in enumerate(series)}
+    dates_sorted = [r["trade_date"] for r in series]
+    closes = [float(r["close"]) if r["close"] is not None else None for r in series]
+    vols = [float(r["volume"]) if r["volume"] is not None else 0.0 for r in series]
+
+    reactions = []
+    for rd in result_dates:
+        nxt = [d for d in dates_sorted if d >= rd]
+        if not nxt:
+            continue
+        i = by_date[nxt[0]]
+        if i < 51 or i + 1 >= len(series):
+            continue
+        v50 = _sma(vols, 50, i - 1)
+        reactions.append({
+            "result_filed": rd,
+            "reaction_day": dates_sorted[i],
+            "day_move_pct": round((closes[i] - closes[i - 1]) / closes[i - 1] * 100, 2),
+            "next_day_move_pct": round((closes[i + 1] - closes[i]) / closes[i] * 100, 2),
+            "volume_x_50d": round(vols[i] / v50, 1) if v50 else None,
+        })
+    ups = sum(1 for r in reactions if r["day_move_pct"] > 1)
+    downs = sum(1 for r in reactions if r["day_move_pct"] < -1)
+    return {"reactions": reactions, "positive_reactions": ups, "negative_reactions": downs,
+            "note": ("day_move = close change on first trading day >= filing date; "
+                     "consistent positive reactions = market trusts the numbers")}
+
+
+def compute_pe_band(series, quarters, as_of):
+    """Approximate historical PE band: price at quarter-end / trailing-4Q EPS.
+    Approximation — uses reported EPS from screener quarterly data."""
+    if not quarters or len(quarters) < 4 or not series:
+        return {"note": "insufficient quarterly EPS history for PE band", "points": []}
+    dates_sorted = [r["trade_date"] for r in series]
+    closes = {r["trade_date"]: float(r["close"]) for r in series if r["close"] is not None}
+    points = []
+    for i in range(3, len(quarters)):
+        ttm = sum(float(quarters[j].get("eps") or 0) for j in range(i - 3, i + 1))
+        pe_date = _period_end(quarters[i]["quarter"])
+        if not pe_date or ttm <= 0:
+            continue
+        px_dates = [d for d in dates_sorted if d <= pe_date + timedelta(days=45)]
+        if not px_dates:
+            continue
+        px = closes.get(px_dates[-1])
+        if px:
+            points.append({"quarter": quarters[i]["quarter"], "ttm_eps": round(ttm, 2),
+                           "approx_pe": round(px / ttm, 1)})
+    current = None
+    if points:
+        last_close = float(series[-1]["close"])
+        ttm_now = points[-1]["ttm_eps"]
+        current = round(last_close / ttm_now, 1) if ttm_now > 0 else None
+    pes = [p["approx_pe"] for p in points]
+    return {
+        "points": points[-10:],
+        "current_approx_pe": current,
+        "band_min": min(pes) if pes else None,
+        "band_max": max(pes) if pes else None,
+        "band_median": round(sorted(pes)[len(pes) // 2], 1) if pes else None,
+        "note": ("approximate PE = price / trailing-4Q reported EPS (standalone screener "
+                 "data, not adjusted for dilution/exceptionals) — use for RANGE context, "
+                 "not precise valuation"),
+    }
+
+
+RED_FLAG_PATTERNS = (
+    ("auditor_change",   "title ILIKE '%%auditor%%' AND (title ILIKE '%%resign%%' OR title ILIKE '%%cessation%%')"),
+    ("delayed_results",  "filing_type ILIKE '%%delayed%%' OR filing_type ILIKE '%%non-submission%%' OR title ILIKE '%%delay%%result%%'"),
+    ("key_resignation",  "title ILIKE '%%resign%%' AND (title ILIKE '%%cfo%%' OR title ILIKE '%%chief financial%%' OR title ILIKE '%%managing director%%' OR title ILIKE '%%company secretary%%')"),
+    ("pledge",           "title ILIKE '%%pledge%%'"),
+    ("insolvency",       "filing_type ILIKE '%%insolvency%%' OR filing_type ILIKE '%%cirp%%' OR title ILIKE '%%insolvency%%'"),
+    ("default",          "filing_type ILIKE '%%default%%' OR title ILIKE '%%default%%interest%%'"),
+    ("disruption",       "filing_type ILIKE '%%strikes%%' OR filing_type ILIKE '%%disruption%%'"),
+    ("regulatory_action", "title ILIKE '%%show cause%%' OR title ILIKE '%%sebi order%%' OR title ILIKE '%%penalty%%' OR title ILIKE '%%search and seizure%%'"),
+)
+
+
+def fetch_red_flags(cur, symbol, company_name, as_of, months=36):
+    start = as_of - timedelta(days=months * 30)
+    flags = []
+    for flag_type, cond in RED_FLAG_PATTERNS:
+        rows = q(cur, f"""
+            SELECT filed_at, filing_type, left(title, 180) AS title, url
+            FROM mg_documents
+            WHERE country='IN' AND (upper(ticker)=%s OR company ILIKE %s)
+              AND filed_at BETWEEN %s AND %s AND ({cond})
+            ORDER BY filed_at DESC LIMIT 5
+        """, (symbol, f"%{company_name}%", start, as_of))
+        for r in rows:
+            r["flag_type"] = flag_type
+            flags.append(r)
+    flags.sort(key=lambda r: r["filed_at"], reverse=True)
+    return {"window_months": months, "flags": flags,
+            "note": "auto-scan of filings for governance/stress markers; verify each doc before concluding"}
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -871,6 +1018,7 @@ def main():
                            | {b["theme_name"] for b in india_benef if b.get("theme_name")})
         gaps, imports = fetch_capacity_and_imports(cur, theme_names, company.get("sector"), as_of)
         series = fetch_price_series(cur, symbol, as_of)
+        quarterly = fetch_quarterly_financials(company, as_of)
         report.update({
             "india_beneficiary_mappings": india_benef,
             "capacity_gaps": gaps,
@@ -879,8 +1027,11 @@ def main():
             "bulk_deals": fetch_deals(cur, "nse_bulk_deals", symbol, as_of),
             "block_deals": fetch_deals(cur, "nse_block_deals", symbol, as_of),
             "insider_trades": fetch_insider(cur, symbol, as_of),
-            "quarterly_financials": fetch_quarterly_financials(company, as_of),
+            "quarterly_financials": quarterly,
             "shareholding_trend": fetch_shareholding_trend(cur, symbol, company, as_of),
+            "result_day_reactions": fetch_result_reactions(cur, symbol, company_name, as_of, series),
+            "pe_band": compute_pe_band(series, quarterly.get("quarters") or [], as_of),
+            "red_flags": fetch_red_flags(cur, symbol, company_name, as_of),
         })
     else:
         report["us_data_note"] = (

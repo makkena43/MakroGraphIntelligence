@@ -288,6 +288,77 @@ def rank_candidates(cur, supply_by_product, as_of, top_n=25):
     return candidates[:top_n]
 
 
+def fetch_theme_focus(cur, name, as_of, win_start, country):
+    """Deep-dive on ONE theme or constrained product (fuzzy name match)."""
+    like = f"%{name}%"
+    themes = q(cur, """
+        SELECT id AS theme_id, theme_name, theme_slug, description, sectors, conviction,
+               first_detected, stage, stage_label, stage_evidence, hypothesis_text,
+               strength_score, momentum_score, company_count, doc_count, metadata
+        FROM mg_themes
+        WHERE country=%s AND is_active AND theme_name ILIKE %s AND first_detected <= %s
+        ORDER BY strength_score DESC NULLS LAST LIMIT 5
+    """, (country, like, as_of))
+    for t in themes:
+        meta = t.pop("metadata") or {}
+        t["supply_constraint_count"] = meta.get("supply_constraint_count") or 0
+        t["is_bottleneck"] = bool(meta.get("is_bottleneck"))
+        t["tension_score"] = meta.get("tension_score")
+        t["snapshots"] = q(cur, """
+            SELECT snapshot_date, strength_score, momentum_score, company_count
+            FROM mg_theme_snapshots WHERE theme_id=%s AND snapshot_date <= %s
+            ORDER BY snapshot_date DESC LIMIT 10
+        """, (t["theme_id"], as_of))
+        t["beneficiaries"] = q(cur, """
+            SELECT b.ticker, b.company_name AS company, b.beneficiary_type, b.company_role,
+                   b.relevance_score, b.rank_in_theme, b.signal_count, b.capex_signals,
+                   b.first_seen_at, left(b.reasoning, 200) AS rationale
+            FROM mg_theme_beneficiaries b
+            WHERE b.theme_id=%s AND (b.first_seen_at IS NULL OR b.first_seen_at <= %s)
+            ORDER BY b.rank_in_theme ASC NULLS LAST, b.relevance_score DESC LIMIT 30
+        """, (t["theme_id"], as_of))
+
+    product_map, supply = [], {}
+    if country == "IN":
+        product_map = q(cur, """
+            SELECT constrained_product, theme_name,
+                   count(DISTINCT company) AS n_companies,
+                   round(avg(conviction_score)::numeric,3) AS avg_conviction,
+                   bool_or(has_order_book_signals) AS any_order_book,
+                   bool_or(import_substitution_play) AS any_import_sub,
+                   min(as_of_date) AS first_mapped, max(as_of_date) AS last_mapped
+            FROM mg_india_beneficiaries
+            WHERE (constrained_product ILIKE %s OR theme_name ILIKE %s) AND as_of_date <= %s
+            GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 10
+        """, (like, like, as_of))
+        rows = q(cur, """
+            SELECT DISTINCT ON (company)
+                   company, ticker, theme_name, constrained_product, supply_chain_node,
+                   beneficiary_type, conviction_score, left(rationale, 220) AS rationale,
+                   signal_count, has_order_book_signals, import_substitution_play, as_of_date
+            FROM mg_india_beneficiaries
+            WHERE (constrained_product ILIKE %s OR theme_name ILIKE %s)
+              AND beneficiary_type = ANY(%s) AND as_of_date <= %s
+            ORDER BY company, as_of_date DESC
+        """, (like, like, list(SUPPLY_SIDE_TYPES), as_of))
+        rows.sort(key=lambda r: (-(float(r["conviction_score"] or 0)), not r["has_order_book_signals"]))
+        supply = {"matched_supply_side_companies": rows[:25]}
+    gaps = q(cur, """
+        SELECT sector, component, gap, gap_pct, unit, severity, target_year
+        FROM mg_capacity_gaps
+        WHERE (component ILIKE %s OR theme_name ILIKE %s)
+          AND (as_of_date IS NULL OR as_of_date <= %s) LIMIT 8
+    """, (like, like, as_of)) if country == "IN" else []
+    imports = q(cur, """
+        SELECT sector, component, import_share, primary_origin, risk_level,
+               substitute_possible, substitution_horizon_years
+        FROM mg_import_dependencies
+        WHERE component ILIKE %s AND (as_of_date IS NULL OR as_of_date <= %s) LIMIT 8
+    """, (like, as_of)) if country == "IN" else []
+    return {"query": name, "matched_themes": themes, "matched_constrained_products": product_map,
+            "capacity_gaps": gaps, "import_dependencies": imports, **supply}
+
+
 # ──────────────────────────────────────────────────────────────────────────
 # Main
 # ──────────────────────────────────────────────────────────────────────────
@@ -296,6 +367,8 @@ def main():
     ap = argparse.ArgumentParser(description="As-of-date stock selector extraction")
     ap.add_argument("--as-of", required=True)
     ap.add_argument("--country", default="IN", choices=["IN", "US"])
+    ap.add_argument("--theme", default=None,
+                    help="focus on ONE theme/constraint (fuzzy name match) instead of the full scan")
     ap.add_argument("--window-months", type=int, default=12,
                     help="emergence lookback window in months (default 12)")
     ap.add_argument("--out", default=None)
@@ -305,6 +378,25 @@ def main():
     win_start = as_of - timedelta(days=args.window_months * 30)
     conn = connect()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    if args.theme:
+        focus = fetch_theme_focus(cur, args.theme, as_of, win_start, args.country)
+        report = {
+            "generated_at": datetime.now().isoformat(timespec="seconds"),
+            "as_of_date": as_of.isoformat(),
+            "country": args.country,
+            "mode": "theme_focus",
+            "focus": focus,
+        }
+        os.makedirs(REPORTS_DIR, exist_ok=True)
+        safe = "".join(c if c.isalnum() else "_" for c in args.theme)[:40]
+        out_path = args.out or os.path.join(
+            REPORTS_DIR, f"stock_selector_{args.country}_{safe}_{as_of.isoformat()}_data.json")
+        with open(out_path, "w") as f:
+            json.dump(report, f, default=jsonify, indent=1)
+        conn.close()
+        print(out_path)
+        return
 
     major, emerging = fetch_theme_landscape(cur, as_of, args.window_months, args.country)
     if args.country == "IN":

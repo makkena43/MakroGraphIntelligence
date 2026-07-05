@@ -94,6 +94,8 @@ Write the analytical narratives:
 5. **Price action** — interpret `price_action`: VCP present or not (use the contraction
    depths, dry-up ratio, verdict — but apply judgment, don't just echo the boolean),
    lifetime-high-volume date and what happened around it, breakout status vs pivot.
+   Smart-money balance: `accumulation_days_6mo` vs `distribution_days_6mo` and
+   `high_volume_down_days_3mo` — state which side is winning.
 6. **Bulk/block/insider** — who accumulated or exited (top clients, net qty), notable
    insider buys/sells (promoters buying = strong signal; pledges/sells = caution).
    If the deal windows are empty, state "no bulk/block deals recorded in the window" —
@@ -102,6 +104,20 @@ Write the analytical narratives:
 8. **Sub-themes** — child themes and constrained products with their company lists.
 9. **Quarterly trend** — from `quarterly_financials`: sales/OPM/PAT trajectory, note
    acceleration or deceleration in the last 2-3 quarters.
+9b. **Result-day reactions** (`result_day_reactions`, IN only) — table of the last 6-8
+   results: filing date, day move, next-day move, volume vs 50d. Interpret: consistent
+   positive reactions = market trusts the numbers; fades (up day, down next day) or
+   repeated negative surprises = distrust. Cross-reference with the concall
+   authenticity verdict.
+9c. **PE band context** (`pe_band`, IN only) — where current approximate PE sits vs its
+   own band_min/median/max at the as-of date. Say "near the cheap/expensive end of its
+   own 2-3yr range" — never present it as precise valuation (see the note in the JSON).
+9d. **Red flags** (`red_flags`, IN only) — if any flags exist, give them their own
+   subsection with dates, type, and doc links (auditor changes, delayed results, key
+   resignations, pledges, insolvency/IBC, defaults, disruptions, regulatory actions).
+   Weigh them in the recommendation; an unresolved IBC application or auditor exit can
+   cap the rating regardless of the theme story. If none: one line "no red flags
+   detected in the 36-month scan".
 10. **Shareholding trend** — from `shareholding_trend`: promoter/FII/DII direction over
     the available quarters; FII+DII rising = institutional endorsement, promoter falling
     = flag it (cross-check against insider sales).

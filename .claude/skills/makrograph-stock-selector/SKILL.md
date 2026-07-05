@@ -3,11 +3,13 @@ name: makrograph-stock-selector
 description: >
   Surface a ranked list of Indian or US stocks worth analyzing for a given date, from
   the MakroGraph DB — major + emerging themes (6-12 month window), major constraints
-  with explanations, and supply-side beneficiaries. Trigger on: "which stocks should I
-  analyze", "stock selector", "today's opportunities", "give me stocks for <date>",
-  "what themes are emerging", "shortlist stocks", "US opportunities". Default country
-  is India; use US when the user says US/America/NASDAQ/NYSE. If no date given, use
-  today. Strictly point-in-time: nothing dated after the given date.
+  with explanations, and supply-side beneficiaries. Also answers single-theme queries:
+  "who benefits from the transformer constraint", "solar cell companies as of <date>".
+  Trigger on: "which stocks should I analyze", "stock selector", "today's
+  opportunities", "give me stocks for <date>", "what themes are emerging", "shortlist
+  stocks", "US opportunities", or any theme/constraint + beneficiaries question.
+  Default country is India; use US when the user says US/America/NASDAQ/NYSE. If no
+  date given, use today. Strictly point-in-time: nothing dated after the given date.
 ---
 
 # Stock Selector (as-of-date opportunity scan)
@@ -28,8 +30,24 @@ Run from project root; prints the JSON path (data/reports/stock_selector_<countr
 Default emergence window is 12 months (`--window-months 6` for a tighter scan).
 **US mode** (`--country US`): constraints come from bottleneck themes in the theme
 graph (no constrained-product mapper / capacity-gap / import tables for US), and
-there is NO technical overlay (no US price data in DB) — say so and point to
-finviz/stockanalysis for chart checks. See `us_data_note` in the JSON.
+there is NO technical overlay (no US price data in DB) — leave price/technical
+columns out entirely for US candidates and point to finviz/stockanalysis for chart
+checks. See `us_data_note` in the JSON.
+
+**Theme-focus mode** — when the user names ONE theme or constraint (e.g. "transformer",
+"Solar Cell", "PCB", "Artificial Intelligence"), add `--theme "<name>"` (fuzzy match):
+
+```bash
+.venv/bin/python scripts/stock_report/select_stocks.py --as-of <date> --theme "transformer" [--country US]
+```
+
+The JSON then has mode=theme_focus with `focus`: matched_themes (stage, snapshots,
+full beneficiary list with ranks), matched_constrained_products,
+matched_supply_side_companies (IN), capacity_gaps and import_dependencies (IN).
+Present: what the theme/constraint is + why it exists, key dates (first_detected /
+first_mapped), stage now, then the beneficiary table (rank, ticker, type, conviction,
+order-book), and suggest full reports for the top 2-3 names. If the name matches
+nothing, list a few available theme names (query mg_themes) and ask which one.
 Read the JSON in parts / with jq — it can be large.
 
 ### Step 2 — Analyze and present (chat answer by default)
