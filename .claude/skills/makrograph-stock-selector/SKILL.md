@@ -65,12 +65,21 @@ nothing, list a few available theme names (query mg_themes) and ask which one.
 Output a crisp chat briefing (only build a PDF if the user asks — same html_to_pdf.py
 pipeline as the stock-report skill). Structure:
 
-1. **Major themes** (from `major_themes`): top 5-8 by strength_now. For each: one line —
-   what it is, stage_label, strength_now vs strength_6mo_ago (call out rising vs stale),
-   confirmed_quarters. Skip generic mega-themes (e.g. "artificial intelligence" breadth
-   noise) or flag them as low-signal.
-2. **Emerging in the window** (from `emerging_themes`): themes first detected inside the
-   window or with strength_delta_6mo >= +10. Say WHEN each emerged and what changed.
+1. **Major themes — explainer table (MANDATORY columns)**: for the top 5-8 by
+   strength_now, a table with exactly these columns:
+   | Theme | Plain-English meaning | Started (`first_detected`, DD-Mon-YYYY) |
+   | Phase now (`stage_label` + one-phrase read from `stage_evidence`) | Qtrs confirmed |
+   The plain-English column translates the cryptic "X: Constraint from Y Demand" label
+   into what is actually short and why (use `description` + `stage_evidence`; flag NLP
+   label artifacts like "ESG/FDA Demand" and name the real chain). Always include a
+   phase legend line: Emerging = first signals; Accelerating = capex committed,
+   revenue visible, not crowded (the investable phase); Consensus = broadly discussed,
+   momentum decelerating — market already knows.
+2. **Emerging in the window** (from `emerging_themes`): same columns as above plus
+   companies-mapped-in-window (`new_beneficiaries_in_window`). Say WHEN each emerged
+   (`first_detected`) and what phase it has reached NOW — call out any theme that
+   raced from birth to Consensus quickly (late to join) vs ones still Accelerating
+   (the actionable ones).
 3. **Major constraints — with explanation** (from `constrained_products`, `capacity_gaps`,
    `import_dependencies`): for each of the top 5-8 constrained products: what is short,
    why (domestic capacity vs demand, import dependence + origin country, qualification
