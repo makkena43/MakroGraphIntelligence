@@ -77,24 +77,37 @@ def parse_as_of(raw: str) -> date:
 # Symbol resolution
 # ──────────────────────────────────────────────────────────────────────────
 
-def resolve_symbol(cur, user_input: str):
-    """Accept an NSE symbol, BSE symbol, or company-name fragment."""
+def resolve_symbol(cur, user_input: str, country: str = "auto"):
+    """Accept an NSE/BSE symbol, US ticker, or company-name fragment.
+    Returns (master_dict, country)."""
     token = user_input.strip().upper()
-    rows = q(cur, "SELECT * FROM security_master WHERE upper(nse_symbol)=%s OR upper(bse_symbol)=%s", (token, token))
-    if rows:
-        return rows[0]
-    rows = q(cur,
-             "SELECT * FROM security_master WHERE company_name ILIKE %s ORDER BY length(company_name) LIMIT 5",
-             (f"%{user_input.strip()}%",))
-    if rows:
-        return rows[0]
-    # last resort: symbol present in bhavcopy but not in security_master
-    rows = q(cur, "SELECT DISTINCT symbol FROM nse_bhavcopy_data WHERE symbol=%s LIMIT 1", (token,))
-    if rows:
-        return {"nse_symbol": token, "bse_symbol": None, "company_name": token,
-                "sector_nse": None, "industry_nse": None, "sector_bse": None, "industry_bse": None,
-                "isin": None}
-    return None
+    if country in ("auto", "IN"):
+        rows = q(cur, "SELECT * FROM security_master WHERE upper(nse_symbol)=%s OR upper(bse_symbol)=%s", (token, token))
+        if rows:
+            return rows[0], "IN"
+        rows = q(cur,
+                 "SELECT * FROM security_master WHERE company_name ILIKE %s ORDER BY length(company_name) LIMIT 5",
+                 (f"%{user_input.strip()}%",))
+        if rows:
+            return rows[0], "IN"
+        rows = q(cur, "SELECT DISTINCT symbol FROM nse_bhavcopy_data WHERE symbol=%s LIMIT 1", (token,))
+        if rows:
+            return {"nse_symbol": token, "bse_symbol": None, "company_name": token,
+                    "sector_nse": None, "industry_nse": None, "sector_bse": None, "industry_bse": None,
+                    "isin": None}, "IN"
+    if country in ("auto", "US"):
+        rows = q(cur, """
+            SELECT ticker, company, cik FROM mg_documents
+            WHERE country='US' AND (upper(ticker)=%s OR company ILIKE %s)
+            ORDER BY filed_at DESC LIMIT 1
+        """, (token, f"%{user_input.strip()}%"))
+        if rows:
+            r = rows[0]
+            return {"nse_symbol": r["ticker"].upper(), "bse_symbol": None,
+                    "company_name": r["company"], "cik": r["cik"],
+                    "sector_nse": None, "industry_nse": None, "sector_bse": None,
+                    "industry_bse": None, "isin": None}, "US"
+    return None, None
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -155,7 +168,7 @@ def _stage_history_upto(meta, as_of):
     return out
 
 
-def fetch_themes(cur, symbol, company_name, as_of):
+def fetch_themes(cur, symbol, company_name, as_of, country="IN"):
     rows = q(cur, """
         SELECT t.id AS theme_id, t.theme_name, t.theme_slug, t.description, t.sectors,
                t.conviction, t.first_detected, t.last_updated, t.stage, t.stage_label,
@@ -166,13 +179,13 @@ def fetch_themes(cur, symbol, company_name, as_of):
                b.quarterly_mentions
         FROM mg_theme_beneficiaries b
         JOIN mg_themes t ON t.id = b.theme_id
-        WHERE t.country='IN' AND t.is_active
+        WHERE t.country=%s AND t.is_active
           AND upper(b.ticker)=%s
           AND t.first_detected <= %s
           AND (b.first_seen_at IS NULL OR b.first_seen_at <= %s)
         ORDER BY b.relevance_score DESC NULLS LAST
         LIMIT 25
-    """, (symbol, as_of, as_of))
+    """, (country, symbol, as_of, as_of))
 
     themes, constraints = [], []
     for r in rows:
@@ -236,20 +249,28 @@ def fetch_capacity_and_imports(cur, theme_names, sector, as_of):
 # Concalls
 # ──────────────────────────────────────────────────────────────────────────
 
-def fetch_concalls(cur, symbol, company_name, as_of, limit=10, excerpt_chars=7000):
+def fetch_concalls(cur, symbol, company_name, as_of, limit=20, excerpt_chars=7000, country="IN"):
+    # US has no exchange concall filings — EDGAR 10-K/10-Q/8-K carry the management
+    # commentary (MD&A, earnings 8-Ks) and serve the same role in the report
+    doc_filter = CONCALL_FILING_PATTERN if country == "IN" else \
+        "(filing_type IN ('10-K','10-Q','8-K'))"
     rows = q(cur, f"""
         SELECT id, source_name, filing_type, fiscal_period, filed_at, title, url,
                sentiment_score, nlp_summary, word_count,
                CASE WHEN raw_text IS NOT NULL THEN length(raw_text) ELSE 0 END AS text_len,
                left(raw_text, {int(excerpt_chars)}) AS text_excerpt
         FROM mg_documents
-        WHERE country='IN'
+        WHERE country=%s
           AND (upper(ticker)=%s OR company ILIKE %s)
-          AND {CONCALL_FILING_PATTERN}
+          AND {doc_filter}
           AND filed_at <= %s
         ORDER BY filed_at DESC
         LIMIT %s
-    """, (symbol, f"%{company_name}%", as_of, limit))
+    """, (country, symbol, f"%{company_name}%", as_of, limit))
+    if country == "US":
+        for r in rows:
+            r["doc_kind"] = "sec_filing_" + (r.get("filing_type") or "")
+        return rows
     for r in rows:
         # transcripts/recordings > schedule intimations — tag so the model can prioritise
         blob = f"{r.get('filing_type','')} {r.get('title','')}".lower()
@@ -430,9 +451,60 @@ def compute_price_action(series, as_of):
         c0 = closes[prior[-1]]
         return round((last_close - c0) / c0 * 100.0, 2) if c0 else None
 
+    # institutional accumulation days (last 6 months): delivered quantity spikes to
+    # >2.5x its own 50d average on an up close — normalizes across high/low-churn stocks
+    six_mo = as_of - timedelta(days=182)
+    delivered = [vols[i] * float(series[i]["delivery_pct"]) / 100.0
+                 if series[i].get("delivery_pct") is not None else None
+                 for i in range(len(series))]
+    accumulation_days = []
+    for i in range(50, len(series)):
+        if dates[i] < six_mo or delivered[i] is None:
+            continue
+        d50 = _sma([x for x in delivered], 50, i - 1)
+        up = closes[i] is not None and closes[i - 1] and closes[i] > closes[i - 1]
+        if d50 and delivered[i] > 2.5 * d50 and up:
+            accumulation_days.append({
+                "date": dates[i],
+                "delivered_qty_x_50d": round(delivered[i] / d50, 1),
+                "delivery_pct": float(series[i]["delivery_pct"]),
+                "close_change_pct": round((closes[i] - closes[i - 1]) / closes[i - 1] * 100, 2),
+            })
+    accumulation_days = accumulation_days[-8:]
+
+    # distribution days: mirror image — delivered-quantity spikes on DOWN closes,
+    # plus a simple count of high-volume down days in the last quarter
+    distribution_days = []
+    high_vol_down_count_3mo = 0
+    three_mo = as_of - timedelta(days=91)
+    for i in range(50, len(series)):
+        if dates[i] < six_mo:
+            continue
+        v50_i = _sma(vols, 50, i - 1)
+        down = closes[i] is not None and closes[i - 1] and closes[i] < closes[i - 1]
+        if dates[i] >= three_mo and v50_i and vols[i] > 1.5 * v50_i and down:
+            high_vol_down_count_3mo += 1
+        if delivered[i] is None:
+            continue
+        d50 = _sma(delivered, 50, i - 1)
+        if d50 and delivered[i] > 2.5 * d50 and down:
+            distribution_days.append({
+                "date": dates[i],
+                "delivered_qty_x_50d": round(delivered[i] / d50, 1),
+                "delivery_pct": float(series[i]["delivery_pct"]),
+                "close_change_pct": round((closes[i] - closes[i - 1]) / closes[i - 1] * 100, 2),
+            })
+    distribution_days = distribution_days[-8:]
+
     return {
         "as_of_trading_date": last_date,
         "last_close": last_close,
+        "accumulation_days_6mo": accumulation_days,
+        "distribution_days_6mo": distribution_days,
+        "high_volume_down_days_3mo": high_vol_down_count_3mo,
+        "smart_money_balance_note": ("compare accumulation vs distribution days: "
+                                     "net accumulation with few high-volume down days = "
+                                     "institutions building; the reverse = distribution"),
         "week52_high": round(hi52, 2), "week52_high_date": hi52_date,
         "week52_low": round(lo52, 2),
         "pct_from_52w_high": round(pct_from_hi52, 2),
@@ -447,6 +519,124 @@ def compute_price_action(series, as_of):
         "vcp": vcp,
         "breakout": breakout,
     }
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Result-day reactions, PE band, red flags
+# ──────────────────────────────────────────────────────────────────────────
+
+def fetch_result_reactions(cur, symbol, company_name, as_of, series, max_results=8):
+    """How the market received the last N results: price/volume reaction around
+    each results announcement. Persistent positive reactions = trusted numbers."""
+    rows = q(cur, """
+        SELECT DISTINCT filed_at FROM mg_documents
+        WHERE country='IN' AND (upper(ticker)=%s OR company ILIKE %s)
+          AND (filing_type ILIKE '%%financial result%%'
+               OR (filing_type ILIKE '%%outcome of board meeting%%' AND title ILIKE '%%result%%'))
+          AND filed_at <= %s
+        ORDER BY filed_at DESC LIMIT 20
+    """, (symbol, f"%{company_name}%", as_of))
+    result_dates = []
+    for r in rows:                       # dedupe clusters (same result filed 2-3x)
+        if not result_dates or (result_dates[-1] - r["filed_at"]).days > 5:
+            result_dates.append(r["filed_at"])
+    result_dates = result_dates[:max_results]
+
+    by_date = {r["trade_date"]: i for i, r in enumerate(series)}
+    dates_sorted = [r["trade_date"] for r in series]
+    closes = [float(r["close"]) if r["close"] is not None else None for r in series]
+    vols = [float(r["volume"]) if r["volume"] is not None else 0.0 for r in series]
+
+    reactions = []
+    for rd in result_dates:
+        nxt = [d for d in dates_sorted if d >= rd]
+        if not nxt:
+            continue
+        i = by_date[nxt[0]]
+        if i < 51 or i + 1 >= len(series):
+            continue
+        v50 = _sma(vols, 50, i - 1)
+        reactions.append({
+            "result_filed": rd,
+            "reaction_day": dates_sorted[i],
+            "day_move_pct": round((closes[i] - closes[i - 1]) / closes[i - 1] * 100, 2),
+            "next_day_move_pct": round((closes[i + 1] - closes[i]) / closes[i] * 100, 2),
+            "volume_x_50d": round(vols[i] / v50, 1) if v50 else None,
+        })
+    ups = sum(1 for r in reactions if r["day_move_pct"] > 1)
+    downs = sum(1 for r in reactions if r["day_move_pct"] < -1)
+    return {"reactions": reactions, "positive_reactions": ups, "negative_reactions": downs,
+            "note": ("day_move = close change on first trading day >= filing date; "
+                     "consistent positive reactions = market trusts the numbers")}
+
+
+def compute_pe_band(series, quarters, as_of):
+    """Approximate historical PE band: price at quarter-end / trailing-4Q EPS.
+    Approximation — uses reported EPS from screener quarterly data."""
+    if not quarters or len(quarters) < 4 or not series:
+        return {"note": "insufficient quarterly EPS history for PE band", "points": []}
+    dates_sorted = [r["trade_date"] for r in series]
+    closes = {r["trade_date"]: float(r["close"]) for r in series if r["close"] is not None}
+    points = []
+    for i in range(3, len(quarters)):
+        ttm = sum(float(quarters[j].get("eps") or 0) for j in range(i - 3, i + 1))
+        pe_date = _period_end(quarters[i]["quarter"])
+        if not pe_date or ttm <= 0:
+            continue
+        px_dates = [d for d in dates_sorted if d <= pe_date + timedelta(days=45)]
+        if not px_dates:
+            continue
+        px = closes.get(px_dates[-1])
+        if px:
+            points.append({"quarter": quarters[i]["quarter"], "ttm_eps": round(ttm, 2),
+                           "approx_pe": round(px / ttm, 1)})
+    current = None
+    if points:
+        last_close = float(series[-1]["close"])
+        ttm_now = points[-1]["ttm_eps"]
+        current = round(last_close / ttm_now, 1) if ttm_now > 0 else None
+    pes = [p["approx_pe"] for p in points]
+    return {
+        "points": points[-10:],
+        "current_approx_pe": current,
+        "band_min": min(pes) if pes else None,
+        "band_max": max(pes) if pes else None,
+        "band_median": round(sorted(pes)[len(pes) // 2], 1) if pes else None,
+        "note": ("approximate PE = price / trailing-4Q reported EPS (standalone screener "
+                 "data, not adjusted for dilution/exceptionals) — use for RANGE context, "
+                 "not precise valuation"),
+    }
+
+
+RED_FLAG_PATTERNS = (
+    ("auditor_change",   "title ILIKE '%%auditor%%' AND (title ILIKE '%%resign%%' OR title ILIKE '%%cessation%%')"),
+    ("delayed_results",  "filing_type ILIKE '%%delayed%%' OR filing_type ILIKE '%%non-submission%%' OR title ILIKE '%%delay%%result%%'"),
+    ("key_resignation",  "title ILIKE '%%resign%%' AND (title ILIKE '%%cfo%%' OR title ILIKE '%%chief financial%%' OR title ILIKE '%%managing director%%' OR title ILIKE '%%company secretary%%')"),
+    ("pledge",           "title ILIKE '%%pledge%%'"),
+    ("insolvency",       "filing_type ILIKE '%%insolvency%%' OR filing_type ILIKE '%%cirp%%' OR title ILIKE '%%insolvency%%'"),
+    ("default",          "filing_type ILIKE '%%default%%' OR title ILIKE '%%default%%interest%%'"),
+    ("disruption",       "filing_type ILIKE '%%strikes%%' OR filing_type ILIKE '%%disruption%%'"),
+    ("regulatory_action", "title ILIKE '%%show cause%%' OR title ILIKE '%%sebi order%%' OR title ILIKE '%%penalty%%' OR title ILIKE '%%search and seizure%%'"),
+)
+
+
+def fetch_red_flags(cur, symbol, company_name, as_of, months=36):
+    start = as_of - timedelta(days=months * 30)
+    flags = []
+    for flag_type, cond in RED_FLAG_PATTERNS:
+        rows = q(cur, f"""
+            SELECT filed_at, filing_type, left(title, 180) AS title, url
+            FROM mg_documents
+            WHERE country='IN' AND (upper(ticker)=%s OR company ILIKE %s)
+              AND filed_at BETWEEN %s AND %s AND ({cond})
+            ORDER BY filed_at DESC LIMIT 5
+        """, (symbol, f"%{company_name}%", start, as_of))
+        for r in rows:
+            r["flag_type"] = flag_type
+            flags.append(r)
+    flags.sort(key=lambda r: r["filed_at"], reverse=True)
+    return {"window_months": months, "flags": flags,
+            "note": "auto-scan of filings for governance/stress markers; verify each doc before concluding"}
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -499,6 +689,203 @@ def fetch_insider(cur, symbol, as_of, months=24):
 
 
 # ──────────────────────────────────────────────────────────────────────────
+# Quarterly financials, shareholding, corporate & policy events
+# ──────────────────────────────────────────────────────────────────────────
+
+MONTHS = {"jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+          "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12}
+
+
+def _period_end(label):
+    """'Mar 2025' -> date(2025,3,31) (approx month end)."""
+    try:
+        mon, yr = label.strip().split()
+        m = MONTHS[mon.lower()[:3]]
+        y = int(yr)
+        nxt = date(y + (m == 12), (m % 12) + 1, 1)
+        return nxt - timedelta(days=1)
+    except (ValueError, KeyError):
+        return None
+
+
+def _clean_keys(d):
+    return {re.sub(r"[\xa0+]+$", "", k).strip(): v for k, v in d.items()}
+
+
+def fetch_quarterly_financials(company, as_of, publish_lag_days=45):
+    """Quarters from the screener scrape whose results were public before as_of.
+    A quarter ending E is included only if E + publish_lag_days <= as_of."""
+    qd = company.get("quarterly_data") or {}
+    rows = qd.get("quarters_data") or []
+    out = []
+    for r in rows:
+        r = _clean_keys(r)
+        pe = _period_end(r.get("quarter", ""))
+        if pe and pe + timedelta(days=publish_lag_days) <= as_of:
+            out.append({"quarter": r.get("quarter"), "sales": r.get("Sales"),
+                        "opm_pct": r.get("OPM %"), "net_profit": r.get("Net Profit"),
+                        "eps": r.get("EPS in Rs")})
+    return {"note": f"quarters included only if quarter-end + {publish_lag_days}d <= as-of (results public)",
+            "quarters": out[-10:]}
+
+
+def fetch_shareholding_trend(cur, symbol, company, as_of, publish_lag_days=45):
+    sh_rows = []
+    row = q(cur, "SELECT shareholding_json FROM fundamentals_snapshot WHERE upper(nse_symbol)=%s LIMIT 1", (symbol,))
+    if row and row[0].get("shareholding_json"):
+        try:
+            data = json.loads(row[0]["shareholding_json"]).get("periods_data") or []
+        except (ValueError, TypeError):
+            data = []
+        for r in data:
+            r = _clean_keys(r)
+            pe = _period_end(r.get("period", ""))
+            if pe and pe + timedelta(days=publish_lag_days) <= as_of:
+                sh_rows.append({"period": r.get("period"), "promoters": r.get("Promoters"),
+                                "fii": r.get("FIIs"), "dii": r.get("DIIs"),
+                                "public": r.get("Public"),
+                                "n_shareholders": r.get("No. of Shareholders")})
+    return {"note": "quarterly shareholding pattern (published historically — as-of safe)",
+            "periods": sh_rows[-8:]}
+
+
+CORP_EVENT_TYPES = (
+    "press release", "bagging", "awarding", "acquisition", "amalgamation", "merger",
+    "scheme of arrangement", "capacity addition", "buyback", "rights issue",
+    "qualified institution", "open offer", "demerger", "agreements", "memorandum",
+    "commencement of commercial", "outcome of board meeting",
+)
+
+
+def fetch_corporate_events(cur, symbol, company_name, as_of, months=18, country="IN"):
+    start = as_of - timedelta(days=months * 30)
+    like = " OR ".join(f"filing_type ILIKE '%%{t}%%'" for t in CORP_EVENT_TYPES)
+    if country == "US":
+        like = "filing_type = '8-K'"   # material corporate events on EDGAR
+    rows = q(cur, f"""
+        SELECT filed_at, filing_type, left(title, 220) AS title, url,
+               left(nlp_summary, 300) AS summary
+        FROM mg_documents
+        WHERE country=%s AND (upper(ticker)=%s OR company ILIKE %s)
+          AND filed_at BETWEEN %s AND %s AND ({like})
+        ORDER BY filed_at DESC LIMIT 25
+    """, (country, symbol, f"%{company_name}%", start, as_of))
+    return {"window_months": months, "events": rows}
+
+
+def fetch_policy_events(cur, themes, sector, as_of, months=24, country="IN"):
+    """Policy events (IN: PIB/SEBI/ministries; US: Congress/Federal Register)
+    touching the company's theme keywords, before as_of."""
+    tokens = set()
+    for t in themes[:5]:
+        for w in re.split(r"[^a-zA-Z]+", t["theme_name"].lower()):
+            if len(w) > 4 and w not in ("demand", "supply", "tension", "severe",
+                                        "constraint", "infrastructure", "theme"):
+                tokens.add(w)
+    if sector:
+        tokens.add(sector.lower())
+    if not tokens:
+        return []
+    conds, params = [], []
+    for tok in list(tokens)[:8]:
+        conds.append("(title ILIKE %s OR sectors_affected::text ILIKE %s OR keywords::text ILIKE %s)")
+        params.extend([f"%{tok}%"] * 3)
+    # many India policy rows are undated scrapes — fall back through the date fields;
+    # fetched_at is when the pipeline first saw it (safe upper bound for as-of checks)
+    start = as_of - timedelta(days=months * 30)
+    params = [country, as_of, start] + params
+    return q(cur, f"""
+        SELECT COALESCE(introduced_date, enacted_date, effective_date, fetched_at::date) AS event_date,
+               (introduced_date IS NULL AND enacted_date IS NULL AND effective_date IS NULL) AS date_is_fetch_date,
+               policy_type, source, left(title, 200) AS title, raw_url,
+               impact_direction, impact_magnitude, status
+        FROM mg_policy_events
+        WHERE country=%s
+          AND COALESCE(introduced_date, enacted_date, effective_date, fetched_at::date) <= %s
+          AND (COALESCE(introduced_date, enacted_date, effective_date) IS NULL
+               OR COALESCE(introduced_date, enacted_date, effective_date) >= %s)
+          AND ({' OR '.join(conds)})
+        ORDER BY event_date DESC LIMIT 12
+    """, params)
+
+
+CONSTRAINT_SIGNAL_TYPES = (
+    "supply_shortage", "supply_constraint", "capacity_constraint", "demand_surge",
+    "capex_increase", "tender_pipeline", "order_win", "regulatory_tailwind",
+    "policy_support", "localization_opportunity", "import_dependency", "price_increase",
+)
+
+
+def fetch_constraint_evidence(cur, symbol, as_of, limit=15):
+    """Dated signal quotes (with source-document links) explaining WHY the
+    demand/supply tension exists for this company — the authenticity trail."""
+    rows = q(cur, """
+        SELECT s.signal_type, s.direction, s.filed_at, s.confidence,
+               left(regexp_replace(s.context_text, '\\s+', ' ', 'g'), 240) AS evidence,
+               left(d.title, 150) AS doc_title, d.url AS doc_url, d.filing_type
+        FROM mg_signals s
+        JOIN mg_documents d ON d.id = s.document_id
+        WHERE upper(d.ticker) = %s AND s.filed_at <= %s
+          AND s.signal_type = ANY(%s)
+        ORDER BY s.filed_at DESC, s.confidence DESC
+        LIMIT %s
+    """, (symbol, as_of, list(CONSTRAINT_SIGNAL_TYPES), limit))
+    counts = q(cur, """
+        SELECT s.signal_type, count(*) AS n, min(s.filed_at) AS first_seen, max(s.filed_at) AS last_seen
+        FROM mg_signals s JOIN mg_documents d ON d.id = s.document_id
+        WHERE upper(d.ticker) = %s AND s.filed_at <= %s
+        GROUP BY s.signal_type ORDER BY n DESC LIMIT 15
+    """, (symbol, as_of))
+    return {"signal_counts": counts, "evidence_quotes": rows,
+            "note": ("evidence_quotes are verbatim extracts from filings with source links — "
+                     "use for constraint root-cause + authenticity assessment")}
+
+
+def fetch_key_links(cur, symbol, bse_symbol, as_of, country="IN", cik=None):
+    """Public web links: company pages + latest filings with document URLs."""
+    if country == "US":
+        links = {
+            "sec_edgar_filings": f"https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={cik or symbol}&type=&dateb=&owner=include&count=40",
+            "edgar_full_text_search": f"https://efts.sec.gov/LATEST/search-index?q=%22{symbol}%22",
+            "yahoo_finance": f"https://finance.yahoo.com/quote/{symbol}",
+            "stockanalysis": f"https://stockanalysis.com/stocks/{symbol.lower()}/",
+            "finviz": f"https://finviz.com/quote.ashx?t={symbol}",
+            "openinsider": f"http://openinsider.com/screener?s={symbol}",
+        }
+        filings = q(cur, """
+            SELECT filed_at, filing_type, left(title, 130) AS title, url
+            FROM mg_documents
+            WHERE country='US' AND upper(ticker)=%s AND filed_at <= %s
+              AND filing_type IN ('10-K','10-Q')
+            ORDER BY filed_at DESC LIMIT 6
+        """, (symbol, as_of))
+        return {"company_pages": links, "filing_documents": filings,
+                "note": "US links: EDGAR archive links are permanent; aggregator pages show current data"}
+    links = {
+        "screener": f"https://www.screener.in/company/{symbol}/consolidated/",
+        "nse_quote": f"https://www.nseindia.com/get-quotes/equity?symbol={symbol}",
+        "nse_announcements": f"https://www.nseindia.com/companies-listing/corporate-filings-announcements?symbol={symbol}",
+        "nse_insider_trading": f"https://www.nseindia.com/companies-listing/corporate-filings-insider-trading?symbol={symbol}",
+        "trendlyne": f"https://trendlyne.com/equity/{symbol}/",
+        "tijorifinance": f"https://www.tijorifinance.com/company/{symbol.lower()}/",
+    }
+    if bse_symbol:
+        links["bse_search"] = f"https://www.bseindia.com/stock-share-price/x/x/{bse_symbol}/"
+    row = q(cur, "SELECT screener_url FROM fundamentals_snapshot WHERE upper(nse_symbol)=%s LIMIT 1", (symbol,))
+    if row and row[0].get("screener_url"):
+        links["screener"] = row[0]["screener_url"]
+    presentations = q(cur, """
+        SELECT filed_at, filing_type, left(title, 130) AS title, url
+        FROM mg_documents
+        WHERE country='IN' AND upper(ticker)=%s AND filed_at <= %s
+          AND (filing_type ILIKE '%%presentation%%' OR filing_type ILIKE '%%annual report%%')
+        ORDER BY filed_at DESC LIMIT 5
+    """, (symbol, as_of))
+    return {"company_pages": links, "filing_documents": presentations,
+            "note": "concall links are in the concalls section (url per doc); policy links in policy_events.raw_url"}
+
+
+# ──────────────────────────────────────────────────────────────────────────
 # Peers & sub-themes
 # ──────────────────────────────────────────────────────────────────────────
 
@@ -538,7 +925,7 @@ def fetch_peers(cur, master, symbol, themes, as_of):
                      "comparables by judgment; theme_peers share the same detected themes")}
 
 
-def fetch_sub_themes(cur, themes, symbol, as_of):
+def fetch_sub_themes(cur, themes, symbol, as_of, country="IN"):
     """Child themes of the company's themes + sibling companies on the same constrained products."""
     slugs = [t["theme_slug"] for t in themes]
     names = [t["theme_name"] for t in themes]
@@ -548,21 +935,21 @@ def fetch_sub_themes(cur, themes, symbol, as_of):
             SELECT t.theme_name, t.theme_slug, t.parent_theme_slug, t.first_detected,
                    t.stage_label, t.conviction, t.strength_score
             FROM mg_themes t
-            WHERE t.country='IN' AND t.is_active AND t.parent_theme_slug = ANY(%s)
+            WHERE t.country=%s AND t.is_active AND t.parent_theme_slug = ANY(%s)
               AND t.first_detected <= %s
             ORDER BY t.strength_score DESC LIMIT 12
-        """, (slugs, as_of))
+        """, (country, slugs, as_of))
         for c in children:
             c["top_companies"] = [r["v"] for r in q(cur, """
                 SELECT COALESCE(b.ticker, b.company_name) AS v
                 FROM mg_theme_beneficiaries b
                 JOIN mg_themes t ON t.id=b.theme_id
-                WHERE t.theme_slug=%s AND t.country='IN'
+                WHERE t.theme_slug=%s AND t.country=%s
                   AND (b.first_seen_at IS NULL OR b.first_seen_at <= %s)
                 ORDER BY b.relevance_score DESC NULLS LAST LIMIT 8
-            """, (c["theme_slug"], as_of))]
+            """, (c["theme_slug"], country, as_of))]
         out["child_themes"] = children
-    if names:
+    if names and country == "IN":
         rows = q(cur, """
             SELECT constrained_product, theme_name,
                    array_agg(DISTINCT COALESCE(ticker, company)) AS companies
@@ -584,8 +971,10 @@ def fetch_sub_themes(cur, themes, symbol, as_of):
 
 def main():
     ap = argparse.ArgumentParser(description="Extract as-of-date stock report data to JSON")
-    ap.add_argument("--symbol", required=True, help="NSE/BSE symbol or company name fragment")
+    ap.add_argument("--symbol", required=True, help="NSE/BSE symbol, US ticker, or company name fragment")
     ap.add_argument("--as-of", required=True, help="Report date YYYY-MM-DD (also accepts YYYY/MM/DD)")
+    ap.add_argument("--country", default="auto", choices=["auto", "IN", "US"],
+                    help="market (default: auto-detect — India first, then US)")
     ap.add_argument("--out", default=None, help="Output JSON path (default: data/reports/...)")
     args = ap.parse_args()
 
@@ -593,40 +982,63 @@ def main():
     conn = connect()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    master = resolve_symbol(cur, args.symbol)
+    master, country = resolve_symbol(cur, args.symbol, args.country)
     if not master:
-        print(json.dumps({"error": f"symbol/company not found: {args.symbol}"}))
+        print(json.dumps({"error": f"symbol/company not found in IN or US data: {args.symbol}"}))
         sys.exit(2)
     symbol = master["nse_symbol"].upper()
     company_name = (master.get("company_name") or symbol).split(" LIMITED")[0].split(" Limited")[0].strip()
 
     company = fetch_company(cur, master, as_of)
-    themes, constraint_themes = fetch_themes(cur, symbol, company_name, as_of)
-    india_benef = fetch_india_beneficiary_view(cur, symbol, company_name, as_of)
-    theme_names = list({t["theme_name"] for t in themes} | {b["theme_name"] for b in india_benef if b.get("theme_name")})
-    gaps, imports = fetch_capacity_and_imports(cur, theme_names, company.get("sector"), as_of)
-    concalls = fetch_concalls(cur, symbol, company_name, as_of)
-    series = fetch_price_series(cur, symbol, as_of)
-    price_action = compute_price_action(series, as_of) if series else {"error": "no NSE price data for symbol"}
+    themes, constraint_themes = fetch_themes(cur, symbol, company_name, as_of, country)
+    concalls = fetch_concalls(cur, symbol, company_name, as_of, country=country)
 
     report = {
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "as_of_date": as_of.isoformat(),
+        "country": country,
         "as_of_rule": "every query is filtered to dates <= as_of_date; fundamentals/peers snapshots are current-day and flagged",
         "company": company,
         "themes": themes,
         "constraint_themes": constraint_themes,
-        "india_beneficiary_mappings": india_benef,
-        "capacity_gaps": gaps,
-        "import_dependencies": imports,
         "concalls": concalls,
-        "price_action": price_action,
-        "bulk_deals": fetch_deals(cur, "nse_bulk_deals", symbol, as_of),
-        "block_deals": fetch_deals(cur, "nse_block_deals", symbol, as_of),
-        "insider_trades": fetch_insider(cur, symbol, as_of),
         "peers": fetch_peers(cur, master, symbol, themes, as_of),
-        "sub_themes": fetch_sub_themes(cur, themes, symbol, as_of),
+        "sub_themes": fetch_sub_themes(cur, themes, symbol, as_of, country),
+        "corporate_events": fetch_corporate_events(cur, symbol, company_name, as_of, country=country),
+        "policy_events": fetch_policy_events(cur, themes, company.get("sector") or company.get("industry"),
+                                             as_of, country=country),
+        "constraint_evidence": fetch_constraint_evidence(cur, symbol, as_of),
+        "key_links": fetch_key_links(cur, symbol, master.get("bse_symbol"), as_of,
+                                     country=country, cik=master.get("cik")),
     }
+
+    if country == "IN":
+        india_benef = fetch_india_beneficiary_view(cur, symbol, company_name, as_of)
+        theme_names = list({t["theme_name"] for t in themes}
+                           | {b["theme_name"] for b in india_benef if b.get("theme_name")})
+        gaps, imports = fetch_capacity_and_imports(cur, theme_names, company.get("sector"), as_of)
+        series = fetch_price_series(cur, symbol, as_of)
+        quarterly = fetch_quarterly_financials(company, as_of)
+        report.update({
+            "india_beneficiary_mappings": india_benef,
+            "capacity_gaps": gaps,
+            "import_dependencies": imports,
+            "price_action": compute_price_action(series, as_of) if series else {"error": "no NSE price data for symbol"},
+            "bulk_deals": fetch_deals(cur, "nse_bulk_deals", symbol, as_of),
+            "block_deals": fetch_deals(cur, "nse_block_deals", symbol, as_of),
+            "insider_trades": fetch_insider(cur, symbol, as_of),
+            "quarterly_financials": quarterly,
+            "shareholding_trend": fetch_shareholding_trend(cur, symbol, company, as_of),
+            "result_day_reactions": fetch_result_reactions(cur, symbol, company_name, as_of, series),
+            "pe_band": compute_pe_band(series, quarterly.get("quarters") or [], as_of),
+            "red_flags": fetch_red_flags(cur, symbol, company_name, as_of),
+        })
+    else:
+        report["us_data_note"] = (
+            "US coverage: EDGAR filings (10-K/10-Q/8-K), themes/constraints, policy events, "
+            "theme peers and links. NOT in DB for US: price data, bulk/block deals, insider "
+            "trades, fundamentals/shareholding — omit those report sections, state why in one "
+            "line, and point the reader to the finviz/openinsider/stockanalysis links instead.")
 
     os.makedirs(REPORTS_DIR, exist_ok=True)
     out_path = args.out or os.path.join(REPORTS_DIR, f"{symbol}_{as_of.isoformat()}_data.json")
