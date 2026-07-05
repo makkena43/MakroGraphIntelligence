@@ -8,16 +8,20 @@ import {
 
 interface Props { country: string; countryFlag: string; countryLabel: string }
 
+const currentYear = new Date().getFullYear()
+const YEARS = Array.from({ length: currentYear - 2018 }, (_, i) => currentYear - i)
+
 export default function ShortlistedTab({ country, countryFlag, countryLabel }: Props) {
   const [minQ, setMinQ] = useState(3)
+  const [year, setYear] = useState<number | undefined>(undefined)
   const [trendFilter, setTrendFilter] = useState<'all' | 'growing' | 'declining'>('all')
   const [geminiLoading, setGeminiLoading] = useState(false)
   const [geminiResult, setGeminiResult] = useState<string | null>(null)
   const qc = useQueryClient()
 
   const { data: themes = [], isLoading } = useQuery({
-    queryKey: ['shortlisted', country, minQ],
-    queryFn: () => fetchShortlisted(country, minQ),
+    queryKey: ['shortlisted', country, minQ, year],
+    queryFn: () => fetchShortlisted(country, minQ, year),
   })
 
   const filtered = (themes as Record<string, unknown>[]).filter(t => {
@@ -27,7 +31,7 @@ export default function ShortlistedTab({ country, countryFlag, countryLabel }: P
     return true
   })
 
-  const refresh = () => qc.invalidateQueries({ queryKey: ['shortlisted', country, minQ] })
+  const refresh = () => qc.invalidateQueries({ queryKey: ['shortlisted', country, minQ, year] })
 
   const runGemini = async () => {
     setGeminiLoading(true)
@@ -53,28 +57,65 @@ export default function ShortlistedTab({ country, countryFlag, countryLabel }: P
       </CountryBanner>
 
       <div className="bg-indigo-950/30 border border-indigo-800/30 rounded-xl px-4 py-2 text-sm text-indigo-200">
-        ⭐ <strong>Shortlisted Themes</strong> — auto-discovered themes that have persisted across multiple
-        quarters with sustained or growing strength. 100% signal-driven.
+        ⭐ <strong>Shortlisted Themes</strong> — persisted ≥{minQ} quarters.
+        {year ? ` Ranked by constraint signal intensity in ${year} — no human judgment.` : ' Ranked by persistence + strength.'}
       </div>
 
       {/* Controls */}
       <div className="flex flex-wrap gap-4 items-end">
         <div>
-          <label className="text-xs text-slate-400 mb-1 block">Min quarters present</label>
+          <label className="text-xs text-slate-400 mb-1 block">Year</label>
+          <select value={year ?? ''} onChange={e => setYear(e.target.value ? +e.target.value : undefined)} className="select">
+            <option value="">All years</option>
+            {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-slate-400 mb-1 block">Min quarters</label>
           <select value={minQ} onChange={e => setMinQ(+e.target.value)} className="select">
             {[2, 3, 4].map(n => <option key={n}>{n}</option>)}
           </select>
         </div>
         <div>
-          <label className="text-xs text-slate-400 mb-1 block">Trend filter</label>
+          <label className="text-xs text-slate-400 mb-1 block">Trend</label>
           <select value={trendFilter} onChange={e => setTrendFilter(e.target.value as typeof trendFilter)} className="select">
-            <option value="all">All (any direction)</option>
-            <option value="growing">Growing only (↑)</option>
-            <option value="declining">Declining only (↓)</option>
+            <option value="all">All</option>
+            <option value="growing">Growing ↑</option>
+            <option value="declining">Declining ↓</option>
           </select>
         </div>
         <button onClick={refresh} className="btn-secondary">🔄 Refresh</button>
       </div>
+
+      {/* Tension summary when year is selected */}
+      {year && !isLoading && filtered.length > 0 && (
+        <div className="grid grid-cols-4 gap-2">
+          {(['critical','building','watch','demand'] as const).map(zone => {
+            const counts: Record<string,number> = { critical: 0, building: 0, watch: 0, demand: 0 }
+            filtered.forEach((t: Record<string, unknown>) => {
+              const c   = Number(t.year_constraint_signals ?? 0)
+              const d   = Number(t.year_demand_signals ?? 0)
+              const q   = Number(t.confirmed_quarters ?? 0)
+              const mom = Number(t.momentum_score ?? 0)
+              const ratio = c > 0 ? d / c : 0
+              let z: string
+              if (c >= 3 && ratio >= 1.5 && q >= 2 && mom > 30) z = 'critical'
+              else if (c >= 2 && (ratio >= 1.0 || mom > 20)) z = 'building'
+              else if (c >= 1) z = 'watch'
+              else z = 'demand'
+              counts[z]++
+            })
+            const n = counts[zone]
+            const meta = { critical: { color:'text-red-400', label:'🔴 Critical' }, building: { color:'text-amber-400', label:'🟡 Building' }, watch: { color:'text-sky-400', label:'🔵 Watch' }, demand: { color:'text-slate-500', label:'⚪ Demand' } }[zone]
+            return (
+              <div key={zone} className="bg-slate-900/60 border border-slate-800 rounded-xl px-3 py-2 text-center">
+                <div className={`text-xl font-black ${meta.color}`}>{n}</div>
+                <div className={`text-[10px] font-semibold ${meta.color}`}>{meta.label}</div>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {isLoading && (
         <div className="flex justify-center py-12">
@@ -84,7 +125,7 @@ export default function ShortlistedTab({ country, countryFlag, countryLabel }: P
 
       {!isLoading && filtered.length === 0 && (
         <EmptyState>
-          No themes found with {minQ}+ confirmed quarters yet.<br />
+          No themes found with {minQ}+ confirmed quarters{year ? ` in ${year}` : ''}.<br />
           Run the pipeline across multiple months/quarters to build up snapshots.
         </EmptyState>
       )}
@@ -92,7 +133,9 @@ export default function ShortlistedTab({ country, countryFlag, countryLabel }: P
       {!isLoading && filtered.length > 0 && (
         <>
           <p className="text-xs text-slate-500">
-            <strong className="text-slate-300">{filtered.length}</strong> themes shortlisted (≥{minQ} quarters)
+            <strong className="text-slate-300">{filtered.length}</strong> themes shortlisted
+            (≥{minQ} quarters{year ? `, ${year} only` : ', all years'})
+            · ranked by ThemeCQ {year ? `for ${year}` : '(all-time)'}
           </p>
 
           <div className="space-y-4">
@@ -281,6 +324,19 @@ function IndiaChainPlays() {
   )
 }
 
+// ─── Tension classification (same rules as YearIntelligenceTab) ──────────────
+function getTension(theme: Record<string, unknown>): { zone: string; color: string; label: string } {
+  const c   = Number(theme.year_constraint_signals ?? 0)
+  const d   = Number(theme.year_demand_signals ?? 0)
+  const q   = Number(theme.confirmed_quarters ?? 0)
+  const mom = Number(theme.momentum_score ?? 0)
+  const ratio = c > 0 ? d / c : 0
+  if (c >= 3 && ratio >= 1.5 && q >= 2 && mom > 30) return { zone: 'critical', color: 'text-red-300 bg-red-900/40 border-red-700/50', label: '🔴 Critical' }
+  if (c >= 2 && (ratio >= 1.0 || mom > 20))          return { zone: 'building', color: 'text-amber-300 bg-amber-900/40 border-amber-700/50', label: '🟡 Building' }
+  if (c >= 1)                                         return { zone: 'watch', color: 'text-sky-300 bg-sky-900/30 border-sky-800/40', label: '🔵 Watch' }
+  return { zone: 'demand', color: 'text-slate-400 bg-slate-800/30 border-slate-700/30', label: '⚪ Demand only' }
+}
+
 // ─── Theme Card ───────────────────────────────────────────────────────────────
 function ThemeCard({ theme, rank }: { theme: Record<string, unknown>; rank: number }) {
   let qSeries: Record<string, unknown>[] = []
@@ -291,12 +347,16 @@ function ThemeCard({ theme, rank }: { theme: Record<string, unknown>; rank: numb
   } catch { qSeries = [] }
 
   const confirmedQ = Number(theme.confirmed_quarters ?? 0)
-  const avgS = Number(theme.avg_strength ?? 0)
-  const peak = Number(theme.peak_strength ?? 0)
+  const avgS  = Number(theme.avg_strength ?? 0)
+  const peak  = Number(theme.peak_strength ?? 0)
   const trend = Number(theme.strength_trend ?? 0)
-  const cur = Number(theme.strength_score ?? 0)
-  const mom = Number(theme.momentum_score ?? 0)
-  const conv = String(theme.conviction ?? 'emerging')
+  const cur   = Number(theme.strength_score ?? 0)
+  const mom   = Number(theme.momentum_score ?? 0)
+  const conv  = String(theme.conviction ?? 'emerging')
+  const cSigs = Number(theme.year_constraint_signals ?? 0)
+  const dSigs = Number(theme.year_demand_signals ?? 0)
+  const hasYearData = cSigs > 0 || dSigs > 0
+  const tension = hasYearData ? getTension(theme) : null
 
   const chartData = qSeries.map(q => ({
     label: `Q${q.quarter}-${q.year}`,
@@ -307,15 +367,54 @@ function ThemeCard({ theme, rank }: { theme: Record<string, unknown>; rank: numb
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
       <div className="flex items-start justify-between gap-3 mb-3">
-        <div>
-          <span className="text-slate-500 text-xs font-bold mr-2">#{rank}</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+            <span className="text-slate-500 text-xs font-bold">#{rank}</span>
+            {tension && (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded border font-bold ${tension.color}`}>
+                {tension.label}
+              </span>
+            )}
+            <ConvictionBadge conviction={conv} />
+          </div>
           <span className="font-bold text-white text-sm">{String(theme.theme_name ?? '')}</span>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <ConvictionBadge conviction={conv} />
           <TrendPill value={trend} />
         </div>
       </div>
+
+      {/* Constraint signal bars — shown when year data is available */}
+      {hasYearData && (
+        <div className="flex gap-3 mb-2 bg-slate-900/50 rounded-lg px-3 py-2">
+          <div className="flex-1">
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="text-[10px] text-red-400 font-bold">⚠️ Constraint</span>
+              <span className="text-[10px] font-black text-red-300">{cSigs}</span>
+            </div>
+            <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+              <div className="h-full bg-red-500 rounded-full" style={{ width: `${Math.min(100, cSigs * 8)}%` }} />
+            </div>
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="text-[10px] text-blue-400 font-bold">📈 Demand</span>
+              <span className="text-[10px] font-black text-blue-300">{dSigs}</span>
+            </div>
+            <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(100, dSigs * 5)}%` }} />
+            </div>
+          </div>
+          {cSigs > 0 && (
+            <div className="text-right flex-shrink-0">
+              <div className="text-[10px] text-slate-500">D/C ratio</div>
+              <div className={`text-sm font-black ${
+                (dSigs/cSigs) >= 1.5 ? 'text-red-400' : (dSigs/cSigs) >= 1 ? 'text-amber-400' : 'text-slate-400'
+              }`}>{(dSigs/cSigs).toFixed(1)}×</div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Quarter badges */}
       {qSeries.length > 0 && (

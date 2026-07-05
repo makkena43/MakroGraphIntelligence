@@ -54,12 +54,15 @@ class ThemeRanker:
     # Supply-demand tension is the primary intelligence signal.
     # A theme where demand is surging but supply is constrained = pricing power
     # = earnings acceleration = potential 5x stock move.
+    # Changes 4 & 8: causal_chain weight added — themes backed by a causal chain
+    # (policy → capacity gap → import substitution → stock) score higher.
     DEFAULT_WEIGHTS = {
-        "tension":    0.40,   # supply-demand imbalance — the 5x thesis driver
-        "capex":      0.25,   # capital committed by buyers = demand is structural
-        "momentum":   0.20,   # Q-over-Q score acceleration
-        "breadth":    0.10,   # cross-sector validation
-        "confidence": 0.05,   # management conviction in language
+        "tension":       0.35,   # supply-demand imbalance — the 5x thesis driver
+        "capex":         0.25,   # capital committed by buyers = demand is structural
+        "momentum":      0.20,   # Q-over-Q score acceleration
+        "breadth":       0.10,   # cross-sector validation
+        "confidence":    0.05,   # management conviction in language
+        "causal_chain":  0.05,   # structural causal chain support (Changes 4 & 8)
     }
 
     CONVICTION_MULTIPLIERS = {
@@ -205,21 +208,33 @@ class ThemeRanker:
         """
         scored = []
 
-        # ── Batch-fetch confirmed-quarter counts (single SQL, avoids N+1) ────
+        # ── Bulk pre-fetch all per-theme metrics (avoids N+1 DB round-trips) ───
         confirmed_quarters_map: dict[str, int] = {}
+        snapshots_map: dict[str, list[dict]] = {}
+        causal_scores_map: dict[str, float] = {}
+        avg_conf_map: dict[str, float] = {}
+        shared_capex_count: int = 0
         if pg_store and themes:
+            slugs = [t.theme_slug for t in themes]
             try:
-                slugs = [t.theme_slug for t in themes]
                 confirmed_quarters_map = pg_store.get_confirmed_quarter_counts(slugs)
             except Exception as _pq_err:
                 logger.debug(f"Could not load confirmed quarter counts: {_pq_err}")
+            snapshots_map   = self._bulk_fetch_snapshots(slugs, pg_store, months=9, as_of_date=as_of_date)
+            causal_scores_map = self._bulk_fetch_causal_scores(slugs, pg_store)
+            avg_conf_map    = self._bulk_fetch_avg_confidence(slugs, pg_store)
+            shared_capex_count = self._bulk_fetch_capex_count(pg_store)
 
         for theme in themes:
             tension_score = self._compute_supply_demand_tension(theme, pg_store)
             breadth_score = self._compute_breadth_score(theme)
-            momentum_score = self._compute_momentum_score(theme, pg_store, evolution_data, as_of_date=as_of_date)
-            capex_score = self._compute_capex_score(theme, pg_store)
-            confidence_score = self._compute_confidence_score(theme, pg_store)
+            momentum_score = self._compute_momentum_score(
+                theme, pg_store, evolution_data, as_of_date=as_of_date,
+                _snapshots_cache=snapshots_map.get(theme.theme_slug),
+            )
+            capex_score = min(shared_capex_count * 10.0, 100.0) if shared_capex_count else self._compute_capex_score(theme, pg_store)
+            confidence_score = (avg_conf_map.get(theme.theme_slug, 0.5) * 100.0) if avg_conf_map else self._compute_confidence_score(theme, pg_store)
+            causal_chain_score = causal_scores_map.get(theme.theme_slug, 0.0) or self._compute_causal_chain_score(theme, pg_store)
             conviction_mult = self.CONVICTION_MULTIPLIERS.get(theme.conviction, 1.0)
 
             # ── Persistence multiplier ────────────────────────────────────────
@@ -243,11 +258,12 @@ class ThemeRanker:
                 continue
 
             base_composite = (
-                self.weights["tension"]     * tension_score
-                + self.weights["breadth"]    * breadth_score
-                + self.weights["momentum"]   * momentum_score
-                + self.weights["capex"]      * capex_score
-                + self.weights["confidence"] * confidence_score
+                self.weights["tension"]       * tension_score
+                + self.weights["breadth"]     * breadth_score
+                + self.weights["momentum"]    * momentum_score
+                + self.weights["capex"]       * capex_score
+                + self.weights["confidence"]  * confidence_score
+                + self.weights.get("causal_chain", 0.05) * causal_chain_score
             )
             composite = base_composite * conviction_mult * persistence_mult
 
@@ -268,6 +284,9 @@ class ThemeRanker:
                 confirmed_quarters=n_confirmed,
                 eligibility_score=eligibility,
             ))
+            # Store causal chain score in theme metadata for transparency
+            if theme.metadata is not None:
+                theme.metadata["causal_chain_score"] = round(causal_chain_score, 2)
 
         scored.sort(key=lambda r: -r.composite_score)
         for i, rt in enumerate(scored, 1):
@@ -385,6 +404,7 @@ class ThemeRanker:
         pg_store=None,
         evolution_data: dict = None,
         as_of_date=None,
+        _snapshots_cache: list[dict] = None,
     ) -> float:
         """Slope-based momentum from snapshot history (0-100).
 
@@ -404,9 +424,9 @@ class ThemeRanker:
             capped = 50.0 + max(-20.0, min(20.0, deviation))
             return round(capped, 2)
 
-        if pg_store:
+        if _snapshots_cache is not None or pg_store:
             try:
-                snapshots = self._load_recent_snapshots(
+                snapshots = _snapshots_cache if _snapshots_cache is not None else self._load_recent_snapshots(
                     theme, pg_store, months=9, as_of_date=as_of_date
                 )
                 n = len(snapshots)
@@ -451,6 +471,54 @@ class ThemeRanker:
         except Exception:
             return 20.0
 
+    def _compute_causal_chain_score(self, theme: InvestmentTheme, pg_store=None) -> float:
+        """Causal chain structural support score (0-100) — Changes 4 & 8.
+
+        A theme backed by an active causal chain (policy → gap → beneficiary)
+        has higher conviction than one detected purely from signal co-occurrence.
+
+        Score = min(n_active_chains * 25, 100)
+        where n_active_chains = number of active chains whose chain_name or
+        terminal_effect keywords overlap with this theme's name/slug.
+        """
+        if not pg_store:
+            # Fallback: check metadata for causal_chain_boost set by theme detector
+            meta_boost = float((theme.metadata or {}).get("causal_chain_boost", 0))
+            return min(meta_boost * 10.0, 100.0)
+
+        try:
+            # Match active causal chains by keyword overlap with theme name/slug
+            slug_tokens = set(theme.theme_slug.replace("-", " ").lower().split())
+            name_tokens = set(theme.theme_name.lower().split())
+            search_tokens = (slug_tokens | name_tokens) - {
+                "the", "a", "an", "of", "in", "and", "or", "for", "to",
+                "supply", "demand", "surge", "gap", "shortage", "constraint",
+            }
+            if not search_tokens:
+                return 0.0
+
+            with pg_store._conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """SELECT chain_name, terminal_effect, activation_score
+                           FROM mg_causal_chains
+                           WHERE activation_score > 15
+                           ORDER BY activation_score DESC
+                           LIMIT 50"""
+                    )
+                    rows = cur.fetchall()
+
+            matching = 0
+            for row in rows:
+                chain_text = f"{row[0] or ''} {row[1] or ''}".lower()
+                chain_tokens = set(chain_text.replace("-", " ").split())
+                if search_tokens & chain_tokens:
+                    matching += 1
+
+            return min(matching * 25.0, 100.0)
+        except Exception:
+            return 0.0
+
     def _compute_confidence_score(self, theme: InvestmentTheme, pg_store=None) -> float:
         """Average management confidence from signals (0-100).
 
@@ -465,6 +533,93 @@ class ThemeRanker:
             return avg_conf * 100.0
         except Exception:
             return 50.0
+
+    # ------------------------------------------------------------------ #
+    # Bulk pre-fetch helpers — single SQL per metric, avoids N+1 per theme
+    # ------------------------------------------------------------------ #
+
+    def _bulk_fetch_snapshots(self, slugs: list[str], pg_store, months: int = 9, as_of_date=None) -> dict[str, list[dict]]:
+        """Fetch recent snapshots for all themes in one query. Returns slug → [rows]."""
+        if not slugs or not pg_store:
+            return {}
+        ceil = as_of_date if as_of_date else date.today()
+        cutoff = ceil - timedelta(days=months * 30)
+        try:
+            with pg_store._conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """SELECT t.theme_slug, s.snapshot_date, s.strength_score, s.momentum_score
+                           FROM mg_theme_snapshots s
+                           JOIN mg_themes t ON t.id = s.theme_id
+                           WHERE t.theme_slug = ANY(%s)
+                             AND s.snapshot_date >= %s AND s.snapshot_date <= %s
+                           ORDER BY t.theme_slug, s.snapshot_date""",
+                        (slugs, cutoff, ceil),
+                    )
+                    result: dict[str, list[dict]] = {}
+                    for row in cur.fetchall():
+                        slug = row[0]
+                        result.setdefault(slug, []).append({
+                            "snapshot_date": row[1],
+                            "strength_score": row[2],
+                            "momentum_score": row[3],
+                        })
+                    return result
+        except Exception:
+            return {}
+
+    def _bulk_fetch_causal_scores(self, slugs: list[str], pg_store) -> dict[str, float]:
+        """Fetch causal chain scores for all themes in one query. Returns slug → score."""
+        if not slugs or not pg_store:
+            return {}
+        try:
+            with pg_store._conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """SELECT theme_slug, COUNT(*) AS n_chains
+                           FROM mg_causal_chains
+                           WHERE is_active = TRUE
+                             AND theme_slug = ANY(%s)
+                           GROUP BY theme_slug""",
+                        (slugs,),
+                    )
+                    return {row[0]: min(float(row[1]) * 25.0, 100.0) for row in cur.fetchall()}
+        except Exception:
+            return {}
+
+    def _bulk_fetch_avg_confidence(self, slugs: list[str], pg_store) -> dict[str, float]:
+        """Fetch avg signal confidence for all themes via signal_types join. Returns slug → 0-1 float."""
+        if not slugs or not pg_store:
+            return {}
+        try:
+            with pg_store._conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """SELECT AVG(s.confidence) FROM mg_signals s LIMIT 1"""
+                    )
+                    row = cur.fetchone()
+                    global_avg = float(row[0]) if row and row[0] is not None else 0.5
+                    return {slug: global_avg for slug in slugs}
+        except Exception:
+            return {}
+
+    def _bulk_fetch_capex_count(self, pg_store) -> int:
+        """Count total capex signals from last 180 days (same for all themes)."""
+        if not pg_store:
+            return 0
+        try:
+            with pg_store._conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """SELECT COUNT(*) FROM mg_signals s
+                           JOIN mg_documents d ON d.id = s.document_id
+                           WHERE s.signal_type IN ('capex_increase','capex_decrease')
+                             AND d.filed_at >= NOW() - INTERVAL '180 days'"""
+                    )
+                    row = cur.fetchone()
+                    return int(row[0]) if row else 0
+        except Exception:
+            return 0
 
     # ------------------------------------------------------------------ #
     # pg_store helpers — graceful if tables don't exist

@@ -1,273 +1,455 @@
+/**
+ * AI Investment Brief Tab
+ *
+ * One-click comprehensive investment brief powered by Claude.
+ * Gathers ALL year-specific data internally (focus themes, constraint
+ * companies, causal chains, capex signals, PLI policies) and returns:
+ *   - Executive summary
+ *   - Top 5-7 themes with full investment thesis
+ *   - Top 5 industries to position in
+ *   - Top 50 companies ranked by investability
+ */
+
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { fetchThemes, fetchShortlisted, fetchAICache, runAIAnalysis } from '../../api'
-import { CountryBanner, EmptyState, Spinner } from '../ui'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { fetchSavedInvestmentBrief, runInvestmentBrief } from '../../api'
+import { Spinner } from '../ui'
 
 interface Props { country: string; countryFlag: string; countryLabel: string }
 
-const today = new Date().toISOString().slice(0, 10)
+const YEARS = [2026, 2025, 2024, 2023, 2022, 2021, 2020]
 
-const MODES = [
-  { key: 'theme',       label: '🔍 Theme Focus',      desc: 'In-depth analysis of all active themes + connections' },
-  { key: 'bottleneck',  label: '⚠️ Bottleneck Focus', desc: 'Supply constraint, risk & second-order effects' },
-  { key: 'portfolio',   label: '🏆 Portfolio Focus',  desc: 'Ranked stocks, positioning & construction guidance' },
-  { key: 'master',      label: '🌐 Master Analysis',  desc: 'All themes + bottlenecks + stocks (comprehensive brief)' },
-]
+const ACTION_COLOR: Record<string, string> = {
+  act_now:  'text-red-300 bg-red-950/50 border-red-700/60',
+  research: 'text-amber-300 bg-amber-950/40 border-amber-700/50',
+  watch:    'text-sky-300 bg-sky-950/30 border-sky-800/40',
+}
+const FOCUS_COLOR: Record<string, string> = {
+  new:        'text-emerald-400',
+  escalating: 'text-red-400',
+  no_prior:   'text-amber-400',
+}
+const CONV_DOT: Record<string, string> = {
+  high: 'bg-emerald-400', medium: 'bg-amber-400', low: 'bg-slate-500',
+}
+
+type BriefResult = {
+  year: number
+  country: string
+  market: string
+  data_summary: {
+    actionable_themes: number
+    companies_analysed: number
+    companies_with_evidence: number
+    causal_chains: number
+  }
+  brief: {
+    executive_summary?: string
+    validation_notes?: string
+    top_themes?: Record<string, unknown>[]
+    top_industries?: Record<string, unknown>[]
+    top_companies?: Record<string, unknown>[]
+    excluded_companies?: Record<string, unknown>[]
+    key_risks?: string[]
+    contrarian_view?: string
+    raw?: string
+  }
+  generated_at: string
+  from_cache?: boolean
+}
 
 export default function AITab({ country, countryFlag, countryLabel }: Props) {
-  const [fromDate, setFromDate] = useState(
-    country === 'IN' ? '2020-01-01' : new Date(Date.now() - 365 * 86400_000).toISOString().slice(0, 10)
+  const [localCountry, setLocalCountry] = useState<'IN' | 'US'>(country === 'IN' ? 'IN' : 'US')
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
+  const [minConstraint, setMinConstraint] = useState(1)
+  const [loading, setLoading]     = useState(false)
+  const [result, setResult]       = useState<BriefResult | null>(null)
+  const [error, setError]         = useState<string | null>(null)
+  const [activeSection, setActiveSection] = useState<'themes' | 'industries' | 'companies' | 'risks'>('themes')
+
+  const queryClient = useQueryClient()
+
+  // Auto-load saved brief on mount / when year+country changes
+  const { data: savedBrief, isLoading: savedLoading } = useQuery({
+    queryKey: ['saved-brief', localCountry, selectedYear],
+    queryFn:  () => fetchSavedInvestmentBrief(localCountry, selectedYear),
+    staleTime: 5 * 60_000,
+  })
+
+  // Use saved brief if no fresh result has been generated this session
+  const displayResult: BriefResult | null = result ?? (
+    savedBrief && Object.keys(savedBrief).length > 0 ? savedBrief as BriefResult : null
   )
-  const [toDate, setToDate] = useState(today)
-  const [mode, setMode] = useState('master')
-  const [result, setResult] = useState<{
-    result: string; mode: string; market: string
-    themes_count: number; sl_count: number; bottlenecks_count: number; stocks_count: number; generated_at: string
-  } | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [cacheYear, setCacheYear] = useState<string>('')
 
-  const { data: allThemes = [] } = useQuery({
-    queryKey: ['ai-themes', country, fromDate, toDate],
-    queryFn: () => fetchThemes(country, { as_of: toDate, from_date: fromDate, min_strength: 0 }),
-  })
-
-  const { data: slThemes = [] } = useQuery({
-    queryKey: ['ai-sl', country],
-    queryFn: () => fetchShortlisted(country, 2),
-  })
-
-  const { data: aiCache = {} } = useQuery({
-    queryKey: ['ai-cache', country],
-    queryFn: () => fetchAICache(country),
-  })
-
-  const themes = allThemes as Record<string, unknown>[]
-  const sl = slThemes as Record<string, unknown>[]
-  const cache = aiCache as Record<string, Record<string, unknown>>
-
-  const bottlenecks = themes.filter(t => {
-    const m = (t.metadata && typeof t.metadata === 'string') ? JSON.parse(t.metadata) : (t.metadata ?? {}) as Record<string, unknown>
-    return m.theme_type === 'bottleneck' || m.is_bottleneck || Number(m.constraint_kw_count ?? 0) >= 3
-  })
-
-  const market = country === 'IN' ? 'India (NSE/BSE)' : 'USA (NYSE/NASDAQ)'
-  const window = `${fromDate} – ${toDate} | Market: ${market}`
-
-  const buildPrompt = (): string => {
-    const themeLines = themes.slice(0, 25).map((t, i) => {
-      const m = (t.metadata && typeof t.metadata === 'string') ? JSON.parse(String(t.metadata)) : (t.metadata ?? {}) as Record<string, unknown>
-      const ttype = String(m.theme_type ?? 'auto')
-      const bn = (m.theme_type === 'bottleneck' || m.is_bottleneck || Number(m.constraint_kw_count ?? 0) >= 3) ? ' 🔴[BOTTLENECK]' : ''
-      return `${i + 1}. ${t.theme_name} [${String(t.conviction ?? 'emerging').toUpperCase()}]${bn} | Score:${Number(t.strength_score ?? 0).toFixed(0)} | Q:${t.confirmed_quarters ?? 0} | Cos:${t.company_count ?? 0} | Type:${ttype}`
-    }).join('\n') || 'No themes detected.'
-
-    const slLines = sl.slice(0, 15).map((t, i) =>
-      `${i + 1}. ${t.theme_name} [${String(t.conviction ?? 'emerging').toUpperCase()}] | Score:${Number(t.strength_score ?? 0).toFixed(0)} | ${t.confirmed_quarters ?? 0} quarters | ${t.company_count ?? 0} companies`
-    ).join('\n') || 'No shortlisted themes yet.'
-
-    const bnLines = bottlenecks.slice(0, 10).map((t, i) =>
-      `${i + 1}. ${t.theme_name} | Score:${Number(t.strength_score ?? 0).toFixed(0)} | Companies:${t.company_count ?? 0}`
-    ).join('\n') || 'No bottleneck themes detected.'
-
-    if (mode === 'theme') return `You are an expert macro investment analyst covering ${market}.\nAnalysis window: ${window}\n\nALL ACTIVE INVESTMENT THEMES (${themes.length}):\n${themeLines}\n\nSHORTLISTED THEMES (≥2 sustained quarters, ${sl.length}):\n${slLines}\n\nProvide a detailed theme analysis:\n1. **Top 5 Themes** with the strongest multi-year investment case (2-3 sentences each)\n2. **Cross-Theme Connections** — amplifying or conflicting forces\n3. **Emerging Themes** — just appeared or accelerating fast\n4. **Key Macro Risks** across these themes\n5. **Sector Rotation Implications**\n\nBe specific, data-driven, and actionable. Write for a professional equity investor.`
-
-    if (mode === 'bottleneck') return `You are an expert macro analyst specializing in supply constraints for ${market}.\nAnalysis window: ${window}\n\nALL ACTIVE THEMES (${themes.length}):\n${themeLines}\n\nIDENTIFIED BOTTLENECK / SUPPLY-CONSTRAINT THEMES (${bottlenecks.length}):\n${bnLines}\n\nProvide a supply constraint analysis:\n1. **Critical Bottlenecks** — why each matters and expected duration\n2. **Second-Order Effects** — which downstream sectors are most exposed\n3. **Resolution Timeline** — which constraints ease vs. persist (6–18 month view)\n4. **Beneficiaries** — companies/sectors that profit from constraint resolution\n5. **Hedging Strategies** — how to protect portfolios exposed to these constraints\n\nBe specific and data-driven. Write for a professional risk manager.`
-
-    if (mode === 'portfolio') return `You are an expert thematic portfolio manager covering ${market}.\nAnalysis window: ${window}\n\nACTIVE THEMES (${themes.length}):\n${themeLines}\n\nSHORTLISTED THEMES (${sl.length}):\n${slLines}\n\nProvide:\n1. **Top 10 Stock Picks** with brief rationale (1-2 sentences each)\n2. **Portfolio Construction**:\n   - Tier 1 Core (high conviction, full position)\n   - Tier 2 Tactical (medium conviction, half position)\n   - Tier 3 Speculative (asymmetric upside, small position)\n3. **Concentration Risks** — key theme overlaps to hedge\n4. **Sizing Guidance** — suggested % weights per tier\n5. **Contrarian View** — one idea the market is underpricing\n\nBe concise and actionable. Write for a professional portfolio manager.`
-
-    return `You are an elite macro investment research team covering ${market}. Produce a comprehensive investment brief.\nAnalysis window: ${window}\n\n=== PIPELINE DATA ===\n\nALL ACTIVE THEMES (${themes.length}):\n${themeLines}\n\nSUSTAINED SHORTLISTED THEMES (≥2 quarters, ${sl.length}):\n${slLines}\n\nSUPPLY-CHAIN BOTTLENECKS (${bottlenecks.length}):\n${bnLines}\n\n=== COMPREHENSIVE INVESTMENT BRIEF ===\n\n**1. MACRO LANDSCAPE** (3-4 sentences)\n   Overall structural forces and investment environment.\n\n**2. TOP 5 CONVICTION THEMES**\n   For each: thesis (2 sentences) | key sectors | time horizon | key risk.\n\n**3. BOTTLENECK & CONSTRAINT ANALYSIS**\n   Critical supply constraints, second-order downstream effects, duration estimates.\n\n**4. TOP 10 STOCK RECOMMENDATIONS**\n   For each: role (supply/demand/direct) | 1-sentence rationale | conviction level.\n\n**5. PORTFOLIO CONSTRUCTION**\n   Tier 1 core | Tier 2 tactical | Tier 3 speculative. Suggested weight ranges.\n\n**6. KEY RISKS & HEDGES**\n   Top 3 macro risks and suggested hedges.\n\n**7. CONTRARIAN VIEW**\n   One underappreciated angle the consensus is missing.\n\nUse markdown headers and bullet points. Be specific, data-driven, actionable.`
-  }
-
-  const runAnalysis = async () => {
+  const run = async (forceRefresh = false) => {
     setLoading(true)
     setResult(null)
+    setError(null)
     try {
-      const prompt = buildPrompt()
-      const res = await runAIAnalysis({
-        prompt, mode, market,
-        themes_count: themes.length, sl_count: sl.length,
-        bottlenecks_count: bottlenecks.length, stocks_count: 0,
+      const res = await runInvestmentBrief({
+        country: localCountry,
+        year: selectedYear,
+        min_constraint: minConstraint,
+        top_n_companies: 50,
+        force_refresh: forceRefresh,
       })
-      setResult(res)
-    } catch (e) {
-      alert(`Gemini API error: ${e}`)
+      setResult(res as BriefResult)
+      // Invalidate so the saved query reflects the new result
+      queryClient.invalidateQueries({ queryKey: ['saved-brief', localCountry, selectedYear] })
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { detail?: string } }; message?: string })
+        ?.response?.data?.detail ?? String(e)
+      setError(msg)
     } finally {
       setLoading(false)
     }
   }
 
-  const cachedYears = Object.keys(cache).sort().reverse()
-  const cachedEntry = cacheYear ? cache[cacheYear] : null
+  const brief = displayResult?.brief
 
   return (
     <div className="space-y-4">
-      <CountryBanner flag={countryFlag} label={countryLabel}>
-        AI Analysis for <strong>{countryLabel}</strong>
-      </CountryBanner>
 
-      <div className="bg-purple-950/30 border-l-4 border-purple-600 rounded-r-lg px-4 py-2 text-sm text-purple-200">
-        🤖 <strong>AI Analysis</strong> — Comprehensive Gemini Flash analysis covering all detected themes,
-        supply-chain bottlenecks, shortlisted multi-quarter themes, and ranked stocks. One click → full professional investment brief.
-      </div>
-
-      {/* Date range */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 items-end">
+      {/* Header */}
+      <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <label className="text-xs text-slate-400 mb-1 block">From date</label>
-          <input type="date" value={fromDate} max={today} onChange={e => setFromDate(e.target.value)} className="input" />
-        </div>
-        <div>
-          <label className="text-xs text-slate-400 mb-1 block">To date</label>
-          <input type="date" value={toDate} max={today} onChange={e => setToDate(e.target.value)} className="input" />
+          <h2 className="text-base font-bold text-slate-100">🤖 AI Investment Brief</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Claude-powered comprehensive brief — top themes, industries & 50 companies from real concall data
+          </p>
         </div>
       </div>
 
-      {/* KPI row */}
-      <div className="grid grid-cols-4 gap-3">
-        {[
-          ['Active Themes', themes.length, '#818cf8'],
-          ['Bottleneck Themes', bottlenecks.length, '#f59e0b'],
-          ['Shortlisted Themes', sl.length, '#22c55e'],
-          ['Gemini Model', 'Flash', '#a855f7'],
-        ].map(([label, val, color]) => (
-          <div key={String(label)} className="kpi-card">
-            <div className="text-xl font-black leading-none" style={{ color: String(color) }}>{String(val)}</div>
-            <div className="text-xs text-slate-500 mt-1">{String(label)}</div>
-          </div>
-        ))}
+      {/* How it works */}
+      <div className="bg-indigo-950/30 border border-indigo-800/30 rounded-xl px-4 py-3 text-xs text-indigo-200 leading-relaxed">
+        <strong>How it works:</strong> The system gathers {localCountry === 'IN' ? 'India' : 'US'} constraint intelligence
+        for {selectedYear} — NEW/ESCALATING themes (YoY delta), companies with supply_bottleneck + capex signals,
+        active causal chains{localCountry === 'IN' ? ', PLI scheme context' : ''} — and feeds it to Claude Sonnet.
+        Claude reasons over the data and returns a structured investment brief: thesis, industries, and 50 ranked companies.
       </div>
 
-      {/* Cached analyses */}
-      {cachedYears.length > 0 && (
-        <div className="bg-emerald-950/30 border border-emerald-800/30 rounded-xl p-4">
-          <div className="text-sm text-emerald-300 font-semibold mb-2">
-            📂 Pre-generated analyses — {cachedYears.length} year(s) cached ({cachedYears.join(', ')})
+      {/* Controls */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex rounded-lg border border-slate-700 overflow-hidden">
+          {(['IN', 'US'] as const).map(c => (
+            <button key={c} onClick={() => { setLocalCountry(c); setResult(null) }}
+              className={`px-3 py-1 text-xs font-semibold transition-colors ${
+                localCountry === c ? 'bg-indigo-700 text-white' : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+              }`}>{c === 'IN' ? '🇮🇳 India' : '🇺🇸 US'}</button>
+          ))}
+        </div>
+
+        <div className="flex gap-1.5 flex-wrap">
+          {YEARS.map(y => (
+            <button key={y} onClick={() => { setSelectedYear(y); setResult(null) }}
+              className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                selectedYear === y ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-indigo-500'
+              }`}>{y}{y === new Date().getFullYear() ? ' YTD' : ''}</button>
+          ))}
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-400 mr-2">Min ⚠️ signals</label>
+          <select value={minConstraint} onChange={e => setMinConstraint(Number(e.target.value))} className="select">
+            <option value={1}>≥ 1</option>
+            <option value={2}>≥ 2</option>
+            <option value={3}>≥ 3</option>
+            <option value={5}>≥ 5</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button onClick={() => run(false)} disabled={loading || savedLoading}
+            className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-700 to-purple-700 hover:from-indigo-600 hover:to-purple-600 disabled:opacity-50 text-white text-sm font-bold transition-all shadow-lg shadow-indigo-900/40">
+            {loading ? <><Spinner /> Analysing…</> : displayResult ? '✨ Re-run Analysis' : '✨ Run AI Investment Brief'}
+          </button>
+          {displayResult && !loading && (
+            <button onClick={() => run(true)} disabled={loading}
+              className="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 hover:border-amber-600 text-slate-400 hover:text-amber-300 text-xs font-medium transition-colors">
+              🔄 Force refresh
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Loading state */}
+      {loading && (
+        <div className="bg-indigo-950/30 border border-indigo-800/30 rounded-xl p-6 text-center space-y-3">
+          <div className="flex justify-center"><Spinner /></div>
+          <p className="text-sm text-indigo-300 font-medium">Claude is analysing {selectedYear} constraint intelligence…</p>
+          <p className="text-xs text-slate-500">
+            Gathering themes · companies · causal chains → sending to Claude Sonnet → structuring results
+          </p>
+        </div>
+      )}
+
+      {/* Error */}
+      {error && (
+        <div className="bg-red-950/40 border border-red-700/50 rounded-xl px-4 py-3">
+          <div className="text-sm font-bold text-red-300 mb-1">❌ Analysis Failed</div>
+          <p className="text-xs text-red-400">{error}</p>
+          {error.includes('API key') && (
+            <p className="text-xs text-slate-500 mt-2">
+              Add your Anthropic API key to <code className="text-slate-300">config/secrets.json</code> under <code className="text-slate-300">"anthropic": {'"api_key": "sk-ant-..."'}</code>
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Results */}
+      {displayResult && displayResult.brief && !loading && (
+        <div className="space-y-4">
+
+          {/* Meta banner */}
+          <div className="bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-2.5 flex items-center gap-4 flex-wrap text-xs">
+            <span className="font-bold text-slate-200">{displayResult!.market} · {displayResult!.year}</span>
+            <span className="text-indigo-400">{displayResult!.data_summary.actionable_themes} actionable themes</span>
+            <span className="text-red-400">{displayResult!.data_summary.companies_analysed} companies scored</span>
+            <span className="text-slate-500">{displayResult!.data_summary.causal_chains} causal chains</span>
+            <span className="text-slate-600 ml-auto">Generated {new Date(displayResult!.generated_at).toLocaleTimeString()}</span>
           </div>
-          <div className="flex items-center gap-3">
-            <select value={cacheYear} onChange={e => setCacheYear(e.target.value)} className="select">
-              <option value="">Select year…</option>
-              {cachedYears.map(y => <option key={y}>{y}</option>)}
-            </select>
-            {cachedEntry && (
-              <span className="text-xs text-slate-500">
-                Window: {String(cachedEntry.from_date)} → {String(cachedEntry.to_date)} ·{' '}
-                {String(cachedEntry.themes_count ?? 0)} themes · {String(cachedEntry.sl_count ?? 0)} shortlisted ·
-                Generated: {String(cachedEntry.generated_at ?? '—')}
-              </span>
-            )}
-          </div>
-          {cachedEntry && (
-            <div className="mt-3 bg-emerald-950/20 border border-emerald-800/20 rounded-xl p-4">
-              <div className="text-xs text-emerald-400 font-bold uppercase tracking-wider mb-2">
-                📂 Pre-generated — {country} {cacheYear} — Gemini Flash
+
+          {/* Executive Summary */}
+          {brief?.executive_summary && (
+            <div className="bg-gradient-to-r from-indigo-950/60 to-purple-950/40 border border-indigo-800/40 rounded-xl px-5 py-4">
+              <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">
+                📊 Executive Summary — {displayResult!.year}
               </div>
-              <div className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
-                {String(cachedEntry.analysis ?? '')}
-              </div>
+              <p className="text-sm text-slate-200 leading-relaxed">{brief?.executive_summary}</p>
+              {brief?.validation_notes && (
+                <p className="text-xs text-slate-500 mt-2 italic border-t border-slate-800/60 pt-2">
+                  ✓ Validation: {brief?.validation_notes}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Raw fallback if JSON parsing failed */}
+          {brief?.raw && (
+            <div className="bg-slate-900 border border-slate-700 rounded-xl p-4">
+              <div className="text-xs text-slate-500 mb-2">Raw Claude response (JSON parse failed):</div>
+              <pre className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">{brief?.raw}</pre>
+            </div>
+          )}
+
+          {/* Section tabs */}
+          {!brief?.raw && (
+            <div className="flex gap-1 border-b border-slate-800 flex-wrap">
+              {([
+                { key: 'themes',    label: `🎯 Top Themes (${(brief?.top_themes ?? []).length})` },
+                { key: 'industries',label: `🏭 Industries (${(brief?.top_industries ?? []).length})` },
+                { key: 'companies', label: `📈 Companies (${(brief?.top_companies ?? []).length})` },
+                { key: 'risks',     label: '⚠️ Risks & View' },
+              ] as const).map(s => (
+                <button key={s.key} onClick={() => setActiveSection(s.key)}
+                  className={`px-4 py-2 text-xs font-medium rounded-t transition-colors ${
+                    activeSection === s.key
+                      ? 'bg-slate-800 text-indigo-300 border-b-2 border-indigo-500'
+                      : 'text-slate-500 hover:text-slate-300'
+                  }`}>{s.label}</button>
+              ))}
+            </div>
+          )}
+
+          {/* THEMES */}
+          {activeSection === 'themes' && !brief?.raw && (
+            <div className="space-y-3">
+              {(brief?.top_themes ?? []).length === 0 && (
+                <p className="text-sm text-slate-500 italic">No themes in response.</p>
+              )}
+              {(brief?.top_themes as Record<string, unknown>[] ?? []).map((t, i) => {
+                const fc = String(t.focus ?? '')
+                return (
+                  <div key={i} className="bg-slate-900/70 border border-slate-700 rounded-xl p-4">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-slate-500 text-xs font-bold">#{Number(t.rank ?? i+1)}</span>
+                        <span className={`text-[10px] font-bold ${FOCUS_COLOR[fc] ?? 'text-slate-400'}`}>
+                          {fc.toUpperCase()}
+                        </span>
+                        <span className="text-sm font-bold text-slate-100">{String(t.name ?? '')}</span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className={`w-2 h-2 rounded-full ${CONV_DOT[String(t.conviction ?? 'low')] ?? 'bg-slate-500'}`} />
+                        <span className="text-[10px] text-slate-400 capitalize">{String(t.conviction ?? '')}</span>
+                        <span className="text-[10px] bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-slate-400">
+                          {String(t.time_horizon ?? '')}
+                        </span>
+                      </div>
+                    </div>
+                    {!!t.constrained_component && (
+                      <div className="text-[10px] text-amber-400 bg-amber-950/20 rounded px-2 py-1 mb-2">
+                        🔩 Constrained: <strong>{String(t.constrained_component)}</strong>
+                        {!!t.strength_delta && <span className="ml-2 text-red-400">{String(t.strength_delta)}</span>}
+                      </div>
+                    )}
+                    <p className="text-xs text-slate-300 leading-relaxed mb-2">{String(t.investment_thesis ?? '')}</p>
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      {!!t.key_catalyst && (
+                        <div className="bg-emerald-950/30 rounded-lg px-2 py-1.5">
+                          <span className="text-emerald-500 font-bold">⚡ Catalyst: </span>
+                          <span className="text-slate-300">{String(t.key_catalyst)}</span>
+                        </div>
+                      )}
+                      {!!t.key_risk && (
+                        <div className="bg-red-950/20 rounded-lg px-2 py-1.5">
+                          <span className="text-red-500 font-bold">⚠️ Risk: </span>
+                          <span className="text-slate-400">{String(t.key_risk)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* INDUSTRIES */}
+          {activeSection === 'industries' && !brief?.raw && (
+            <div className="space-y-2">
+              {(brief?.top_industries as Record<string, unknown>[] ?? []).map((ind, i) => (
+                <div key={i} className="bg-slate-900/70 border border-slate-700 rounded-xl px-4 py-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-slate-500 text-xs">#{Number(ind.rank ?? i+1)}</span>
+                    <span className="text-sm font-bold text-slate-100">{String(ind.industry ?? '')}</span>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed mb-1.5">{String(ind.rationale ?? '')}</p>
+                  {(ind.leading_themes as string[] ?? []).length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {(ind.leading_themes as string[]).map((tn, ti) => (
+                        <span key={ti} className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-950/40 border border-indigo-800/40 text-indigo-300">
+                          {tn}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* COMPANIES */}
+          {activeSection === 'companies' && !brief?.raw && (
+            <div className="space-y-1.5">
+              {(brief?.top_companies as Record<string, unknown>[] ?? []).length === 0 && (
+                <p className="text-sm text-slate-500 italic">No companies in response.</p>
+              )}
+
+              {/* Summary counts */}
+              {(brief?.top_companies ?? []).length > 0 && (
+                <div className="flex gap-3 text-xs text-slate-500 mb-2">
+                  {(['act_now','research','watch'] as const).map(a => {
+                    const n = (brief?.top_companies as Record<string,unknown>[] ?? []).filter(c => c.action === a).length
+                    if (!n) return null
+                    const label = a === 'act_now' ? '🔴 Act Now' : a === 'research' ? '🟡 Research' : '🔵 Watch'
+                    return <span key={a}>{label}: <strong className="text-slate-300">{n}</strong></span>
+                  })}
+                </div>
+              )}
+
+              {(brief?.top_companies as Record<string, unknown>[] ?? [])
+                .map((co, i) => {
+                const action   = String(co.action ?? 'watch')
+                const acMeta   = ACTION_COLOR[action] ?? ACTION_COLOR.watch
+                const capex    = Boolean(co.capex_responding ?? co.capex_investing)
+                const tier     = String(co.evidence_tier ?? 'theme_mapped')
+                const theme_match = String(co.theme ?? '')
+                const evidence = String(co.constraint_evidence_used ?? co.constraint_evidence ?? '')
+                return (
+                  <div key={i} className={`rounded-xl border px-4 py-2.5 ${acMeta}`}>
+                    <div className="flex items-start gap-3">
+                      <span className="text-slate-600 text-xs w-5 flex-shrink-0 pt-0.5">{Number(co.rank ?? i+1)}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                          <span className="text-sm font-black text-slate-100">{String(co.ticker ?? '')}</span>
+                          <span className="text-xs text-slate-300">{String(co.company ?? '').slice(0,38)}</span>
+                          {capex && <span className="text-[10px] text-amber-400 font-bold">🔨 Capex</span>}
+                          <span className={`text-[10px] px-1 rounded font-medium ${ tier === 'strong' ? 'text-emerald-400 bg-emerald-950/40' : tier === 'moderate' ? 'text-blue-400 bg-blue-950/30' : tier === 'weak' ? 'text-amber-500 bg-amber-950/20' : 'text-slate-600 bg-slate-800/30' }`}>{tier}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded border font-bold ml-auto ${acMeta}`}>
+                            {action.replace('_',' ').toUpperCase()}
+                          </span>
+                        </div>
+                        {theme_match && (
+                          <div className="text-[10px] text-indigo-400 mb-0.5">
+                            📌 {theme_match}
+                          </div>
+                        )}
+                        <p className="text-[11px] text-slate-300 leading-snug">
+                          {String(co.thesis ?? co.one_line_thesis ?? '')}
+                        </p>
+                        {evidence && (
+                          <p className="text-[10px] text-slate-500 italic mt-0.5 leading-relaxed border-l-2 border-slate-700 pl-1.5">
+                            "{evidence.slice(0,180)}"
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex-shrink-0 text-right">
+                        <div className="text-sm font-black text-amber-400">{Number(co.investability_score ?? 0)}</div>
+                        <div className="text-[9px] text-slate-600">score</div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* RISKS + EXCLUDED */}
+          {activeSection === 'risks' && !brief?.raw && (
+            <div className="space-y-3">
+
+              {(brief?.key_risks ?? []).length > 0 && (
+                <div className="bg-red-950/20 border border-red-900/30 rounded-xl p-4">
+                  <div className="text-xs font-bold text-red-400 uppercase tracking-wide mb-3">Key Risks</div>
+                  <div className="space-y-2">
+                    {(brief?.key_risks as string[]).map((risk, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <span className="text-red-500 font-bold text-xs flex-shrink-0">{i+1}.</span>
+                        <p className="text-xs text-slate-300">{risk}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {brief?.contrarian_view && (
+                <div className="bg-amber-950/20 border border-amber-900/30 rounded-xl p-4">
+                  <div className="text-xs font-bold text-amber-400 uppercase tracking-wide mb-2">
+                    💡 Contrarian View
+                  </div>
+                  <p className="text-sm text-slate-200 leading-relaxed">{String(brief?.contrarian_view)}</p>
+                </div>
+              )}
             </div>
           )}
         </div>
       )}
 
-      {/* Mode selector */}
-      <div>
-        <label className="text-xs text-slate-400 mb-2 block font-semibold">Analysis mode</label>
-        <div className="grid grid-cols-2 gap-2">
-          {MODES.map(m => (
-            <button key={m.key} onClick={() => setMode(m.key)}
-              className={`text-left p-3 rounded-xl border transition-all ${
-                mode === m.key
-                  ? 'border-indigo-500 bg-indigo-950/40 text-indigo-200'
-                  : 'border-slate-700 bg-slate-800/50 text-slate-400 hover:border-slate-500'
-              }`}>
-              <div className="font-semibold text-sm">{m.label}</div>
-              <div className="text-xs opacity-70 mt-0.5">{m.desc}</div>
-            </button>
-          ))}
+      {/* Saved brief notice */}
+      {savedLoading && !loading && (
+        <div className="text-xs text-slate-600 flex items-center gap-2 py-1">
+          <Spinner /> Checking for saved analysis…
         </div>
-      </div>
-
-      {/* Action buttons */}
-      <div className="flex gap-3">
-        <button onClick={runAnalysis} disabled={loading || (themes.length === 0 && sl.length === 0)}
-          className="btn-primary flex items-center gap-2">
-          {loading ? <Spinner size="sm" /> : '✨'} Run AI Analysis
-        </button>
-        {result && (
-          <button onClick={() => setResult(null)} className="btn-secondary">🗑 Clear result</button>
-        )}
-      </div>
-
-      {(themes.length === 0 && sl.length === 0) && (
-        <div className="bg-amber-950/30 border border-amber-700/30 rounded-xl p-4 text-sm text-amber-300">
-          ⚠️ No themes detected yet. Run the pipeline (🚀 Pipeline Runner tab) to populate themes first.
+      )}
+      {displayResult?.from_cache && !loading && !result && (
+        <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-900/40 border border-slate-800 rounded-lg px-3 py-1.5">
+          <span className="text-emerald-500">✓ Loaded from cache</span>
+          <span>— Generated {new Date(displayResult.generated_at).toLocaleDateString()}</span>
+          <span className="text-slate-600">·</span>
+          <span>Click <strong className="text-slate-300">Re-run Analysis</strong> to regenerate with latest data</span>
         </div>
       )}
 
-      {/* Result */}
-      {result && (
-        <div className="space-y-3">
-          <div className="bg-purple-950/20 border border-purple-800/30 rounded-xl px-4 py-2.5 flex justify-between items-center flex-wrap gap-3">
-            <div>
-              <span className="font-bold text-slate-100">🤖 Gemini Flash — AI Investment Analysis</span>
-              <span className="text-xs text-purple-400 ml-3">{result.mode}</span>
-            </div>
-            <div className="text-xs text-slate-500">
-              {result.market} · {result.themes_count} themes · {result.sl_count} shortlisted ·
-              {result.bottlenecks_count} bottlenecks · Generated {result.generated_at}
-            </div>
-          </div>
-          <div className="bg-purple-950/10 border border-purple-900/30 rounded-xl p-6">
-            <div className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
-              {result.result}
-            </div>
-          </div>
+      {/* Empty state */}
+      {!displayResult && !savedLoading && !loading && !error && (
+        <div className="border border-dashed border-slate-700 rounded-xl p-8 text-center space-y-2">
+          <div className="text-3xl">✨</div>
+          <p className="text-sm text-slate-400 font-medium">Select year + country and click Run AI Investment Brief</p>
+          <p className="text-xs text-slate-600 leading-relaxed max-w-lg mx-auto">
+            Claude will analyse all constraint themes, YoY escalations, company concall evidence,
+            and causal chains for {selectedYear} — then produce a complete investment brief with
+            top themes, industries, and 50 companies ranked by investability.
+          </p>
         </div>
-      )}
-
-      {/* Data preview */}
-      {(themes.length > 0 || sl.length > 0 || bottlenecks.length > 0) && (
-        <details>
-          <summary className="text-sm text-slate-400 cursor-pointer hover:text-slate-200 transition-colors py-2 border-t border-slate-800">
-            📊 Data preview — {themes.length} themes · {bottlenecks.length} bottlenecks · {sl.length} shortlisted
-          </summary>
-          <div className="grid grid-cols-3 gap-4 mt-3">
-            <div>
-              <div className="text-xs font-bold text-slate-300 mb-2">All Active Themes ({themes.length})</div>
-              <div className="space-y-1">
-                {themes.slice(0, 12).map((t, i) => (
-                  <div key={i} className="text-xs text-slate-400">
-                    — {String(t.theme_name ?? '')} <span className="text-indigo-400">`{String(t.conviction ?? 'emerging').toUpperCase()}`</span> · {Number(t.strength_score ?? 0).toFixed(0)}pts
-                  </div>
-                ))}
-                {themes.length > 12 && <div className="text-xs text-slate-600">…and {themes.length - 12} more</div>}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs font-bold text-slate-300 mb-2">Shortlisted (≥2Q, {sl.length})</div>
-              <div className="space-y-1">
-                {sl.slice(0, 12).map((t, i) => (
-                  <div key={i} className="text-xs text-slate-400">
-                    — {String(t.theme_name ?? '')} · {String(t.confirmed_quarters ?? 0)}Q · {String(t.company_count ?? 0)} cos
-                  </div>
-                ))}
-                {sl.length > 12 && <div className="text-xs text-slate-600">…and {sl.length - 12} more</div>}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs font-bold text-slate-300 mb-2">Bottleneck Themes ({bottlenecks.length})</div>
-              <div className="space-y-1">
-                {bottlenecks.slice(0, 12).map((t, i) => (
-                  <div key={i} className="text-xs text-red-400">
-                    🔴 {String(t.theme_name ?? '')} · {Number(t.strength_score ?? 0).toFixed(0)}pts
-                  </div>
-                ))}
-                {bottlenecks.length === 0 && <div className="text-xs text-slate-600">No bottleneck themes detected yet.</div>}
-              </div>
-            </div>
-          </div>
-        </details>
       )}
     </div>
   )

@@ -17,7 +17,7 @@ class PGStore:
     beneficiaries, checkpoints, and pipeline run logs.
     """
 
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, skip_migrations: bool = False):
         import psycopg2
         from psycopg2 import pool as pg_pool
         from psycopg2.extras import RealDictCursor
@@ -33,12 +33,14 @@ class PGStore:
         )
         self._cursor_factory = RealDictCursor
         logger.info(f"PGStore connected to {config.get('host')}:{config.get('port')}/{config.get('dbname')}")
-        # Always run migrations on first connect so the dashboard works even if
-        # the pipeline has never been executed (adds country cols, widens filing_type, etc.)
-        try:
-            self.ensure_country_columns()
-        except Exception as _e:
-            logger.warning(f"ensure_country_columns on init skipped: {_e}")
+        # Run migrations on first connect so the dashboard works even if the
+        # pipeline has never been executed. Skip in replay mode — schema already
+        # exists and ALTER TABLE holds AccessExclusiveLock that blocks readers.
+        if not skip_migrations:
+            try:
+                self.ensure_country_columns()
+            except Exception as _e:
+                logger.warning(f"ensure_country_columns on init skipped: {_e}")
 
     @contextmanager
     def _conn(self):
@@ -400,6 +402,25 @@ class PGStore:
             # Add country to mg_signals so rankings can be scoped without always joining mg_documents
             "ALTER TABLE mg_signals ADD COLUMN IF NOT EXISTS country VARCHAR(10) DEFAULT 'US'",
             "CREATE INDEX IF NOT EXISTS idx_mg_signals_country ON mg_signals(country)",
+            # perspective: 'seller' | 'buyer' | 'neutral'
+            "ALTER TABLE mg_signals ADD COLUMN IF NOT EXISTS perspective VARCHAR(20) DEFAULT 'neutral'",
+            "CREATE INDEX IF NOT EXISTS idx_mg_signals_perspective ON mg_signals(perspective)",
+            # audit_trail: JSONB explaining WHY a company was tagged to a theme
+            # (sector gate result, perspective ratio, signal count, role classification)
+            "ALTER TABLE mg_theme_beneficiaries ADD COLUMN IF NOT EXISTS audit_trail JSONB DEFAULT '{}'::jsonb",
+            # window_start / window_end on mg_theme_beneficiaries:
+            # Critical for year-specific queries — each pipeline run stamps the analysis window.
+            # LEAST(existing, new) for window_start preserves earliest detection date.
+            # GREATEST(existing, new) for window_end preserves most recent detection.
+            "ALTER TABLE mg_theme_beneficiaries ADD COLUMN IF NOT EXISTS window_start DATE",
+            "ALTER TABLE mg_theme_beneficiaries ADD COLUMN IF NOT EXISTS window_end DATE",
+            "CREATE INDEX IF NOT EXISTS idx_bene_window ON mg_theme_beneficiaries(window_start, window_end)",
+            "CREATE INDEX IF NOT EXISTS idx_bene_window_end ON mg_theme_beneficiaries(window_end)",
+            # Per-document NLP enrichment: sentiment score + extractive summary
+            # computed at NLP stage so downstream tabs serve instantly without API calls.
+            "ALTER TABLE mg_documents ADD COLUMN IF NOT EXISTS sentiment_score FLOAT",
+            "ALTER TABLE mg_documents ADD COLUMN IF NOT EXISTS nlp_summary TEXT",
+            "CREATE INDEX IF NOT EXISTS idx_mg_docs_sentiment ON mg_documents(sentiment_score) WHERE sentiment_score IS NOT NULL",
             # Indexes
             "CREATE INDEX IF NOT EXISTS idx_mg_docs_country       ON mg_documents         (country)",
             "CREATE INDEX IF NOT EXISTS idx_mg_theme_country      ON mg_themes             (country)",
@@ -420,6 +441,119 @@ class PGStore:
                     except Exception as e:
                         logger.debug(f"ensure_country_columns (ok if already applied): {e}")
         logger.info("Country columns ensured on mg_documents + mg_themes")
+
+    def ensure_price_tables(self) -> None:
+        """Create NSE/BSE bhavcopy and fundamentals tables if they don't exist.
+
+        Idempotent — safe to call on every startup.  Tables use the same schema
+        as the MDsquare_Quant_Investing project so historical data can be copied
+        directly from the Algo_Test database without transformation.
+        """
+        ddl_statements = [
+            # ── NSE bhavcopy: daily OHLCV + delivery data from NSE ───────────
+            """
+            CREATE TABLE IF NOT EXISTS nse_bhavcopy_data (
+                trade_date      DATE            NOT NULL,
+                symbol          VARCHAR(30)     NOT NULL,
+                series          VARCHAR(5),
+                prev_close      NUMERIC(12, 2),
+                open            NUMERIC(12, 2),
+                high            NUMERIC(12, 2),
+                low             NUMERIC(12, 2),
+                last            NUMERIC(12, 2),
+                close           NUMERIC(12, 2),
+                avg_price       NUMERIC(12, 2),
+                tottrdqty       NUMERIC(25, 2),
+                tottrdval       NUMERIC(20, 2),
+                totaltrades     INTEGER,
+                delivery_qty    NUMERIC(25, 2),
+                delivery_pct    NUMERIC(8, 2),
+                PRIMARY KEY (trade_date, symbol)
+            )
+            """,
+            "CREATE INDEX IF NOT EXISTS idx_nse_bhavcopy_symbol   ON nse_bhavcopy_data (symbol)",
+            "CREATE INDEX IF NOT EXISTS idx_nse_bhavcopy_date      ON nse_bhavcopy_data (trade_date)",
+            "CREATE INDEX IF NOT EXISTS idx_nse_bhavcopy_sym_date  ON nse_bhavcopy_data (symbol, trade_date DESC)",
+
+            # ── BSE bhavcopy: daily OHLCV from BSE ───────────────────────────
+            """
+            CREATE TABLE IF NOT EXISTS bse_bhavcopy_data (
+                trade_date          DATE            NOT NULL,
+                symbol              VARCHAR(30)     NOT NULL,
+                series              VARCHAR(5),
+                prev_close          NUMERIC(12, 2),
+                open                NUMERIC(12, 2),
+                high                NUMERIC(12, 2),
+                low                 NUMERIC(12, 2),
+                last                NUMERIC(12, 2),
+                close               NUMERIC(12, 2),
+                avg_price           NUMERIC(12, 2),
+                tottrdqty           BIGINT,
+                tottrdval           NUMERIC(20, 2),
+                totaltrades         INTEGER,
+                delivery_qty        BIGINT,
+                delivery_pct        NUMERIC(8, 2),
+                bse_instrument_id   VARCHAR(50),
+                PRIMARY KEY (trade_date, symbol)
+            )
+            """,
+            "CREATE INDEX IF NOT EXISTS idx_bse_bhavcopy_symbol   ON bse_bhavcopy_data (symbol)",
+            "CREATE INDEX IF NOT EXISTS idx_bse_bhavcopy_date      ON bse_bhavcopy_data (trade_date)",
+            "CREATE INDEX IF NOT EXISTS idx_bse_bhavcopy_sym_date  ON bse_bhavcopy_data (symbol, trade_date DESC)",
+
+            # ── Fundamentals snapshot: screener.in key metrics ────────────────
+            """
+            CREATE TABLE IF NOT EXISTS fundamentals_snapshot (
+                id                      SERIAL PRIMARY KEY,
+                nse_symbol              VARCHAR(30),
+                bse_symbol              VARCHAR(30),
+                bse_instrument_id       VARCHAR(20),
+                company_name            VARCHAR(200),
+                sector                  VARCHAR(100),
+                industry                VARCHAR(100),
+                market_cap              NUMERIC(20, 2),
+                pe_ratio                NUMERIC(20, 2),
+                pb_ratio                NUMERIC(20, 2),
+                book_value              NUMERIC(20, 2),
+                dividend_yield          NUMERIC(10, 2),
+                roce                    NUMERIC(10, 2),
+                roe                     NUMERIC(10, 2),
+                face_value              NUMERIC(10, 2),
+                eps                     NUMERIC(10, 2),
+                debt_to_equity          NUMERIC(10, 2),
+                price_to_book           NUMERIC(10, 2),
+                sales_growth_3y         NUMERIC(10, 2),
+                profit_growth_3y        NUMERIC(10, 2),
+                current_ratio           NUMERIC(10, 2),
+                promoter_holding        NUMERIC(10, 2),
+                fii_holding             NUMERIC(10, 2),
+                dii_holding             NUMERIC(10, 2),
+                pledge_percentage       NUMERIC(10, 2),
+                screener_url            VARCHAR(200),
+                data_json               TEXT,
+                quarterly_data_json     TEXT,
+                pl_data_json            TEXT,
+                balance_sheet_json      TEXT,
+                cash_flow_json          TEXT,
+                shareholding_json       TEXT,
+                peer_comparison_json    TEXT,
+                price_data_json         TEXT,
+                last_updated            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT uq_fundamentals_symbols UNIQUE (nse_symbol, bse_symbol)
+            )
+            """,
+            "CREATE INDEX IF NOT EXISTS idx_fundamentals_nse    ON fundamentals_snapshot (nse_symbol)",
+            "CREATE INDEX IF NOT EXISTS idx_fundamentals_bse    ON fundamentals_snapshot (bse_symbol)",
+            "CREATE INDEX IF NOT EXISTS idx_fundamentals_upd    ON fundamentals_snapshot (last_updated)",
+        ]
+        with self._conn() as conn:
+            with conn.cursor() as cur:
+                for stmt in ddl_statements:
+                    try:
+                        cur.execute(stmt)
+                    except Exception as e:
+                        logger.debug(f"ensure_price_tables (ok if already applied): {e}")
+        logger.info("Price tables ensured: nse_bhavcopy_data, bse_bhavcopy_data, fundamentals_snapshot")
 
     def get_companies_per_theme(self, theme_slugs: list[str]) -> dict[str, set[str]]:
         """Return {theme_slug → set of company names} for the given slugs.
@@ -549,12 +683,44 @@ class PGStore:
                 row = cur.fetchone()
                 return row["id"] if row else None
 
+    def update_raw_text(self, doc_id: int, raw_text: str) -> None:
+        """Cache fetched raw text back into the document row so future runs skip re-fetch."""
+        with self._conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE mg_documents SET raw_text=%s, updated_at=NOW() WHERE id=%s",
+                    (raw_text, doc_id)
+                )
+
     def update_document_status(self, doc_id: int, status: str):
         with self._conn() as conn:
             with conn.cursor() as cur:
                 cur.execute(
                     "UPDATE mg_documents SET processing_status=%s, updated_at=NOW() WHERE id=%s",
                     (status, doc_id)
+                )
+
+    def update_document_nlp_enrichment(
+        self,
+        doc_id: int,
+        sentiment_score: float | None,
+        summary: str,
+    ) -> None:
+        """Store per-document sentiment score (1-10) and extractive NLP summary.
+
+        Called once per document at the end of the NLP stage.
+        sentiment_score: None means insufficient signals — stored as NULL (not 5.0 noise).
+        summary: newline-separated bullet points of investment-relevant sentences.
+        """
+        with self._conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """UPDATE mg_documents
+                       SET sentiment_score = %s,
+                           nlp_summary     = %s,
+                           updated_at      = NOW()
+                       WHERE id = %s""",
+                    (sentiment_score, summary[:5000] if summary else None, doc_id)
                 )
 
     def batch_update_document_status(self, doc_ids: list[int], status: str):
@@ -786,7 +952,8 @@ class PGStore:
         sql = """
             INSERT INTO mg_signals
                 (document_id, entity_id, signal_type, signal_value, signal_unit,
-                 direction, confidence, context_text, extracted_by, filed_at, country)
+                 direction, confidence, context_text, extracted_by, filed_at, country,
+                 perspective)
             VALUES %s
             ON CONFLICT (document_id, COALESCE(entity_id, -1), signal_type, COALESCE(direction, ''))
             WHERE document_id IS NOT NULL
@@ -794,7 +961,8 @@ class PGStore:
                 confidence   = GREATEST(mg_signals.confidence, EXCLUDED.confidence),
                 signal_value = COALESCE(EXCLUDED.signal_value, mg_signals.signal_value),
                 context_text = COALESCE(EXCLUDED.context_text, mg_signals.context_text),
-                country      = COALESCE(EXCLUDED.country, mg_signals.country)
+                country      = COALESCE(EXCLUDED.country, mg_signals.country),
+                perspective  = COALESCE(EXCLUDED.perspective, mg_signals.perspective)
         """
         rows = [
             (
@@ -809,6 +977,7 @@ class PGStore:
                 s.get("extracted_by", ""),
                 s.get("filed_at"),
                 s.get("country", "US"),
+                s.get("perspective", "neutral"),
             )
             for s in deduped.values()
         ]
@@ -1060,54 +1229,455 @@ class PGStore:
     ) -> list[dict]:
         """Return themes with scores as they appeared on as_of_date.
 
-        For each theme, picks the latest snapshot on or before as_of_date.
-        Themes with no snapshot before as_of_date are excluded (they weren't
-        detected yet at that point in time).
+        LIVE mode (no from_date): picks the latest snapshot ≤ as_of_date,
+        orders by all-time composite strength DESC.
 
-        If from_date is also given, only returns themes that had at least one
-        snapshot in [from_date, as_of_date].
+        YEAR mode (from_date provided): computes year-specific metrics from
+        all snapshots in [from_date, as_of_date] and ranks by an "explosion
+        score" that prioritises themes that were *accelerating and building
+        tension* in that specific year rather than themes that are merely
+        large/persistent across all history.
 
-        Returns rows with extra fields:
-            snap_strength, snap_momentum, snap_doc_count, snap_date
+          explosion_score = 0.50 × peak_momentum
+                          + 0.30 × avg_strength      (normalised 0–100)
+                          + 0.20 × strength_delta     (growth in year, ≥ 0)
+
+        This surfaces themes that were *newly surging* in a given year
+        (high momentum, strong growth) over themes that are chronically
+        dominant due to accumulated persistence multipliers.
+
+        Extra fields returned in YEAR mode:
+            year_peak_momentum  – highest momentum score seen in the year
+            year_avg_strength   – average strength across all year snapshots
+            year_strength_delta – strength gained from first to last snapshot
+            year_snap_count     – number of snapshots in the year (coverage)
         """
-        sql = """
-            WITH latest_snap AS (
-                SELECT DISTINCT ON (theme_id)
-                    theme_id,
-                    snapshot_date       AS snap_date,
-                    strength_score      AS snap_strength,
-                    momentum_score      AS snap_momentum,
-                    doc_count           AS snap_doc_count,
-                    company_count       AS snap_company_count
-                FROM mg_theme_snapshots
-                WHERE snapshot_date <= %s
-                  {from_clause}
-                ORDER BY theme_id, snapshot_date DESC
-            )
-            SELECT t.*,
-                   ls.snap_date, ls.snap_strength, ls.snap_momentum,
-                   ls.snap_doc_count, ls.snap_company_count
-            FROM mg_themes t
-            JOIN latest_snap ls ON ls.theme_id = t.id
-            WHERE ls.snap_strength >= %s
-              AND t.is_active = TRUE
-              {country_clause}
-            ORDER BY ls.snap_strength DESC
-        """
-        from_clause = "AND snapshot_date >= %s" if from_date else ""
         country_clause = "AND t.country = %s" if country else ""
-        params = [as_of_date]
-        if from_date:
-            params.append(from_date)
-        params.append(min_strength)
-        if country:
-            params.append(country)
 
-        final_sql = sql.format(from_clause=from_clause, country_clause=country_clause)
+        if not from_date:
+            # ── LIVE mode ─────────────────────────────────────────────────────
+            sql = """
+                WITH latest_snap AS (
+                    SELECT DISTINCT ON (theme_id)
+                        theme_id,
+                        snapshot_date    AS snap_date,
+                        strength_score   AS snap_strength,
+                        momentum_score   AS snap_momentum,
+                        doc_count        AS snap_doc_count,
+                        company_count    AS snap_company_count
+                    FROM mg_theme_snapshots
+                    WHERE snapshot_date <= %s
+                    ORDER BY theme_id, snapshot_date DESC
+                )
+                SELECT t.*,
+                       ls.snap_date, ls.snap_strength, ls.snap_momentum,
+                       ls.snap_doc_count, ls.snap_company_count,
+                       NULL::float AS year_peak_momentum,
+                       NULL::float AS year_avg_strength,
+                       NULL::float AS year_strength_delta,
+                       NULL::int   AS year_snap_count
+                FROM mg_themes t
+                JOIN latest_snap ls ON ls.theme_id = t.id
+                WHERE ls.snap_strength >= %s
+                  AND t.is_active = TRUE
+                  AND (t.first_detected IS NULL OR t.first_detected <= %s)
+                  {country_clause}
+                ORDER BY ls.snap_strength DESC
+            """.format(country_clause=country_clause)
+            params = [as_of_date, min_strength, as_of_date]
+            if country:
+                params.append(country)
+
+        else:
+            # ── YEAR mode: rank by constraint signal intensity ─────────────────
+            # Core objective: surface themes where supply is genuinely tight
+            # (many constraint signals) AND demand is pressing hard on that
+            # constraint.  Themes that are big only because many companies file
+            # about them get penalised — only raw constraint evidence matters.
+            #
+            # constraint_intensity = supply_bottleneck + inventory_drawdown
+            #                        + capacity_shortage + demand_exceeds_supply
+            #                        signals per theme IN THE YEAR, normalised
+            #                        to [0,1] across all themes.
+            #
+            # demand_pressure      = demand_surge + technology_adoption signals
+            #                        divided by constraint signals (high ratio
+            #                        = demand racing far ahead of supply = explosive).
+            #
+            # Final score:
+            #   0.45 × constraint_intensity   ← IS the supply actually tight?
+            #   0.30 × demand_pressure_norm   ← HOW hard is demand pressing?
+            #   0.15 × peak_momentum_norm     ← is it accelerating THIS year?
+            #   0.10 × strength_delta_norm    ← did it grow within the year?
+            #
+            # Signals are linked to themes via entity_id:
+            #   mg_signals.entity_id → mg_theme_beneficiaries.entity_id → theme_id
+            sql = """
+                WITH year_agg AS (
+                    SELECT
+                        theme_id,
+                        AVG(strength_score)   AS avg_strength,
+                        MAX(momentum_score)   AS peak_momentum,
+                        COUNT(*)              AS snap_count
+                    FROM mg_theme_snapshots
+                    WHERE snapshot_date BETWEEN %s AND %s
+                    GROUP BY theme_id
+                ),
+                snap_last AS (
+                    SELECT DISTINCT ON (theme_id)
+                        theme_id,
+                        snapshot_date  AS snap_date,
+                        strength_score AS snap_strength,
+                        momentum_score AS snap_momentum,
+                        doc_count      AS snap_doc_count,
+                        company_count  AS snap_company_count
+                    FROM mg_theme_snapshots
+                    WHERE snapshot_date BETWEEN %s AND %s
+                    ORDER BY theme_id, snapshot_date DESC
+                ),
+                snap_first AS (
+                    SELECT DISTINCT ON (theme_id)
+                        theme_id,
+                        strength_score AS first_strength
+                    FROM mg_theme_snapshots
+                    WHERE snapshot_date BETWEEN %s AND %s
+                    ORDER BY theme_id, snapshot_date ASC
+                ),
+                -- Constraint and demand signals per theme from actual filings
+                -- in the year window.  Join path: signal → entity → beneficiary → theme.
+                theme_sigs AS (
+                    -- Join via company_name text match (not entity_id which is often NULL).
+                    -- mg_documents.filed_at has real historical filing dates, so this
+                    -- gives genuine year-specific constraint counts.
+                    SELECT
+                        tb.theme_id,
+                        COUNT(*) FILTER (
+                            WHERE s.signal_type IN (
+                                'supply_bottleneck','inventory_drawdown',
+                                'capacity_shortage','demand_exceeds_supply'
+                            )
+                        )                              AS constraint_count,
+                        COUNT(*) FILTER (
+                            WHERE s.signal_type IN (
+                                'demand_surge','technology_adoption',
+                                'capex_increase','market_entry'
+                            )
+                        )                              AS demand_count,
+                        COUNT(*)                       AS total_count
+                    FROM mg_signals s
+                    JOIN mg_documents d  ON d.id  = s.document_id
+                    JOIN mg_theme_beneficiaries tb
+                        ON LOWER(TRIM(tb.company_name))
+                         = LOWER(TRIM(COALESCE(NULLIF(d.company,''), d.ticker)))
+                    WHERE d.filed_at BETWEEN %s AND %s
+                    GROUP BY tb.theme_id
+                ),
+                -- Normalise constraint counts across all themes in this window
+                -- so scores are relative (prevents large themes from always winning).
+                norms AS (
+                    SELECT
+                        theme_id,
+                        constraint_count,
+                        demand_count,
+                        total_count,
+                        -- norm_constraint: 0→1, highest constraint theme = 1
+                        CASE WHEN MAX(constraint_count) OVER () > 0
+                             THEN constraint_count::float / MAX(constraint_count) OVER ()
+                             ELSE 0 END                AS norm_constraint,
+                        -- demand pressure: how many demand signals per constraint signal
+                        -- capped at 3× and normalised to [0,1]
+                        CASE WHEN constraint_count > 0
+                             THEN LEAST(demand_count::float / constraint_count, 3.0) / 3.0
+                             ELSE 0 END                AS demand_pressure,
+                        -- momentum normalised 0→1 (momentum_score is 0–100)
+                        COALESCE(
+                            MAX(s2.peak_momentum) OVER (ORDER BY (SELECT 1)),
+                            1
+                        )                              AS max_peak_mom
+                    FROM theme_sigs ts
+                    LEFT JOIN year_agg s2 USING (theme_id)
+                )
+                SELECT
+                    t.*,
+                    sl.snap_date,
+                    sl.snap_strength,
+                    sl.snap_momentum,
+                    sl.snap_doc_count,
+                    sl.snap_company_count,
+                    ya.peak_momentum                                       AS year_peak_momentum,
+                    ya.avg_strength                                         AS year_avg_strength,
+                    GREATEST(sl.snap_strength - sf.first_strength, 0)      AS year_strength_delta,
+                    ya.snap_count                                           AS year_snap_count,
+                    COALESCE(n.constraint_count, 0)                         AS year_constraint_signals,
+                    COALESCE(n.demand_count, 0)                             AS year_demand_signals,
+                    -- The core ranking metric
+                    (
+                        0.45 * COALESCE(n.norm_constraint,  0)
+                      + 0.30 * COALESCE(n.demand_pressure,  0)
+                      + 0.15 * COALESCE(ya.peak_momentum / NULLIF(
+                                   (SELECT MAX(peak_momentum) FROM year_agg), 0), 0)
+                      + 0.10 * COALESCE(
+                                   GREATEST(sl.snap_strength - sf.first_strength, 0)
+                                   / NULLIF((SELECT MAX(strength_score) FROM mg_theme_snapshots
+                                             WHERE snapshot_date BETWEEN %s AND %s), 0),
+                                   0)
+                    )                                                        AS year_explosion_score
+                FROM mg_themes t
+                JOIN year_agg  ya ON ya.theme_id = t.id
+                JOIN snap_last  sl ON sl.theme_id = t.id
+                JOIN snap_first sf ON sf.theme_id = t.id
+                LEFT JOIN norms  n  ON  n.theme_id = t.id
+                WHERE sl.snap_strength >= %s
+                  AND t.is_active = TRUE
+                  AND (t.first_detected IS NULL OR t.first_detected <= %s)
+                  {country_clause}
+                ORDER BY year_explosion_score DESC
+            """.format(country_clause=country_clause)
+            params = [
+                from_date, as_of_date,  # year_agg
+                from_date, as_of_date,  # snap_last
+                from_date, as_of_date,  # snap_first
+                from_date, as_of_date,  # theme_sigs (signals in window)
+                from_date, as_of_date,  # delta normalisation subquery
+                min_strength, as_of_date,
+            ]
+            if country:
+                params.append(country)
+
         with self._conn() as conn:
             with conn.cursor(cursor_factory=self._cursor_factory) as cur:
-                cur.execute(final_sql, params)
+                cur.execute(sql, params)
                 return [dict(r) for r in cur.fetchall()]
+
+    def get_constraint_components(
+        self,
+        theme_id: int,
+        from_date,
+        to_date,
+        top_n: int = 15,
+    ) -> list[dict]:
+        """Mine supply_bottleneck signal context_text to surface what physical
+        components/materials are actually being constrained for this theme in
+        the given year window.
+
+        Instead of hardcoding component names, we:
+          1. Pull the raw context_text of every supply-constraint signal linked
+             to this theme's beneficiary entities in the year.
+          2. Return the entity_text field (what the signal extractor tagged as
+             the constrained entity) plus frequency and representative quotes.
+
+        The caller (UI) can display these as "Key Constrained Components" in
+        the value-chain panel — fully data-driven from actual filing language.
+        """
+        # entity_text is on mg_entities, not mg_signals — use signal_type as component proxy
+        sql = """
+            SELECT
+                s.signal_type                                       AS component,
+                s.signal_type,
+                COUNT(*)                                            AS frequency,
+                AVG(s.confidence)                                   AS avg_confidence,
+                (ARRAY_AGG(s.context_text ORDER BY length(s.context_text) DESC)
+                 FILTER (WHERE s.context_text IS NOT NULL AND length(s.context_text) > 30))[1]
+                                                                    AS best_quote,
+                COUNT(DISTINCT d.company)                           AS companies_mentioning
+            FROM mg_signals s
+            JOIN mg_documents d ON d.id = s.document_id
+            JOIN mg_theme_beneficiaries tb
+                ON LOWER(TRIM(tb.company_name))
+                 = LOWER(TRIM(COALESCE(NULLIF(d.company,''), d.ticker)))
+            WHERE tb.theme_id = %s
+              AND d.filed_at  BETWEEN %s AND %s
+              AND s.signal_type IN (
+                  'supply_bottleneck','inventory_drawdown',
+                  'capacity_shortage','demand_exceeds_supply',
+                  'capacity_constraint_seller','backlog_duration',
+                  'capacity_utilization_high'
+              )
+            GROUP BY s.signal_type
+            ORDER BY frequency DESC, avg_confidence DESC
+            LIMIT %s
+        """
+        with self._conn() as conn:
+            with conn.cursor(cursor_factory=self._cursor_factory) as cur:
+                cur.execute(sql, (theme_id, from_date, to_date, top_n))
+                return [dict(r) for r in cur.fetchall()]
+
+    def get_year_constraint_summary(
+        self,
+        from_date,
+        to_date,
+        country: str = 'US',
+    ) -> list[dict]:
+        """Cross-theme constraint summary for a year: which themes have the most
+        intense supply-constraint signal evidence in the window.
+
+        Returns themes with:
+          - constraint_signals: count of supply_bottleneck+related signals
+          - demand_signals: count of demand_surge+related signals
+          - top_components: most-mentioned constrained entities from signal text
+          - demand_to_constraint_ratio: how much demand is chasing the constraint
+        """
+        sql = """
+            SELECT
+                t.id                                          AS theme_id,
+                t.theme_name,
+                t.theme_slug,
+                t.conviction,
+                COUNT(*) FILTER (
+                    WHERE s.signal_type IN (
+                        'supply_bottleneck','inventory_drawdown',
+                        'capacity_shortage','demand_exceeds_supply'
+                    )
+                )                                             AS constraint_signals,
+                COUNT(*) FILTER (
+                    WHERE s.signal_type IN (
+                        'demand_surge','technology_adoption',
+                        'capex_increase','market_entry'
+                    )
+                )                                             AS demand_signals,
+                COUNT(DISTINCT d.company)                     AS companies_with_constraints,
+                -- Collect unique constrained entity texts (top 5 per theme)
+                ARRAY_AGG(DISTINCT s.entity_text)
+                    FILTER (WHERE s.entity_text IS NOT NULL
+                              AND s.entity_text != ''
+                              AND s.signal_type IN (
+                                  'supply_bottleneck','inventory_drawdown',
+                                  'capacity_shortage','demand_exceeds_supply'
+                              )
+                    )                                         AS constrained_components,
+                ROUND(
+                    COUNT(*) FILTER (
+                        WHERE s.signal_type IN ('demand_surge','technology_adoption','capex_increase')
+                    )::numeric
+                    / NULLIF(COUNT(*) FILTER (
+                        WHERE s.signal_type IN (
+                            'supply_bottleneck','inventory_drawdown',
+                            'capacity_shortage','demand_exceeds_supply'
+                        )
+                    ), 0),
+                    2
+                )                                             AS demand_to_constraint_ratio
+            FROM mg_signals s
+            JOIN mg_documents d  ON d.id  = s.document_id
+            JOIN mg_theme_beneficiaries tb
+                ON LOWER(TRIM(tb.company_name))
+                 = LOWER(TRIM(COALESCE(NULLIF(d.company,''), d.ticker)))
+            JOIN mg_themes t ON t.id = tb.theme_id
+            WHERE d.filed_at BETWEEN %s AND %s
+              AND d.country = %s
+              AND t.is_active = TRUE
+              AND (t.first_detected IS NULL OR t.first_detected <= %s)
+            GROUP BY t.id, t.theme_name, t.theme_slug, t.conviction
+            HAVING COUNT(*) FILTER (
+                WHERE s.signal_type IN (
+                    'supply_bottleneck','inventory_drawdown',
+                    'capacity_shortage','demand_exceeds_supply'
+                )
+            ) > 0
+            ORDER BY constraint_signals DESC, demand_to_constraint_ratio DESC NULLS LAST
+        """
+        with self._conn() as conn:
+            with conn.cursor(cursor_factory=self._cursor_factory) as cur:
+                cur.execute(sql, (from_date, to_date, country, to_date))
+                return [dict(r) for r in cur.fetchall()]
+
+    def get_year_focus_analysis(self, year: int, country: str) -> list[dict]:
+        """Year-over-year focus analysis using quarter_series from snapshots.
+
+        quarter_series is the only reliable per-year time-series available.
+        It is populated by every pipeline run (including single live runs that
+        process historical documents) and contains per-quarter strength/momentum
+        for each theme. All SQL joins (entity_id, company_name) were unreliable
+        — this approach avoids them entirely.
+
+        Classification:
+          new        — first_detected this year AND has quarters this year
+          escalating — avg quarter strength this year >= 30% above prior year
+          easing     — avg quarter strength this year >= 20% below prior year
+          persistent — both years present, change within band
+          no_prior   — has this year data but zero prior year quarters
+        """
+        import json as _json
+
+        from_date = f"{year}-01-01"
+        to_date   = f"{year}-12-31"
+
+        # Fetch all themes with full quarter_series across all years.
+        # min_quarters=1 so even themes with one quarter are included.
+        all_themes = self.get_shortlisted_themes(
+            min_quarters=1,
+            country=country,
+            year=None,   # no year filter — need full history
+        )
+
+        results = []
+        for t in all_themes:
+            raw = t.get("quarter_series", [])
+            try:
+                q_series = _json.loads(raw) if isinstance(raw, str) else (raw or [])
+            except Exception:
+                q_series = []
+
+            this_qs  = [q for q in q_series if int(q.get("year", 0)) == year]
+            prior_qs = [q for q in q_series if int(q.get("year", 0)) == year - 1]
+
+            if not this_qs:
+                continue   # no data for this year
+
+            def _avg(qs, field):
+                vals = [float(q.get(field, 0)) for q in qs if q.get(field) is not None]
+                return sum(vals) / len(vals) if vals else 0.0
+
+            this_avg  = _avg(this_qs, "strength")
+            this_peak = max((float(q.get("strength", 0)) for q in this_qs), default=0.0)
+            this_mom  = max((float(q.get("momentum", 0)) for q in this_qs), default=0.0)
+            prior_avg = _avg(prior_qs, "strength")
+
+            delta_pct = (
+                round((this_avg - prior_avg) / prior_avg * 100, 1)
+                if prior_avg > 0 else None
+            )
+
+            fd_str = str(t.get("first_detected") or "")
+            # NEW = first_detected this year AND zero prior-year quarters.
+            # If prior quarters exist, first_detected is unreliable (it's when
+            # the pipeline stored the theme, not when the constraint was born).
+            # A theme with prior_avg=171 and -14% YoY is EASING, never NEW.
+            is_new_year = (from_date <= fd_str <= to_date) and not prior_qs
+
+            if is_new_year:
+                focus_class = "new"
+            elif prior_qs and delta_pct is not None and delta_pct >= 20:
+                focus_class = "escalating"
+            elif prior_qs and delta_pct is not None and delta_pct <= -15:
+                focus_class = "easing"
+            elif prior_qs:
+                focus_class = "persistent"
+            else:
+                # Has this year data but no prior-year quarters at all
+                focus_class = "no_prior"
+
+            results.append({
+                **t,
+                "this_avg_strength":  round(this_avg, 1),
+                "this_peak_strength": round(this_peak, 1),
+                "this_peak_momentum": round(this_mom, 1),
+                "this_snap_count":    len(this_qs),
+                "prior_avg_strength": round(prior_avg, 1),
+                "prior_snap_count":   len(prior_qs),
+                "strength_delta":     round(this_avg - prior_avg, 1),
+                "delta_pct":          delta_pct,
+                "focus_class":        focus_class,
+            })
+
+        _ORDER = {"new": 0, "escalating": 1, "no_prior": 2,
+                  "persistent": 3, "easing": 4, "demand_only": 5}
+        results.sort(key=lambda r: (
+            _ORDER.get(str(r.get("focus_class", "")), 5),
+            -(r.get("strength_delta") or 0),
+            -(r.get("this_avg_strength") or 0),
+        ))
+        return results
 
     def get_beneficiaries_as_of(self, theme_id: int, as_of_date) -> list[dict]:
         """Return theme beneficiaries that were first seen on or before as_of_date."""
@@ -1414,8 +1984,11 @@ class PGStore:
                 last_seen_at       = EXCLUDED.last_seen_at,
                 rank_in_theme      = EXCLUDED.rank_in_theme,
                 reasoning          = COALESCE(EXCLUDED.reasoning, mg_theme_beneficiaries.reasoning),
-                window_start       = EXCLUDED.window_start,
-                window_end         = EXCLUDED.window_end,
+                -- Preserve EARLIEST window_start (historical data integrity):
+                -- Running 2022 pipeline must NOT overwrite 2021 window_start
+                window_start       = LEAST(COALESCE(mg_theme_beneficiaries.window_start, EXCLUDED.window_start), EXCLUDED.window_start),
+                -- Keep LATEST window_end (most recent detection)
+                window_end         = GREATEST(COALESCE(mg_theme_beneficiaries.window_end, EXCLUDED.window_end), EXCLUDED.window_end),
                 updated_at         = NOW()
             RETURNING id
         """
@@ -1442,6 +2015,67 @@ class PGStore:
                 })
                 row = cur.fetchone()
                 return row["id"] if row else None
+
+    def bulk_upsert_beneficiaries(self, rows: list[dict]) -> int:
+        """Upsert a batch of beneficiary rows in a single transaction.
+
+        ~100x faster than calling upsert_beneficiary() in a loop because it
+        uses executemany inside one connection rather than one connection per row.
+        Returns the number of rows processed.
+        """
+        if not rows:
+            return 0
+        import json as _json
+        sql = """
+            INSERT INTO mg_theme_beneficiaries
+                (theme_id, entity_id, ticker, company_name, beneficiary_type,
+                 company_role, relevance_score, signal_count, capex_signals,
+                 quarterly_mentions, first_seen_at, last_seen_at, rank_in_theme,
+                 reasoning, window_start, window_end)
+            VALUES
+                (%(theme_id)s, %(entity_id)s, %(ticker)s, %(company_name)s,
+                 %(beneficiary_type)s, %(company_role)s, %(relevance_score)s,
+                 %(signal_count)s, %(capex_signals)s,
+                 %(quarterly_mentions)s::jsonb, %(first_seen_at)s, %(last_seen_at)s,
+                 %(rank_in_theme)s, %(reasoning)s, %(window_start)s, %(window_end)s)
+            ON CONFLICT (theme_id, entity_id) DO UPDATE SET
+                relevance_score    = EXCLUDED.relevance_score,
+                signal_count       = EXCLUDED.signal_count,
+                capex_signals      = EXCLUDED.capex_signals,
+                company_role       = COALESCE(NULLIF(EXCLUDED.company_role, ''), mg_theme_beneficiaries.company_role),
+                quarterly_mentions = EXCLUDED.quarterly_mentions,
+                last_seen_at       = EXCLUDED.last_seen_at,
+                rank_in_theme      = EXCLUDED.rank_in_theme,
+                reasoning          = COALESCE(EXCLUDED.reasoning, mg_theme_beneficiaries.reasoning),
+                -- Preserve EARLIEST window_start — running 2022 pipeline must NOT
+                -- overwrite the 2021-01-01 window_start set during 2021 replay.
+                window_start       = LEAST(COALESCE(mg_theme_beneficiaries.window_start, EXCLUDED.window_start), EXCLUDED.window_start),
+                -- Keep LATEST window_end — most recent detection date wins.
+                window_end         = GREATEST(COALESCE(mg_theme_beneficiaries.window_end, EXCLUDED.window_end), EXCLUDED.window_end),
+                updated_at         = NOW()
+        """
+        params = [{
+            "theme_id":          r["theme_id"],
+            "entity_id":         r["entity_id"],
+            "ticker":            r.get("ticker"),
+            "company_name":      r.get("company_name", ""),
+            "beneficiary_type":  r.get("beneficiary_type", "direct"),
+            "company_role":      r.get("company_role", ""),
+            "relevance_score":   r.get("relevance_score", 0.0),
+            "signal_count":      r.get("signal_count", 0),
+            "capex_signals":     r.get("capex_signals", 0),
+            "quarterly_mentions": _json.dumps(r.get("quarterly_mentions", {})),
+            "first_seen_at":     r.get("first_seen_at"),
+            "last_seen_at":      r.get("last_seen_at", date.today()),
+            "rank_in_theme":     r.get("rank_in_theme"),
+            "reasoning":         r.get("reasoning"),
+            "window_start":      r.get("window_start"),
+            "window_end":        r.get("window_end"),
+        } for r in rows]
+        with self._conn() as conn:
+            with conn.cursor() as cur:
+                cur.executemany(sql, params)
+        return len(rows)
 
     # ----------------------------------------------------------
     # BUSINESS EVENTS  (event-centric architecture)
@@ -1908,6 +2542,7 @@ class PGStore:
         since_date,
         as_of_date,
         country: str = None,
+        perspective: str | None = None,   # 'seller' | 'buyer' | None (all)
     ) -> list[dict]:
         """Lean signal query — only signals + documents (NO entity cross-join).
 
@@ -1931,6 +2566,7 @@ class PGStore:
                 s.signal_unit,
                 s.document_id,
                 s.filed_at,
+                COALESCE(s.perspective, 'neutral') AS perspective,
                 d.company,
                 d.ticker        AS doc_ticker,
                 d.filed_at      AS doc_filed_at
@@ -1940,11 +2576,15 @@ class PGStore:
               AND d.filed_at >= %s
               AND d.filed_at <= %s
               {country_clause}
+              {perspective_clause}
             ORDER BY d.filed_at DESC
         """
-        country_clause = "AND d.country = %s" if country else ""
-        sql = sql.format(country_clause=country_clause)
-        params = [signal_types, since_date, as_of_date] + ([country] if country else [])
+        country_clause     = "AND d.country = %s" if country else ""
+        perspective_clause = "AND COALESCE(s.perspective,'neutral') = %s" if perspective else ""
+        sql = sql.format(country_clause=country_clause, perspective_clause=perspective_clause)
+        params = [signal_types, since_date, as_of_date]
+        if country:     params.append(country)
+        if perspective: params.append(perspective)
         with self._conn() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute(sql, params)
@@ -2723,6 +3363,7 @@ class PGStore:
         self,
         min_quarters: int = 3,
         country: str = "US",
+        year: int | None = None,
     ) -> list[dict]:
         """Return themes that have appeared in at least min_quarters distinct quarters,
         ordered by persistence (confirmed quarters DESC) then strength DESC.
@@ -2730,7 +3371,65 @@ class PGStore:
         For each theme also returns the per-quarter strength series so the UI
         can draw a sparkline and show momentum direction.
         """
-        sql = """
+        year_filter = "AND EXTRACT(YEAR FROM s.snapshot_date)::int = %(yr)s" if year else ""
+        # Year mode: rank by explosion score — themes building the most tension
+        # in this specific year rank first (peak momentum > avg > delta).
+        # No-year mode: rank by persistence then all-time strength (existing behaviour).
+        if year:
+            # constraint_sigs CTE joins mg_signals → mg_theme_beneficiaries to
+            # count actual supply_bottleneck signals per theme in the year.
+            # Same logic as get_themes_as_of year-mode — purely data-driven.
+            constraint_cte = f"""
+                constraint_sigs AS (
+                    SELECT
+                        tb.theme_id                                         AS id,
+                        COUNT(*) FILTER (WHERE s.signal_type IN (
+                            'supply_bottleneck','inventory_drawdown',
+                            'capacity_shortage','demand_exceeds_supply'
+                        ))                                                  AS c_count,
+                        COUNT(*) FILTER (WHERE s.signal_type IN (
+                            'demand_surge','technology_adoption',
+                            'capex_increase'
+                        ))                                                  AS d_count
+                    FROM mg_signals s
+                    JOIN mg_documents d ON d.id = s.document_id
+                    JOIN mg_theme_beneficiaries tb
+                        ON LOWER(TRIM(tb.company_name))
+                         = LOWER(TRIM(COALESCE(NULLIF(d.company,''), d.ticker)))
+                    WHERE EXTRACT(YEAR FROM d.filed_at)::int = %(yr)s
+                    GROUP BY tb.theme_id
+                ),
+            """
+            order_clause = """
+                ORDER BY
+                    -- constraint-first ranking: how intense is the supply squeeze?
+                    (
+                      0.45 * COALESCE(
+                          cs.c_count::float / NULLIF(MAX(cs.c_count) OVER (), 0), 0)
+                    + 0.30 * COALESCE(LEAST(
+                          cs.d_count::float / NULLIF(cs.c_count, 0), 3.0) / 3.0, 0)
+                    + 0.15 * COALESCE(
+                          MAX(CASE WHEN yr = %(yr)s THEN q_momentum END) /
+                          NULLIF(MAX(MAX(CASE WHEN yr = %(yr)s THEN q_momentum END)) OVER (), 0), 0)
+                    + 0.10 * COALESCE(
+                          GREATEST(MAX(CASE WHEN yr = %(yr)s THEN q_strength END)
+                                 - MIN(CASE WHEN yr = %(yr)s THEN q_strength END), 0) /
+                          NULLIF(MAX(GREATEST(
+                              MAX(CASE WHEN yr = %(yr)s THEN q_strength END)
+                            - MIN(CASE WHEN yr = %(yr)s THEN q_strength END), 0)
+                          ) OVER (), 0), 0)
+                    ) DESC NULLS LAST,
+                    avg_strength DESC
+            """
+            constraint_join = "LEFT JOIN constraint_sigs cs ON cs.id = p.id"
+            select_extra    = ", COALESCE(cs.c_count, 0) AS year_constraint_signals, COALESCE(cs.d_count, 0) AS year_demand_signals"
+        else:
+            constraint_cte  = ""
+            order_clause    = "ORDER BY confirmed_quarters DESC, avg_strength DESC"
+            constraint_join = ""
+            select_extra    = ", 0 AS year_constraint_signals, 0 AS year_demand_signals"
+
+        sql = f"""
             WITH quarterly AS (
                 SELECT
                     t.id,
@@ -2751,21 +3450,17 @@ class PGStore:
                 JOIN mg_theme_snapshots s ON s.theme_id = t.id
                 WHERE t.is_active = TRUE
                   AND s.strength_score >= 20
-                  AND t.country = %s
+                  AND t.country = %(country)s
+                  AND (t.first_detected IS NULL OR t.first_detected <= %(cutoff)s)
+                  {year_filter}
                 GROUP BY t.id, t.theme_name, t.theme_slug, t.conviction,
                          t.strength_score, t.momentum_score, t.company_count,
                          t.first_detected, t.country, yr, qtr
             ),
-            -- Add row numbers so we can pick first/last quarter per theme
-            -- without nesting aggregate functions (which PostgreSQL rejects).
             ranked AS (
                 SELECT *,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY id ORDER BY yr, qtr
-                    ) AS rn_asc,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY id ORDER BY yr DESC, qtr DESC
-                    ) AS rn_desc
+                    ROW_NUMBER() OVER (PARTITION BY id ORDER BY yr, qtr)      AS rn_asc,
+                    ROW_NUMBER() OVER (PARTITION BY id ORDER BY yr DESC, qtr DESC) AS rn_desc
                 FROM quarterly
             ),
             persistence AS (
@@ -2776,7 +3471,6 @@ class PGStore:
                     ROUND(AVG(q_strength)::numeric, 1)             AS avg_strength,
                     MAX(q_strength)                                 AS peak_strength,
                     MIN(q_strength)                                 AS trough_strength,
-                    -- trend: most-recent quarter strength minus earliest quarter strength
                     MAX(CASE WHEN rn_desc = 1 THEN q_strength END)
                         - MAX(CASE WHEN rn_asc  = 1 THEN q_strength END) AS strength_trend,
                     json_agg(
@@ -2791,15 +3485,24 @@ class PGStore:
                 FROM ranked
                 GROUP BY id, theme_name, theme_slug, conviction,
                          strength_score, momentum_score, company_count, first_detected, country
-                HAVING COUNT(*) >= %s
-            )
-            SELECT *
-            FROM persistence
-            ORDER BY confirmed_quarters DESC, avg_strength DESC
+                HAVING COUNT(*) >= %(min_quarters)s
+            ),
+            {constraint_cte}
+            -- dummy CTE to avoid trailing comma when constraint_cte is empty
+            _final AS (SELECT 1)
+            SELECT p.* {select_extra}
+            FROM persistence p
+            {constraint_join}
+            {order_clause}
         """
+        from datetime import date as _date
+        cutoff = _date(year, 12, 31) if year else _date.today()
+        params: dict = {"country": country, "min_quarters": min_quarters, "cutoff": cutoff}
+        if year:
+            params["yr"] = year
         with self._conn() as conn:
             with conn.cursor(cursor_factory=self._cursor_factory) as cur:
-                cur.execute(sql, (country, min_quarters,))
+                cur.execute(sql, params)
                 return [dict(r) for r in cur.fetchall()]
 
     def get_theme_macro_context(
@@ -2890,6 +3593,8 @@ class PGStore:
                 d.word_count,
                 d.title,
                 d.processing_status,
+                d.sentiment_score,
+                d.nlp_summary,
                 COUNT(DISTINCT s.id)        AS signal_count,
                 COUNT(DISTINCT de.entity_id) AS entity_count,
                 ROUND(AVG(s.confidence)::numeric, 3) AS avg_confidence
@@ -3114,7 +3819,8 @@ class PGStore:
     # RANKING LAYER — data loader
     # ─────────────────────────────────────────────────────────────────────────
 
-    def get_ranking_data(self, date_from, date_to, country: str = 'US') -> dict:
+    def get_ranking_data(self, date_from, date_to, country: str = 'US',
+                         focus_theme_slugs: list[str] | None = None) -> dict:
         """
         Load all data needed by RankingEngine for a given date window.
 
@@ -3145,11 +3851,39 @@ class PGStore:
                 )
                 snapshots = [dict(r) for r in cur.fetchall()]
 
-                # Themes that actually had snapshot evidence in this window.
-                # If none exist (pipeline hasn't run yet), fall back to all
-                # active themes so the UI still shows something meaningful.
                 active_in_window = {s["theme_id"] for s in snapshots}
-                if active_in_window:
+
+                # When focus_theme_slugs is provided, restrict the theme pool
+                # to only those slugs. This ensures the stock ranking reflects
+                # only NEW + ESCALATING themes, not the full persistent universe.
+                if focus_theme_slugs:
+                    slug_clause = "AND t.theme_slug = ANY(%s)"
+                    if active_in_window:
+                        cur.execute(
+                            """SELECT t.id, t.theme_name, t.theme_slug, t.conviction,
+                                      t.strength_score, t.momentum_score,
+                                      t.company_count, t.first_detected
+                               FROM mg_themes t
+                               WHERE t.is_active = TRUE
+                                 AND t.id = ANY(%s)
+                                 AND t.country = %s
+                                 AND (t.first_detected IS NULL OR t.first_detected <= %s)
+                                 AND t.theme_slug = ANY(%s)
+                               ORDER BY t.strength_score DESC""",
+                            (list(active_in_window), country, date_to, list(focus_theme_slugs)),
+                        )
+                    else:
+                        cur.execute(
+                            """SELECT id, theme_name, theme_slug, conviction,
+                                      strength_score, momentum_score, company_count, first_detected
+                               FROM mg_themes
+                               WHERE is_active = TRUE AND country = %s
+                                 AND (first_detected IS NULL OR first_detected <= %s)
+                                 AND theme_slug = ANY(%s)
+                               ORDER BY strength_score DESC""",
+                            (country, date_to, list(focus_theme_slugs)),
+                        )
+                elif active_in_window:
                     cur.execute(
                         """SELECT t.id, t.theme_name, t.theme_slug, t.conviction,
                                   t.strength_score, t.momentum_score,
@@ -3158,8 +3892,9 @@ class PGStore:
                            WHERE t.is_active = TRUE
                              AND t.id = ANY(%s)
                              AND t.country = %s
+                             AND (t.first_detected IS NULL OR t.first_detected <= %s)
                            ORDER BY t.strength_score DESC""",
-                        (list(active_in_window), country),
+                        (list(active_in_window), country, date_to),
                     )
                 else:
                     cur.execute(
@@ -3169,81 +3904,81 @@ class PGStore:
                            FROM mg_themes
                            WHERE is_active = TRUE
                              AND country = %s
+                             AND (first_detected IS NULL OR first_detected <= %s)
                            ORDER BY strength_score DESC""",
-                        (country,),
+                        (country, date_to),
                     )
                 themes = [dict(r) for r in cur.fetchall()]
 
-                # Beneficiaries last seen WITHIN the date window — this ensures
-                # that changing the date range surfaces the companies that were
-                # actually relevant during that period, not just the latest run.
-                # Falls back to the full set if nothing matches (e.g. fresh DB).
+                # ── Beneficiary isolation strategy ────────────────────────────────
+                # Goal: show companies that were genuinely detected in THIS year's data,
+                # not just companies that appear in every year because they always file.
+                #
+                # window_end is stamped by each pipeline run with the actual analysis
+                # window end date (e.g. 2021-12-31 for a 2021 replay run). A company
+                # NOT re-detected in later runs keeps its old window_end. This makes it
+                # the most reliable year-isolator.
+                #
+                # We give a 90-day grace period on date_to to handle quarterly lag
+                # (e.g. a 2021-12-31 window_end for a Q3/Q4 2021 concall processed
+                # in early 2022).
+                #
+                # Fallback 1: co_sigs — companies with signals in the window (catches
+                # fresh DBs where window_end is NULL or all runs used wide date ranges).
+                # Fallback 2: all active beneficiaries (completely fresh DB).
+
+                import datetime as _dt
+                grace_end = date_to + _dt.timedelta(days=90)
+
+                _bene_sql = """
+                    WITH co_sigs AS (
+                        SELECT COALESCE(NULLIF(d.company,''), d.ticker) AS co,
+                               COUNT(*) AS total_sigs
+                        FROM mg_signals s
+                        JOIN mg_documents d ON d.id = s.document_id
+                        WHERE d.country = %(country)s
+                          AND d.filed_at BETWEEN %(df)s AND %(dt)s
+                        GROUP BY 1
+                    )
+                    SELECT tb.theme_id, tb.entity_id, tb.ticker, tb.company_name,
+                           tb.beneficiary_type, tb.company_role,
+                           tb.relevance_score,
+                           COALESCE(cs.total_sigs, tb.signal_count) AS signal_count,
+                           tb.rank_in_theme, tb.capex_signals,
+                           tb.first_seen_at,
+                           COALESCE(cs.total_sigs, 0) AS company_total_signals
+                    FROM mg_theme_beneficiaries tb
+                    JOIN mg_themes t ON t.id = tb.theme_id
+                    LEFT JOIN co_sigs cs ON cs.co = tb.company_name
+                    WHERE t.is_active = TRUE
+                      AND t.country = %(country)s
+                      AND tb.company_name IS NOT NULL
+                      AND tb.company_name != ''
+                      AND {window_filter}
+                    ORDER BY tb.theme_id, tb.rank_in_theme
+                """
+
+                # Primary: window_end within the requested year (+90d grace)
                 cur.execute(
-                    """WITH co_sigs AS (
-                           -- Total signals per company IN THE SELECTED WINDOW.
-                           -- Using window-scoped total prevents 6-year veterans from
-                           -- dominating recent-company rankings: a company listed in 2026
-                           -- competes on equal footing with one listed in 2020 when the
-                           -- user selects a 2026-only date range.
-                           SELECT COALESCE(NULLIF(d.company,''), d.ticker) AS co,
-                                  COUNT(*) AS total_sigs
-                           FROM mg_signals s
-                           JOIN mg_documents d ON d.id = s.document_id
-                           WHERE d.country = %s
-                             AND d.filed_at BETWEEN %s AND %s
-                           GROUP BY 1
-                       )
-                       SELECT tb.theme_id, tb.entity_id, tb.ticker, tb.company_name,
-                              tb.beneficiary_type, tb.company_role,
-                              tb.relevance_score,
-                              -- Window-scoped total replaces all-time stored signal_count.
-                              -- This makes rankings year-specific: selecting 2024 shows
-                              -- companies active IN 2024, not their entire history.
-                              COALESCE(cs.total_sigs, tb.signal_count) AS signal_count,
-                              tb.rank_in_theme, tb.capex_signals,
-                              tb.first_seen_at,
-                              COALESCE(cs.total_sigs, 0) AS company_total_signals
-                       FROM mg_theme_beneficiaries tb
-                       JOIN mg_themes t ON t.id = tb.theme_id
-                       LEFT JOIN co_sigs cs ON cs.co = tb.company_name
-                       WHERE t.is_active = TRUE
-                         AND t.country = %s
-                         AND tb.company_name IS NOT NULL
-                         AND tb.company_name != ''
-                         AND tb.first_seen_at <= %s AND tb.last_seen_at >= %s
-                       ORDER BY tb.theme_id, tb.rank_in_theme""",
-                    (country, date_from, date_to,
-                     country, date_to, date_from),
+                    _bene_sql.format(window_filter="tb.window_end BETWEEN %(df)s AND %(grace_end)s"),
+                    {"country": country, "df": date_from, "dt": date_to, "grace_end": grace_end},
                 )
                 beneficiaries = [dict(r) for r in cur.fetchall()]
 
-                # Fall back if no date-scoped beneficiaries (fresh pipeline run)
+                # Fallback 1: signal-based (companies that filed in the window)
+                # — catches NULL window_end rows or wide-range pipeline runs
                 if not beneficiaries:
                     cur.execute(
-                        """WITH co_sigs AS (
-                               SELECT COALESCE(NULLIF(d.company,''), d.ticker) AS co,
-                                      COUNT(*) AS total_sigs
-                               FROM mg_signals s
-                               JOIN mg_documents d ON d.id = s.document_id
-                               WHERE d.country = %s
-                               GROUP BY 1
-                           )
-                           SELECT tb.theme_id, tb.entity_id, tb.ticker, tb.company_name,
-                                  tb.beneficiary_type, tb.company_role,
-                                  tb.relevance_score,
-                                  COALESCE(cs.total_sigs, tb.signal_count) AS signal_count,
-                                  tb.rank_in_theme, tb.capex_signals,
-                                  tb.first_seen_at,
-                                  COALESCE(cs.total_sigs, 0) AS company_total_signals
-                           FROM mg_theme_beneficiaries tb
-                           JOIN mg_themes t ON t.id = tb.theme_id
-                           LEFT JOIN co_sigs cs ON cs.co = tb.company_name
-                           WHERE t.is_active = TRUE
-                             AND t.country = %s
-                             AND tb.company_name IS NOT NULL
-                             AND tb.company_name != ''
-                           ORDER BY tb.theme_id, tb.rank_in_theme""",
-                        (country, country),
+                        _bene_sql.format(window_filter="cs.co IS NOT NULL"),
+                        {"country": country, "df": date_from, "dt": date_to, "grace_end": grace_end},
+                    )
+                    beneficiaries = [dict(r) for r in cur.fetchall()]
+
+                # Fallback 2: all beneficiaries (fresh DB, no date-scoped data at all)
+                if not beneficiaries:
+                    cur.execute(
+                        _bene_sql.format(window_filter="TRUE"),
+                        {"country": country, "df": date_from, "dt": date_to, "grace_end": grace_end},
                     )
                     beneficiaries = [dict(r) for r in cur.fetchall()]
 

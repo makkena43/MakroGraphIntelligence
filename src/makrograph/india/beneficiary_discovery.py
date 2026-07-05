@@ -166,18 +166,26 @@ class BeneficiaryDiscoveryLayer:
                 has_ob     = co_data["has_order_book"]
                 import_sub = node.is_import_dependent if node else False
 
-                # Conviction = signal evidence score
-                # capex signals are strongest (bottleneck resolution evidence per PDF)
-                sig_score   = min(1.0, sig_total / 20.0)
-                capex_score = min(1.0, capex_sigs / 5.0)
+                # v0.2 Conviction — weighted by signal economic pressure
+                # Expansion signals (capex/localization/tender) are strongest evidence
+                # Generic signals (tech adoption, hiring) don't contribute
+                import math as _math
+                expansion_sigs = capex_sigs   # capex_count includes localization+tender
+                supply_sigs_ct = supply_sigs
+                # Log-scale to prevent filing-heavy companies from dominating
+                expansion_score = min(1.0, _math.log1p(expansion_sigs) / _math.log1p(8))
+                supply_score    = min(1.0, _math.log1p(supply_sigs_ct)  / _math.log1p(10))
+                # Criticality from supply chain: import-dependent = higher conviction
+                import_bonus    = 0.15 if import_sub else 0.0
+                ob_bonus        = 0.10 if has_ob else 0.0
                 conviction  = round(
-                    sig_score   * 0.40 +
-                    capex_score * 0.40 +
-                    (0.10 if has_ob else 0.0) +
-                    (0.10 if import_sub else 0.0),
+                    expansion_score * 0.45 +
+                    supply_score    * 0.30 +
+                    import_bonus    +
+                    ob_bonus,
                     3,
                 )
-                if conviction < 0.20:
+                if conviction < 0.15:
                     continue  # too weak — skip
 
                 role = _STAGE_ROLE.get(min(stage - 1, 3), "ecosystem_participant")
@@ -215,7 +223,12 @@ class BeneficiaryDiscoveryLayer:
         floor: date,
         as_of: date,
     ) -> list[dict]:
-        """Find companies with supply-side signals co-occurring with product entities."""
+        """Find companies with supply-side signals co-occurring with product entities.
+
+        v0.2: expanded signal set includes new families (capacity_shortage,
+        localization_opportunity, tender_pipeline, policy_support).
+        Economic-pressure signals are weighted higher in HAVING clause.
+        """
         if not entity_keywords:
             return []
         placeholders = ",".join(["%s"] * len(entity_keywords))
@@ -228,33 +241,45 @@ class BeneficiaryDiscoveryLayer:
                         SELECT
                             COALESCE(NULLIF(d.company,''), d.ticker) AS company,
                             d.ticker,
-                            COUNT(*)                                           AS sig_count,
-                            COUNT(*) FILTER (
-                                WHERE s.signal_type = 'capex_increase')        AS capex_count,
+                            COUNT(*)                                  AS sig_count,
                             COUNT(*) FILTER (
                                 WHERE s.signal_type IN (
-                                    'supply_bottleneck','demand_surge',
-                                    'inventory_drawdown'))                      AS supply_count,
+                                    'capex_increase','capacity_shortage',
+                                    'localization_opportunity','tender_pipeline'))
+                                                                      AS capex_count,
+                            COUNT(*) FILTER (
+                                WHERE s.signal_type IN (
+                                    'supply_bottleneck','capacity_shortage',
+                                    'demand_surge','inventory_drawdown'))
+                                                                      AS supply_count,
                             BOOL_OR(s.signal_type IN (
                                 'demand_surge','supply_bottleneck',
-                                'capex_increase'))                             AS has_order_book
+                                'capex_increase','tender_pipeline',
+                                'capacity_shortage'))                 AS has_order_book
                         FROM mg_signals s
-                        JOIN mg_documents d      ON d.id = s.document_id
+                        JOIN mg_documents d          ON d.id = s.document_id
                         JOIN mg_document_entities de ON de.document_id = s.document_id
-                        JOIN mg_entities e        ON e.id = de.entity_id
+                        JOIN mg_entities e           ON e.id = de.entity_id
                         WHERE d.country = 'IN'
                           AND d.filed_at BETWEEN %s AND %s
                           AND s.signal_type IN (
                               'capex_increase','supply_bottleneck',
                               'demand_surge','regulatory_tailwind',
-                              'inventory_drawdown')
+                              'inventory_drawdown','capacity_shortage',
+                              'localization_opportunity','tender_pipeline',
+                              'policy_support')
                           AND lower(e.canonical_name) IN ({placeholders})
                           AND COALESCE(NULLIF(d.company,''), d.ticker) IS NOT NULL
                         GROUP BY COALESCE(NULLIF(d.company,''), d.ticker), d.ticker
-                        HAVING COUNT(*) >= 2
-                        ORDER BY COUNT(*) FILTER (WHERE s.signal_type = 'capex_increase') DESC,
-                                 COUNT(*) DESC
-                        LIMIT 30
+                        HAVING COUNT(*) FILTER (WHERE s.signal_type IN (
+                            'capex_increase','supply_bottleneck','capacity_shortage',
+                            'localization_opportunity','tender_pipeline')) >= 1
+                        ORDER BY
+                            COUNT(*) FILTER (WHERE s.signal_type IN (
+                                'capex_increase','capacity_shortage',
+                                'localization_opportunity','tender_pipeline')) DESC,
+                            COUNT(*) DESC
+                        LIMIT 40
                         """,
                         [floor, as_of] + [kw.lower() for kw in entity_keywords],
                     )

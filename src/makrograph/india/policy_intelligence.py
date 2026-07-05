@@ -53,71 +53,144 @@ class PolicyTarget:
 
 _STATIC_POLICY_TARGETS: list[dict] = [
     # Renewable Energy
+    # Each entry includes announced_year: year the policy/target was publicly set.
+    # This prevents static target leakage in historical replay (Change 3).
+
+    # Renewable Energy
     {"source": "MNRE", "sector": "solar", "metric": "installed_capacity_gw",
-     "value": 280.0, "unit": "GW", "target_year": 2030, "confidence": 0.95},
+     "value": 280.0, "unit": "GW", "target_year": 2030, "confidence": 0.95,
+     "announced_year": 2021},
     {"source": "MNRE", "sector": "wind", "metric": "installed_capacity_gw",
-     "value": 140.0, "unit": "GW", "target_year": 2030, "confidence": 0.95},
+     "value": 140.0, "unit": "GW", "target_year": 2030, "confidence": 0.95,
+     "announced_year": 2021},
     {"source": "MNRE", "sector": "renewable_energy", "metric": "total_installed_capacity_gw",
-     "value": 500.0, "unit": "GW", "target_year": 2030, "confidence": 0.98},
+     "value": 500.0, "unit": "GW", "target_year": 2030, "confidence": 0.98,
+     "announced_year": 2021},
     {"source": "MNRE", "sector": "green_hydrogen", "metric": "production_mmtpa",
-     "value": 5.0, "unit": "MMTPA", "target_year": 2030, "confidence": 0.90},
+     "value": 5.0, "unit": "MMTPA", "target_year": 2030, "confidence": 0.90,
+     "announced_year": 2023},
 
     # Power & Transmission
     {"source": "Power Ministry", "sector": "power_transmission", "metric": "transmission_addition_km",
-     "value": 50000.0, "unit": "circuit-km", "target_year": 2027, "confidence": 0.85},
+     "value": 50000.0, "unit": "circuit-km", "target_year": 2027, "confidence": 0.85,
+     "announced_year": 2022},
     {"source": "Power Ministry", "sector": "power_distribution", "metric": "smart_meter_rollout_mn",
-     "value": 250.0, "unit": "million meters", "target_year": 2026, "confidence": 0.82},
+     "value": 250.0, "unit": "million meters", "target_year": 2026, "confidence": 0.82,
+     "announced_year": 2021},
 
     # Electronics & Semiconductor
     {"source": "DPIIT", "sector": "semiconductor", "metric": "fab_capacity_wafers_per_month",
-     "value": 50000.0, "unit": "wafers/month", "target_year": 2027, "confidence": 0.80},
+     "value": 50000.0, "unit": "wafers/month", "target_year": 2027, "confidence": 0.80,
+     "announced_year": 2022},
     {"source": "PLI Electronics", "sector": "electronics_manufacturing",
      "metric": "production_target_bn_usd", "value": 300.0, "unit": "USD Billion",
-     "target_year": 2026, "confidence": 0.88},
+     "target_year": 2026, "confidence": 0.88, "announced_year": 2021},
     {"source": "PLI Mobile", "sector": "mobile_phones", "metric": "production_target_bn_usd",
-     "value": 160.0, "unit": "USD Billion", "target_year": 2026, "confidence": 0.88},
+     "value": 160.0, "unit": "USD Billion", "target_year": 2026, "confidence": 0.88,
+     "announced_year": 2020},
 
     # Railways
     {"source": "Railways Ministry", "sector": "railway_infrastructure",
      "metric": "capex_inr_crore", "value": 240000.0, "unit": "INR Crore",
-     "target_year": 2024, "confidence": 0.92},
+     "target_year": 2024, "confidence": 0.92, "announced_year": 2023},
     {"source": "Railways Ministry", "sector": "dedicated_freight_corridor",
      "metric": "track_km", "value": 3000.0, "unit": "km", "target_year": 2025,
-     "confidence": 0.90},
+     "confidence": 0.90, "announced_year": 2020},
     {"source": "Railways Ministry", "sector": "railway_electrification",
      "metric": "track_electrification_km", "value": 100000.0, "unit": "km",
-     "target_year": 2024, "confidence": 0.93},
+     "target_year": 2024, "confidence": 0.93, "announced_year": 2020},
 
     # EV & Battery
     {"source": "FAME-II", "sector": "electric_vehicle",
      "metric": "ev_target_mn_units", "value": 30.0, "unit": "million units",
-     "target_year": 2030, "confidence": 0.85},
+     "target_year": 2030, "confidence": 0.85, "announced_year": 2019},
     {"source": "PLI ACC Battery", "sector": "battery_storage",
      "metric": "acc_capacity_gwh", "value": 50.0, "unit": "GWh",
-     "target_year": 2026, "confidence": 0.88},
+     "target_year": 2026, "confidence": 0.88, "announced_year": 2021},
 
     # Defense
     {"source": "MoD", "sector": "defense_electronics",
      "metric": "domestic_procurement_inr_crore", "value": 175000.0,
-     "unit": "INR Crore", "target_year": 2025, "confidence": 0.87},
+     "unit": "INR Crore", "target_year": 2025, "confidence": 0.87,
+     "announced_year": 2022},
 
     # Telecom
     {"source": "DoT", "sector": "5g_telecom", "metric": "bts_tower_target",
-     "value": 500000.0, "unit": "towers", "target_year": 2025, "confidence": 0.83},
+     "value": 500000.0, "unit": "towers", "target_year": 2025, "confidence": 0.83,
+     "announced_year": 2022},
 
     # Data Centers
     {"source": "DPIIT", "sector": "data_center", "metric": "capacity_mw",
-     "value": 1000.0, "unit": "MW", "target_year": 2027, "confidence": 0.75},
+     "value": 1000.0, "unit": "MW", "target_year": 2027, "confidence": 0.75,
+     "announced_year": 2023},
 
     # Specialty Chemicals / Chemical PLI
     {"source": "PLI Chemicals", "sector": "specialty_chemicals",
      "metric": "production_target_inr_crore", "value": 62000.0,
-     "unit": "INR Crore", "target_year": 2028, "confidence": 0.80},
+     "unit": "INR Crore", "target_year": 2028, "confidence": 0.80,
+     "announced_year": 2021},
 
     # Water
     {"source": "Jal Shakti Ministry", "sector": "water_infrastructure",
      "metric": "tap_connections_mn", "value": 192.0, "unit": "million",
-     "target_year": 2024, "confidence": 0.90},
+     "target_year": 2024, "confidence": 0.90, "announced_year": 2019},
+
+    # Expanded targets for increased policy signal density (Change 7)
+
+    # Steel / Heavy Industry PLI
+    {"source": "PLI Specialty Steel", "sector": "specialty_steel",
+     "metric": "production_target_mt", "value": 25.0, "unit": "MT",
+     "target_year": 2027, "confidence": 0.82, "announced_year": 2021},
+
+    # Textile PLI
+    {"source": "PLI Textiles", "sector": "textiles",
+     "metric": "investment_target_inr_crore", "value": 19000.0,
+     "unit": "INR Crore", "target_year": 2026, "confidence": 0.80,
+     "announced_year": 2021},
+
+    # Food Processing PLI
+    {"source": "PLI Food Processing", "sector": "food_processing",
+     "metric": "sales_target_inr_crore", "value": 33494.0,
+     "unit": "INR Crore", "target_year": 2027, "confidence": 0.78,
+     "announced_year": 2021},
+
+    # Medical Devices PLI
+    {"source": "PLI Medical Devices", "sector": "medical_devices",
+     "metric": "sales_target_inr_crore", "value": 2500.0,
+     "unit": "INR Crore", "target_year": 2027, "confidence": 0.78,
+     "announced_year": 2020},
+
+    # Pharma PLI - bulk drugs
+    {"source": "PLI Pharma Bulk Drugs", "sector": "pharma",
+     "metric": "sales_target_inr_crore", "value": 6940.0,
+     "unit": "INR Crore", "target_year": 2028, "confidence": 0.80,
+     "announced_year": 2020},
+
+    # Defense exports target
+    {"source": "MoD", "sector": "defense_exports",
+     "metric": "export_target_inr_crore", "value": 50000.0,
+     "unit": "INR Crore", "target_year": 2025, "confidence": 0.85,
+     "announced_year": 2021},
+
+    # National Green Hydrogen Mission
+    {"source": "MNRE", "sector": "green_hydrogen", "metric": "electrolyzer_capacity_gw",
+     "value": 5.0, "unit": "GW", "target_year": 2030, "confidence": 0.85,
+     "announced_year": 2023},
+
+    # PM Surya Ghar solar rooftop
+    {"source": "MNRE", "sector": "solar_rooftop", "metric": "rooftop_target_mn_homes",
+     "value": 10.0, "unit": "million homes", "target_year": 2027, "confidence": 0.90,
+     "announced_year": 2024},
+
+    # Offshore wind
+    {"source": "MNRE", "sector": "offshore_wind", "metric": "installed_capacity_gw",
+     "value": 30.0, "unit": "GW", "target_year": 2030, "confidence": 0.80,
+     "announced_year": 2023},
+
+    # Port development (Sagarmala)
+    {"source": "Ministry of Ports", "sector": "port_infrastructure",
+     "metric": "capacity_addition_mtpa", "value": 2000.0, "unit": "MTPA",
+     "target_year": 2035, "confidence": 0.75, "announced_year": 2020},
 ]
 
 # ---------------------------------------------------------------------------
@@ -144,6 +217,49 @@ _TARGET_PATTERNS: list[tuple[str, str, re.Pattern]] = [
      re.compile(r"(\d[\d,\.]*)\s*GWh\b.{0,60}(?:battery|ACC|storage)", re.I)),
     ("green_hydrogen", "production_mmtpa",
      re.compile(r"(\d[\d,\.]*)\s*(?:MMTPA|MT\s+per\s+year).{0,60}(?:green\s+)?hydrogen", re.I)),
+
+    # ── Expanded patterns for denser signal extraction (Change 7) ────────────
+
+    # PLI incentive outlay in INR crore
+    ("pli_scheme", "incentive_outlay_inr_crore",
+     re.compile(r"PLI.{0,40}(?:Rs\.?|INR|₹)\s*(\d[\d,\.]*)\s*(?:crore|lakh\s+crore)", re.I)),
+
+    # Budget allocation for a sector
+    ("infrastructure", "budget_allocation_inr_crore",
+     re.compile(r"(?:Rs\.?|INR|₹)\s*(\d[\d,\.]*)\s*(?:lakh\s+crore|crore).{0,60}"
+                r"(?:infra|infrastructure|capital\s+expenditure|capex)", re.I)),
+
+    # Defense procurement / indigenization target
+    ("defense_electronics", "indigenous_procurement_pct",
+     re.compile(r"(\d[\d,\.]*)\s*%\b.{0,40}(?:indigenous|domestic).{0,40}(?:defence|defense|procurement)", re.I)),
+
+    # Data center capacity in MW
+    ("data_center", "capacity_mw",
+     re.compile(r"(\d[\d,\.]*)\s*MW\b.{0,60}(?:data\s*cent(?:er|re)|colocation)", re.I)),
+
+    # EV charging infrastructure
+    ("electric_vehicle", "charging_stations",
+     re.compile(r"(\d[\d,\.]*)\s*(?:EV\s+)?charging\s+station", re.I)),
+
+    # Smart meter / distribution infra
+    ("power_distribution", "smart_meters_mn",
+     re.compile(r"(\d[\d,\.]*)\s*(?:million|mn|crore)\s*(?:smart\s+)?meter", re.I)),
+
+    # Offshore wind capacity
+    ("offshore_wind", "installed_capacity_gw",
+     re.compile(r"(\d[\d,\.]*)\s*GW\b.{0,40}(?:offshore\s+wind|offshore\s+energy)", re.I)),
+
+    # Port capacity (MTPA)
+    ("port_infrastructure", "capacity_mtpa",
+     re.compile(r"(\d[\d,\.]*)\s*(?:MTPA|million\s+tonnes?\s+per\s+annum).{0,60}port", re.I)),
+
+    # Time-horizon extraction: "by 2030", "by FY2027" near numeric target
+    ("timeline_anchor", "target_year_explicit",
+     re.compile(r"by\s+(?:FY\s*)?(\d{4})\b", re.I)),
+
+    # Budget outlay for PLI schemes
+    ("pli_scheme", "total_outlay_inr_crore",
+     re.compile(r"total\s+(?:PLI\s+)?outlay.{0,40}(?:Rs\.?|INR|₹)\s*(\d[\d,\.]*)\s*(?:crore|lakh\s+crore)", re.I)),
 ]
 
 
@@ -160,11 +276,23 @@ class PolicyIntelligenceEngine:
     def __init__(self, config: dict = None):
         self._cfg = config or {}
 
-    def get_static_targets(self) -> list[PolicyTarget]:
-        """Return the built-in static policy target knowledge base."""
+    def get_static_targets(self, as_of_date: Optional[date] = None) -> list[PolicyTarget]:
+        """Return the built-in static policy target knowledge base.
+
+        Args:
+            as_of_date: When provided (historical replay mode), filters out targets
+                        that were announced after this date so future policy targets
+                        don't contaminate historical snapshots (Change 3).
+        """
         today = date.today()
-        return [
-            PolicyTarget(
+        ref_year = as_of_date.year if as_of_date else today.year
+        targets = []
+        for t in _STATIC_POLICY_TARGETS:
+            announced = t.get("announced_year")
+            # Filter: skip targets announced after the replay as_of_date
+            if announced and ref_year < announced:
+                continue
+            targets.append(PolicyTarget(
                 source=t["source"],
                 sector=t["sector"],
                 metric=t["metric"],
@@ -172,10 +300,9 @@ class PolicyIntelligenceEngine:
                 unit=t["unit"],
                 target_year=t.get("target_year"),
                 confidence=t.get("confidence", 0.80),
-                extracted_at=today,
-            )
-            for t in _STATIC_POLICY_TARGETS
-        ]
+                extracted_at=as_of_date or today,
+            ))
+        return targets
 
     def extract_from_text(self, text: str, source: str = "unknown") -> list[PolicyTarget]:
         """Extract policy targets from raw policy document text using regex patterns."""

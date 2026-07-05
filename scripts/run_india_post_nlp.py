@@ -3,16 +3,31 @@
 
 Stages run (in order):
   1. Graph building + Events  — monthly pass (resume-aware via resume_from)
-  2. Causal chains            — single pass at the end (avoids 230s/month overhead)
-  3. Theme detection          — yearly snapshots: 2022, 2023, 2024, 2025, current
+
+  For each replay year (2020 → 2021 → ... → current):
+  2. India Intelligence L1-L10  — policy targets (filtered by as_of_date so
+                                   future targets don't leak into past years),
+                                   capacity gaps (SupplyChainDB-enhanced),
+                                   localization opportunities, beneficiary
+                                   discovery, tender signals, order book
+                                   signals, causal chain generation.
+                                   Must run BEFORE themes so causal chains
+                                   are in mg_causal_chains when ThemeRanker
+                                   computes causal_chain_score.
+  3. Theme detection snapshot   — as_of=Dec 31 of the year; uses causal
+                                   chain score + beneficiary boost from Step 2.
+
+  4. Claude final analysis      — live only (no key needed to skip).
 
 Docs must be in 'nlp_done' status (output of run_india_nlp_rebuild.py).
 
 Usage:
   python scripts/run_india_post_nlp.py [--resume-from YYYY-MM-DD]
+  python scripts/run_india_post_nlp.py --skip-graph          # skip Stage 1
+  python scripts/run_india_post_nlp.py --skip-intelligence   # skip Stage 2
+  python scripts/run_india_post_nlp.py --from-year 2023      # years 2023+
 
-  --resume-from  Skip all months before this date (default: 2021-11-01,
-                 the month after the last completed month)
+  --resume-from  Skip all months before this date in Stage 1 (default: 2021-11-01)
 """
 import sys, yaml, json, logging, argparse
 from datetime import date
@@ -24,7 +39,13 @@ sys.path.insert(0, ".")
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--resume-from", default="2021-11-01",
-                    help="Resume monthly pass from this date (YYYY-MM-DD)")
+                    help="Resume monthly graph pass from this date (YYYY-MM-DD)")
+parser.add_argument("--skip-graph", action="store_true",
+                    help="Skip Stage 1 graph+events pass (already done)")
+parser.add_argument("--skip-intelligence", action="store_true",
+                    help="Skip Stage 2 India Intelligence L1-L10 per year")
+parser.add_argument("--from-year", type=int, default=None,
+                    help="Only run yearly stages for this year and later")
 args = parser.parse_args()
 resume_from = date.fromisoformat(args.resume_from)
 
@@ -66,49 +87,47 @@ logger.info(f"Full date range: {min_date} → {max_date}")
 logger.info(f"Resuming monthly pass from: {resume_from}")
 conn.close()
 
-# ── Stage 1: Graph + Events (monthly, causal SKIPPED — done once below) ──────
-from src.makrograph.pipeline.historical_runner import HistoricalRunner
+# ── Stage 1: Graph + Events (monthly, causal SKIPPED — done per-year below) ───
+if not args.skip_graph:
+    from src.makrograph.pipeline.historical_runner import HistoricalRunner
 
-logger.info("\n=== STAGE 1: Graph + Events (monthly, resume from %s) ===", resume_from)
-runner = HistoricalRunner(
-    config=config,
-    start_date=min_date,
-    end_date=max_date,
-    replay_mode="monthly",
-    skip_ingest=True,
-    skip_nlp=True,
-    skip_pdf_fetch=True,
-    skip_graph=False,       # ← build graph nodes/edges from nlp_done docs
-    skip_events=False,      # ← extract events
-    skip_causal=True,       # ← skip per-month causal (run once below instead)
-    skip_themes=True,       # ← themes done separately as yearly snapshots
-)
+    logger.info("\n=== STAGE 1: Graph + Events (monthly, resume from %s) ===", resume_from)
+    runner = HistoricalRunner(
+        config=config,
+        start_date=min_date,
+        end_date=max_date,
+        replay_mode="monthly",
+        skip_ingest=True,
+        skip_nlp=True,
+        skip_pdf_fetch=True,
+        skip_graph=False,       # ← build graph nodes/edges from nlp_done docs
+        skip_events=False,      # ← extract events (combined in NLP pass)
+        skip_causal=True,       # ← causal chains run per-year in Stage 2 below
+        skip_themes=True,       # ← themes done as yearly snapshots in Stage 3
+    )
+    results = runner.run(resume_from=resume_from)
+    total_nodes  = sum(r.nodes_built for r in results)
+    total_edges  = sum(r.edges_built for r in results)
+    total_events = sum(r.events_extracted for r in results)
+    logger.info(
+        f"Graph/Events complete: nodes={total_nodes:,} edges={total_edges:,} events={total_events:,}"
+    )
+else:
+    logger.info("\n=== STAGE 1: Graph + Events SKIPPED (--skip-graph) ===")
 
-results = runner.run(resume_from=resume_from)
-total_nodes = sum(r.nodes_built for r in results)
-total_edges = sum(r.edges_built for r in results)
-total_events = sum(r.events_extracted for r in results)
-logger.info(
-    f"Graph/Events complete: nodes={total_nodes:,} edges={total_edges:,} events={total_events:,}"
-)
-
-# ── Stage 2: Single causal chain pass (over all data, run once) ──────────────
-logger.info("\n=== STAGE 2: Causal chains (single full-data pass) ===")
-try:
-    from src.makrograph.pipeline.intelligence_pipeline import IntelligencePipeline as _IP
-    _cp = _IP(config)
-    _cp._init_storage()
-    causal_result = _cp.run_causal_chains(country="IN")
-    logger.info(f"Causal complete: {causal_result}")
-except Exception as e:
-    logger.warning(f"Causal pass failed (non-fatal): {e}")
-
-# ── Stage 3: Yearly theme snapshots (wipe then rebuild each year cleanly) ────
-logger.info("\n=== STAGE 3: Theme snapshots (2020 → 2021 → 2022 → 2023 → 2024 → 2025 → current) ===")
+# ── Stages 2 + 3: Per-year India Intelligence → Themes ───────────────────────
+# Stage 2 (India Intelligence L1-L10) MUST run before Stage 3 (Themes) so that:
+#   - mg_causal_chains is populated before ThemeRanker reads causal_chain_score
+#   - mg_capacity_gaps seeds new investable themes in ThemeDetector
+#   - PolicyIntelligence filters future targets (as_of_date guard, Change 3)
+logger.info("\n=== STAGES 2+3: India Intelligence → Themes (per year) ===")
 from src.makrograph.pipeline.intelligence_pipeline import IntelligencePipeline
 
 pipeline = IntelligencePipeline(config)
 pipeline._init_storage()
+pipeline._init_nlp()
+pipeline._init_themes()
+pipeline._init_intelligence()
 
 REPLAY_DATES = [
     date(2020, 12, 31),
@@ -119,6 +138,14 @@ REPLAY_DATES = [
     date(2025, 12, 31),
     None,  # current / live
 ]
+
+# Filter replay dates by --from-year if provided
+if args.from_year:
+    REPLAY_DATES = [
+        d for d in REPLAY_DATES
+        if d is None or d.year >= args.from_year
+    ]
+    logger.info(f"--from-year {args.from_year}: running {len(REPLAY_DATES)} snapshots")
 
 # Wipe existing year-end snapshots before rebuild so we get clean data
 # (avoids stale rows from previous runs coexisting with new ones)
@@ -148,21 +175,59 @@ logger.info(f"Wiped {_wipe_cur.rowcount} existing rows for today ({_today})")
 _wipe_conn.commit()
 _wipe_conn.close()
 
+import time as _time
+
 for replay_date in REPLAY_DATES:
     label = str(replay_date) if replay_date else "CURRENT (live)"
-    logger.info(f"\n--- Themes as_of={label} ---")
+    year_t0 = _time.time()
 
-    # Yearly replay snapshots: strict 365-day window so each year is independent.
-    # Transformer dominates 2023 because it had 2023 signals, NOT because it
-    # accumulated signals from 2020-2023.  Live (None) uses 730 days.
+    logger.info(f"\n{'─'*60}")
+    logger.info(f"  as_of={label}")
+    logger.info(f"{'─'*60}")
+
+    # Yearly replay: strict 365-day signal window so each year is independent.
+    # Live mode uses 730 days to pick up multi-year structural themes.
     if replay_date is not None:
         pipeline.config.setdefault("themes", {})["signal_window_days"] = 365
-        logger.info("  signal_window_days=365 (year-specific window)")
     else:
         pipeline.config.setdefault("themes", {})["signal_window_days"] = 730
-        logger.info("  signal_window_days=730 (live 2-year window)")
 
-    result = pipeline.run_themes(as_of_date=replay_date, country="IN")
-    logger.info(f"Done: {result}")
+    # ── Stage 2: India Intelligence L1-L10 (per year) ─────────────────────
+    # MUST run before themes — populates mg_causal_chains and mg_capacity_gaps
+    # which ThemeRanker and ThemeDetector read during the themes stage.
+    if not args.skip_intelligence:
+        logger.info(f"  [Stage 2] India Intelligence L1-L10 as_of={label} ...")
+        try:
+            intel_stats = pipeline.run_india_intelligence(
+                as_of_date=replay_date,      # None → today for live run
+                pg_store=pipeline._pg_store,
+            )
+            logger.info(
+                f"  [Stage 2] Done: "
+                f"targets={intel_stats.get('policy_targets', 0)} "
+                f"gaps={intel_stats.get('capacity_gaps', 0)} "
+                f"localization={intel_stats.get('localization_opportunities', 0)} "
+                f"beneficiaries={intel_stats.get('india_beneficiaries', 0)} "
+                f"chains={intel_stats.get('causal_chains', 0)}"
+            )
+        except Exception as e:
+            logger.warning(f"  [Stage 2] India Intelligence failed ({e}) — continuing to themes")
+    else:
+        logger.info(f"  [Stage 2] India Intelligence SKIPPED (--skip-intelligence)")
+
+    # ── Stage 3: Theme detection snapshot ─────────────────────────────────
+    logger.info(f"  [Stage 3] Themes as_of={label} ...")
+    try:
+        result = pipeline.run_themes(as_of_date=replay_date, country="IN")
+        logger.info(
+            f"  [Stage 3] Done: "
+            f"detected={result.get('themes_detected', 0)} "
+            f"ranked={result.get('themes_ranked', 0)} "
+            f"beneficiaries={result.get('beneficiaries_mapped', 0)}"
+        )
+    except Exception as e:
+        logger.error(f"  [Stage 3] Themes failed for {label}: {e}", exc_info=True)
+
+    logger.info(f"  {label} complete in {_time.time()-year_t0:.1f}s")
 
 logger.info("\n✓ All post-NLP stages complete.")

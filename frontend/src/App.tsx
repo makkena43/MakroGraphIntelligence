@@ -11,16 +11,44 @@ import RankingTab from './components/tabs/RankingTab'
 import AITab from './components/tabs/AITab'
 import MacroTab from './components/tabs/MacroTab'
 import CompanyTab from './components/tabs/CompanyTab'
+import YearIntelligenceTab from './components/tabs/YearIntelligenceTab'
+import IndustriesTab from './components/tabs/IndustriesTab'
+import IndiaPolicyTab from './components/tabs/IndiaPolicyTab'
+import ThemeResearchTab from './components/tabs/ThemeResearchTab'
+import InvestmentShortlistTab from './components/tabs/InvestmentShortlistTab'
+import InvestableSignalsTab from './components/tabs/InvestableSignalsTab'
+import TodaysOpportunitiesTab from './components/tabs/TodaysOpportunitiesTab'
+import CompanyDiveTab from './components/tabs/CompanyDiveTab'
+import SentimentBoardTab from './components/tabs/SentimentBoardTab'
+import PriceDataTab from './components/tabs/PriceDataTab'
+import HighVolumeTab from './components/tabs/HighVolumeTab'
+import DealsTab from './components/tabs/DealsTab'
+import BreakoutScannerTab from './components/tabs/BreakoutScannerTab'
+import WeeklyRitualTab from './components/tabs/WeeklyRitualTab'
 
 const TABS = [
-  { id: 'pipeline',    label: '🚀 Pipeline Runner' },
-  { id: 'filings',     label: '📞 Concall & Filings' },
-  { id: 'themes',      label: '🗺️ Themes & Companies' },
-  { id: 'shortlisted', label: '⭐ Shortlisted Themes' },
-  { id: 'ranking',     label: '🏆 Stock Rankings' },
-  { id: 'ai',          label: '🤖 AI Analysis' },
-  { id: 'macro',       label: '🌐 Macro & Policy' },
-  { id: 'company',     label: '🏢 Company Explorer' },
+  { id: 'pipeline',          label: '🚀 Pipeline Runner' },
+  { id: 'filings',           label: '📞 Concall & Filings' },
+  { id: 'year-intelligence', label: '📅 Year Intelligence' },
+  { id: 'today',             label: '🌅 Today\'s Opportunities' },
+  { id: 'breakout',          label: '🚀 Breakout Scanner' },
+  { id: 'ritual',            label: '📅 Weekly Ritual' },
+  { id: 'investable',        label: '⚡ Investable Signals' },
+  { id: 'investment',        label: '🎯 Investment Shortlist' },
+  { id: 'company-dive',      label: '🔍 Company Deep Dive' },
+  { id: 'sentiment-board',   label: '📊 Sentiment Board' },
+  { id: 'theme-research',    label: '🔬 Theme Research' },
+  { id: 'india-policy',      label: '🇮🇳 India PLI & Policy' },
+  { id: 'industries',        label: '🏭 Industries' },
+  { id: 'themes',            label: '🗺️ Themes & Companies' },
+  { id: 'shortlisted',       label: '⭐ Shortlisted Themes' },
+  { id: 'ranking',           label: '🏆 Stock Rankings' },
+  { id: 'ai',                label: '🤖 AI Analysis' },
+  { id: 'macro',             label: '🌐 Macro & Policy' },
+  { id: 'company',           label: '🏢 Company Explorer' },
+  { id: 'price-data',        label: '📈 Price Data' },
+  { id: 'high-volume',       label: '🔥 High Volume Days' },
+  { id: 'deals',             label: '🤝 Bulk/Block/Insider Deals' },
 ]
 
 export default function App() {
@@ -95,14 +123,28 @@ export default function App() {
 
         {/* Tab content */}
         <main className="flex-1 overflow-y-auto p-4">
-          {activeTab === 'pipeline'    && <PipelineTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
-          {activeTab === 'filings'     && <FilingsTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
-          {activeTab === 'themes'      && <ThemesTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'pipeline'          && <PipelineTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'filings'           && <FilingsTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'year-intelligence' && <YearIntelligenceTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'today'             && <TodaysOpportunitiesTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'breakout'          && <BreakoutScannerTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'ritual'            && <WeeklyRitualTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'investable'        && <InvestableSignalsTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'investment'        && <InvestmentShortlistTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'company-dive'     && <CompanyDiveTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'sentiment-board'  && <SentimentBoardTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'theme-research'   && <ThemeResearchTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'india-policy'     && <IndiaPolicyTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'industries'        && <IndustriesTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'themes'            && <ThemesTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'shortlisted' && <ShortlistedTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'ranking'     && <RankingTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'ai'          && <AITab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'macro'       && <MacroTab key={country} country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'company'     && <CompanyTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'price-data'  && <PriceDataTab />}
+          {activeTab === 'high-volume' && <HighVolumeTab />}
+          {activeTab === 'deals'       && <DealsTab />}
         </main>
       </div>
     </div>
