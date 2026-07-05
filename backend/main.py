@@ -175,6 +175,8 @@ def debug_pipeline_readiness(country: str = "US", year: int = 2020) -> dict:
     pg = get_pg()
     if not pg:
         return {}
+    if year < 1900 or year > 2100:
+        return {"error": f"year out of range: {year}"}
     try:
         from psycopg2.extras import RealDictCursor
         from_d = f"{year}-01-01"
@@ -7700,6 +7702,78 @@ async def price_data_high_volume(
         "count": len(rows_out[:limit]),
         "total_matches": len(rows_out),
         "results": rows_out[:limit],
+    }
+
+
+@app.get("/api/price-data/stock-volume")
+async def price_data_stock_volume(
+    symbol: str = Query(...),
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    exchange: str = Query("both"),
+):
+    """Return the daily OHLCV + volume time series for a single symbol over
+    the given date range, so the UI can chart/tabulate volume trends for
+    one stock (as opposed to the cross-sectional high-volume-days scan)."""
+    pg_cfg = _price_pg_config()
+    start_d = date.fromisoformat(start_date)
+    end_d = date.fromisoformat(end_date)
+    symbol = symbol.strip().upper()
+
+    table_map = {"nse": "nse_bhavcopy_data", "bse": "bse_bhavcopy_data"}
+    exchanges = list(table_map.keys()) if exchange == "both" else [exchange]
+    if any(ex not in table_map for ex in exchanges):
+        raise HTTPException(status_code=400, detail="exchange must be 'nse', 'bse', or 'both'")
+
+    rows_out: list[dict] = []
+    try:
+        conn = psycopg2.connect(**pg_cfg)
+        with conn.cursor() as cur:
+            for ex in exchanges:
+                table = table_map[ex]
+                cur.execute("SELECT to_regclass(%s)", (f"public.{table}",))
+                if cur.fetchone()[0] is None:
+                    continue
+                cur.execute(
+                    f"""
+                    SELECT trade_date, series, open, high, low, close,
+                           tottrdqty, tottrdval, delivery_pct
+                    FROM {table}
+                    WHERE symbol = %s AND series IN ('EQ', 'BE')
+                      AND trade_date BETWEEN %s AND %s
+                    ORDER BY trade_date
+                    """,
+                    (symbol, start_d, end_d),
+                )
+                for trade_date, series, o, h, l, c, vol, val, dlv in cur.fetchall():
+                    rows_out.append({
+                        "exchange": ex.upper(),
+                        "symbol": symbol,
+                        "series": series,
+                        "trade_date": trade_date.isoformat() if trade_date else None,
+                        "open": _safe_float(o),
+                        "high": _safe_float(h),
+                        "low": _safe_float(l),
+                        "close": _safe_float(c),
+                        "volume": _safe_float(vol),
+                        "value": _safe_float(val),
+                        "delivery_pct": _safe_float(dlv),
+                    })
+        conn.close()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    rows_out.sort(key=lambda r: r["trade_date"] or "")
+    volumes = [r["volume"] for r in rows_out if r["volume"] is not None]
+    return {
+        "symbol": symbol,
+        "start_date": start_date,
+        "end_date": end_date,
+        "count": len(rows_out),
+        "avg_volume": (sum(volumes) / len(volumes)) if volumes else None,
+        "max_volume": max(volumes) if volumes else None,
+        "min_volume": min(volumes) if volumes else None,
+        "results": rows_out,
     }
 
 

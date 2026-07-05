@@ -21,9 +21,11 @@ function logLineClass(line: string): string {
 
 function ReadinessCheck({ country, startDate, endDate }: { country: string; startDate: string; endDate: string }) {
   const year = new Date(startDate).getFullYear()
+  const yearValid = !isNaN(year) && year >= 1900 && year <= 2100
   const { data: readiness, isLoading } = useQuery({
     queryKey: ['pipeline-readiness', country, year],
     queryFn: () => fetchPipelineReadiness(country, year),
+    enabled: yearValid,
     staleTime: 30_000,
   })
 

@@ -196,7 +196,7 @@ class NSEPriceFetcher:
                             "avg_price", "tottrdqty", "tottrdval", "delivery_qty",
                             "delivery_pct"]
             for col in numeric_cols:
-                if col in df.columns and df[col].dtype == object:
+                if col in df.columns and not pd.api.types.is_numeric_dtype(df[col]):
                     df[col] = df[col].apply(
                         lambda x: None if pd.isna(x) or str(x).strip() in ("-", "", "- ", " -")
                         else x
@@ -212,6 +212,18 @@ class NSEPriceFetcher:
 
             df = df[keep].dropna(subset=["trade_date", "symbol"])
             df["symbol"] = df["symbol"].astype(str).str.strip()
+            df["series"] = df["series"].astype(str).str.strip()
+
+            # A symbol may appear under multiple SERIES on the same date
+            # (e.g. EQ + T0/BE/P1). The table PK is (trade_date, symbol),
+            # so keep the primary "EQ" row when duplicates exist.
+            dup_mask = df.duplicated(subset=["trade_date", "symbol"], keep=False)
+            if dup_mask.any():
+                df["_eq_priority"] = (df["series"] != "EQ").astype(int)
+                df = df.sort_values("_eq_priority").drop_duplicates(
+                    subset=["trade_date", "symbol"], keep="first"
+                ).drop(columns=["_eq_priority"])
+
             logger.info("Parsed %d NSE bhavcopy rows", len(df))
             return df
 
