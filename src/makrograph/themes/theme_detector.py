@@ -60,6 +60,13 @@ _NOISE_RE = re.compile(
     r"|form\s+(?:10-[kq]|8-k|s-[1-9]|20-f)"
     r"|annual report|quarterly report|current report"
 
+    # Shredded tokens: names made of single-char fragments ("f y 2 1" = a
+    # tokenized "FY21" that leaked through text extraction)
+    r"|^(?:[a-z0-9][\s\n]+){2,}[a-z0-9]$"
+
+    # Currency amounts as entities ("Rs.25", "INR 500", "$3", "₹ 100 crore")
+    r"|^(?:rs|inr|usd|eur|₹|\$)[.\s]*\d"
+
     # Document artifacts: page refs, salutations, clock times, honorifics
     # ("Page 11", "Dear Sir/ Madam", "P.M.", "Quarter To Quarter")
     r"|^pages?\s*\d*$"

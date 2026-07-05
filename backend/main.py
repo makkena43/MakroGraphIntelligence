@@ -10,6 +10,7 @@ import asyncio
 import copy
 import json
 import logging
+import math
 import os
 import sys
 import threading
@@ -18,6 +19,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, AsyncIterator
 
+import psycopg2
 import yaml
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -1644,6 +1646,185 @@ def _save_shortlist_snapshot(country: str, results: list[dict]) -> None:
         conn.commit()
 
 
+@app.get("/api/breakout-scan")
+def get_breakout_scan(
+    country: str = "IN",
+    year: int | None = None,
+    as_of: str | None = None,
+    top_n: int = 50,
+) -> dict:
+    """Price/volume READINESS scan over the fundamentally shortlisted stocks.
+
+    Philosophy: fundamentals pick the NAMES (the constraint engine), price
+    action picks the MOMENT. Takes the shortlist for the chosen year, reads
+    NSE daily bars (close + volume + delivery %%) up to `as_of`, classifies:
+
+        breakout  — closed above its 60-day base on expanded volume within
+                    the last ~7 sessions (the move has started)
+        coiling   — within ~7%% of 52w high, tight 20d range, volume drying
+                    up / delivery %% rising ('about to break out')
+        basing    — constructive but not yet tight
+        extended  — >150%% 1y run-up; the easy part may be over
+        no_setup  — fundamentals present, chart not ready
+
+    jump_score blends fundamental rank_score (55%%) with price readiness (45%%).
+    """
+    from datetime import date as _date, timedelta as _td
+
+    pg = get_pg()
+    if pg is None:
+        raise HTTPException(status_code=503, detail="DB unavailable")
+    if country != "IN":
+        raise HTTPException(status_code=400, detail="Price data currently available for IN only")
+
+    base = get_investment_final_shortlist(country=country, year=year)
+    shortlist = base.get("final_shortlist", [])
+    if not shortlist:
+        return {"as_of": as_of, "year": base.get("year"), "stocks": [],
+                "note": base.get("data_note") or "empty shortlist"}
+    fund = {(c.get("ticker") or "").upper(): c for c in shortlist}
+    tickers = [t for t in fund if t]
+
+    with pg._conn() as conn:
+        cur = conn.cursor()
+        if as_of:
+            asof_d = _date.fromisoformat(as_of[:10])
+        else:
+            cur.execute("SELECT MAX(trade_date) FROM nse_bhavcopy_data")
+            asof_d = cur.fetchone()[0]
+        cur.execute(
+            """SELECT symbol, trade_date, close::float, high::float, low::float,
+                      tottrdqty::float AS vol, COALESCE(delivery_pct,0)::float AS dlv
+               FROM nse_bhavcopy_data
+               WHERE symbol = ANY(%s) AND series IN ('EQ','BE')
+                 AND trade_date <= %s AND trade_date > %s
+               ORDER BY symbol, trade_date""",
+            (tickers, asof_d, asof_d - _td(days=460)),
+        )
+        series: dict[str, list] = {}
+        for sym, dt, close, high, low, vol, dlv in cur.fetchall():
+            series.setdefault(sym, []).append((dt, close, high, low, vol, dlv))
+
+    def _analyze(rows: list) -> dict | None:
+        if len(rows) < 60:
+            return None
+        # Truncate at the most recent suspected split/bonus (>38%% one-day gap
+        # in unadjusted bhavcopy data) so 52w-high / run-up metrics don't span
+        # a corporate action. If too little post-split history remains, skip.
+        _cl = [r[1] for r in rows]
+        _split_at = None
+        for _i in range(1, len(_cl)):
+            if _cl[_i - 1] > 0 and _cl[_i] / _cl[_i - 1] < 0.62:
+                _split_at = _i
+        had_split = _split_at is not None
+        if had_split:
+            rows = rows[_split_at:]
+            if len(rows) < 60:
+                return None
+        dts    = [r[0] for r in rows]
+        closes = [r[1] for r in rows]
+        highs  = [r[2] for r in rows]
+        lows   = [r[3] for r in rows]
+        vols   = [r[4] for r in rows]
+        dlvs   = [r[5] for r in rows]
+        last   = closes[-1]
+        n      = len(closes)
+        lb     = min(250, n)
+        hi52   = max(highs[-lb:])
+        dist_high = round((hi52 - last) / hi52 * 100, 1) if hi52 else 99.0
+        rng20  = round((max(highs[-20:]) - min(lows[-20:])) / last * 100, 1)
+        rng_prior = ((max(highs[-60:-20]) - min(lows[-60:-20])) / last * 100) if n >= 60 else 99
+        contraction = rng20 < 0.65 * rng_prior
+        v20 = sum(vols[-20:]) / 20
+        v60 = sum(vols[-60:]) / 60 if n >= 60 else v20
+        dryup = v20 < 0.80 * v60 if v60 else False
+        upv = sum(v for c0, c1, v in zip(closes[-41:-1], closes[-40:], vols[-40:]) if c1 > c0)
+        dnv = sum(v for c0, c1, v in zip(closes[-41:-1], closes[-40:], vols[-40:]) if c1 < c0)
+        accum_ratio = round(upv / dnv, 2) if dnv else 9.99
+        d20 = sum(dlvs[-20:]) / 20
+        d60 = sum(dlvs[-60:]) / 60 if n >= 60 else d20
+        dlv_rising = d20 > d60 + 2
+        split_suspect = had_split
+        runup_1y = round((last / closes[-lb] - 1) * 100, 1)
+        # Breakout: any of last 7 sessions closed above prior-60d high on ≥1.6× volume
+        breakout_day = None
+        for i in range(max(n - 7, 61), n):
+            prior_high = max(highs[i - 60:i])
+            av = sum(vols[max(0, i - 20):i]) / min(20, i)
+            if closes[i] > prior_high and vols[i] >= 1.6 * av:
+                breakout_day = str(dts[i])
+        if breakout_day:
+            setup = "breakout"
+        elif dist_high <= 7 and rng20 <= 12 and (contraction or dryup or dlv_rising or accum_ratio >= 1.3):
+            setup = "coiling"
+        elif runup_1y > 150:
+            setup = "extended"
+        elif dist_high <= 20 and rng20 <= 18:
+            setup = "basing"
+        else:
+            setup = "no_setup"
+        readiness = max(0, min(100, round(
+            (25 if setup == "breakout" else 0)
+            + max(0, 25 - dist_high * 2.0)            # near highs
+            + max(0, 15 - rng20)                       # tightness
+            + (10 if contraction else 0)
+            + (8 if dryup else 0)
+            + min(12, max(0, (accum_ratio - 1) * 12))  # accumulation
+            + (10 if dlv_rising else 0)
+            - (15 if setup == "extended" else 0)
+        )))
+        step = 5
+        spark = closes[::-1][::step][::-1][-52:]
+        vspark = vols[::-1][::step][::-1][-52:]
+        return {
+            "setup": setup, "breakout_day": breakout_day,
+            "readiness": readiness,
+            "last_close": round(last, 2),
+            "dist_from_52w_high_pct": dist_high,
+            "range_20d_pct": rng20,
+            "range_contraction": contraction,
+            "volume_dryup": dryup,
+            "accumulation_ratio": accum_ratio,
+            "delivery_pct_20d": round(d20, 1),
+            "delivery_rising": dlv_rising,
+            "runup_1y_pct": runup_1y,
+            "split_suspect": split_suspect,
+            "spark_close": [round(x, 2) for x in spark],
+            "spark_vol": vspark,
+        }
+
+    out = []
+    for tk, f in fund.items():
+        pa = _analyze(series.get(tk, []))
+        row = {
+            "ticker": tk, "company": f.get("company"),
+            "list_tier": f.get("list_tier"), "stage": f.get("constraint_stage"),
+            "trajectory": f.get("trajectory"),
+            "fundamental_score": f.get("rank_score"),
+            "theme": f.get("theme"), "explosion": f.get("explosion_potential"),
+            "peer_corroboration": f.get("peer_corroboration"),
+            "shortlisted_date": f.get("shortlisted_date"),
+            "price": pa,
+        }
+        if pa:
+            row["jump_score"] = round(
+                0.55 * float(f.get("rank_score") or 0) + 0.45 * pa["readiness"], 1)
+        else:
+            row["jump_score"] = None
+        out.append(row)
+
+    _prio = {"breakout": 0, "coiling": 1, "basing": 2, "no_setup": 3, "extended": 4}
+    out.sort(key=lambda r: (
+        _prio.get((r["price"] or {}).get("setup", "no_setup"), 5),
+        -(r["jump_score"] or 0),
+    ))
+    return {
+        "as_of": str(asof_d), "year": base.get("year"), "country": country,
+        "priced": sum(1 for r in out if r["price"]),
+        "stocks": out[:top_n],
+    }
+
+
 @app.get("/api/thesis-ledger")
 def get_thesis_ledger(ticker: str, country: str = "IN") -> dict:
     """The research file for one company: every constraint-thesis event in
@@ -1715,6 +1896,114 @@ def get_thesis_ledger(ticker: str, country: str = "IN") -> dict:
         "event_count": len(events),
         "events": events,
         "detector_run_history": runs,
+    }
+
+
+def _ensure_paper_trades(cur) -> None:
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS mg_paper_trades (
+            id           BIGSERIAL PRIMARY KEY,
+            country      VARCHAR(4) NOT NULL,
+            ticker       TEXT NOT NULL,
+            company      TEXT,
+            action       TEXT NOT NULL,          -- buy | pass | exit
+            note         TEXT,
+            decided_at   DATE NOT NULL DEFAULT CURRENT_DATE,
+            entry_price  DOUBLE PRECISION,
+            exit_price   DOUBLE PRECISION,
+            exited_at    DATE,
+            status       TEXT NOT NULL DEFAULT 'open',  -- open | closed | passed
+            created_at   TIMESTAMPTZ DEFAULT now()
+        )""")
+
+
+@app.post("/api/paper-trade")
+def post_paper_trade(payload: dict) -> dict:
+    """Record a paper decision: {ticker, country, action: buy|pass|exit, note}.
+    Prices are captured from the latest NSE close automatically — the journal
+    records what was knowable, not what you wish you'd paid.
+    """
+    pg = get_pg()
+    if pg is None:
+        raise HTTPException(status_code=503, detail="DB unavailable")
+    tk = (payload.get("ticker") or "").strip().upper()
+    action = (payload.get("action") or "").lower()
+    country = payload.get("country") or "IN"
+    note = (payload.get("note") or "")[:500]
+    if not tk or action not in ("buy", "pass", "exit"):
+        raise HTTPException(status_code=400, detail="ticker and action (buy|pass|exit) required")
+    with pg._conn() as conn:
+        cur = conn.cursor()
+        _ensure_paper_trades(cur)
+        cur.execute(
+            """SELECT close::float FROM nse_bhavcopy_data
+               WHERE symbol=%s AND series IN ('EQ','BE')
+               ORDER BY trade_date DESC LIMIT 1""", (tk,))
+        r = cur.fetchone()
+        px = float(r[0]) if r else None
+        if action == "exit":
+            cur.execute(
+                """UPDATE mg_paper_trades
+                   SET status='closed', exit_price=%s, exited_at=CURRENT_DATE,
+                       note = COALESCE(note,'') || ' | EXIT: ' || %s
+                   WHERE country=%s AND ticker=%s AND status='open' AND action='buy'
+                   RETURNING id""",
+                (px, note, country, tk))
+            ids = cur.fetchall()
+            conn.commit()
+            return {"ok": True, "closed": len(ids), "exit_price": px}
+        cur.execute(
+            """INSERT INTO mg_paper_trades
+               (country, ticker, company, action, note, entry_price, status)
+               VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id""",
+            (country, tk, payload.get("company"), action, note, px,
+             "open" if action == "buy" else "passed"))
+        pid = cur.fetchone()[0]
+        conn.commit()
+    return {"ok": True, "id": pid, "entry_price": px}
+
+
+@app.get("/api/paper-trades")
+def get_paper_trades(country: str = "IN") -> dict:
+    """The paper journal with live P&L against the latest NSE close."""
+    pg = get_pg()
+    if pg is None:
+        raise HTTPException(status_code=503, detail="DB unavailable")
+    from psycopg2.extras import RealDictCursor
+    with pg._conn() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            _ensure_paper_trades(cur)
+            conn.commit()
+            cur.execute(
+                "SELECT * FROM mg_paper_trades WHERE country=%s ORDER BY decided_at DESC, id DESC",
+                (country,))
+            rows = [dict(r) for r in cur.fetchall()]
+            open_tks = [r["ticker"] for r in rows if r["status"] == "open"]
+            px = {}
+            if open_tks:
+                cur.execute(
+                    """SELECT DISTINCT ON (symbol) symbol, close::float, trade_date
+                       FROM nse_bhavcopy_data
+                       WHERE symbol=ANY(%s) AND series IN ('EQ','BE')
+                       ORDER BY symbol, trade_date DESC""", (open_tks,))
+                px = {r["symbol"]: (r["close"], str(r["trade_date"])) for r in cur.fetchall()}
+    for r in rows:
+        r["decided_at"] = str(r["decided_at"])
+        r["exited_at"] = str(r["exited_at"]) if r.get("exited_at") else None
+        r["created_at"] = str(r.get("created_at") or "")
+        if r["status"] == "open" and r["ticker"] in px and r.get("entry_price"):
+            cp, cd = px[r["ticker"]]
+            r["current_price"] = cp
+            r["price_as_of"] = cd
+            r["pnl_pct"] = round((cp / r["entry_price"] - 1) * 100, 1)
+        elif r["status"] == "closed" and r.get("entry_price") and r.get("exit_price"):
+            r["pnl_pct"] = round((r["exit_price"] / r["entry_price"] - 1) * 100, 1)
+    opens = [r for r in rows if r["status"] == "open" and r.get("pnl_pct") is not None]
+    return {
+        "country": country, "trades": rows,
+        "open_count": len([r for r in rows if r["status"] == "open"]),
+        "open_avg_pnl_pct": (round(sum(r["pnl_pct"] for r in opens) / len(opens), 1)
+                             if opens else None),
     }
 
 
@@ -7254,6 +7543,344 @@ async def run_pipeline(body: PipelineRunBody):
                 msg = await asyncio.wait_for(q.get(), timeout=30)
             except asyncio.TimeoutError:
                 yield ": heartbeat\n\n"  # SSE comment — keeps connection alive, ignored by frontend
+                continue
+            if msg == "__END__":
+                yield "data: [DONE]\n\n"
+                break
+            yield f"data: {msg}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PRICE DATA  (NSE/BSE bhavcopy + screener fundamentals + sector master)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _price_pg_config() -> dict:
+    pg = CFG.get("postgresql", {})
+    return {
+        "host": pg.get("host", "localhost"),
+        "port": pg.get("port", 5432),
+        "dbname": pg.get("dbname", "makrograph"),
+        "user": pg.get("user", "postgres"),
+        "password": os.getenv("MAKROGRAPH_PG_PASSWORD", pg.get("password", "")),
+    }
+
+
+@app.get("/api/price-data/status")
+async def price_data_status():
+    """Return date ranges + row counts for NSE/BSE bhavcopy and fundamentals."""
+    pg_cfg = _price_pg_config()
+    result: dict = {}
+    try:
+        conn = psycopg2.connect(**pg_cfg)
+        with conn.cursor() as cur:
+            for table, key in [("nse_bhavcopy_data", "nse"), ("bse_bhavcopy_data", "bse")]:
+                cur.execute(
+                    "SELECT to_regclass(%s)", (f"public.{table}",)
+                )
+                exists = cur.fetchone()[0] is not None
+                if not exists:
+                    result[key] = {"exists": False, "min_date": None, "max_date": None, "row_count": 0}
+                    continue
+                cur.execute(f"SELECT MIN(trade_date), MAX(trade_date), COUNT(*) FROM {table}")
+                min_d, max_d, count = cur.fetchone()
+                result[key] = {
+                    "exists": True,
+                    "min_date": min_d.isoformat() if min_d else None,
+                    "max_date": max_d.isoformat() if max_d else None,
+                    "row_count": count,
+                }
+            cur.execute("SELECT to_regclass('public.fundamentals_snapshot')")
+            if cur.fetchone()[0] is not None:
+                cur.execute("SELECT COUNT(*), MAX(last_updated) FROM fundamentals_snapshot")
+                count, last_upd = cur.fetchone()
+                result["fundamentals"] = {
+                    "exists": True, "row_count": count,
+                    "last_updated": last_upd.isoformat() if last_upd else None,
+                }
+            else:
+                result["fundamentals"] = {"exists": False, "row_count": 0, "last_updated": None}
+
+            cur.execute("SELECT to_regclass('public.security_master')")
+            if cur.fetchone()[0] is not None:
+                cur.execute("SELECT COUNT(*), MAX(last_updated) FROM security_master")
+                count, last_upd = cur.fetchone()
+                result["sector_master"] = {
+                    "exists": True, "row_count": count,
+                    "last_updated": last_upd.isoformat() if last_upd else None,
+                }
+            else:
+                result["sector_master"] = {"exists": False, "row_count": 0, "last_updated": None}
+        conn.close()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    return result
+
+
+def _safe_float(v) -> float | None:
+    """Convert a DB numeric to float, coercing NaN/Infinity (which are not
+    valid JSON) to None."""
+    if v is None:
+        return None
+    f = float(v)
+    if math.isnan(f) or math.isinf(f):
+        return None
+    return f
+
+
+@app.get("/api/price-data/high-volume")
+async def price_data_high_volume(
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    exchange: str = Query("both"),
+    min_volume: float = Query(1_000_000),
+    limit: int = Query(100),
+):
+    """For each symbol, find its all-time (lifetime) highest-volume trading
+    day across the *entire* table history — not just within the selected
+    range — then keep only symbols whose lifetime-peak day (a) falls inside
+    the given date range and (b) exceeds ``min_volume``.  This surfaces
+    stocks that set a new all-time volume record during the selected window,
+    rather than merely the busiest day within that window.
+    """
+    pg_cfg = _price_pg_config()
+    start_d = date.fromisoformat(start_date)
+    end_d = date.fromisoformat(end_date)
+
+    table_map = {"nse": "nse_bhavcopy_data", "bse": "bse_bhavcopy_data"}
+    exchanges = list(table_map.keys()) if exchange == "both" else [exchange]
+    if any(ex not in table_map for ex in exchanges):
+        raise HTTPException(status_code=400, detail="exchange must be 'nse', 'bse', or 'both'")
+
+    rows_out: list[dict] = []
+    try:
+        conn = psycopg2.connect(**pg_cfg)
+        with conn.cursor() as cur:
+            for ex in exchanges:
+                table = table_map[ex]
+                cur.execute("SELECT to_regclass(%s)", (f"public.{table}",))
+                if cur.fetchone()[0] is None:
+                    continue
+                cur.execute(
+                    f"""
+                    WITH lifetime_peak AS (
+                        SELECT DISTINCT ON (symbol)
+                            symbol, trade_date, series, tottrdqty, tottrdval, close, delivery_pct
+                        FROM {table}
+                        ORDER BY symbol, tottrdqty DESC
+                    )
+                    SELECT symbol, trade_date, series, tottrdqty, tottrdval, close, delivery_pct
+                    FROM lifetime_peak
+                    WHERE trade_date BETWEEN %s AND %s
+                      AND tottrdqty >= %s
+                    """,
+                    (start_d, end_d, min_volume),
+                )
+                for symbol, trade_date, series, volume, value, close, delivery_pct in cur.fetchall():
+                    rows_out.append({
+                        "exchange": ex.upper(),
+                        "symbol": symbol,
+                        "series": series,
+                        "trade_date": trade_date.isoformat() if trade_date else None,
+                        "volume": _safe_float(volume),
+                        "value": _safe_float(value),
+                        "close": _safe_float(close),
+                        "delivery_pct": _safe_float(delivery_pct),
+                    })
+        conn.close()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    rows_out.sort(key=lambda r: r["volume"] or 0, reverse=True)
+    return {
+        "start_date": start_date,
+        "end_date": end_date,
+        "min_volume": min_volume,
+        "count": len(rows_out[:limit]),
+        "total_matches": len(rows_out),
+        "results": rows_out[:limit],
+    }
+
+
+class PriceDataRunBody(BaseModel):
+    mode: str                       # "daily" | "historical" | "copy-from-algo" | "fundamentals" | "sector-master"
+    exchange: str = "both"          # "nse" | "bse" | "both"
+    start_date: str | None = None
+    end_date: str | None = None
+    days_back: int = 5
+    symbols: list[str] = []
+
+
+@app.post("/api/price-data/run")
+async def run_price_data(body: PriceDataRunBody):
+    """Streams price-data fetch log lines as SSE events."""
+
+    q: asyncio.Queue = asyncio.Queue(maxsize=500)
+    loop = asyncio.get_event_loop()
+
+    def _run_in_thread():
+        handler = _QueueHandler(q, loop)
+        root = logging.getLogger()
+        root.addHandler(handler)
+        pg_cfg = _price_pg_config()
+        try:
+            if body.mode == "daily":
+                from makrograph.fetcher.nse_price_fetcher import NSEPriceFetcher
+                from makrograph.fetcher.bse_price_fetcher import BSEPriceFetcher
+                if body.exchange in ("nse", "both"):
+                    n = NSEPriceFetcher(pg_cfg)
+                    n.ensure_table()
+                    total = n.fetch_latest(body.days_back)
+                    logging.info(f"[DONE-NSE] {total} rows inserted/updated")
+                if body.exchange in ("bse", "both"):
+                    b = BSEPriceFetcher(pg_cfg)
+                    b.ensure_table()
+                    total = b.fetch_latest(body.days_back)
+                    logging.info(f"[DONE-BSE] {total} rows inserted/updated")
+
+            elif body.mode == "historical":
+                if not body.start_date:
+                    raise ValueError("start_date is required for historical mode")
+                start = date.fromisoformat(body.start_date)
+                end = date.fromisoformat(body.end_date) if body.end_date else date.today()
+                from makrograph.fetcher.nse_price_fetcher import NSEPriceFetcher
+                from makrograph.fetcher.bse_price_fetcher import BSEPriceFetcher
+                if body.exchange in ("nse", "both"):
+                    n = NSEPriceFetcher(pg_cfg)
+                    total = n.fetch_date_range(start, end)
+                    logging.info(f"[DONE-NSE] {total} total rows for {start} → {end}")
+                if body.exchange in ("bse", "both"):
+                    b = BSEPriceFetcher(pg_cfg)
+                    total = b.fetch_date_range(start, end)
+                    logging.info(f"[DONE-BSE] {total} total rows for {start} → {end}")
+
+            elif body.mode == "copy-from-algo":
+                import psycopg2.extras as _pgx
+                algo_cfg = {
+                    "host": os.getenv("ALGO_TEST_PG_HOST", "localhost"),
+                    "port": int(os.getenv("ALGO_TEST_PG_PORT", "5432")),
+                    "dbname": os.getenv("ALGO_TEST_PG_DBNAME", "Algo_Test"),
+                    "user": os.getenv("ALGO_TEST_PG_USER", "postgres"),
+                    "password": os.getenv("ALGO_TEST_PG_PASSWORD", "mak43"),
+                }
+                from makrograph.fetcher.nse_price_fetcher import NSEPriceFetcher
+                from makrograph.fetcher.bse_price_fetcher import BSEPriceFetcher
+                from makrograph.fetcher.screener_fundamentals_fetcher import ScreenerFundamentalsFetcher
+                NSEPriceFetcher(pg_cfg).ensure_table()
+                BSEPriceFetcher(pg_cfg).ensure_table()
+                ScreenerFundamentalsFetcher(pg_cfg).ensure_table()
+
+                date_filter_sql = ""
+                date_filter_params: tuple = ()
+                if body.start_date:
+                    start_d = date.fromisoformat(body.start_date)
+                    end_d = date.fromisoformat(body.end_date) if body.end_date else date.today()
+                    date_filter_sql = " WHERE trade_date BETWEEN %s AND %s"
+                    date_filter_params = (start_d, end_d)
+                    logging.info(f"Filtering copy to trade_date range {start_d} → {end_d}")
+
+                logging.info(f"Connecting to Algo_Test at {algo_cfg['host']}:{algo_cfg['port']}/{algo_cfg['dbname']}")
+                src_conn = psycopg2.connect(**algo_cfg)
+                dst_conn = psycopg2.connect(**pg_cfg)
+                try:
+                    with src_conn.cursor() as cur:
+                        cur.execute("""
+                            SELECT table_name FROM information_schema.tables
+                            WHERE table_schema = 'public'
+                              AND table_name IN ('nse_bhavcopy_data', 'bse_bhavcopy_data',
+                                                 'fundamentals_snapshot')
+                        """)
+                        available = {r[0] for r in cur.fetchall()}
+
+                    def _copy(table, columns, filter_sql="", filter_params=()):
+                        cols_str = ", ".join(columns)
+                        with src_conn.cursor() as scur:
+                            scur.execute(f"SELECT {cols_str} FROM {table}{filter_sql}", filter_params)
+                            rows = scur.fetchall()
+                        if not rows:
+                            logging.info(f"  {table}: no rows in source")
+                            return 0
+                        with dst_conn.cursor() as dcur:
+                            _pgx.execute_values(
+                                dcur,
+                                f"INSERT INTO {table} ({cols_str}) VALUES %s ON CONFLICT DO NOTHING",
+                                rows, page_size=1000,
+                            )
+                        dst_conn.commit()
+                        logging.info(f"  {table}: copied {len(rows)} rows")
+                        return len(rows)
+
+                    if "nse_bhavcopy_data" in available and body.exchange in ("nse", "both"):
+                        _copy("nse_bhavcopy_data", [
+                            "trade_date", "symbol", "series", "prev_close", "open", "high", "low",
+                            "last", "close", "avg_price", "tottrdqty", "tottrdval", "totaltrades",
+                            "delivery_qty", "delivery_pct",
+                        ], date_filter_sql, date_filter_params)
+                    if "bse_bhavcopy_data" in available and body.exchange in ("bse", "both"):
+                        _copy("bse_bhavcopy_data", [
+                            "trade_date", "symbol", "series", "prev_close", "open", "high", "low",
+                            "last", "close", "avg_price", "tottrdqty", "tottrdval", "totaltrades",
+                            "delivery_qty", "delivery_pct", "bse_instrument_id",
+                        ], date_filter_sql, date_filter_params)
+                    if "fundamentals_snapshot" in available:
+                        with src_conn.cursor() as cur:
+                            cur.execute("""
+                                SELECT column_name FROM information_schema.columns
+                                WHERE table_name = 'fundamentals_snapshot' AND table_schema = 'public'
+                            """)
+                            src_cols = {r[0] for r in cur.fetchall()}
+                        fund_cols = [c for c in [
+                            "nse_symbol", "bse_symbol", "bse_instrument_id", "company_name",
+                            "sector", "industry", "market_cap", "pe_ratio", "pb_ratio", "book_value",
+                            "dividend_yield", "roce", "roe", "face_value", "eps", "debt_to_equity",
+                            "price_to_book", "sales_growth_3y", "profit_growth_3y", "current_ratio",
+                            "promoter_holding", "fii_holding", "dii_holding", "pledge_percentage",
+                            "screener_url", "data_json", "quarterly_data_json", "pl_data_json",
+                            "balance_sheet_json", "cash_flow_json", "shareholding_json",
+                            "peer_comparison_json", "price_data_json",
+                        ] if c in src_cols]
+                        _copy("fundamentals_snapshot", fund_cols)
+                    logging.info("[DONE] Copy from Algo_Test complete")
+                finally:
+                    src_conn.close()
+                    dst_conn.close()
+
+            elif body.mode == "fundamentals":
+                if not body.symbols:
+                    raise ValueError("symbols is required for fundamentals mode")
+                from makrograph.fetcher.screener_fundamentals_fetcher import ScreenerFundamentalsFetcher
+                fetcher = ScreenerFundamentalsFetcher(pg_cfg)
+                results = fetcher.fetch_symbols(body.symbols)
+                ok = sum(1 for v in results.values() if v == "ok")
+                logging.info(f"[DONE] Fundamentals: {ok}/{len(body.symbols)} succeeded — {results}")
+
+            elif body.mode == "sector-master":
+                from makrograph.fetcher.sector_master_fetcher import SectorMasterFetcher
+                bse_dir = CFG.get("bse", {}).get("downloads_dir")
+                fetcher = SectorMasterFetcher(pg_cfg, bse_downloads_dir=bse_dir)
+                total = fetcher.run()
+                logging.info(f"[DONE] Sector master: {total} rows upserted")
+
+            else:
+                raise ValueError(f"Unknown mode: {body.mode}")
+
+            logging.info("[DONE] Price data fetch complete.")
+        except Exception as exc:
+            logging.error(f"[ERROR] {exc}")
+        finally:
+            root.removeHandler(handler)
+            loop.call_soon_threadsafe(q.put_nowait, "__END__")
+
+    thread = threading.Thread(target=_run_in_thread, daemon=True)
+    thread.start()
+
+    async def event_generator():
+        while True:
+            try:
+                msg = await asyncio.wait_for(q.get(), timeout=30)
+            except asyncio.TimeoutError:
+                yield ": heartbeat\n\n"
                 continue
             if msg == "__END__":
                 yield "data: [DONE]\n\n"

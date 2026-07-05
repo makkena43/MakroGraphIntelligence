@@ -442,6 +442,119 @@ class PGStore:
                         logger.debug(f"ensure_country_columns (ok if already applied): {e}")
         logger.info("Country columns ensured on mg_documents + mg_themes")
 
+    def ensure_price_tables(self) -> None:
+        """Create NSE/BSE bhavcopy and fundamentals tables if they don't exist.
+
+        Idempotent — safe to call on every startup.  Tables use the same schema
+        as the MDsquare_Quant_Investing project so historical data can be copied
+        directly from the Algo_Test database without transformation.
+        """
+        ddl_statements = [
+            # ── NSE bhavcopy: daily OHLCV + delivery data from NSE ───────────
+            """
+            CREATE TABLE IF NOT EXISTS nse_bhavcopy_data (
+                trade_date      DATE            NOT NULL,
+                symbol          VARCHAR(30)     NOT NULL,
+                series          VARCHAR(5),
+                prev_close      NUMERIC(12, 2),
+                open            NUMERIC(12, 2),
+                high            NUMERIC(12, 2),
+                low             NUMERIC(12, 2),
+                last            NUMERIC(12, 2),
+                close           NUMERIC(12, 2),
+                avg_price       NUMERIC(12, 2),
+                tottrdqty       NUMERIC(25, 2),
+                tottrdval       NUMERIC(20, 2),
+                totaltrades     INTEGER,
+                delivery_qty    NUMERIC(25, 2),
+                delivery_pct    NUMERIC(8, 2),
+                PRIMARY KEY (trade_date, symbol)
+            )
+            """,
+            "CREATE INDEX IF NOT EXISTS idx_nse_bhavcopy_symbol   ON nse_bhavcopy_data (symbol)",
+            "CREATE INDEX IF NOT EXISTS idx_nse_bhavcopy_date      ON nse_bhavcopy_data (trade_date)",
+            "CREATE INDEX IF NOT EXISTS idx_nse_bhavcopy_sym_date  ON nse_bhavcopy_data (symbol, trade_date DESC)",
+
+            # ── BSE bhavcopy: daily OHLCV from BSE ───────────────────────────
+            """
+            CREATE TABLE IF NOT EXISTS bse_bhavcopy_data (
+                trade_date          DATE            NOT NULL,
+                symbol              VARCHAR(30)     NOT NULL,
+                series              VARCHAR(5),
+                prev_close          NUMERIC(12, 2),
+                open                NUMERIC(12, 2),
+                high                NUMERIC(12, 2),
+                low                 NUMERIC(12, 2),
+                last                NUMERIC(12, 2),
+                close               NUMERIC(12, 2),
+                avg_price           NUMERIC(12, 2),
+                tottrdqty           BIGINT,
+                tottrdval           NUMERIC(20, 2),
+                totaltrades         INTEGER,
+                delivery_qty        BIGINT,
+                delivery_pct        NUMERIC(8, 2),
+                bse_instrument_id   VARCHAR(50),
+                PRIMARY KEY (trade_date, symbol)
+            )
+            """,
+            "CREATE INDEX IF NOT EXISTS idx_bse_bhavcopy_symbol   ON bse_bhavcopy_data (symbol)",
+            "CREATE INDEX IF NOT EXISTS idx_bse_bhavcopy_date      ON bse_bhavcopy_data (trade_date)",
+            "CREATE INDEX IF NOT EXISTS idx_bse_bhavcopy_sym_date  ON bse_bhavcopy_data (symbol, trade_date DESC)",
+
+            # ── Fundamentals snapshot: screener.in key metrics ────────────────
+            """
+            CREATE TABLE IF NOT EXISTS fundamentals_snapshot (
+                id                      SERIAL PRIMARY KEY,
+                nse_symbol              VARCHAR(30),
+                bse_symbol              VARCHAR(30),
+                bse_instrument_id       VARCHAR(20),
+                company_name            VARCHAR(200),
+                sector                  VARCHAR(100),
+                industry                VARCHAR(100),
+                market_cap              NUMERIC(20, 2),
+                pe_ratio                NUMERIC(20, 2),
+                pb_ratio                NUMERIC(20, 2),
+                book_value              NUMERIC(20, 2),
+                dividend_yield          NUMERIC(10, 2),
+                roce                    NUMERIC(10, 2),
+                roe                     NUMERIC(10, 2),
+                face_value              NUMERIC(10, 2),
+                eps                     NUMERIC(10, 2),
+                debt_to_equity          NUMERIC(10, 2),
+                price_to_book           NUMERIC(10, 2),
+                sales_growth_3y         NUMERIC(10, 2),
+                profit_growth_3y        NUMERIC(10, 2),
+                current_ratio           NUMERIC(10, 2),
+                promoter_holding        NUMERIC(10, 2),
+                fii_holding             NUMERIC(10, 2),
+                dii_holding             NUMERIC(10, 2),
+                pledge_percentage       NUMERIC(10, 2),
+                screener_url            VARCHAR(200),
+                data_json               TEXT,
+                quarterly_data_json     TEXT,
+                pl_data_json            TEXT,
+                balance_sheet_json      TEXT,
+                cash_flow_json          TEXT,
+                shareholding_json       TEXT,
+                peer_comparison_json    TEXT,
+                price_data_json         TEXT,
+                last_updated            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT uq_fundamentals_symbols UNIQUE (nse_symbol, bse_symbol)
+            )
+            """,
+            "CREATE INDEX IF NOT EXISTS idx_fundamentals_nse    ON fundamentals_snapshot (nse_symbol)",
+            "CREATE INDEX IF NOT EXISTS idx_fundamentals_bse    ON fundamentals_snapshot (bse_symbol)",
+            "CREATE INDEX IF NOT EXISTS idx_fundamentals_upd    ON fundamentals_snapshot (last_updated)",
+        ]
+        with self._conn() as conn:
+            with conn.cursor() as cur:
+                for stmt in ddl_statements:
+                    try:
+                        cur.execute(stmt)
+                    except Exception as e:
+                        logger.debug(f"ensure_price_tables (ok if already applied): {e}")
+        logger.info("Price tables ensured: nse_bhavcopy_data, bse_bhavcopy_data, fundamentals_snapshot")
+
     def get_companies_per_theme(self, theme_slugs: list[str]) -> dict[str, set[str]]:
         """Return {theme_slug → set of company names} for the given slugs.
 

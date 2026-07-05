@@ -498,7 +498,19 @@
       "Bash(PYTHONPATH=src:. .venv/bin/python3 -m makrograph.evaluation.propagation_lag --country IN)",
       "Bash(psql -h 127.0.0.1 -U postgres -d makrograph -t -A -c \"SELECT COUNT\\(*\\) FROM mg_embeddings;\")",
       "Bash(curl -s --max-time 150 'http://localhost:8000/api/investment-final-shortlist?country=IN&year=2024' -o /private/tmp/claude-501/-Users-makkenasrinivas-PycharmProjects-MakroGraphIntelligence/50051d2d-9053-4f77-ac34-9491819f09c7/scratchpad/base_in.json)",
-      "Bash(curl -s --max-time 150 'http://localhost:8000/api/investment-final-shortlist?country=US&year=2025' -o /private/tmp/claude-501/-Users-makkenasrinivas-PycharmProjects-MakroGraphIntelligence/50051d2d-9053-4f77-ac34-9491819f09c7/scratchpad/base_us.json)"
+      "Bash(curl -s --max-time 150 'http://localhost:8000/api/investment-final-shortlist?country=US&year=2025' -o /private/tmp/claude-501/-Users-makkenasrinivas-PycharmProjects-MakroGraphIntelligence/50051d2d-9053-4f77-ac34-9491819f09c7/scratchpad/base_us.json)",
+      "Bash(psql -h 127.0.0.1 -U postgres -d makrograph -t -A -c \"SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND \\(table_name ~ 'price|ohlc|bhav|quote|eod'\\)\")",
+      "Read(//Users/makkenasrinivas/Downloads/**)",
+      "Bash(.venv/bin/python3 /private/tmp/claude-501/-Users-makkenasrinivas-PycharmProjects-MakroGraphIntelligence/50051d2d-9053-4f77-ac34-9491819f09c7/scratchpad/validate_returns.py /private/tmp/claude-501/-Users-makkenasrinivas-PycharmProjects-MakroGraphIntelligence/50051d2d-9053-4f77-ac34-9491819f09c7/scratchpad/returns.json)",
+      "Bash(.venv/bin/python3 -c \"import sentence_transformers; print\\('sentence-transformers OK', sentence_transformers.__version__\\)\")",
+      "Bash(psql -h 127.0.0.1 -U postgres -d makrograph -t -A -c \"SELECT extname FROM pg_extension WHERE extname='vector';\")",
+      "Bash(PYTHONPATH=src:. .venv/bin/python3 -m makrograph.evaluation.embedding_theme_shadow --year 2024)",
+      "Bash(psql -h 127.0.0.1 -U postgres -d makrograph -t -A -c \"SELECT id, theme_name, is_active FROM mg_themes WHERE theme_name ILIKE '%f y%' OR theme_name ~ '^\\([a-zA-Z0-9] \\){2,}';\")",
+      "Bash(PYTHONPATH=src:. .venv/bin/python3 -m makrograph.evaluation.embedding_theme_shadow --year 2023)",
+      "Bash(awk 'NR>3 && $2==\"—\" || /—.*0\\\\.[34]/')",
+      "Bash(.venv/bin/python3 /private/tmp/claude-501/-Users-makkenasrinivas-PycharmProjects-MakroGraphIntelligence/50051d2d-9053-4f77-ac34-9491819f09c7/scratchpad/validate_returns.py /private/tmp/claude-501/-Users-makkenasrinivas-PycharmProjects-MakroGraphIntelligence/50051d2d-9053-4f77-ac34-9491819f09c7/scratchpad/returns_v2.json)",
+      "Read(//Users/makkenasrinivas/PycharmProjects/**)",
+      "Bash(curl -s --max-time 200 \"http://localhost:8000/api/breakout-scan?country=IN&year=2023&as_of=2023-09-15\")"
     ]
   }
 }

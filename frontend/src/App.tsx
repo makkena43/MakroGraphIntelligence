@@ -20,12 +20,18 @@ import InvestableSignalsTab from './components/tabs/InvestableSignalsTab'
 import TodaysOpportunitiesTab from './components/tabs/TodaysOpportunitiesTab'
 import CompanyDiveTab from './components/tabs/CompanyDiveTab'
 import SentimentBoardTab from './components/tabs/SentimentBoardTab'
+import PriceDataTab from './components/tabs/PriceDataTab'
+import HighVolumeTab from './components/tabs/HighVolumeTab'
+import BreakoutScannerTab from './components/tabs/BreakoutScannerTab'
+import WeeklyRitualTab from './components/tabs/WeeklyRitualTab'
 
 const TABS = [
   { id: 'pipeline',          label: '🚀 Pipeline Runner' },
   { id: 'filings',           label: '📞 Concall & Filings' },
   { id: 'year-intelligence', label: '📅 Year Intelligence' },
   { id: 'today',             label: '🌅 Today\'s Opportunities' },
+  { id: 'breakout',          label: '🚀 Breakout Scanner' },
+  { id: 'ritual',            label: '📅 Weekly Ritual' },
   { id: 'investable',        label: '⚡ Investable Signals' },
   { id: 'investment',        label: '🎯 Investment Shortlist' },
   { id: 'company-dive',      label: '🔍 Company Deep Dive' },
@@ -39,6 +45,8 @@ const TABS = [
   { id: 'ai',                label: '🤖 AI Analysis' },
   { id: 'macro',             label: '🌐 Macro & Policy' },
   { id: 'company',           label: '🏢 Company Explorer' },
+  { id: 'price-data',        label: '📈 Price Data' },
+  { id: 'high-volume',       label: '🔥 High Volume Days' },
 ]
 
 export default function App() {
@@ -117,6 +125,8 @@ export default function App() {
           {activeTab === 'filings'           && <FilingsTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'year-intelligence' && <YearIntelligenceTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'today'             && <TodaysOpportunitiesTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'breakout'          && <BreakoutScannerTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'ritual'            && <WeeklyRitualTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'investable'        && <InvestableSignalsTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'investment'        && <InvestmentShortlistTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'company-dive'     && <CompanyDiveTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
@@ -130,6 +140,8 @@ export default function App() {
           {activeTab === 'ai'          && <AITab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'macro'       && <MacroTab key={country} country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'company'     && <CompanyTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'price-data'  && <PriceDataTab />}
+          {activeTab === 'high-volume' && <HighVolumeTab />}
         </main>
       </div>
     </div>

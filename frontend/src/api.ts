@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const api = axios.create({ baseURL: '/api' })
+export const api = axios.create({ baseURL: '/api' })
 
 export default api
 
@@ -159,6 +159,9 @@ export const fetchPLIPolicies = (year?: number, sector?: string) =>
 export const fetchTodaysOpportunities = (country: string, asOfYear?: number) =>
   api.get('/today', { params: { country, as_of_year: asOfYear } }).then(r => r.data)
 
+export const fetchBreakoutScan = (country: string, year?: number, asOf?: string) =>
+  api.get('/breakout-scan', { params: { country, year, as_of: asOf } }).then(r => r.data)
+
 export const fetchQualityCompounders = (country: string, year?: number, minScore = 0.30) =>
   api.get('/quality-compounders', { params: { country, year, min_quality_score: minScore } }).then(r => r.data)
 
@@ -215,3 +218,14 @@ export const generateYearSummary = (country: string, year: string) =>
 
 export const generateIndustrySummary = (country: string, year: string) =>
   api.post('/ai/industry-summary', { country, year }).then(r => r.data)
+
+// ─── Price Data (NSE/BSE bhavcopy) ────────────────────────────────────────────
+export const fetchPriceDataStatus = () =>
+  api.get('/price-data/status').then(r => r.data)
+
+export const fetchHighVolumeStocks = (
+  startDate: string, endDate: string, exchange = 'both', minVolume = 1_000_000, limit = 100
+) =>
+  api.get('/price-data/high-volume', {
+    params: { start_date: startDate, end_date: endDate, exchange, min_volume: minVolume, limit }
+  }).then(r => r.data)
