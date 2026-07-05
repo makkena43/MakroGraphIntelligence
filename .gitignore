@@ -2,7 +2,6 @@
 # (.claude/* ignored except versioned skills)
 .claude/*
 !.claude/skills/
-!.claude/settings.local.json
 
 # Generated stock reports (PDF/HTML/JSON artifacts)
 data/reports/
