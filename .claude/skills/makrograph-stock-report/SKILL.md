@@ -73,7 +73,25 @@ by `doc_kind`/`text_len` via `jq` first, then read only their excerpts — not a
 
 ### Step 3 — Analyze (your intelligence layer)
 
-Write the analytical narratives:
+Write the analytical narratives. Start with Why I Own This:
+
+**0. "Why I Own This" — MANDATORY, rendered FIRST before everything including the header.**
+
+Use `why_i_own` from the JSON. Write exactly 4 sentences in first person:
+
+1. **Macro constraint** (rewrite `macro_constraint` in plain English — 10-15 words, no
+   pipeline metrics like "score 60" or "13 companies"): name the real-world dynamic
+   driving the constraint. Use `core_theme_name` and the company's actual business as
+   anchors. Example: "India's railway capex super-cycle is creating a multi-year
+   bottleneck for rolling-stock manufacturers."
+2. **Company position + corroboration**: "{company_name} {supply_position}, appears
+   in {n_themes} independent constraint themes{signal_span}."
+3. **Phase**: "{phase_sentence}." (use verbatim from the JSON — it's already clean)
+4. **Exit conditions**: "I will reconsider if: {exit_conditions joined by '; '}."
+
+Style: ~70-80 words total, conviction-note tone (first-person investor writing to
+themselves, not a report narrator). Render in a dark-bordered box with a subtle amber
+left stripe before the snapshot strip. Label it: "Why I Own This".
 
 1. **Themes** — for each theme the company benefits from: 2-4 sentence summary, when it
    first appeared (`first_detected`, `first_seen_at`), current stage as of the report date
