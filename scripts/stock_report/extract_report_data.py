@@ -757,6 +757,207 @@ CORP_EVENT_TYPES = (
 )
 
 
+# ──────────────────────────────────────────────────────────────────────────
+# "Why I Own This" thesis generator
+# ──────────────────────────────────────────────────────────────────────────
+
+_NOISE_THEMES = {"artificial intelligence", "ai", "improve", "annexure", "code of ethics"}
+
+
+def _pick_core_theme(themes, constraint_themes):
+    """Select the single most authentic constraint theme — skip breadth noise.
+
+    Scoring (higher = better):
+      1. Non-noise (0 = generic AI/noise, 1 = domain-specific)     weight: decisive
+      2. is_bottleneck (company is in a capacity-constrained role)  weight: high
+      3. supply_constraint_count                                     weight: medium
+      4. relevance_score (beneficiary rank signal)                   weight: tie-break
+    """
+    pool = list(constraint_themes or themes or [])
+    if not pool:
+        return None
+
+    def _score(t):
+        name = t.get("theme_name", "").lower()
+        is_noise = int(any(n in name for n in _NOISE_THEMES))
+        return (
+            1 - is_noise,                                          # non-noise first
+            1 if t.get("is_bottleneck") else 0,                   # bottleneck preferred
+            int(t.get("supply_constraint_count") or 0),
+            float(t.get("relevance_score") or t.get("strength_score") or 0),
+        )
+
+    return max(pool, key=_score)
+
+
+_CHAIN_SUFFIX_STRIP = [
+    " Severe Constraint", " Critical Shortage", " Demand-Supply Tension",
+    " Localization Opportunity", " Capacity Gap", ": Demand-Supply Tension",
+]
+
+
+def _clean_chain_name(name):
+    """Remove boilerplate suffixes from theme names for readable prose."""
+    n = name.split(":")[0].split("←")[0].strip()
+    for suffix in _CHAIN_SUFFIX_STRIP:
+        if n.endswith(suffix):
+            n = n[: -len(suffix)].strip()
+    return n
+
+
+def _supply_position(theme, india_benef, constraint_evidence, country):
+    """One specific phrase describing what the company owns/does in the chain."""
+    if country == "IN" and india_benef:
+        for b in india_benef:
+            prod = b.get("constrained_product") or b.get("supply_chain_node")
+            btype = b.get("beneficiary_type", "")
+            if prod and b.get("has_order_book_signals"):
+                return f"owns order-book-backed domestic supply capacity in {prod}"
+            if prod and "direct" in btype:
+                return f"is a direct supplier of {prod}"
+
+    if theme:
+        role = (theme.get("company_role") or "").strip()
+        reasoning = (theme.get("reasoning") or "").strip()
+        btype = (theme.get("beneficiary_type") or "direct").replace("_", " ")
+        chain = _clean_chain_name(theme["theme_name"])
+
+        # Use evidence context to extract a more specific descriptor
+        sigs = (constraint_evidence or {}).get("signal_counts") or []
+        top_sig = next(
+            (s for s in sigs if s.get("signal_type") in
+             ("demand_surge", "tender_pipeline", "order_win", "capex_increase")), None
+        )
+        if top_sig and top_sig.get("n", 0) >= 5:
+            sig_type = top_sig["signal_type"].replace("_", " ")
+            return f"is a {btype} {chain} capacity owner with {top_sig['n']} confirmed {sig_type} signals"
+
+        if role:
+            return f"acts as {role} in the {chain} supply chain"
+
+        # Try to pull a keyword from reasoning
+        if reasoning and len(reasoning) > 20:
+            # e.g. "Entity 'railway infrastructure' extracted from 12 docs..."
+            entity = reasoning.split("'")[1] if "'" in reasoning else ""
+            if entity and entity.lower() != "None":
+                return f"is a {btype} supplier of {entity} capacity"
+
+        return f"holds {btype} capacity in the {chain} supply chain"
+
+    return "holds capacity in the constrained chain"
+
+
+def _phase_sentence(stage_label, confirmed_quarters):
+    qtrs = f"{confirmed_quarters} confirmed quarter{'s' if confirmed_quarters != 1 else ''}" if confirmed_quarters else ""
+    qtrs_str = f" ({qtrs})" if qtrs else ""
+    return {
+        "Accelerating": f"the constraint is in the accelerating phase{qtrs_str} — revenue becoming visible but the crowd has not fully arrived",
+        "Consensus":    f"the constraint is at consensus stage{qtrs_str} — well-known but order flows remain strong",
+        "Emerging":     f"the constraint is emerging{qtrs_str} — early signals, size position accordingly",
+    }.get(stage_label or "Accelerating",
+          f"the constraint is at the {stage_label} stage{qtrs_str}")
+
+
+def _exit_conditions(price_action, red_flags, core_theme, country, concalls):
+    exits = []
+
+    # 1. Price-based exit (IN only — no US price data)
+    if price_action and not price_action.get("error") and country == "IN":
+        low_52w = price_action.get("week52_low")
+        pivot = (price_action.get("breakout") or {}).get("pivot_price_60d_base")
+        if low_52w:
+            exits.append(f"price closes below ₹{low_52w:,.0f} — 52-week structural low invalidated")
+        elif pivot:
+            exits.append(f"price closes below ₹{pivot:,.0f} base support on volume")
+
+    # 2. Red-flag exits
+    flag_map = {
+        "insolvency":    "any insolvency petition progresses beyond admission stage",
+        "auditor_change": "auditor resignation or change without adequate explanation",
+        "pledge":        "promoter pledge crosses 30% of holding",
+        "delayed_results": "results are delayed for a second consecutive quarter",
+        "default":       "payment default is reported",
+        "key_resignation": "CFO or MD resigns without a clear succession plan",
+    }
+    for f in (red_flags.get("flags") or [])[:2]:
+        msg = flag_map.get(f.get("flag_type", ""), None)
+        if msg and msg not in exits:
+            exits.append(msg)
+
+    # 3. Management-authenticity exit (from concall average)
+    if concalls:
+        rated = [c for c in concalls if c.get("sentiment_score") is not None]
+        if rated:
+            avg = sum(c["sentiment_score"] for c in rated) / len(rated)
+            if avg < 0:
+                exits.append("management guidance deviates from delivery for a second consecutive quarter")
+        else:
+            exits.append("management guidance deviates from delivery for a second consecutive quarter")
+
+    # 4. Theme-based exit — what would resolve the constraint?
+    if core_theme:
+        chain = _clean_chain_name(core_theme["theme_name"]).lower()
+        exits.append(f"the {chain} capacity constraint resolves or government capex is cut")
+
+    return exits[:3]  # cap at 3 for readability
+
+
+def generate_why_i_own(symbol, company_name, themes, constraint_themes,
+                       india_benef, constraint_evidence, price_action,
+                       red_flags, concalls, country):
+    """Generate a first-person investment thesis with specific exit conditions.
+
+    Returns a structured dict; the SKILL.md instructs Claude to synthesize
+    this into the 'Why I Own This' paragraph at the top of the PDF.
+    """
+    core = _pick_core_theme(themes, constraint_themes)
+    supply_pos = _supply_position(core, india_benef, constraint_evidence, country)
+    n_themes = len(themes)
+
+    # Signal corroboration span
+    sigs = (constraint_evidence or {}).get("signal_counts") or []
+    top_sig = max(sigs, key=lambda s: s.get("n", 0), default=None)
+    span = ""
+    if top_sig and top_sig.get("first_seen") and top_sig.get("last_seen"):
+        span = f" (signals spanning {str(top_sig['first_seen'])[:7]} → {str(top_sig['last_seen'])[:7]})"
+
+    phase = (core or {}).get("stage_label", "Accelerating") if core else "Accelerating"
+    confirmed = (core or {}).get("confirmed_quarters")
+    phase_str = _phase_sentence(phase, confirmed)
+
+    exits = _exit_conditions(price_action, red_flags, core, country, concalls)
+
+    # Macro constraint sentence — from hypothesis_text or stage_evidence
+    macro = ""
+    if core:
+        macro = (core.get("hypothesis_text") or core.get("stage_evidence") or "").strip()
+        macro = macro[:180].rsplit(".", 1)[0] + "." if macro else ""
+        if not macro:
+            macro = f"The {core['theme_name'].split(':')[0].strip()} constraint is building across {core.get('company_count') or '?'} companies in the filing graph."
+
+    return {
+        "symbol": symbol,
+        "company_name": company_name,
+        "macro_constraint": macro,
+        "supply_position": supply_pos,
+        "n_themes": n_themes,
+        "signal_span": span,
+        "phase": phase,
+        "phase_sentence": phase_str,
+        "exit_conditions": exits,
+        "core_theme_name": core["theme_name"] if core else None,
+        "write_instructions": (
+            "Write a 'Why I Own This' paragraph (3-4 sentences, first person) at the very top "
+            "of the PDF — before even the summary box. Start with 'Why I own {symbol}:'. "
+            "Sentence 1: the macro constraint (macro_constraint). "
+            "Sentence 2: the company's specific supply position + n_themes independent chains + signal_span. "
+            "Sentence 3: phase_sentence. "
+            "Final sentence: 'I will reconsider if: <exit_conditions joined by '; '>.' "
+            "Keep it under 80 words total. Sound like an investor writing a conviction note, not a report."
+        ),
+    }
+
+
 def fetch_corporate_events(cur, symbol, company_name, as_of, months=18, country="IN"):
     start = as_of - timedelta(days=months * 30)
     like = " OR ".join(f"filing_type ILIKE '%%{t}%%'" for t in CORP_EVENT_TYPES)
@@ -1033,6 +1234,15 @@ def main():
             "pe_band": compute_pe_band(series, quarterly.get("quarters") or [], as_of),
             "red_flags": fetch_red_flags(cur, symbol, company_name, as_of),
         })
+        report["why_i_own"] = generate_why_i_own(
+            symbol, company_name, themes, constraint_themes,
+            india_benef, report.get("constraint_evidence"),
+            report.get("price_action"), report.get("red_flags", {}),
+            concalls, country)
+        report["why_i_own"] = generate_why_i_own(
+            symbol, company_name, themes, constraint_themes,
+            [], report.get("constraint_evidence"),
+            None, {}, concalls, country)
     else:
         report["us_data_note"] = (
             "US coverage: EDGAR filings (10-K/10-Q/8-K), themes/constraints, policy events, "
