@@ -60,6 +60,13 @@ first_mapped), stage now, then the beneficiary table (rank, ticker, type, convic
 order-book), and suggest full reports for the top 2-3 names. If the name matches
 nothing, list a few available theme names (query mg_themes) and ask which one.
 
+### Step 1b — Verify the new improvement fields are present
+
+Check the SUMMARY line for `cross_theme_overlap_leaders` and `high_confidence_themes`.
+If the JSON was generated before these improvements, re-run Step 1. The JSON must
+contain: `evidence_dashboard`, `cross_theme_overlap`, `bear_cases`, and each candidate
+must have `scoring_breakdown`. Use `jq '.evidence_dashboard[:3]'` to confirm.
+
 ### Step 2 — Analyze and present (chat answer by default)
 
 Output a crisp chat briefing (only build a PDF if the user asks — same html_to_pdf.py
@@ -98,8 +105,47 @@ pipeline as the stock-report skill). Structure:
    ticker, company, products/themes it spans, conviction, order-book, technical state
    (above 200DMA? % from 52w high). Explain the composite score briefly (see
    scoring_note). Mark the 3-5 highest-priority names and say why.
-6. **Next step**: suggest running the full report for the top picks, e.g.
-   "generate report for KAYNES as of <date>" (the makrograph-stock-report skill).
+6. **Evidence dashboard — MANDATORY (Improvement 1)** (`evidence_dashboard`): a table
+   for the top 6-8 themes showing companies_mapped, filings_covered,
+   bottleneck_signals, confirmed_quarters, policy_events, and evidence_confidence_pct.
+   The confidence_pct encodes how much hard evidence exists vs narrative momentum — a
+   100% Consensus theme with 0 policy events is market-known but policy-unsupported.
+   Flag any theme with confidence < 50 as "low-evidence, treat as watch only."
+
+7. **Cross-theme overlap — MANDATORY (Improvement 2)** (`cross_theme_overlap`): a table
+   of companies that appear in 3+ independent constraint chains, sorted by
+   n_independent_chains then overlap_score. This is the "conviction multiplier" — a
+   stock appearing in 8 independent chains is not noise, it's a structural chokepoint.
+   Show ticker, chain count, and list the chains grouped by type (energy / semi / infra).
+   Clearly flag demand-side names (PLTR, META) that appear here as cross-chain because
+   EVERY theme mentions them, not because they own the constrained capacity.
+
+8. **Transparent scoring — MANDATORY (Improvement 3)** (`scoring_breakdown` on each
+   candidate): when presenting the ranked-candidate table include one sentence on the
+   formula: IN = "0.45×conviction + 0.25×breadth + 0.20×order_book + 0.10×import_sub,
+   ×1.15 technical"; US = "0.40×relevance + 0.30×breadth + 0.30×rank". For the top 3
+   candidates show the actual component values from scoring_breakdown — never just the
+   final number. Users should never wonder why a stock ranks where it does.
+
+9. **Visual analytics (Improvement 4)** — for PDF/HTML output only:
+   - Momentum bar: a CSS inline-style width bar proportional to evidence_confidence_pct
+     (e.g., `<div style="width:{pct}%;background:#1a3a5c;height:6px">`) next to each
+     theme in the evidence dashboard.
+   - Overlap network: a two-column table — ticker | chains (listed as colored pills by
+     category: energy=green, semi=blue, infra=amber).
+   - Policy timeline: the policy_events count becomes a dated mini-timeline table.
+   These do NOT apply to chat-text briefings; render the same information as compact
+   text tables there.
+
+10. **Bear-case analysis — MANDATORY (Improvement 5)** (`bear_cases`): after each Bucket A
+    and B theme, a "What invalidates this" block with 1-3 specific risks from the
+    bear_cases JSON (not generic boilerplate). Always include the two structural risks
+    that apply to every energy theme (rate sensitivity, AI efficiency) and the two that
+    apply to every chip theme (export-control two-sided, capex-reversal). End with:
+    "If 2+ of these risks materialise simultaneously, revisit the bucket assignment."
+
+11. **Next step**: suggest running the full report for the top picks, e.g.
+    "generate report for KAYNES as of <date>" (the makrograph-stock-report skill).
 
 ## Hard rules
 

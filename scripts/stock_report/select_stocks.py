@@ -163,6 +163,165 @@ def fetch_supply_beneficiaries(cur, as_of, window_months, per_product=8):
     return result
 
 
+# ──────────────────────────────────────────────────────────────────────────
+# Improvements 1-5: evidence dashboard, cross-theme overlap, scoring
+# breakdown, visual analytics data, bear-case analysis
+# ──────────────────────────────────────────────────────────────────────────
+
+def fetch_policy_event_counts(cur, themes, as_of, country):
+    """Single DB query → Python-side count of policy events per theme keyword."""
+    rows = q(cur, """
+        SELECT lower(title) AS title FROM mg_policy_events
+        WHERE country=%s AND COALESCE(introduced_date, enacted_date, fetched_at::date) <= %s
+    """, (country, as_of))
+    titles = [r["title"] for r in rows]
+    counts = {}
+    for t in themes:
+        raw = t["theme_name"].split(":")[0].split("←")[0].strip().lower()
+        words = [w for w in raw.split() if len(w) >= 4][:2]
+        counts[t["theme_id"]] = sum(1 for title in titles if any(w in title for w in words))
+    return counts
+
+
+def build_evidence_dashboard(themes, policy_counts):
+    """Improvement 1 — per-theme evidence record."""
+    out = []
+    for t in themes:
+        sc = t.get("supply_constraint_count") or 0
+        confirmed = t.get("confirmed_quarters") or 0
+        # confidence heuristic: 0-100 based on bottleneck depth, confirmed quarters, strength
+        confidence = min(100, round(
+            (min(sc, 50) / 50.0) * 40
+            + (min(confirmed, 10) / 10.0) * 30
+            + (min(t.get("strength_now") or 0, 100) / 100.0) * 30
+        ))
+        out.append({
+            "theme_name": t["theme_name"],
+            "theme_id": t["theme_id"],
+            "stage": t["stage_label"],
+            "first_detected": t["first_detected"],
+            "companies_mapped": t.get("company_count") or 0,
+            "filings_covered": t.get("doc_count") or 0,
+            "bottleneck_signals": sc,
+            "confirmed_quarters": confirmed,
+            "policy_events": policy_counts.get(t["theme_id"], 0),
+            "strength_score": t.get("strength_now") or 0,
+            "conviction_label": t.get("conviction") or "—",
+            "evidence_confidence_pct": confidence,
+        })
+    return sorted(out, key=lambda x: -x["evidence_confidence_pct"])
+
+
+def compute_cross_theme_overlap(supply_by_chain):
+    """Improvement 2 — companies that appear across 2+ independent constraint chains."""
+    ticker_chains = defaultdict(list)
+    for chain_name, companies in supply_by_chain.items():
+        for c in companies:
+            tick = (c.get("ticker") or "").strip().upper()
+            if not tick:
+                continue
+            ticker_chains[tick].append({
+                "chain": chain_name,
+                "rank": c.get("rank_in_theme"),
+                "conviction": float(c.get("conviction_score") or c.get("relevance_score") or 0),
+            })
+    out = []
+    for ticker, chains in ticker_chains.items():
+        if len(chains) >= 2:
+            best_rank = min((c["rank"] or 99) for c in chains)
+            max_conv = max(c["conviction"] for c in chains)
+            overlap_score = round(len(chains) * max_conv, 3)
+            out.append({
+                "ticker": ticker,
+                "n_independent_chains": len(chains),
+                "overlap_score": overlap_score,
+                "best_rank_across_chains": best_rank,
+                "chains": sorted(chains, key=lambda x: (x.get("rank") or 99, -x["conviction"])),
+                "read": (
+                    "multi-chain conviction" if len(chains) >= 4 else
+                    "cross-chain corroboration" if len(chains) >= 2 else "single-chain"
+                ),
+            })
+    return sorted(out, key=lambda x: (-x["n_independent_chains"], -x["overlap_score"]))[:25]
+
+
+def generate_bear_cases(major_themes, emerging_themes, candidates, country):
+    """Improvement 5 — heuristic bear-case flags per major theme and top candidates."""
+    bears = []
+    all_themes = major_themes[:8] + [t for t in emerging_themes if t not in major_themes][:4]
+    for t in all_themes:
+        risks = []
+        stage = t.get("stage_label", "")
+        confirmed = t.get("confirmed_quarters") or 0
+        sc = t.get("supply_constraint_count") or 0
+        cos = t.get("company_count") or 0
+        delta = t.get("strength_delta_6mo")
+        name_lower = t["theme_name"].lower()
+        born = t.get("first_detected")
+
+        if stage == "Consensus" and confirmed >= 8:
+            risks.append(f"Fully priced: {confirmed} confirmed quarters at Consensus — marginal buyers shrinking, re-rating requires new catalyst")
+        if sc < 5 and cos > 20:
+            risks.append(f"Breadth without depth: only {sc} hard bottleneck signals across {cos} companies — could be narrative consensus, not physical shortage")
+        if delta is not None and -1.0 < delta < 1.0:
+            risks.append("Strength score flat for 6 months — theme may have peaked; watch for a re-ignition catalyst before adding")
+        if born and born.year == 2024 and stage == "Consensus":
+            risks.append("Born-to-crowded in <24 months — the investing window compressed; late entrants face full-priced assets")
+        if "energy" in name_lower or "power" in name_lower or "utility" in name_lower or "grid" in name_lower:
+            risks.append("Rate sensitivity: utilities are bond proxies — if long rates stay elevated, multiple compression offsets load-growth thesis")
+            risks.append("AI efficiency risk: if model training/inference efficiency improves faster than expected (Jevons paradox), power-demand projections overstated")
+            risks.append("Interconnection queue: new grid capacity can take 7-12 years to energize; near-term EPS may disappoint vs long thesis")
+        if "chip" in name_lower or "semiconductor" in name_lower or "silicon" in name_lower:
+            risks.append("Export-control two-sided: China-revenue loss (AMAT/LRCX) can outweigh domestic-capacity benefit in the near term")
+            risks.append("AI-capex reversal: if hyperscaler ROI on AI disappoints in 2026, the chip pull-forward cycle reverses sharply")
+        if "memory" in name_lower or "nand" in name_lower or "dram" in name_lower or "hbm" in name_lower:
+            risks.append("ITC NAND/DRAM investigation (30-Mar-2026): respondent outcome could create uncertainty for domestic memory names")
+            risks.append("Memory is cyclical: HBM pricing premium can compress faster than the theme cycle suggests")
+        if ("generative" in name_lower or "genai" in name_lower) and stage == "Consensus":
+            risks.append("GenAI monetisation risk: if enterprise ROI on GenAI tools disappoints, the demand signal that created this theme deflates")
+        if not risks:
+            risks.append("No dominant risk pattern detected from available heuristics — apply sector-specific diligence")
+        bears.append({
+            "theme": t["theme_name"],
+            "stage": stage,
+            "risk_count": len(risks),
+            "risks": risks,
+        })
+    return bears
+
+
+def _scoring_breakdown_in(conviction, breadth, order_book, import_sub, tech_ok=None):
+    """Improvement 3 — transparent IN scoring formula."""
+    components = {
+        "conviction_x0.45": round(0.45 * conviction, 3),
+        "breadth_x0.25": round(0.25 * breadth, 3),
+        "order_book_x0.20": 0.20 if order_book else 0.0,
+        "import_sub_x0.10": 0.10 if import_sub else 0.0,
+    }
+    fundamental = round(sum(components.values()), 3)
+    components["fundamental_score"] = fundamental
+    if tech_ok is not None:
+        multiplier = 1.15 if tech_ok else 0.85
+        components["technical_multiplier"] = multiplier
+        components["composite_score"] = round(fundamental * multiplier, 3)
+    else:
+        components["composite_score"] = fundamental
+    components["formula"] = "0.45×conviction + 0.25×breadth + 0.20×order_book + 0.10×import_sub, ×1.15 if above 200DMA and within 25% of 52w high"
+    return components
+
+
+def _scoring_breakdown_us(relevance, breadth, rank_score):
+    """Improvement 3 — transparent US scoring formula."""
+    components = {
+        "relevance_x0.40": round(0.4 * min(relevance / 100.0, 1.0), 3),
+        "theme_breadth_x0.30": round(0.3 * breadth, 3),
+        "theme_rank_x0.30": round(0.3 * rank_score, 3),
+    }
+    components["composite_score"] = round(sum(components.values()), 3)
+    components["formula"] = "0.40×(relevance/100) + 0.30×(n_themes/5) + 0.30×(1 - best_rank/30)"
+    return components
+
+
 def fetch_us_beneficiaries(cur, constraint_themes, as_of, win_start, per_theme=8):
     """US supply-side proxies: top-ranked beneficiaries of bottleneck/constraint
     themes from the theme graph (no supply-chain-node classification for US)."""
@@ -205,9 +364,10 @@ def rank_us_candidates(themes_by_name, top_n=25):
         a["themes"] = sorted(a["themes"])[:6]
         breadth = min(len(a["themes"]), 5) / 5.0
         rank_score = max(0.0, 1.0 - (a["best_rank"] / 30.0)) if a["best_rank"] < 999 else 0
-        a["fundamental_score"] = round(0.4 * min(a["max_relevance"] / 100.0, 1.0)
-                                       + 0.3 * breadth + 0.3 * rank_score, 3)
-        a["composite_score"] = a["fundamental_score"]
+        breakdown = _scoring_breakdown_us(a["max_relevance"], breadth, rank_score)
+        a["fundamental_score"] = breakdown["composite_score"]
+        a["composite_score"] = breakdown["composite_score"]
+        a["scoring_breakdown"] = breakdown          # Improvement 3
         a["technical"] = None  # no US price data in DB
     out.sort(key=lambda a: -a["composite_score"])
     return out[:top_n]
@@ -242,9 +402,10 @@ def rank_candidates(cur, supply_by_product, as_of, top_n=25):
         a["themes"] = sorted(a["themes"])[:6]
         a["types"] = sorted(a["types"])
         breadth = min(len(a["products"]), 5) / 5.0
-        a["fundamental_score"] = round(
-            0.45 * a["max_conviction"] + 0.25 * breadth
-            + (0.20 if a["order_book"] else 0) + (0.10 if a["import_sub"] else 0), 3)
+        breakdown = _scoring_breakdown_in(a["max_conviction"], breadth,
+                                          a["order_book"], a["import_sub"])
+        a["fundamental_score"] = breakdown["fundamental_score"]
+        a["scoring_breakdown"] = breakdown          # Improvement 3
     candidates.sort(key=lambda a: -a["fundamental_score"])
     candidates = candidates[:top_n * 2]
 
@@ -280,7 +441,11 @@ def rank_candidates(cur, supply_by_product, as_of, top_n=25):
         tech_ok = (a["technical"]["above_200dma"] and
                    a["technical"]["pct_from_52w_high"] is not None and
                    a["technical"]["pct_from_52w_high"] > -25)
-        a["composite_score"] = round(a["fundamental_score"] * (1.15 if tech_ok else 0.85), 3)
+        # update breakdown with tech multiplier
+        a["scoring_breakdown"] = _scoring_breakdown_in(
+            a["max_conviction"], min(len(a["products"]), 5) / 5.0,
+            a["order_book"], a["import_sub"], tech_ok=tech_ok)
+        a["composite_score"] = a["scoring_breakdown"]["composite_score"]
     for a in candidates:
         if "composite_score" not in a:
             a["composite_score"] = a["fundamental_score"]
@@ -404,10 +569,20 @@ def main():
         return
 
     major, emerging, landscape = fetch_theme_landscape(cur, as_of, args.window_months, args.country)
+
+    # Improvement 1: evidence dashboard (policy counts batch-fetched once)
+    all_themes_for_evidence = list({t["theme_id"]: t for t in major + emerging}.values())
+    policy_counts = fetch_policy_event_counts(cur, all_themes_for_evidence, as_of, args.country)
+    evidence_dashboard = build_evidence_dashboard(all_themes_for_evidence, policy_counts)
+
     if args.country == "IN":
         products, gaps, imports = fetch_constraints(cur, as_of, args.window_months)
         supply = fetch_supply_beneficiaries(cur, as_of, args.window_months)
         candidates = rank_candidates(cur, supply, as_of)
+        # Improvement 2: cross-theme overlap from IN supply chains
+        cross_theme_overlap = compute_cross_theme_overlap(supply)
+        # Improvement 5: bear cases
+        bear_cases = generate_bear_cases(major, emerging, candidates, args.country)
         us_note = None
     else:
         # beneficiaries for every major + emerging theme, PLUS any strongly
@@ -425,6 +600,10 @@ def main():
         products, gaps, imports = [], [], []
         supply = fetch_us_beneficiaries(cur, uniq[:30], as_of, win_start, per_theme=10)
         candidates = rank_us_candidates(supply, top_n=30)
+        # Improvement 2: cross-theme overlap from US theme chains
+        cross_theme_overlap = compute_cross_theme_overlap(supply)
+        # Improvement 5: bear cases
+        bear_cases = generate_bear_cases(major, emerging, candidates, args.country)
         us_note = ("US mode: constraints derived from bottleneck themes in the theme graph "
                    "(no constrained-product mapper or capacity-gap tables for US); no "
                    "technical overlay (no US price data in DB) — verify charts on "
@@ -444,6 +623,10 @@ def main():
         "import_dependencies": imports,
         "supply_side_beneficiaries": supply,
         "ranked_candidates": candidates,
+        # Improvements 1-2-3-4-5
+        "evidence_dashboard": evidence_dashboard,
+        "cross_theme_overlap": cross_theme_overlap,
+        "bear_cases": bear_cases,
         "scoring_note": ("fundamental_score = 0.45*max_conviction + 0.25*product_breadth "
                          "+ 0.20*order_book + 0.10*import_substitution; composite applies "
                          "±15% technical overlay (above 200DMA and within 25% of 52w high). "
@@ -460,6 +643,8 @@ def main():
         "major_themes": len(major), "emerging_themes": len(emerging),
         "constrained_products": len(products), "candidates": len(candidates),
         "top5_candidates": [c["ticker"] for c in candidates[:5]],
+        "cross_theme_overlap_leaders": [x["ticker"] for x in cross_theme_overlap[:5]],
+        "high_confidence_themes": [e["theme_name"][:35] for e in evidence_dashboard[:3]],
     }))
 
 
