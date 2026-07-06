@@ -183,13 +183,39 @@ def fetch_policy_event_counts(cur, themes, as_of, country):
     return counts
 
 
+def _evidence_trend(t):
+    """Is evidence for this theme accelerating, maturing, flat, or shrinking?
+
+    Uses beneficiary GROWTH RATE (new/before) as the primary signal — more
+    meaningful than the absolute strength delta, which is large for all themes.
+    """
+    new_cos = t.get("new_beneficiaries_in_window", 0)
+    before = max(1, t.get("beneficiaries_before_window", 1))
+    growth_ratio = new_cos / before
+    stage = t.get("stage_label", "")
+    delta = t.get("strength_delta_6mo")
+
+    # Genuine new themes (born recently) with strong inflow
+    if before == 1 and new_cos >= 10:
+        return "↑ Accelerating"
+    # Established themes with meaningful new additions (>20% growth)
+    if growth_ratio > 0.20:
+        return "↑ Accelerating" if stage == "Accelerating" else "↑ Growing"
+    # Slowing crowd adoption on mature themes (2-20% new)
+    if growth_ratio > 0.02:
+        return "→ Maturing"
+    # Fully saturated or slightly shrinking
+    if delta is not None and delta < -5:
+        return "↓ Fading"
+    return "→ Saturated"
+
+
 def build_evidence_dashboard(themes, policy_counts):
-    """Improvement 1 — per-theme evidence record."""
+    """Improvement 1 — per-theme evidence record with trend indicator."""
     out = []
     for t in themes:
         sc = t.get("supply_constraint_count") or 0
         confirmed = t.get("confirmed_quarters") or 0
-        # confidence heuristic: 0-100 based on bottleneck depth, confirmed quarters, strength
         confidence = min(100, round(
             (min(sc, 50) / 50.0) * 40
             + (min(confirmed, 10) / 10.0) * 30
@@ -206,42 +232,89 @@ def build_evidence_dashboard(themes, policy_counts):
             "confirmed_quarters": confirmed,
             "policy_events": policy_counts.get(t["theme_id"], 0),
             "strength_score": t.get("strength_now") or 0,
+            "strength_delta_6mo": t.get("strength_delta_6mo"),
+            "new_beneficiaries_in_window": t.get("new_beneficiaries_in_window", 0),
             "conviction_label": t.get("conviction") or "—",
             "evidence_confidence_pct": confidence,
+            "evidence_trend": _evidence_trend(t),          # NEW
         })
     return sorted(out, key=lambda x: -x["evidence_confidence_pct"])
 
 
+_SS_TYPE_SCORE = {
+    "direct_supplier": 40, "critical_supplier": 35,
+    "input_supplier": 25, "ecosystem_participant": 10,
+}
+
+
+def _supply_side_confidence(best_rank, capex_signals, n_chains, max_conv_or_rel,
+                             order_book=False, best_type_score=None):
+    """Supply-side confidence 0-100: how likely is this company actually a capacity owner?
+
+    Components:
+      Rank quality   (0-40): rank 1 in any chain = graph found it as top supply-side match
+      Capex signals  (0-15): company investing to expand capacity = supply-side behaviour
+      Chain depth    (0-20): independent chains finding the same name = corroboration
+      Conviction/rel (0-15): filing relevance weight
+      Order-book     (0-10): hard order-book evidence (IN only)
+    """
+    rank_pts = 40 if best_rank <= 1 else 30 if best_rank <= 3 else 15 if best_rank <= 5 else 5
+    capex_pts = min(15, int(capex_signals or 0) * 4)
+    chain_pts = min(20, int(n_chains or 1) * 3)
+    conv_pts = min(15, round(float(max_conv_or_rel or 0) / 100.0 * 15))
+    ob_pts = 10 if order_book else 0
+    type_pts = min(best_type_score or 0, 0)   # bonus only for IN (passed through)
+    return min(100, rank_pts + capex_pts + chain_pts + conv_pts + ob_pts)
+
+
 def compute_cross_theme_overlap(supply_by_chain):
-    """Improvement 2 — companies that appear across 2+ independent constraint chains."""
+    """Improvement 2 — companies appearing across 2+ independent constraint chains,
+    with a supply-side confidence score on each."""
     ticker_chains = defaultdict(list)
+    ticker_meta = {}   # ticker → best capex/rank across chains
     for chain_name, companies in supply_by_chain.items():
         for c in companies:
             tick = (c.get("ticker") or "").strip().upper()
             if not tick:
                 continue
+            conv = float(c.get("conviction_score") or c.get("relevance_score") or 0)
+            rank = c.get("rank_in_theme") or 99
             ticker_chains[tick].append({
                 "chain": chain_name,
-                "rank": c.get("rank_in_theme"),
-                "conviction": float(c.get("conviction_score") or c.get("relevance_score") or 0),
+                "rank": rank,
+                "conviction": conv,
             })
+            m = ticker_meta.setdefault(tick, {"best_rank": 999, "max_conv": 0,
+                                               "total_capex": 0, "order_book": False,
+                                               "best_type_score": 0})
+            m["best_rank"] = min(m["best_rank"], rank)
+            m["max_conv"] = max(m["max_conv"], conv)
+            m["total_capex"] += int(c.get("capex_signals") or 0)
+            m["order_book"] = m["order_book"] or bool(c.get("has_order_book_signals"))
+            ts = _SS_TYPE_SCORE.get(c.get("beneficiary_type") or "", 0)
+            m["best_type_score"] = max(m["best_type_score"], ts)
+
     out = []
     for ticker, chains in ticker_chains.items():
-        if len(chains) >= 2:
-            best_rank = min((c["rank"] or 99) for c in chains)
-            max_conv = max(c["conviction"] for c in chains)
-            overlap_score = round(len(chains) * max_conv, 3)
-            out.append({
-                "ticker": ticker,
-                "n_independent_chains": len(chains),
-                "overlap_score": overlap_score,
-                "best_rank_across_chains": best_rank,
-                "chains": sorted(chains, key=lambda x: (x.get("rank") or 99, -x["conviction"])),
-                "read": (
-                    "multi-chain conviction" if len(chains) >= 4 else
-                    "cross-chain corroboration" if len(chains) >= 2 else "single-chain"
-                ),
-            })
+        if len(chains) < 2:
+            continue
+        m = ticker_meta[ticker]
+        n = len(chains)
+        ss_conf = _supply_side_confidence(m["best_rank"], m["total_capex"], n,
+                                           m["max_conv"], m["order_book"])
+        overlap_score = round(n * m["max_conv"], 3)
+        out.append({
+            "ticker": ticker,
+            "n_independent_chains": n,
+            "overlap_score": overlap_score,
+            "best_rank_across_chains": m["best_rank"],
+            "supply_side_confidence_pct": ss_conf,   # NEW
+            "chains": sorted(chains, key=lambda x: (x.get("rank") or 99, -x["conviction"])),
+            "read": (
+                "multi-chain conviction" if n >= 4 else
+                "cross-chain corroboration"
+            ),
+        })
     return sorted(out, key=lambda x: (-x["n_independent_chains"], -x["overlap_score"]))[:25]
 
 
@@ -367,8 +440,12 @@ def rank_us_candidates(themes_by_name, top_n=25):
         breakdown = _scoring_breakdown_us(a["max_relevance"], breadth, rank_score)
         a["fundamental_score"] = breakdown["composite_score"]
         a["composite_score"] = breakdown["composite_score"]
-        a["scoring_breakdown"] = breakdown          # Improvement 3
-        a["technical"] = None  # no US price data in DB
+        a["scoring_breakdown"] = breakdown
+        # Supply-side confidence: how likely is this a genuine capacity owner?
+        a["supply_side_confidence_pct"] = _supply_side_confidence(
+            a["best_rank"], a["capex_signals"], len(a["themes"]),
+            a["max_relevance"])
+        a["technical"] = None
     out.sort(key=lambda a: -a["composite_score"])
     return out[:top_n]
 
@@ -388,6 +465,7 @@ def rank_candidates(cur, supply_by_product, as_of, top_n=25):
                 "ticker": tick, "company": r["company"], "products": set(),
                 "themes": set(), "max_conviction": 0.0, "order_book": False,
                 "import_sub": False, "types": set(),
+                "best_rank": 999, "total_capex": 0, "best_type_score": 0,
             })
             a["products"].add(prod)
             a["themes"].add(r["theme_name"])
@@ -395,6 +473,11 @@ def rank_candidates(cur, supply_by_product, as_of, top_n=25):
             a["order_book"] = a["order_book"] or bool(r["has_order_book_signals"])
             a["import_sub"] = a["import_sub"] or bool(r["import_substitution_play"])
             a["types"].add(r["beneficiary_type"])
+            # track for supply-side confidence
+            a["best_rank"] = min(a["best_rank"], r.get("supply_chain_stage") or 99)
+            a["total_capex"] += int(r.get("signal_count") or 0)
+            a["best_type_score"] = max(a["best_type_score"],
+                                       _SS_TYPE_SCORE.get(r.get("beneficiary_type") or "", 0))
 
     candidates = list(agg.values())
     for a in candidates:
@@ -405,7 +488,13 @@ def rank_candidates(cur, supply_by_product, as_of, top_n=25):
         breakdown = _scoring_breakdown_in(a["max_conviction"], breadth,
                                           a["order_book"], a["import_sub"])
         a["fundamental_score"] = breakdown["fundamental_score"]
-        a["scoring_breakdown"] = breakdown          # Improvement 3
+        a["scoring_breakdown"] = breakdown
+        # Supply-side confidence uses IN-specific type score + order-book bonus
+        a["supply_side_confidence_pct"] = min(100,
+            _supply_side_confidence(a["best_rank"], a["total_capex"],
+                                    len(a["products"]), a["max_conviction"] * 100,
+                                    a["order_book"])
+            + a["best_type_score"])  # type bonus stacks on top
     candidates.sort(key=lambda a: -a["fundamental_score"])
     candidates = candidates[:top_n * 2]
 
