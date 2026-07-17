@@ -124,8 +124,7 @@ pipeline as the stock-report skill). Structure:
 8. **Transparent scoring — MANDATORY (Improvement 3)** (`scoring_breakdown` on each
    candidate): when presenting the ranked-candidate table include one sentence on the
    formula: IN = "0.45×conviction + 0.25×breadth + 0.20×order_book + 0.10×import_sub,
-   × freshness multiplier — no technical term"; US = "0.40×relevance + 0.30×breadth +
-   0.30×rank". For the top 3
+   ×1.15 technical"; US = "0.40×relevance + 0.30×breadth + 0.30×rank". For the top 3
    candidates show the actual component values from scoring_breakdown — never just the
    final number. Users should never wonder why a stock ranks where it does.
 
@@ -192,84 +191,6 @@ past returns and NOT by the strength score. Grade every major/emerging theme A/B
   discard; a beneficiary list dominated by services/software names in a hardware
   constraint is an artifact).
 
-**Layer type decides the playbook (`layer_type` in `chain_capex_momentum`)** —
-grade the constraint first, then read its layer:
-- **differentiated** (CRGO, transformers, defense electronics, semis): qualification
-  barriers protect margins. Entry signal = chain capex RISING (`momentum > 0`) —
-  capacity converts to revenue at protected prices. These are the multi-year
-  compounders (CRGO cohorts: +198/+218/+252% over 2-yr holds, three years running;
-  stay in until the constraint resolves — rotating early was the historical mistake).
-- **commodity** (solar cell/module/wafer, battery cells, optical fiber, memory-type):
-  anyone can add capacity, so the constraint forms via industry capex CUTS +
-  a demand inflection — the sign INVERTS. `momentum < 0` on a crushed commodity
-  cohort = the COILING setup (solar Dec-2022 → +119% in 2023; US memory Dec-2022 →
-  flat 2023 → +238-651% in 2024-25). These are TRADES: mandatory exit trigger
-  (capacity restarts / spot-price rollover), never multi-year compounders
-  (WEBELSOLAR: +579% in 2023, −95% in 2024).
-- **service_manufacturing / epc_cyclical** (EMS, PCB, rolling stock, T&D EPC):
-  revenue rides the theme, margins are bid away — scarcity rent accrues elsewhere.
-  Never Core; Satellite only with margin evidence.
-
-**T-COIL timing sleeve (theme-entry timing, distinct from Core/Satellite):**
-eligibility = theme graded A/B (evidence); trigger = capex momentum with the
-correct sign for the layer (differentiated: rising; commodity: cutting + a named
-demand catalyst). The chain price state (`chain_technical_state`) only sizes and
-prioritizes entries — it never decides eligibility (technicals rule). The fiber
-sequence is the template: Dec-2024 de-rated but capex momentum negative → wait
-(avoided −34%); Dec-2025 momentum turns +29 → enter → +222%.
-
-**Chain-continuity alarms (`chain_continuity_alerts`) — MANDATORY check:** a chain
-whose mapping went stale (>150 days without fresh beneficiary rows) has VANISHED
-from the pipeline, not resolved. The solar lesson: solar chains had no 2023-25
-snapshots and the +579% solar year happened in the blind spot; transformer rows
-stopped after Dec-2025 the same way. For every alerted chain: state it in the
-briefing, keep its last-known grade alive, and treat it as top-priority manual
-coverage work.
-
-**Cohort de-dup (`chain_cohort_duplicates`) — MANDATORY check before counting
-confirmations:** two constrained_product labels can be the SAME underlying
-company cohort under different NLP names — proven Jul-2026: EMS/PCB/
-Semiconductor IC shared 100% identical tickers in one snapshot, and (via a
-second table) "electrical equipment: Demand Surge" turned out to be the exact
-same companies as "transformer: Demand-Supply Tension" (APARINDS, CGPOWER,
-GVT&D, KEC, TARIL — not a second discovery, one signal counted twice). Any pair
-flagged here (≥70% ticker overlap) must be MERGED before treating them as
-independent evidence for a theme, a cross-theme-overlap score, or a "multiple
-confirmations" claim.
-
-**Multi-vintage cohort durability (`chain_cohort_explosiveness`) — the
-"did this constraint actually go crazy, broadly" test.** For chains with ≥2
-years of history, this computes whether the WHOLE beneficiary cohort (not one
-lottery winner) produced a broad win (median 2yr return >50% AND ≥40% of the
-cohort >100%) at EVERY tested entry vintage, not just one lucky year.
-`durable: true` is rare and decisive — in the 2020-2026 backtest only CRGO
-Steel/Transformer passed it (every vintage: median 2yr +79% to +136%, 50-61%
-of the cohort >100%); Defense electronics decayed vintage over vintage
-(+57%→+12%→+4%) despite similar order-book/capex-signal counts, and Solar's
-3-year number collapsed between vintages (+64%→+18%) — the commodity
-round-trip signature. Weigh `durable: true` heavily toward Core; a chain that
-never passed with ≥2 vintages available is a single-cycle or decaying theme
-regardless of how good this quarter's evidence looks.
-**Anti-patterns proven NOT to discriminate — do not use these as quality
-signals**: order-book flag (saturated near 100% across almost every chain in
-recent snapshots — no longer informative); raw capex-signal COUNT compared
-across chains (Defense averaged MORE capex signals than CRGO and still
-decayed — only the momentum DIRECTION inside the correct layer type matters,
-via `chain_capex_momentum`); "scarcity ratio" of listed suppliers ÷ companies
-discussing the constraint (Defense had a smaller ratio than CRGO and still
-underperformed — mapping QUALITY, not a ratio, is what matters).
-
-**Narrow + fresh forward-discovery candidates (`narrow_fresh_candidates`) —
-review every scan.** Derived from theme breadth/stage already in the JSON:
-themes narrow enough (≤60 mapped companies) and early-stage enough (≤10
-confirmed quarters, Emerging/Accelerating/Hidden Formation) to resemble what
-CRGO Steel looked like in Dec-2020 (23-28 companies, early stage) BEFORE
-anyone had run a cohort study to notice. This is a discovery list, NOT a
-grade — a candidate here still needs the full constraint-quality grade
-(quantified gap, layer type, real vs artifact cohort) before it's investable.
-Flag the single best-fitting candidate per scan as the top manual-mapping
-priority, the same way chain_continuity_alerts flags coverage regressions.
-
 **Then, for selected themes only, two overlay checks** (they shape HOW to play it,
 not whether the constraint is real):
 - **Monetization**: WHICH value-chain layer captures the scarcity economics, and is
@@ -277,14 +198,13 @@ not whether the constraint is real):
   pure-play is analysis, not an opportunity — say so instead of force-fitting the
   nearest conglomerate. Also: does scarcity become supplier margin, or does the
   buyer/regulator cap it (regulated tariffs absorb the rent)?
-- **Chain price state (`chain_technical_state`) — POSITION SIZING ONLY, never
-  selection**: pct_above_200dma + median distance from 52-wk high across the
-  mapped cohort. This field must NEVER change a grade, a verdict, or which
-  stocks are selected — the user's standing rule is that technicals do not
-  influence selection, and the backtest agrees (above-200DMA showed no alpha
-  edge). Use it for one thing: sizing/entry notes on already-selected names
-  (DERATED cohort = full-size entries available; EXTENDED = stagger/half-size).
-  Report it as context, not as a reason.
+- **Crowdedness / timing (`chain_technical_state`)**: computed per chain —
+  pct_above_200dma + median distance from 52-wk high across the mapped cohort.
+  EXTENDED_CROWDED = constraint may be real but priced; size/timing adjusts, the
+  grade does not. **DERATED + Grade A/B constraint + evidence intact = the
+  priority setup** ("quality at a discount" — the Dec-2025 transformer pattern:
+  chain −18 to −30% off highs while order books never deteriorated). Always
+  check this field for every selected theme and say which state it is in.
 
 `theme_track_record` is CONTEXT ONLY — never a selection input. A high-quality
 constraint with poor past returns is often the early entry (the market hasn't paid
@@ -335,39 +255,6 @@ theme verdict.
 - **Beneficiary vs claimant**: a filing *mentioning* PLI ≠ *winning* an allocation.
   Read the latest_title; "approved under PLI" beats "expects to benefit from PLI".
 
-**3b-bis. Policy-explosion discovery (`policy_beneficiary_screen`) — MANDATORY
-review for India.** This is the SECOND discovery engine, independent of theme
-chains: for each scheme (PLI, KUSUM, ALMM, RDSS...) it lists companies whose OWN
-filings cite the scheme intensively, with a 12-month trend. The Dixon/PGEL/Amber
-lesson: PLI winners announced themselves in their own filings YEARS before any
-theme chain mapped them (PGEL Dec-2020, Amber Aug-2020, Dixon Apr-2021); this
-screen at Dec-2022 returned avg +87%/2yr. Review rules: (1) rising trend +
-supplier-classified industry = candidate for 3c categorization even with NO
-theme-chain membership — label archetype B (scheme-funded operating leverage,
-exit clock = scheme life); (2) winner-vs-claimant is the gate — "allocated/
-approved under" beats "expects to benefit", and mentions without order
-conversion is the GREAVESCOT trap; (3) a scheme whose whole cohort is fading =
-the scheme story is ending — exit-review any B-positions riding it.
-(3b) **Early pings (`policy_early_pings`) — watch-only radar, never a decision
-input**: names below the evidence threshold (1-3 scheme mentions) with recent
-activity, freshest first. Purpose: a Shakti-2022 (2 KUSUM docs) stays on the
-radar for the months it takes to qualify. In briefings: one compact line per
-scheme, clearly marked "below threshold". A ping graduating into the qualified
-screen IS reportable news.
-(3c) **Thin-filing enrichment**: run
-`scripts/stock_report/enrich_thin_filings.py --watchlist` (and periodically
-`--all --max-docs 500`) BEFORE the monthly scan — it extracts attachment-PDF
-text into raw_text so scheme/evidence regexes can see what cover letters hide
-(~15k thin IN docs; the reason Shakti's KUSUM attribution was invisible).
-(4) **VINTAGE RULE (walk-forward validated):** policy schemes pay like vintages.
-Years 1-3 of a scheme wave, when established manufacturers commit
-(Dixon/Amber/Havells class), returned +77%/+105%/+52% (2021/2022/2023 screen
-cohorts, 1-2yr). By the time the citing cohort is dominated by fresh IPOs and
-microcaps, the wave is late — the 2024 cohort (OLAELEC, EPACK, SADHNANIQ,
-SIGACHI class) averaged −32% the next year. Judge cohort QUALITY: established
-suppliers committing early = enter; IPO/microcap-heavy cohort = stand down,
-whatever the intensity numbers say.
-
 **3c. Per-stock categorization** — categorize the top ~15 candidates YOURSELF by
 reading the full evidence per stock — do not just relabel the formula tiers.
 
@@ -380,119 +267,26 @@ reading the full evidence per stock — do not just relabel the formula tiers.
   drawdowns live. A stock riding one fresh theme beats one riding three consensus themes.
 - **Position in the chain**: direct capacity owner > critical supplier > input
   supplier >> demand-side name that leaked into a supply theme (call these out as Avoid).
-- **Crowdedness — evidence-based only**: how long has the market known (confirmed
-  quarters, consensus freshness), how broadly is the name mapped/discussed. Price
-  action (52w-high distance, 200DMA) is NOT crowdedness evidence and must not
-  influence the category — technicals affect position sizing only.
+- **Crowdedness**: consensus freshness + extended technicals (near 52w high, far above
+  200DMA) = the market already knows. Fresh theme + base-building technicals = the
+  asymmetric setup.
 - **Governance/risk**: read the actual `risk_events` text, not just the tier. Auditor
   resignations, CIRP, SEBI actions, promoter pledge spikes = Avoid regardless of score
   (the GENSOL lesson: 0.850 composite → −95%).
 - **Cross-theme role**: is the overlap count real (structural chokepoint spanning
   independent chains) or an artifact (mapped everywhere because every filing mentions it)?
 
-**Explosion fingerprints (from the 50-100x cohort study — India, 2020-26).**
-Five repeatable, non-generic mechanisms behind every 40x+ theme/constraint name;
-check candidates against these before settling for a lesser thesis:
-1. **Mandate × approved-vendor oligopoly** (KERNEX 126x — KAVACH): regulation
-   makes a product compulsory AND certification gates the vendor list to a
-   handful. Detect: "Safety/Compliance Mandate" scheme pattern + approval
-   disclosures + short vendor list. The 10x came AFTER the first filing mention.
-2. **Sole-listed-vehicle on a scarce input** (E2E 116x — GPU cloud; XPROINDIA
-   66x — capacitor film; BORORENEW — solar glass): a demand shock or import-lock
-   on an input with exactly ONE listed pure-play. Detect: import_dependencies
-   concentration + peer/industry search returning a single listed maker →
-   listed-monopoly flag.
-3. **Formalization share-shift** (GRAVITA 46x — Battery Waste/EPR rules):
-   regulation criminalizes informal supply; organized listed players inherit
-   volumes. Detect: "EPR/Formalization" scheme pattern + recycler industry.
-4. **Micro-cap relative-capex leader inside a Grade-A complex** (PITTIENG 42x —
-   laminations; QPOWER today): capex signals every single year at tiny size, one
-   layer adjacent to the A-chain. Already covered by four-leg + relative capex —
-   extend the below-cutoff review to adjacent-layer microcaps.
-5. **Turnaround × constraint stack** (CGPOWER 41x post-fraud; JAIBALAJI,
-   V2RETAIL): control change/deleveraging INTO a binding chain — the E×A
-   archetype stack. Detect: resolution-plan/new-promoter filings + chain
-   membership.
-Anti-pattern reminders from the same screen: corporate-action data glitches
-masquerade as multibaggers (BRITANNIA "198x" = bonus artifact — verify with
-splits), and C-class round-trips look identical on the way up (WEBELSOLAR 90x
-peak → −95%).
-
-**Conviction hierarchy — the no-mediocrity rule (user standing instruction).**
-The user is here for multi-year compounders, not mediocre diversification. A
-Core Buy must satisfy ALL FOUR legs of the explosion profile:
-1. **Supplier position**: pure-play or dominant-segment supplier to a Grade-A/B+
-   constraint. Corroborate with the classification data (`industry` /
-   `industry_detail` on each candidate; e.g. "Heavy Electrical Equipment" for a
-   transformer chain). Conglomerates with diluted exposure are NEVER Core.
-   US variant: "owns OR has contractually secured" the constrained capacity —
-   US scarcity rent often accrues to fabless designers who prepay for capacity
-   (the NVDA/AVGO class fails a literal owns-capex test but passes this one).
-   US layer map must include the storage sub-layer (SIC "Computer Storage
-   Devices": WDC/STX/SNDK) alongside semis/equipment/utilities/networking —
-   it was the missed memory-squeeze cohort (+238-651% in 2024).
-2. **Own capex expansion underway** (`capex_signals` on each candidate): the
-   company is adding capacity INTO the constraint — that is the operating-leverage
-   leg that turns scarcity into an earnings explosion. High conviction + zero
-   capex signals = a price-taker, not a compounder. Judge capex intensity
-   RELATIVE to that year's scan (top quartile of the candidate list), never as
-   an absolute number — the filings corpus grows over time (21k docs/yr in
-   2020-22 vs 30k in 2025), so absolute thresholds unfairly starve early years
-   (the 2022 GENUSPOWER lesson: capex=4 looked weak, was top-half for that
-   year's evidence base, and the stock did +173%).
-3. **Multi-year runway**: the constraint's resolution clock is ≥2-3 years out
-   (qualification barriers, import-substitution horizon, capacity lead times).
-   A thesis that resolves in 1-2 quarters is a trade, not a Core Buy — park it
-   in Timing as tactical, never as a headline pick.
-4. **Earnings-explosion path visible**: order-book evidence + capacity growth
-   compounding each other (orders filling capacity as it lands). State the
-   mechanism in one line — if you cannot, it is not Core.
-Names failing any leg are at best Timing/Watch. **Prefer 1-2 exceptional names
-over five mediocre ones — an empty Core list is an acceptable output.** Entry
-triggers on Timing names are for validation; the hold thesis must still be
-multi-year or the name does not belong in the briefing at all.
-
-**Return archetype (MANDATORY on every Buy/Timing/Watch name)** — label each pick
-so the user can calibrate expectations. Derived from layer type × legs × cycle
-position × how much is already paid; bands are historical analogs, never promises:
-| Archetype | Profile | Historical analogs |
-|---|---|---|
-| **A1 Early compounder** | Differentiated, four legs, constraint young, entry unpaid — 10-40x over 3-5 yrs, hold through drawdowns | APARINDS '20 (+3,961%), POWERINDIA '20 |
-| **A2 Mid-life compounder** | Same chain, entered after the first re-rating — 2-4x over 2-3 yrs | POWERINDIA '23 (+469%), CGPOWER '26 |
-| **A3 Late compounder** | Proven but 10x+ already — 50-150%, add only on new legs | POWERINDIA '26 |
-| **B Operating-leverage burst** | Funded demand + margin inflection — 2-5x over 2-3 yrs, runway = scheme life | GENUSPOWER '21-25 (+436% 3yr) |
-| **C Cyclical squeeze (MU-class)** | Commodity coil → catalyst → parabola → give-back — 2-8x in 12-24 mo, TRADE with written exit | MU '24 (+238%), WEBELSOLAR '23 (+579% then −95%) |
-| **D Ballast compounder** | Regulated/capped rent — 30-80% multi-yr, low drawdown, portfolio floor | XEL, utility basket |
-| **E Re-rating + kicker** | Discount unwind stacked on constraint exposure — 2-3x | JCI '24-26, INTC on foundry proof |
-Expectation discipline: never sell an A-class for C-class behavior or hold a
-C-class like an A-class — most historical losses came from archetype confusion
-(holding WEBELSOLAR like a compounder; trading POWERINDIA like a cycle).
-The user-facing definition of every archetype lives in
-`data/reports/return_archetypes_reference.pdf` (+.html) — link it whenever
-archetype labels appear in a briefing or report, and keep it updated if the
-archetype set ever changes.
-
 **Output categories** (yours, not the script's):
 | Category | Meaning |
 |---|---|
-| **Core Buy** | All four explosion legs present — act now per position guidance |
-| **Timing Buy** | Thesis right but one EVIDENCE confirmation missing (order print, policy enforcement date, capacity commissioning, margin turn, external verification for unscreened names) — name the trigger. Chart position is NEVER the trigger |
+| **Core Buy** | Evidence-backed, right phase, clean risk — act now per position guidance |
+| **Timing Buy** | Thesis right but entry wrong (extended) or one confirmation missing — state exactly what you're waiting for |
 | **Watch** | Promising but thin evidence (single-signal, low theme confidence) — name the trigger that would upgrade it |
 | **Avoid** | Governance risk, consensus+crowded, demand-side leak, or noise mapping — say which |
 
 For every categorized stock give three one-liners: **Why now** (or why not),
 **What kills it** (stock-specific, from bear_cases/risk_events — not boilerplate),
 and **Conviction** (High/Medium/Low with the single strongest piece of evidence).
-
-**Triggers must be machine-checkable (MANDATORY for Timing/Watch names)**: every
-Timing Buy and Watch verdict's trigger gets an entry in
-`data/reports/trigger_watchlist_IN.json` — ticker, trigger description, a filing
-regex pattern, and an action line (what to confirm before buying). The user
-detects fires by running `scripts/stock_report/check_triggers.py [--since DATE]`,
-which scans newly ingested filings and prints FIRED (with matched filings +
-action) or quiet, checkpointing between runs. A trigger nobody can detect is not
-a trigger. Alert freshness is bounded by mg_documents ingestion freshness — say
-so when relevant.
 
 **Divergence table (MANDATORY)**: formula rank/tier vs your category, with a one-line
 reason wherever they differ. This is where the intelligence shows — a rank-9 stock on a
@@ -501,19 +295,9 @@ consensus name demoted to Watch. If you have zero divergences, you haven't analy
 you've echoed the formula; look again, especially at ranks 6-12 with fresh freshness.
 
 **Backtest priors** (weigh them, don't obey them): fresh themes outperform consensus;
-order-book evidence is the most honest signal; HIGH risk tier → out, always; hit
-rates ranged 28%-80% by year, so in weak-breadth regimes prefer fewer Core Buys over
-forced five.
-
-**Technicals rule (user standing instruction + backtest-confirmed): price action
-never influences selection.** No stock may be selected, demoted, promoted, or
-categorized because of its chart — not 200DMA position, not distance from 52-wk
-high, not 6-month return, not "broken chart" or "extended". The backtest agrees:
-above-200DMA showed NO alpha edge, and the HFCL miss (T3_Ignore at −42% from high,
-then +216%) shows chart-based demotion destroys evidence-based calls. Technicals
-appear in exactly ONE place: `position_size_guidance` (full/half sizing on
-already-selected names). If a name's only weakness is its chart, it is a Buy at
-the evidence-implied category, with sizing per guidance.
+order-book evidence is the most honest signal; above-200DMA showed NO alpha edge
+(don't reward extension); HIGH risk tier → out, always; hit rates ranged 28%-80% by
+year, so in weak-breadth regimes prefer fewer Core Buys over forced five.
 
 **Point-in-time discipline for judgment**: reason ONLY from evidence in the JSON plus
 general industry structure knowable before the as-of date. Never let knowledge of what
