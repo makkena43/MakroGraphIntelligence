@@ -10,6 +10,7 @@ interface SidebarProps {
 
 const NAV_ITEMS = [
   { id: 'pipeline',    icon: '🚀', label: 'Pipeline Runner' },
+  { id: 'trigger-watch', icon: '🔔', label: 'Trigger Watchlist' },
   { id: 'filings',     icon: '📞', label: 'Concall Analysis' },
   { id: 'themes',      icon: '🗺️',  label: 'Themes & Companies' },
   { id: 'shortlisted', icon: '⭐', label: 'Shortlisted Themes' },
