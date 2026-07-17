@@ -25,6 +25,7 @@ import HighVolumeTab from './components/tabs/HighVolumeTab'
 import DealsTab from './components/tabs/DealsTab'
 import BreakoutScannerTab from './components/tabs/BreakoutScannerTab'
 import WeeklyRitualTab from './components/tabs/WeeklyRitualTab'
+import TriggerWatchlistTab from './components/tabs/TriggerWatchlistTab'
 
 const TABS = [
   { id: 'pipeline',          label: '🚀 Pipeline Runner' },
@@ -33,6 +34,7 @@ const TABS = [
   { id: 'today',             label: '🌅 Today\'s Opportunities' },
   { id: 'breakout',          label: '🚀 Breakout Scanner' },
   { id: 'ritual',            label: '📅 Weekly Ritual' },
+  { id: 'trigger-watch',     label: '🔔 Trigger Watchlist' },
   { id: 'investable',        label: '⚡ Investable Signals' },
   { id: 'investment',        label: '🎯 Investment Shortlist' },
   { id: 'company-dive',      label: '🔍 Company Deep Dive' },
@@ -129,6 +131,7 @@ export default function App() {
           {activeTab === 'today'             && <TodaysOpportunitiesTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'breakout'          && <BreakoutScannerTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'ritual'            && <WeeklyRitualTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
+          {activeTab === 'trigger-watch'     && <TriggerWatchlistTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'investable'        && <InvestableSignalsTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'investment'        && <InvestmentShortlistTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}
           {activeTab === 'company-dive'     && <CompanyDiveTab country={country} countryFlag={countryFlag} countryLabel={countryLabel} />}

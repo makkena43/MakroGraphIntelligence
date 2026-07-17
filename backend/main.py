@@ -8343,3 +8343,58 @@ async def run_price_data(body: PriceDataRunBody):
             yield f"data: {msg}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+# ─── Selector Trigger Watchlist (Core / Timing / Watch decisions) ─────────────
+
+@app.get("/api/selector/watchlist")
+def get_selector_watchlist(country: str = "IN") -> dict:
+    """Watchlist stocks (from the stock-selector judgment reports) with each
+    stock's latest trigger-check decision."""
+    pg = get_pg()
+    if not pg:
+        return {"entries": [], "last_run": None}
+    from psycopg2.extras import RealDictCursor
+    with pg._conn() as conn:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("""
+            SELECT w.id, w.ticker, w.category, w.theme, w.trigger_desc, w.action,
+                   w.as_of_basis::text, w.active,
+                   r.run_at::text AS last_checked, r.fired AS last_fired,
+                   r.decision AS last_decision, r.matched AS last_matches
+            FROM mg_selector_watchlist w
+            LEFT JOIN LATERAL (
+                SELECT run_at, fired, decision, matched
+                FROM mg_trigger_check_runs r
+                WHERE r.ticker = w.ticker AND r.country = w.country
+                ORDER BY run_at DESC LIMIT 1
+            ) r ON TRUE
+            WHERE w.country = %s AND w.active
+            ORDER BY CASE w.category WHEN 'CORE_BUY' THEN 0 WHEN 'TIMING_BUY' THEN 1 ELSE 2 END, w.ticker
+        """, (country,))
+        entries = [dict(r) for r in cur.fetchall()]
+        cur.execute("SELECT MAX(run_at)::text AS mx FROM mg_trigger_check_runs WHERE country=%s", (country,))
+        last_run = cur.fetchone()["mx"]
+        cur.execute("SELECT MAX(filed_at)::text AS mx FROM mg_documents WHERE country=%s", (country,))
+        data_through = cur.fetchone()["mx"]
+    return {"entries": entries, "last_run": last_run, "data_through": data_through}
+
+
+class TriggerCheckRequest(BaseModel):
+    since: str | None = None   # YYYY-MM-DD; default = 30 days back
+    country: str = "IN"
+
+
+@app.post("/api/selector/check-triggers")
+def post_check_triggers(req: TriggerCheckRequest) -> dict:
+    """Run the trigger check NOW: scans filings ingested after `since` against
+    every active watchlist entry, records decisions in mg_trigger_check_runs,
+    and returns per-stock decisions as of the run date."""
+    pg = get_pg()
+    if not pg:
+        raise HTTPException(503, "Postgres unavailable")
+    sys.path.insert(0, str(ROOT / "scripts" / "stock_report"))
+    from check_triggers import run_trigger_check
+    since = req.since or (date.today() - timedelta(days=30)).isoformat()
+    with pg._conn() as conn:
+        return run_trigger_check(conn, since, req.country)

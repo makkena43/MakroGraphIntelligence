@@ -244,3 +244,10 @@ export const fetchDeals = (
   api.get('/price-data/deals', {
     params: { start_date: startDate, end_date: endDate, deal_type: dealType, exchange, symbol, limit }
   }).then(r => r.data)
+
+// ─── Selector Trigger Watchlist ──────────────────────────────────────────────
+export const fetchSelectorWatchlist = (country: string) =>
+  api.get('/selector/watchlist', { params: { country } }).then(r => r.data)
+
+export const runTriggerCheck = (country: string, since?: string) =>
+  api.post('/selector/check-triggers', { country, since }).then(r => r.data)
