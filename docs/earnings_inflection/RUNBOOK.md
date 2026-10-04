@@ -105,7 +105,7 @@ The `.json` file has the same content in machine-readable form.
 | ASSERTION_ONLY | only management's forward statements |
 | COMMITMENT_BACKED | firm or provisional orders material relative to revenue, not yet in results (the "early" route) |
 | EXECUTION_EMERGING | one quarter of material realized change |
-| EXECUTION_CONFIRMED | at least 2 consecutive quarters of material realized change |
+| EXECUTION_CONFIRMED | at least 2 consecutive periods of material realized change (quarters; half-years for half-yearly SME reporters) |
 | CONTRADICTED | missed even the latest guidance, or 2+ downward revisions without a stated reason |
 
 **Your part:**

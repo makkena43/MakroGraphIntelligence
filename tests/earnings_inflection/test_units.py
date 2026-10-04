@@ -683,3 +683,46 @@ def test_annual_only_statement():
         "Particulars Year ended", "31.03.2025 31.03.2024",
         "1. Revenue from operations 1,170.00 950.00"]))
     assert rev == {(date(2025, 3, 31), "FY"): 1170.0, (date(2024, 3, 31), "FY"): 950.0}
+
+
+# ---------------- half-yearly series ----------------
+
+def test_h2_derived_from_fy_minus_h1_and_ttm_uses_halves():
+    from makrograph.earnings_inflection.financial_series import FinancialSeries
+    rows = [_fm(Metric.REVENUE, date(2023, 9, 30), 40, ptype="H"),
+            _fm(Metric.REVENUE, date(2024, 3, 31), 100, ptype="FY"),       # H2FY24 not reported separately
+            _fm(Metric.REVENUE, date(2024, 9, 30), 70, ptype="H")]
+    s = FinancialSeries.build("T", rows)
+    h2 = s.get(Metric.REVENUE, date(2024, 3, 31), "H")
+    assert h2.value == 60 and h2.source == "derived:FY-H1"
+    assert s.cadence() == "H"
+    assert s.ttm(Metric.REVENUE, date(2024, 9, 30), "H") == (130, [])
+    assert s.yoy(Metric.REVENUE, date(2024, 9, 30), "H") == pytest.approx(75.0)
+
+
+def test_cadence_prefers_quarterly_for_mainboard_q2_statement():
+    from makrograph.earnings_inflection.financial_series import FinancialSeries
+    rows = [_fm(Metric.REVENUE, d, v) for d, v in ((date(2023, 9, 30), 100), (date(2024, 9, 30), 130))]
+    rows += [_fm(Metric.REVENUE, d, v, ptype="H") for d, v in ((date(2023, 9, 30), 190), (date(2024, 9, 30), 250))]
+    assert FinancialSeries.build("T", rows).cadence() == "Q"
+
+
+def test_cadence_after_sme_to_mainboard_migration_stays_half_yearly_until_quarters_comparable():
+    from makrograph.earnings_inflection.financial_series import FinancialSeries
+    rows = [_fm(Metric.REVENUE, d, v, ptype="H") for d, v in ((date(2023, 3, 31), 50), (date(2024, 3, 31), 70))]
+    rows += [_fm(Metric.REVENUE, date(2024, 6, 30), 40)]          # first quarterly result, no year-ago quarter
+    assert FinancialSeries.build("T", rows).cadence() == "H"
+
+
+def test_half_year_guidance_judged_on_half_year_actuals():
+    from makrograph.earnings_inflection.financial_series import FinancialSeries
+    from makrograph.earnings_inflection.guidance_ledger import build_ledger
+    g = _gev("A", 40, datetime(2024, 5, 1, tzinfo=IST), label="H1FY25")
+    rows = [_fm(Metric.REVENUE, date(2023, 9, 30), 48, ptype="H"), _fm(Metric.REVENUE, date(2024, 9, 30), 68, ptype="H")]
+    led = build_ledger([g], FinancialSeries.build("T", rows), datetime(2025, 1, 15, tzinfo=IST))
+    assert led[0].outcome == GuidanceOutcome.MET and led[0].realized_value == pytest.approx(41.67, abs=0.01)
+
+
+def test_fy_label_for_half_years():
+    from makrograph.earnings_inflection.extraction import fy_label_for
+    assert fy_label_for(date(2024, 9, 30), "H") == "H1FY25" and fy_label_for(date(2025, 3, 31), "H") == "H2FY25"

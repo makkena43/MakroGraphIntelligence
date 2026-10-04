@@ -15,6 +15,11 @@
    "industry": "Capital Goods",
    "series": "EQ"
   },
+  "SMEFAB": {
+   "name": "Small Fab Engineering Limited",
+   "industry": "Industrial Machinery",
+   "series": "SM"
+  },
   "SAMPLEBANK": {
    "name": "Sample Cooperative Bank Limited",
    "industry": "Private Sector Bank",
@@ -214,6 +219,38 @@
    "title": "Financial Results",
    "published_at": "2024-05-28T16:00:00+05:30",
    "text": "CONTRA INDUSTRIES LIMITED\nStatement of Consolidated Unaudited Financial Results for the quarter ended 31 March, 2024\n(Rs. in crore)\nParticulars                          Quarter ended                      Year ended\n                          31.03.2024   31.12.2023   31.03.2023   31.03.2024   31.03.2023\n                          Unaudited    Unaudited    Unaudited    Audited\n1. Revenue from operations          320.00   315.00   300.00   1,260.00   1,200.00\n2. Other income                     2.00   2.00   2.00   8.00   8.00\n4. Total expenses                   296.00   291.50   278.00   1,166.00   1,112.00\n   Depreciation and amortisation    5.00   5.00   5.00   20.00   20.00\n   Finance costs                    3.00   3.00   3.00   12.00   12.00\n5. Profit before tax                26.00   25.50   24.00   102.00   96.00\n6. Tax expense                      6.50   6.38   6.00   25.50   24.00\n7. Profit for the period            19.50   19.12   18.00   76.50   72.00\n   - Owners of the Company          18.52   18.17   17.10   72.68   68.40\n8. Earnings per share (face value Rs 10 each)\n   (a) Basic                        1.23   1.21   1.14   4.84   4.56\n   (b) Diluted                      1.23   1.21   1.14   4.84   4.56\n\nNotes: Previous period figures have been regrouped wherever necessary."
+  },
+  {
+   "doc_id": "SME-R-2023-09-30",
+   "ticker": "SMEFAB",
+   "source_name": "nse",
+   "title": "Half yearly financial results",
+   "published_at": "2023-11-14T18:00:00+05:30",
+   "text": "SMALL FAB ENGINEERING LIMITED\nStatement of Standalone Financial Results for the half year ended 30 September, 2023\n(Rs. in lakhs)\nParticulars Half year ended Year ended\n30.09.2023 31.03.2023 30.09.2022 31.03.2023\n1. Revenue from operations 4,800.00 4,500.00 4,000.00 8,500.00\n2. Other income 20.00 20.00 20.00 40.00\n4. Total expenses 4,422.00 4,200.00 3,750.00 7,950.00\nDepreciation and amortisation expense 100.00 100.00 100.00 200.00\nFinance costs 50.00 50.00 50.00 100.00\n5. Profit before tax 398.00 320.00 270.00 590.00\n6. Tax expense 99.50 80.00 67.50 147.50\n7. Profit for the period 298.50 240.00 202.50 442.50\n8. Earnings per share (face value Rs 10 each)\n(a) Basic 1.49 1.20 1.01 2.21\n(b) Diluted 1.49 1.20 1.01 2.21"
+  },
+  {
+   "doc_id": "SME-R-2024-03-31",
+   "ticker": "SMEFAB",
+   "source_name": "nse",
+   "title": "Half yearly financial results",
+   "published_at": "2024-05-28T18:00:00+05:30",
+   "text": "SMALL FAB ENGINEERING LIMITED\nStatement of Standalone Financial Results for the half year and year ended 31 March, 2024\n(Rs. in lakhs)\nParticulars Half year ended Year ended\n31.03.2024 30.09.2023 31.03.2023 31.03.2024 31.03.2023\n1. Revenue from operations 6,000.00 4,800.00 4,500.00 10,800.00 8,500.00\n2. Other income 20.00 20.00 20.00 40.00 40.00\n4. Total expenses 5,370.00 4,422.00 4,200.00 9,792.00 7,950.00\nDepreciation and amortisation expense 100.00 100.00 100.00 200.00 200.00\nFinance costs 50.00 50.00 50.00 100.00 100.00\n5. Profit before tax 650.00 398.00 320.00 1,048.00 590.00\n6. Tax expense 162.50 99.50 80.00 262.00 147.50\n7. Profit for the period 487.50 298.50 240.00 786.00 442.50\n8. Earnings per share (face value Rs 10 each)\n(a) Basic 2.44 1.49 1.20 3.93 2.21\n(b) Diluted 2.44 1.49 1.20 3.93 2.21"
+  },
+  {
+   "doc_id": "SME-R-2024-09-30",
+   "ticker": "SMEFAB",
+   "source_name": "nse",
+   "title": "Half yearly financial results",
+   "published_at": "2024-11-12T18:00:00+05:30",
+   "text": "SMALL FAB ENGINEERING LIMITED\nStatement of Standalone Financial Results for the half year ended 30 September, 2024\n(Rs. in lakhs)\nParticulars Half year ended Year ended\n30.09.2024 31.03.2024 30.09.2023 31.03.2024\n1. Revenue from operations 6,800.00 6,000.00 4,800.00 10,800.00\n2. Other income 20.00 20.00 20.00 40.00\n4. Total expenses 5,930.00 5,370.00 4,422.00 9,792.00\nDepreciation and amortisation expense 100.00 100.00 100.00 200.00\nFinance costs 50.00 50.00 50.00 100.00\n5. Profit before tax 890.00 650.00 398.00 1,048.00\n6. Tax expense 222.50 162.50 99.50 262.00\n7. Profit for the period 667.50 487.50 298.50 786.00\n8. Earnings per share (face value Rs 10 each)\n(a) Basic 3.34 2.44 1.49 3.93\n(b) Diluted 3.34 2.44 1.49 3.93"
+  },
+  {
+   "doc_id": "SME-PR-1",
+   "ticker": "SMEFAB",
+   "source_name": "nse",
+   "title": "Press release",
+   "published_at": "2024-06-05T10:00:00+05:30",
+   "text": "Small Fab Engineering Limited has received a purchase order worth Rs 35 crore from Eastern Rail Systems Limited for fabricated bogie frames. We expect revenue growth of 30% in FY25."
   },
   {
    "doc_id": "BANK-R-1",

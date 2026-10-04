@@ -158,8 +158,9 @@ class EarningsInflectionPipeline:
 
         # 5. series, drivers, ledger, counterparties, bridge
         series = FinancialSeries.build(ticker, measurements)
-        end = series.latest_quarter()
-        ttm_rev = series.ttm(Metric.REVENUE, end)[0] if end else None
+        cadence = series.cadence()
+        end = series.latest_period(Metric.REVENUE, cadence) if cadence else None
+        ttm_rev = series.ttm(Metric.REVENUE, end, cadence)[0] if end else None
         drivers, missing = compute_drivers(series, events, evidence, issuer_model, as_of.date(),
                                            self.cfg.get("thresholds"))
         commentary_times = [d.available_at for d in docs if d.kind in (
@@ -198,8 +199,13 @@ class EarningsInflectionPipeline:
         lim = limitations_for(issuer_model, identity_basis, coverage)
         lim += [f"Revised figures: {n}" for n in series.lineage_notes]
         lim += [f"Data issue: {i}" for i in issues if "unit line" in i or "excluded" in i][:10]
+        if cadence == "H":
+            lim.append("Half-yearly reporter: growth, margin and TTM use half-years (TTM = last two halves). "
+                       "Changes surface up to six months later than for quarterly reporters, and two "
+                       "consecutive half-years span a full year of evidence.")
         if segment == ListingSegment.SME:
-            lim.append("SME-listed issuer: half-yearly reporting and thinner disclosure; quarterly drivers may be absent.")
+            lim.append("SME-listed issuer: thinner disclosure (often no earnings call or presentation); "
+                       "verify figures against the filed statement.")
         if llm_rejected:
             lim.append(f"{len(llm_rejected)} LLM-extracted item(s) rejected by validation.")
 
@@ -208,6 +214,7 @@ class EarningsInflectionPipeline:
         coverage["evidence_rejected"] = len(unusable)
         coverage["financial_rows"] = len(measurements)
         coverage["series_scope"] = series.scope.value
+        coverage["reporting_cadence"] = {"Q": "quarterly", "H": "half-yearly"}.get(cadence or "", "none")
         coverage["order_mentions"] = sum(1 for e in evidence if e.usable and e.metric.value == "order_win")
         coverage["economic_events_after_dedup"] = len(events)
 

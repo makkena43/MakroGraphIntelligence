@@ -8,7 +8,8 @@ The evidence status ladder (weakest to strongest):
   COMMITMENT_BACKED      - binding/provisional commercial commitments material
                            relative to revenue, not yet visible in results
   EXECUTION_EMERGING     - one quarter of material realized change
-  EXECUTION_CONFIRMED    - >= 2 consecutive quarters of material realized change
+  EXECUTION_CONFIRMED    - >= 2 consecutive periods (quarters, or half-years for
+                           half-yearly SME reporters) of material realized change
                            (no guidance required: silent management can qualify)
   CONTRADICTED           - the company missed even its latest stated guidance, or
                            made >= 2 downward revisions/withdrawals with no stated
@@ -65,7 +66,7 @@ def decide_status(drivers: list[DriverChange], events: list[EconomicEvent], evid
             why.append(f"note: {g.metric.value} {g.target_period_label} guidance was revised down "
                        f"(not treated as contradiction; see guidance flags)")
 
-    streak = _driver(drivers, "material_growth_streak_quarters")
+    streak = _driver(drivers, "material_growth_streak")
     margin = _driver(drivers, "ebitda_margin_change")
     accel = _driver(drivers, "revenue_growth_acceleration")
     material_realized = [d for d in drivers if d.material and d.driver in
@@ -76,12 +77,12 @@ def decide_status(drivers: list[DriverChange], events: list[EconomicEvent], evid
         why.append(f"EBITDA margin contracted {margin.change:.0f} bps YoY")
 
     if streak and streak.current and streak.current >= 2 and material_realized:
-        why.append(f"{int(streak.current)} consecutive quarters of material revenue growth")
+        why.append(f"{int(streak.current)} consecutive {streak.unit} of material revenue growth")
         why += [f"{d.driver}: {d.change:.1f} {d.unit}" for d in material_realized if d.change is not None]
         return EvidenceStatus.EXECUTION_CONFIRMED, why
     if material_realized:
         why += [f"{d.driver}: {d.change:.1f} {d.unit}" for d in material_realized if d.change is not None]
-        why.append("single quarter so far; persistence unproven")
+        why.append(f"single {streak.unit.rstrip('s') if streak else 'period'} so far; persistence unproven")
         return EvidenceStatus.EXECUTION_EMERGING, why
 
     firm = [e for e in events if e.commitment_strength in (CommitmentStrength.BINDING, CommitmentStrength.PROVISIONAL)]
@@ -117,9 +118,15 @@ def what_changed(drivers, events, guidance, evidence, first_public: dict[str, da
         if d.material:
             when = min((first_public[x] for x in d.source_doc_ids if x in first_public), default=None)
             prior = f"{d.prior:.2f}" if d.prior is not None else "-"
+            if d.unit == "bps" and d.current is not None and d.change is not None:
+                # levels are percentages; the change is in basis points
+                text = f"{d.driver}: {prior}% -> {d.current:.2f}% ({d.change:+.0f} bps; {d.basis})"
+            elif d.current is not None:
+                text = f"{d.driver}: {prior} -> {d.current:.2f} {d.unit} ({d.basis})"
+            else:
+                text = d.driver
             out.append(ChangeFinding(
-                what=f"{d.driver}: {prior} -> {d.current:.2f} {d.unit} ({d.basis})"
-                if d.current is not None else d.driver,
+                what=text,
                 business="company-level (series scope)" if d.period_end else "as stated in source",
                 first_public_at=when, tier=EvidenceTier.REALIZED_EXECUTION
                 if d.driver not in ("disclosed_order_inflow_to_ttm_revenue", "order_book_cover", "capacity_utilization_change")
@@ -193,7 +200,9 @@ def next_checks(drivers, events, guidance, missing, status: EvidenceStatus) -> l
         elif e.commitment_strength == CommitmentStrength.BINDING:
             checks.append(f"Track execution of {e.counterparty or 'unnamed'} order in segment revenue / order book")
     if status in (EvidenceStatus.EXECUTION_EMERGING, EvidenceStatus.COMMITMENT_BACKED):
-        checks.append("Next quarterly results: does the change persist for a second consecutive quarter?")
+        unit = next((d.unit.rstrip("s") for d in drivers if d.driver == "material_growth_streak"), "quarter")
+        checks.append(f"Next {'half-yearly' if unit == 'half-year' else 'quarterly'} results: "
+                      f"does the change persist for a second consecutive {unit}?")
     m = _driver(drivers, "ebitda_margin_change")
     if m and m.material and m.change and m.change > 0:
         checks.append("Check whether margin gain is mix/operating leverage vs one-off (raw material, other income, provisions)")

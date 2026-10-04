@@ -199,3 +199,27 @@ def test_pdfplumber_style_company_produces_series_and_bridge(run_oct24):
     assert a.coverage["financial_rows"] > 50
     assert a.scenario_status == ScenarioStatus.COMPUTED_ASSUMPTION_BASED
     assert any(d.driver == "revenue_yoy_growth" for d in a.drivers)
+
+
+# ---------------- SME half-yearly reporting ----------------
+
+def test_sme_half_yearly_company_end_to_end(run_oct24, repo):
+    from makrograph.earnings_inflection.pipeline import EarningsInflectionPipeline
+    a = EarningsInflectionPipeline({}, repo).run(["SMEFAB"], "2024-12-31").assessments[0]
+    assert a.listing_segment.value == "sme"
+    assert a.coverage["reporting_cadence"] == "half-yearly"
+    assert a.evidence_status == EvidenceStatus.EXECUTION_CONFIRMED
+    streak = next(d for d in a.drivers if d.driver == "material_growth_streak")
+    assert streak.current == 2 and streak.unit == "half-years"
+    base = next(s for s in a.bridge.scenarios if s.name == "trailing_run_rate")
+    assert base.revenue_crore == 60 + 68                 # two halves, not 68 x 2
+    assert a.bridge.base_period_label == "TTM to H1FY25"
+    assert any("Half-yearly reporter" in l for l in a.limitations)
+
+
+def test_sme_point_in_time_before_latest_half(repo):
+    from makrograph.earnings_inflection.pipeline import EarningsInflectionPipeline
+    a = EarningsInflectionPipeline({}, repo).run(["SMEFAB"], "2024-11-01").assessments[0]
+    # only H2FY24 (+33% YoY) is public; H1FY24 was +20%, so persistence is not yet shown
+    assert a.evidence_status == EvidenceStatus.EXECUTION_EMERGING
+    assert any("half-year so far" in w for w in a.status_rationale)

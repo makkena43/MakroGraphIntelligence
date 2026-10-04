@@ -52,7 +52,7 @@ Legend: ✅ happening · 🟡 partly · ❌ not built · ⛔ deliberately exclud
 | Route | Status | Notes |
 |---|---|---|
 | Early inflection: customer commitment + executable capacity + unit economics + funding | 🟡 | `COMMITMENT_BACKED` requires deduplicated firm or provisional orders that are material against TTM revenue. **Capacity, unit economics and funding sufficiency aren't checked.** |
-| Confirmed acceleration: volume/mix, normalised margins, cash conversion | 🟡 | `EXECUTION_EMERGING` / `EXECUTION_CONFIRMED` use revenue growth, EBITDA margin and PAT, with persistence over at least 2 quarters. No volume, mix or cash conversion. |
+| Confirmed acceleration: volume/mix, normalised margins, cash conversion | 🟡 | `EXECUTION_EMERGING` / `EXECUTION_CONFIRMED` use revenue growth, EBITDA margin and PAT, with persistence over at least 2 consecutive periods (quarters, or half-years for SME half-yearly reporters). No volume, mix or cash conversion. |
 | No "every metric must improve" rule | ✅ | Any material realized driver qualifies. Management that gives no guidance can still reach `EXECUTION_CONFIRMED`. |
 | Missing information stays unverified | ✅ | `INSUFFICIENT_EVIDENCE` / `NOT_COMPUTED_MISSING_INPUTS`. Nothing is estimated when an input is missing. |
 
