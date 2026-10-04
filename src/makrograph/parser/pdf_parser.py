@@ -7,6 +7,23 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+# Page separator written into extracted text.  The form feed lets downstream
+# readers recover page numbers for source citations; the
+# surrounding newlines mean TextNormalizer, which strips control characters,
+# still sees the paragraph break ("\n\n") that pages were joined with before.
+PAGE_SEPARATOR = "\n\f\n"
+
+
+def _join_pages(pages_text: list[str]) -> str:
+    """Join per-page text, keeping blank pages so page numbering stays aligned.
+
+    Returns "" when no page yielded text (scanned/image-only PDFs), so callers
+    that test ``if not text`` keep treating those documents as unsupported.
+    """
+    if not any(p.strip() for p in pages_text):
+        return ""
+    return PAGE_SEPARATOR.join(pages_text)
+
 
 @dataclass
 class ParseResult:
@@ -102,8 +119,7 @@ class PDFParser:
                         break
 
                     text = page.extract_text()
-                    if text:
-                        pages_text.append(text)
+                    pages_text.append(text or "")
 
                     if self.extract_tables:
                         page_tables = page.extract_tables()
@@ -114,7 +130,7 @@ class PDFParser:
                                     "data": table,
                                 })
 
-            result.text = "\n\n".join(pages_text)
+            result.text = _join_pages(pages_text)
             result.tables = tables
 
         except Exception as e:
@@ -142,10 +158,9 @@ class PDFParser:
                 if i >= self.max_pages:
                     break
                 text = page.get_text("text")
-                if text.strip():
-                    pages_text.append(text)
+                pages_text.append(text or "")
 
-            result.text = "\n\n".join(pages_text)
+            result.text = _join_pages(pages_text)
             doc.close()
 
         except Exception as e:

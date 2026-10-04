@@ -1,0 +1,227 @@
+{
+ "issuers": {
+  "ACMEGRID": {
+   "name": "Acme Grid Equipment Limited",
+   "industry": "Electrical Equipment",
+   "series": "EQ"
+  },
+  "PLAINCO": {
+   "name": "Plain Components Limited",
+   "industry": "Auto Components",
+   "series": "EQ"
+  },
+  "CONTRACO": {
+   "name": "Contra Industries Limited",
+   "industry": "Capital Goods",
+   "series": "EQ"
+  },
+  "SAMPLEBANK": {
+   "name": "Sample Cooperative Bank Limited",
+   "industry": "Private Sector Bank",
+   "series": "EQ"
+  }
+ },
+ "documents": [
+  {
+   "doc_id": "ACME-R-2023-06-30",
+   "ticker": "ACMEGRID",
+   "source_name": "nse",
+   "doc_type": "announcement",
+   "filing_type": "Financial Results",
+   "title": "Financial results for quarter ended 2023-06-30",
+   "company": "Acme Grid Equipment Limited",
+   "published_at": "2023-08-09T16:30:00+05:30",
+   "text": "ACME GRID EQUIPMENT LIMITED\nStatement of Consolidated Unaudited Financial Results for the quarter ended 30 June, 2023\n(Rs. in crore)\nParticulars                          Quarter ended                      Year ended\n                          30.06.2023   31.03.2023   30.06.2022   31.03.2023\n                          Unaudited    Unaudited    Unaudited    Audited\n1. Revenue from operations          115.00   120.00   100.00   435.00\n2. Other income                     2.00   2.00   2.00   8.00\n4. Total expenses                   109.20   113.60   97.00   417.40\n   Depreciation and amortisation    5.00   5.00   5.00   20.00\n   Finance costs                    3.00   3.00   3.00   12.00\n5. Profit before tax                7.80   8.40   5.00   25.60\n6. Tax expense                      1.95   2.10   1.25   6.40\n7. Profit for the period            5.85   6.30   3.75   19.20\n   - Owners of the Company          5.56   5.99   3.56   18.24\n8. Earnings per share (face value Rs 10 each)\n   (a) Basic                        0.56   0.60   0.36   1.82\n   (b) Diluted                      0.56   0.60   0.36   1.82\n\nNotes: Previous period figures have been regrouped wherever necessary."
+  },
+  {
+   "doc_id": "ACME-R-2023-09-30",
+   "ticker": "ACMEGRID",
+   "source_name": "nse",
+   "doc_type": "announcement",
+   "filing_type": "Financial Results",
+   "title": "Financial results for quarter ended 2023-09-30",
+   "company": "Acme Grid Equipment Limited",
+   "published_at": "2023-11-08T16:30:00+05:30",
+   "text": "ACME GRID EQUIPMENT LIMITED\nStatement of Consolidated Unaudited Financial Results for the quarter ended 30 September, 2023\n(Rs. in crore)\nParticulars                          Quarter ended                      Year ended\n                          30.09.2023   30.06.2023   30.09.2022   31.03.2023\n                          Unaudited    Unaudited    Unaudited    Audited\n1. Revenue from operations          125.00   115.00   105.00   435.00\n2. Other income                     2.00   2.00   2.00   8.00\n4. Total expenses                   117.38   109.20   101.45   417.40\n   Depreciation and amortisation    5.00   5.00   5.00   20.00\n   Finance costs                    3.00   3.00   3.00   12.00\n5. Profit before tax                9.62   7.80   5.55   25.60\n6. Tax expense                      2.41   1.95   1.39   6.40\n7. Profit for the period            7.22   5.85   4.16   19.20\n   - Owners of the Company          6.86   5.56   3.95   18.24\n8. Earnings per share (face value Rs 10 each)\n   (a) Basic                        0.69   0.56   0.40   1.82\n   (b) Diluted                      0.69   0.56   0.40   1.82\n\nNotes: Previous period figures have been regrouped wherever necessary."
+  },
+  {
+   "doc_id": "ACME-R-2023-12-31",
+   "ticker": "ACMEGRID",
+   "source_name": "nse",
+   "doc_type": "announcement",
+   "filing_type": "Financial Results",
+   "title": "Financial results for quarter ended 2023-12-31",
+   "company": "Acme Grid Equipment Limited",
+   "published_at": "2024-02-07T16:30:00+05:30",
+   "text": "ACME GRID EQUIPMENT LIMITED\nStatement of Consolidated Unaudited Financial Results for the quarter ended 31 December, 2023\n(Rs. in crore)\nParticulars                          Quarter ended                      Year ended\n                          31.12.2023   30.09.2023   31.12.2022   31.03.2023\n                          Unaudited    Unaudited    Unaudited    Audited\n1. Revenue from operations          135.00   125.00   110.00   435.00\n2. Other income                     2.00   2.00   2.00   8.00\n4. Total expenses                   125.45   117.38   105.35   417.40\n   Depreciation and amortisation    5.00   5.00   5.00   20.00\n   Finance costs                    3.00   3.00   3.00   12.00\n5. Profit before tax                11.55   9.62   6.65   25.60\n6. Tax expense                      2.89   2.41   1.66   6.40\n7. Profit for the period            8.66   7.22   4.99   19.20\n   - Owners of the Company          8.23   6.86   4.74   18.24\n8. Earnings per share (face value Rs 10 each)\n   (a) Basic                        0.82   0.69   0.47   1.82\n   (b) Diluted                      0.82   0.69   0.47   1.82\n\nNotes: Previous period figures have been regrouped wherever necessary."
+  },
+  {
+   "doc_id": "ACME-R-2024-03-31",
+   "ticker": "ACMEGRID",
+   "source_name": "nse",
+   "doc_type": "announcement",
+   "filing_type": "Financial Results",
+   "title": "Financial results for quarter ended 2024-03-31",
+   "company": "Acme Grid Equipment Limited",
+   "published_at": "2024-05-15T17:10:00+05:30",
+   "text": "ACME GRID EQUIPMENT LIMITED\nStatement of Consolidated Unaudited Financial Results for the quarter ended 31 March, 2024\n(Rs. in crore)\nParticulars                          Quarter ended                      Year ended\n                          31.03.2024   31.12.2023   31.03.2023   31.03.2024   31.03.2023\n                          Unaudited    Unaudited    Unaudited    Audited\n1. Revenue from operations          160.00   135.00   120.00   535.00   435.00\n2. Other income                     2.00   2.00   2.00   8.00   8.00\n4. Total expenses                   144.00   125.45   113.60   496.02   417.40\n   Depreciation and amortisation    5.00   5.00   5.00   20.00   20.00\n   Finance costs                    3.00   3.00   3.00   12.00   12.00\n5. Profit before tax                18.00   11.55   8.40   46.97   25.60\n6. Tax expense                      4.50   2.89   2.10   11.74   6.40\n7. Profit for the period            13.50   8.66   6.30   35.23   19.20\n   - Owners of the Company          12.82   8.23   5.99   33.47   18.24\n8. Earnings per share (face value Rs 10 each)\n   (a) Basic                        1.28   0.82   0.60   3.35   1.82\n   (b) Diluted                      1.28   0.82   0.60   3.35   1.82\n\nNotes: Previous period figures have been regrouped wherever necessary."
+  },
+  {
+   "doc_id": "ACME-R-2024-06-30",
+   "ticker": "ACMEGRID",
+   "source_name": "nse",
+   "doc_type": "announcement",
+   "filing_type": "Financial Results",
+   "title": "Financial results for quarter ended 2024-06-30",
+   "company": "Acme Grid Equipment Limited",
+   "published_at": "2024-08-08T17:45:00+05:30",
+   "text": "ACME GRID EQUIPMENT LIMITED\nStatement of Consolidated Unaudited Financial Results for the quarter ended 30 June, 2024\n(Rs. in crore)\nParticulars                          Quarter ended                      Year ended\n                          30.06.2024   31.03.2024   30.06.2023   31.03.2024\n                          Unaudited    Unaudited    Unaudited    Audited\n1. Revenue from operations          165.00   160.00   115.00   535.00\n2. Other income                     2.00   2.00   2.00   8.00\n4. Total expenses                   146.60   144.00   109.20   496.02\n   Depreciation and amortisation    5.00   5.00   5.00   20.00\n   Finance costs                    3.00   3.00   3.00   12.00\n5. Profit before tax                20.40   18.00   7.80   46.97\n6. Tax expense                      5.10   4.50   1.95   11.74\n7. Profit for the period            15.30   13.50   5.85   35.23\n   - Owners of the Company          14.54   12.82   5.56   33.47\n8. Earnings per share (face value Rs 10 each)\n   (a) Basic                        1.45   1.28   0.56   3.35\n   (b) Diluted                      1.45   1.28   0.56   3.35\n\nNotes: Previous period figures have been regrouped wherever necessary."
+  },
+  {
+   "doc_id": "ACME-R-2024-09-30",
+   "ticker": "ACMEGRID",
+   "source_name": "nse",
+   "doc_type": "announcement",
+   "filing_type": "Financial Results",
+   "title": "Financial results for quarter ended 2024-09-30",
+   "company": "Acme Grid Equipment Limited",
+   "published_at": "2024-11-10T18:00:00+05:30",
+   "text": "ACME GRID EQUIPMENT LIMITED\nStatement of Consolidated Unaudited Financial Results for the quarter ended 30 September, 2024\n(Rs. in crore)\nParticulars                          Quarter ended                      Year ended\n                          30.09.2024   30.06.2024   30.09.2023   31.03.2024\n                          Unaudited    Unaudited    Unaudited    Audited\n1. Revenue from operations          190.00   165.00   125.00   535.00\n2. Other income                     2.00   2.00   2.00   8.00\n4. Total expenses                   165.70   146.60   117.38   496.02\n   Depreciation and amortisation    5.00   5.00   5.00   20.00\n   Finance costs                    3.00   3.00   3.00   12.00\n5. Profit before tax                26.30   20.40   9.62   46.97\n6. Tax expense                      6.58   5.10   2.41   11.74\n7. Profit for the period            19.73   15.30   7.22   35.23\n   - Owners of the Company          18.74   14.54   6.86   33.47\n8. Earnings per share (face value Rs 10 each)\n   (a) Basic                        1.87   1.45   0.69   3.35\n   (b) Diluted                      1.87   1.45   0.69   3.35\n\nNotes: Previous period figures have been regrouped wherever necessary."
+  },
+  {
+   "doc_id": "ACME-ORD-1",
+   "ticker": "ACMEGRID",
+   "source_name": "bse",
+   "doc_type": "announcement",
+   "filing_type": "order_win",
+   "title": "Intimation of receipt of order",
+   "published_at": "2024-02-10T11:05:00+05:30",
+   "text": "Sub: Intimation of receipt of order\n\nWe wish to inform that Acme Grid Equipment Limited has received a purchase order worth Rs 450 crore from Northern Grid Corporation Limited for supply of 220 kV power transformers in the transmission segment. The order is to be executed over 18 months."
+  },
+  {
+   "doc_id": "ACME-INV-1",
+   "ticker": "ACMEGRID",
+   "source_name": "nse",
+   "doc_type": "announcement",
+   "filing_type": "Analysts/Institutional Investor Meet/Con. Call Updates",
+   "title": "Earnings conference call transcript Q4FY24",
+   "published_at": "2024-05-10T10:00:00+05:30",
+   "text": "Acme Grid Equipment Limited invites you to its Q4 FY24 earnings conference call on May 20, 2024 at 4:00 PM IST. Universal access number: +91 22 0000 0000. Pre-registration via DiamondPass is available."
+  },
+  {
+   "doc_id": "ACME-TR-Q4FY24",
+   "ticker": "ACMEGRID",
+   "source_name": "nse",
+   "doc_type": "announcement",
+   "filing_type": "Transcript",
+   "title": "Transcript of earnings call",
+   "published_at": "2024-05-24T19:00:00+05:30",
+   "text": "Moderator: Ladies and gentlemen, good day and welcome to the Q4 FY24 earnings conference call of Acme Grid Equipment Limited.\nRavi Kumar: Thank you. FY24 was a strong year for us.\nRavi Kumar: During the quarter we received a purchase order worth Rs 450 crore from Northern Grid Corporation Limited for 220 kV transformers.\nRavi Kumar: Our order book stands at Rs 1,400 crore as of March 31, 2024.\nRavi Kumar: Capacity utilisation was 82% in FY24.\nRavi Kumar: We expect revenue growth of 25-30% in FY25.\nRavi Kumar: We expect EBITDA margin of 15-16% in FY25.\nRavi Kumar: We plan capex of Rs 120 crore over FY25 and FY26, funded through internal accruals.\nModerator: Thank you. The first question is from Anil of Sample Securities.\nAnil: Is there any pricing pressure?\nRavi Kumar: We do not expect any material pricing pressure this year.\nModerator: That was the last question. I now hand the conference over to the management."
+  },
+  {
+   "doc_id": "ACME-ORD-2",
+   "ticker": "ACMEGRID",
+   "source_name": "bse",
+   "doc_type": "announcement",
+   "filing_type": "order_win",
+   "title": "Receipt of repeat order",
+   "published_at": "2024-06-15T12:00:00+05:30",
+   "text": "Acme Grid Equipment Limited has received a repeat purchase order worth Rs 450 crore from Northern Grid Corporation Limited for 400 kV transformers."
+  },
+  {
+   "doc_id": "ACME-TR-Q1FY25",
+   "ticker": "ACMEGRID",
+   "source_name": "nse",
+   "doc_type": "announcement",
+   "filing_type": "Transcript",
+   "title": "Transcript Q1FY25",
+   "published_at": "2024-08-16T19:00:00+05:30",
+   "text": "Moderator: Ladies and gentlemen, welcome to the Q1 FY25 earnings call of Acme Grid Equipment Limited.\nRavi Kumar: In June we received a repeat purchase order worth Rs 450 crore from Northern Grid Corporation Limited.\nRavi Kumar: We have also received a letter of intent for Rs 200 crore from a leading European OEM.\nRavi Kumar: Capacity utilisation was 93% in Q1FY25.\nRavi Kumar: We reiterate that we expect revenue growth of 25-30% in FY25.\nModerator: The first question is from Meera of Example Capital.\nMeera: How is working capital?\nRavi Kumar: Working capital is stretched due to advance-free orders but cash from operations remained positive.\nModerator: Thank you. I now hand the conference over to the management."
+  },
+  {
+   "doc_id": "ACME-NO-TIME",
+   "ticker": "ACMEGRID",
+   "source_name": "bse",
+   "doc_type": "announcement",
+   "title": "Undated disclosure",
+   "text": "Acme Grid Equipment Limited received an order worth Rs 900 crore."
+  },
+  {
+   "doc_id": "PLAIN-R-2023-06-30",
+   "ticker": "PLAINCO",
+   "source_name": "bse",
+   "doc_type": "announcement",
+   "title": "Outcome of board meeting - results",
+   "text": "PLAIN COMPONENTS LIMITED\nStatement of Consolidated Unaudited Financial Results for the quarter ended 30 June, 2023\n(Rs. in crore)\nParticulars Quarter ended Year ended\n30.06.2023 31.03.2023 30.06.2022 31.03.2023\nUnaudited Unaudited Unaudited Audited\n1. Revenue from operations 205.00 210.00 200.00 815.00\n2. Other income 2.00 2.00 2.00 8.00\n4. Total expenses 184.30 188.60 180.00 732.90\nDepreciation and amortisation 5.00 5.00 5.00 20.00\nFinance costs 3.00 3.00 3.00 12.00\n5. Profit before tax 22.70 23.40 22.00 90.10\n6. Tax expense 5.67 5.85 5.50 22.52\n7. Profit for the period 17.02 17.55 16.50 67.57\n- Owners of the Company 16.17 16.67 15.67 64.20\n8. Earnings per share (face value Rs 10 each)\n(a) Basic 0.81 0.83 0.78 3.21\n(b) Diluted 0.81 0.83 0.78 3.21\n\f\nNotes:\n1. The above results were reviewed by the Audit Committee.\n2. Previous period figures have been regrouped wherever necessary.",
+   "published_at": "2023-08-10T15:00:00+05:30"
+  },
+  {
+   "doc_id": "PLAIN-R-2023-09-30",
+   "ticker": "PLAINCO",
+   "source_name": "bse",
+   "doc_type": "announcement",
+   "title": "Outcome of board meeting - results",
+   "text": "PLAIN COMPONENTS LIMITED\nStatement of Consolidated Unaudited Financial Results for the quarter ended 30 September, 2023\n(Rs. in crore)\nParticulars Quarter ended Year ended\n30.09.2023 30.06.2023 30.09.2022 31.03.2023\nUnaudited Unaudited Unaudited Audited\n1. Revenue from operations 210.00 205.00 200.00 815.00\n2. Other income 2.00 2.00 2.00 8.00\n4. Total expenses 188.60 184.30 180.00 732.90\nDepreciation and amortisation 5.00 5.00 5.00 20.00\nFinance costs 3.00 3.00 3.00 12.00\n5. Profit before tax 23.40 22.70 22.00 90.10\n6. Tax expense 5.85 5.67 5.50 22.52\n7. Profit for the period 17.55 17.02 16.50 67.57\n- Owners of the Company 16.67 16.17 15.67 64.20\n8. Earnings per share (face value Rs 10 each)\n(a) Basic 0.83 0.81 0.78 3.21\n(b) Diluted 0.83 0.81 0.78 3.21\n\f\nNotes:\n1. The above results were reviewed by the Audit Committee.\n2. Previous period figures have been regrouped wherever necessary.",
+   "published_at": "2023-11-09T15:00:00+05:30"
+  },
+  {
+   "doc_id": "PLAIN-R-2023-12-31",
+   "ticker": "PLAINCO",
+   "source_name": "bse",
+   "doc_type": "announcement",
+   "title": "Outcome of board meeting - results",
+   "text": "PLAIN COMPONENTS LIMITED\nStatement of Consolidated Unaudited Financial Results for the quarter ended 31 December, 2023\n(Rs. in crore)\nParticulars Quarter ended Year ended\n31.12.2023 30.09.2023 31.12.2022 31.03.2023\nUnaudited Unaudited Unaudited Audited\n1. Revenue from operations 212.00 210.00 205.00 815.00\n2. Other income 2.00 2.00 2.00 8.00\n4. Total expenses 190.32 188.60 184.30 732.90\nDepreciation and amortisation 5.00 5.00 5.00 20.00\nFinance costs 3.00 3.00 3.00 12.00\n5. Profit before tax 23.68 23.40 22.70 90.10\n6. Tax expense 5.92 5.85 5.67 22.52\n7. Profit for the period 17.76 17.55 17.02 67.57\n- Owners of the Company 16.87 16.67 16.17 64.20\n8. Earnings per share (face value Rs 10 each)\n(a) Basic 0.84 0.83 0.81 3.21\n(b) Diluted 0.84 0.83 0.81 3.21\n\f\nNotes:\n1. The above results were reviewed by the Audit Committee.\n2. Previous period figures have been regrouped wherever necessary.",
+   "published_at": "2024-02-09T15:00:00+05:30"
+  },
+  {
+   "doc_id": "PLAIN-R-2024-03-31",
+   "ticker": "PLAINCO",
+   "source_name": "bse",
+   "doc_type": "announcement",
+   "title": "Outcome of board meeting - results",
+   "text": "PLAIN COMPONENTS LIMITED\nStatement of Consolidated Unaudited Financial Results for the quarter ended 31 March, 2024\n(Rs. in crore)\nParticulars Quarter ended Year ended\n31.03.2024 31.12.2023 31.03.2023 31.03.2024 31.03.2023\nUnaudited Unaudited Unaudited Audited\n1. Revenue from operations 214.00 212.00 210.00 841.00 815.00\n2. Other income 2.00 2.00 2.00 8.00 8.00\n4. Total expenses 192.04 190.32 188.60 755.26 732.90\nDepreciation and amortisation 5.00 5.00 5.00 20.00 20.00\nFinance costs 3.00 3.00 3.00 12.00 12.00\n5. Profit before tax 23.96 23.68 23.40 93.74 90.10\n6. Tax expense 5.99 5.92 5.85 23.44 22.52\n7. Profit for the period 17.97 17.76 17.55 70.31 67.57\n- Owners of the Company 17.07 16.87 16.67 66.79 64.20\n8. Earnings per share (face value Rs 10 each)\n(a) Basic 0.85 0.84 0.83 3.34 3.21\n(b) Diluted 0.85 0.84 0.83 3.34 3.21\n\f\nNotes:\n1. The above results were reviewed by the Audit Committee.\n2. Previous period figures have been regrouped wherever necessary.",
+   "published_at": "2024-05-20T15:00:00+05:30"
+  },
+  {
+   "doc_id": "PLAIN-R-2024-06-30",
+   "ticker": "PLAINCO",
+   "source_name": "bse",
+   "doc_type": "announcement",
+   "title": "Outcome of board meeting - results",
+   "text": "PLAIN COMPONENTS LIMITED\nStatement of Consolidated Unaudited Financial Results for the quarter ended 30 June, 2024\n(Rs. in crore)\nParticulars Quarter ended Year ended\n30.06.2024 31.03.2024 30.06.2023 31.03.2024\nUnaudited Unaudited Unaudited Audited\n1. Revenue from operations 210.00 214.00 205.00 841.00\n2. Other income 2.00 2.00 2.00 8.00\n4. Total expenses 188.60 192.04 184.30 755.26\nDepreciation and amortisation 5.00 5.00 5.00 20.00\nFinance costs 3.00 3.00 3.00 12.00\n5. Profit before tax 23.40 23.96 22.70 93.74\n6. Tax expense 5.85 5.99 5.67 23.44\n7. Profit for the period 17.55 17.97 17.02 70.31\n- Owners of the Company 16.67 17.07 16.17 66.79\n8. Earnings per share (face value Rs 10 each)\n(a) Basic 0.83 0.85 0.81 3.34\n(b) Diluted 0.83 0.85 0.81 3.34\n\f\nNotes:\n1. The above results were reviewed by the Audit Committee.\n2. Previous period figures have been regrouped wherever necessary.",
+   "filed_at": "2024-08-12"
+  },
+  {
+   "doc_id": "CONTRA-TR-Q4FY23",
+   "ticker": "CONTRACO",
+   "source_name": "nse",
+   "title": "Transcript Q4FY23",
+   "published_at": "2023-05-25T19:00:00+05:30",
+   "text": "Moderator: Ladies and gentlemen, welcome to the Q4 FY23 call of Contra Industries Limited.\nSunil Rao: We expect revenue growth of 30% in FY24 on the back of new capacity.\nModerator: The first question is from Dev of Demo Research.\nDev: What about margins?\nSunil Rao: Margins should be stable.\nModerator: I now hand the conference over to the management."
+  },
+  {
+   "doc_id": "CONTRA-R-2023-12-31",
+   "ticker": "CONTRACO",
+   "source_name": "nse",
+   "title": "Financial Results",
+   "published_at": "2024-02-12T16:00:00+05:30",
+   "text": "CONTRA INDUSTRIES LIMITED\nStatement of Consolidated Unaudited Financial Results for the quarter ended 31 December, 2023\n(Rs. in crore)\nParticulars                          Quarter ended                      Year ended\n                          31.12.2023   30.09.2023   31.12.2022   31.03.2023\n                          Unaudited    Unaudited    Unaudited    Audited\n1. Revenue from operations          315.00   315.00   300.00   1,200.00\n2. Other income                     2.00   2.00   2.00   8.00\n4. Total expenses                   291.50   291.50   278.00   1,112.00\n   Depreciation and amortisation    5.00   5.00   5.00   20.00\n   Finance costs                    3.00   3.00   3.00   12.00\n5. Profit before tax                25.50   25.50   24.00   96.00\n6. Tax expense                      6.38   6.38   6.00   24.00\n7. Profit for the period            19.12   19.12   18.00   72.00\n   - Owners of the Company          18.17   18.17   17.10   68.40\n8. Earnings per share (face value Rs 10 each)\n   (a) Basic                        1.21   1.21   1.14   4.56\n   (b) Diluted                      1.21   1.21   1.14   4.56\n\nNotes: Previous period figures have been regrouped wherever necessary."
+  },
+  {
+   "doc_id": "CONTRA-R-2024-03-31",
+   "ticker": "CONTRACO",
+   "source_name": "nse",
+   "title": "Financial Results",
+   "published_at": "2024-05-28T16:00:00+05:30",
+   "text": "CONTRA INDUSTRIES LIMITED\nStatement of Consolidated Unaudited Financial Results for the quarter ended 31 March, 2024\n(Rs. in crore)\nParticulars                          Quarter ended                      Year ended\n                          31.03.2024   31.12.2023   31.03.2023   31.03.2024   31.03.2023\n                          Unaudited    Unaudited    Unaudited    Audited\n1. Revenue from operations          320.00   315.00   300.00   1,260.00   1,200.00\n2. Other income                     2.00   2.00   2.00   8.00   8.00\n4. Total expenses                   296.00   291.50   278.00   1,166.00   1,112.00\n   Depreciation and amortisation    5.00   5.00   5.00   20.00   20.00\n   Finance costs                    3.00   3.00   3.00   12.00   12.00\n5. Profit before tax                26.00   25.50   24.00   102.00   96.00\n6. Tax expense                      6.50   6.38   6.00   25.50   24.00\n7. Profit for the period            19.50   19.12   18.00   76.50   72.00\n   - Owners of the Company          18.52   18.17   17.10   72.68   68.40\n8. Earnings per share (face value Rs 10 each)\n   (a) Basic                        1.23   1.21   1.14   4.84   4.56\n   (b) Diluted                      1.23   1.21   1.14   4.84   4.56\n\nNotes: Previous period figures have been regrouped wherever necessary."
+  },
+  {
+   "doc_id": "BANK-R-1",
+   "ticker": "SAMPLEBANK",
+   "source_name": "nse",
+   "title": "Financial Results",
+   "published_at": "2024-07-20T16:00:00+05:30",
+   "text": "SAMPLE COOPERATIVE BANK LIMITED\nStatement of Standalone Unaudited Financial Results for the quarter ended 30 June, 2024\n(Rs. in crore)\nInterest earned on advances to customers grew to Rs 820 crore. Gross NPA stood at 2.1%. We expect loan growth of 18% in FY25."
+  }
+ ]
+}

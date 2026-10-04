@@ -760,6 +760,14 @@ def _classify_bse_subject(subject: str) -> str:
     if not subject:
         return "announcement"
     s = subject.lower()
+    # Management-commentary documents first: their subjects often also mention
+    # "meeting", "results" or "order book" and were previously bucketed as
+    # board_decision / order_win / announcement, so their PDFs were never read.
+    if "transcript" in s or any(w in s for w in (
+            "con. call", "concall", "conference call", "earnings call", "analyst", "investor meet")):
+        return "concall_update"
+    if "presentation" in s:
+        return "investor_presentation"
     if any(w in s for w in ("order", "contract", "win")):
         return "order_win"
     if any(w in s for w in ("capex", "capital expenditure", "expansion")):

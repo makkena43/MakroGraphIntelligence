@@ -6,6 +6,9 @@
 # Generated stock reports (PDF/HTML/JSON artifacts)
 data/reports/
 
+# Generated earnings-inflection run outputs (Markdown/JSON per ticker and as-of date)
+data/earnings_inflection/
+
 # Python
 __pycache__/
 *.py[cod]

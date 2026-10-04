@@ -749,6 +749,21 @@ class IntelligencePipeline:
             "Disruption of Operations",
             "Disruption of operations",
         ]
+        # BSE rows do not carry the exchange category in filing_type: the BSE
+        # fetcher stores a coarse label from _classify_bse_subject(), none of
+        # which matches the NSE category names above, so BSE PDFs were never
+        # downloaded.  These labels are matched ONLY for source_name='bse_india'
+        # (government PDFs from india_pdf_fetcher also use "annual_report").
+        # Not applied when the caller passes an explicit filing_types override.
+        _BSE_HIGH_VALUE_LABELS = [] if filing_types else [
+            "board_decision",          # results / board-meeting outcomes
+            "order_win",
+            "capex_update",
+            "corporate_action",
+            "annual_report",
+            "concall_update",
+            "investor_presentation",
+        ]
 
         stats = {
             "docs_attempted": 0,
@@ -847,6 +862,13 @@ class IntelligencePipeline:
 
         # Build type placeholders for SQL
         placeholders = ", ".join(["%s"] * len(_HIGH_VALUE_CATEGORIES))
+        _type_clause = f"filing_type IN ({placeholders})"
+        _type_params: tuple = tuple(_HIGH_VALUE_CATEGORIES)
+        if _BSE_HIGH_VALUE_LABELS:
+            _bse_ph = ", ".join(["%s"] * len(_BSE_HIGH_VALUE_LABELS))
+            _type_clause = (f"({_type_clause} OR (source_name = 'bse_india' "
+                            f"AND filing_type IN ({_bse_ph})))")
+            _type_params += tuple(_BSE_HIGH_VALUE_LABELS)
 
         # Optional date-window filter (used by historical runner — one month at a time)
         _date_clause = ""
@@ -893,12 +915,12 @@ class IntelligencePipeline:
                             WHERE country = 'IN'
                               {_path_clause}
                               AND url IS NOT NULL AND url != ''
-                              AND filing_type IN ({placeholders})
+                              AND {_type_clause}
                               {_date_clause}
                               {_excl_clause}
                             ORDER BY filed_at DESC
                             LIMIT %s""",
-                        tuple(_HIGH_VALUE_CATEGORIES) + _date_params + _excl_params + (batch_size,),
+                        _type_params + _date_params + _excl_params + (batch_size,),
                     )
                     batch = [dict(r) for r in cur.fetchall()]
 
