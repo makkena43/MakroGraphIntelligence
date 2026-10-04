@@ -49,13 +49,15 @@ def render_markdown(a: Assessment) -> str:
         L.append(f"- {tier}: {n}")
     if a.guidance:
         L.append("")
-        L.append("| Metric | Target period | Original (date) | Revisions | Outcome |")
-        L.append("|---|---|---|---|---|")
+        L.append("| Metric | Target period | Original (date) | Revisions | vs original | vs latest | Note |")
+        L.append("|---|---|---|---|---|---|---|")
         for g in a.guidance:
             q = g.original.quantity
-            revs = ", ".join(r.direction.value for r in g.revisions) or "—"
+            revs = ", ".join(r.direction.value + (" (reason stated)" if r.explained else " (no reason found)"
+                                                  if r.explained is False else "")
+                             for r in g.revisions) or "—"
             L.append(f"| {g.metric.value} | {g.target_period_label} | {q.raw if q else '?'} ({_ts(g.original.stated_at)}) "
-                     f"| {revs} | {g.outcome.value} {g.outcome_note} |")
+                     f"| {revs} | {g.outcome.value} | {g.latest_outcome.value} | {g.outcome_note} |")
     L.append("")
     L.append("## 3. Effect on recurring parent-attributable diluted EPS and cash")
     b = a.bridge

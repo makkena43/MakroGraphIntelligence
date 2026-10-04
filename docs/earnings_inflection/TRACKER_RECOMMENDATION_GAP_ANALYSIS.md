@@ -1,6 +1,6 @@
 # Company-level earnings-inflection tracker: recommendation vs. what is built
 
-Compares the recommended process (seven points) with the code in `src/makrograph/earnings_inflection/` as of commit `2319e44`.
+Compares the recommended process (seven points) with the code in `src/makrograph/earnings_inflection/` as of the revision-handling update that followed commit `2319e44`.
 The recommendation asks for **no further software implementation yet**. This document only records what already happens, what partly happens and what does not. It is meant as the checklist to freeze before testing.
 
 Legend: ✅ happening · 🟡 partly · ❌ not built · ⛔ deliberately excluded by the original spec
@@ -43,8 +43,8 @@ Legend: ✅ happening · 🟡 partly · ❌ not built · ⛔ deliberately exclud
 | Capex vs budget, debt/working-capital commitments | ❌ | Not built. |
 | Dilution, related-party transactions, minority treatment | ❌ | Dilution is only flagged when a fund-raise is mentioned. |
 | Was the explanation credible? | ❌ | Needs judgment; not built. |
-| Don't punish conservative guidance or justified revisions | **Conflict** | Today **any** lowered or withdrawn guidance makes the status `CONTRADICTED`, whatever the reason. This contradicts the recommendation and should change before testing, for example by recording a revision as "explained / unexplained" for human review. |
-| Flag disappearing targets | ❌ | A target that is never repeated stays `PENDING` until its period ends, then becomes `UNVERIFIABLE`. Silence isn't flagged. |
+| Don't punish conservative guidance or justified revisions | ✅ (fixed) | Every target is judged against both the original and the latest guidance. A downward revision is checked for a stated reason in nearby sentences, and the reason is quoted for **you** to judge. `CONTRADICTED` now requires missing even the latest guidance, or **2+ downward revisions without a stated reason**. Beating conservative guidance raises no flag. |
+| Flag disappearing targets | ✅ (fixed) | Flagged when a target isn't mentioned again in 2+ later calls or presentations before its deadline. It's a flag for review, not a status change. |
 | "Management confidence ≠ customer demand" | ✅ | Forward statements alone can only reach `ASSERTION_ONLY`. |
 
 ## 4. Two research routes
@@ -82,7 +82,7 @@ Legend: ✅ happening · 🟡 partly · ❌ not built · ⛔ deliberately exclud
 | How much can EPS improve? | 🟡 | Scenario table, which isn't conservative enough (see §5). |
 | What is already priced in? (valuation, prior price rise) | ⛔ | The original spec excludes prices from detection. Prior price appreciation and valuation aren't shown. |
 | What could fail? | 🟡 | Financing and customer risks, missing inputs. |
-| **Decision: candidate / wait for price / wait for milestone / pass** | ⛔ **Conflict** | The original spec forbids investment actions, and an output guard blocks that kind of language. **This needs a decision from you** (see below). |
+| **Decision: candidate / wait for price / wait for milestone / pass** | ⛔ Decided: evidence-only | No decision labels, valuation or price context. The output guard stays. |
 | What changes the decision + review date | 🟡 | "Next checks" lists named milestones. No review dates. |
 | One page | ❌ | The Markdown output is several pages. |
 
@@ -104,8 +104,8 @@ Legend: ✅ happening · 🟡 partly · ❌ not built · ⛔ deliberately exclud
 - a pre-registered sample that includes **failed** inflections (missed guidance, cancelled orders, margin reversals), not only winners;
 - point-in-time data, including the BSE and annual-report text that ingestion is only now starting to collect.
 
-## Decisions needed before freezing
+## Decisions
 
-1. **Revision handling.** Should a justified downward revision stay out of `CONTRADICTED`? (The recommendation says yes; the code currently says no.)
-2. **Decision and valuation fields.** Point 6 asks for "investment candidate / wait for price / pass" and valuation context. The original spec forbids both. Keep the tracker evidence-only, or allow these labels as human-entered fields that the system never fills in?
-3. **Scope of the frozen v1.** Which of the ❌ items must exist before testing, versus being recorded as known gaps? EBIT margin with incremental depreciation, order executable-revenue and tax adjustments, and capacity/commissioning deadlines matter most for an earnings bridge.
+1. **Revision handling:** decided, and done as described in §3.
+2. **Decision and valuation fields:** decided: the tracker stays **evidence-only**.
+3. **Scope of the frozen v1:** still open. See the pending list in `RUNBOOK.md`.

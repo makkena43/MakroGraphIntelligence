@@ -28,7 +28,7 @@ from .assessments import (
 from .budget import Budget
 from .chunking import chunk_document
 from .contracts import (
-    IST, Assessment, Evidence, ListingSegment, Metric, SourceRef, to_jsonable,
+    IST, Assessment, DocumentKind, Evidence, ListingSegment, Metric, SourceRef, to_jsonable,
 )
 from .counterparty import build_profiles
 from .document_versions import availability, is_restatement, link_versions
@@ -162,7 +162,9 @@ class EarningsInflectionPipeline:
         ttm_rev = series.ttm(Metric.REVENUE, end)[0] if end else None
         drivers, missing = compute_drivers(series, events, evidence, issuer_model, as_of.date(),
                                            self.cfg.get("thresholds"))
-        guidance = build_ledger(evidence, series, as_of)
+        commentary_times = [d.available_at for d in docs if d.kind in (
+            DocumentKind.EARNINGS_CALL_TRANSCRIPT, DocumentKind.INVESTOR_PRESENTATION)]
+        guidance = build_ledger(evidence, series, as_of, docs_by_id, commentary_times)
         profiles = build_profiles(events, ttm_rev)
         bridge = build_bridge(series, issuer_model, guidance)
         missing += [m for m in bridge.missing_inputs if m not in missing]
@@ -171,7 +173,7 @@ class EarningsInflectionPipeline:
         status, why = decide_status(drivers, events, evidence, guidance, usable_docs, ttm_rev)
         first_public = {d.doc_id: d.available_at for d in docs}
 
-        contradictions = [w for w in why if "MISSED" in w or "lowered" in w]
+        contradictions = [f"{g.metric.value} {g.target_period_label}: {f}" for g in guidance for f in g.flags]
         contradictions += [f"negated statement: \"{e.quote[:160]}\"" for e in evidence
                            if e.usable and e.modality.value == "negated" and e.tier.value == "management_assertion"][:5]
         contradictions += [i for i in issues if "!=" in i or "vs computed" in i]

@@ -7,7 +7,7 @@ import pytest
 
 from makrograph.earnings_inflection.contracts import (
     IST, CommitmentStrength, ContractError, DocumentKind, Evidence, EvidenceTier, FinancialMeasurement,
-    GuidanceOutcome, IssuerModel, Metric, Modality, Quantity, Scope, SourceDocument, Unit,
+    EvidenceStatus, GuidanceOutcome, IssuerModel, Metric, Modality, Quantity, Scope, SourceDocument, Unit,
     assert_no_action_language, find_action_language,
 )
 
@@ -274,6 +274,10 @@ def test_ledger_keeps_original_and_judges_against_it():
     r = led[0]
     assert r.original.quantity.value == 30.0 and r.revisions[0].direction.value == "lowered"
     assert r.outcome == GuidanceOutcome.MISSED and r.realized_value == 12.0
+    # revised to 10% and delivered 12%: judged against latest too, not a contradiction by itself
+    assert r.latest_outcome == GuidanceOutcome.MET
+    assert any("delivered the revised guidance" in f for f in r.flags)
+    assert r.revisions[0].explained is None          # no source text supplied
 
 
 def test_ledger_pending_before_results_due():
@@ -469,3 +473,88 @@ def test_pdfplumber_style_statement_parses_with_pages_and_dash_cells():
     exc = {r.period_end: r.value for r in rows if r.metric == Metric.EXCEPTIONAL_ITEMS}
     assert exc == {date(2023, 6, 30): -0.5} or set(exc) == {date(2023, 6, 30), date(2024, 3, 31)}
     assert not any(r.metric == Metric.EXCEPTIONAL_ITEMS and r.period_end == date(2024, 6, 30) for r in rows)
+
+
+# ---------------- revision handling ----------------
+
+def _gev(doc_id, value, when, label="FY25", eid=None, modality=Modality.FORWARD, quote=None):
+    return _ev(doc_id, quote or f"We expect revenue growth of {value:g}% in {label}.",
+               metric=Metric.REVENUE_GROWTH_GUIDANCE, q=Quantity(value, Unit.PERCENT, raw=f"{value:g}%"),
+               tier=EvidenceTier.MANAGEMENT_ASSERTION, modality=modality, target_period_label=label,
+               when=when, eid=eid or f"{doc_id}{value}")
+
+
+def test_revision_with_stated_reason_is_quoted_for_review():
+    from makrograph.earnings_inflection.guidance_ledger import build_ledger
+    g1 = _gev("A", 25, datetime(2024, 5, 1, tzinfo=IST))
+    rev_q = "We now expect revenue growth of 15% in FY25."
+    d_rev = doc(rev_q + " This is due to a delay in customer site readiness for two large projects.", doc_id="B")
+    g2 = _gev("B", 15, datetime(2024, 11, 1, tzinfo=IST), quote=rev_q)
+    led = build_ledger([g1, g2], None, datetime(2024, 12, 1, tzinfo=IST), {"B": d_rev})
+    r = led[0].revisions[0]
+    assert r.direction.value == "lowered" and r.explained is True
+    assert "delay in customer site readiness" in r.explanation
+    assert any("stated reason" in f and "human review" in f for f in led[0].flags)
+
+
+def test_revision_without_reason_detected():
+    from makrograph.earnings_inflection.guidance_ledger import build_ledger
+    g1 = _gev("A", 25, datetime(2024, 5, 1, tzinfo=IST))
+    rev_q = "We now expect revenue growth of 15% in FY25."
+    g2 = _gev("B", 15, datetime(2024, 11, 1, tzinfo=IST), quote=rev_q)
+    led = build_ledger([g1, g2], None, datetime(2024, 12, 1, tzinfo=IST),
+                       {"B": doc(rev_q + " Thank you.", doc_id="B")})
+    assert led[0].revisions[0].explained is False
+
+
+def _status(guidance):
+    from makrograph.earnings_inflection.assessments import decide_status
+    return decide_status([], [], [], guidance, usable_docs=1, ttm_revenue=None)[0]
+
+
+def test_single_or_explained_revision_is_not_contradiction_but_repeated_unexplained_is():
+    from makrograph.earnings_inflection.guidance_ledger import build_ledger
+    when = lambda m: datetime(2024, m, 1, tzinfo=IST)  # noqa: E731
+    one = build_ledger([_gev("A", 25, when(5)), _gev("B", 15, when(11))], None, when(12))
+    assert _status(one) != EvidenceStatus.CONTRADICTED
+    two = build_ledger([_gev("A", 25, when(5)), _gev("B", 15, when(8)), _gev("C", 10, when(11))], None, when(12))
+    assert _status(two) == EvidenceStatus.CONTRADICTED
+    rq = "We now expect revenue growth of {}% in FY25."
+    docs = {k: doc(rq.format(v) + " This reflects weaker demand in exports.", doc_id=k) for k, v in (("B", 15), ("C", 10))}
+    expl = build_ledger([_gev("A", 25, when(5)), _gev("B", 15, when(8), quote=rq.format(15)),
+                         _gev("C", 10, when(11), quote=rq.format(10))], None, when(12), docs)
+    assert _status(expl) != EvidenceStatus.CONTRADICTED
+
+
+def test_missing_latest_guidance_is_contradiction():
+    from makrograph.earnings_inflection.financial_series import FinancialSeries
+    from makrograph.earnings_inflection.guidance_ledger import build_ledger
+    rows = [_fm(Metric.REVENUE, date(2024, 3, 31), 1000, ptype="FY"),
+            _fm(Metric.REVENUE, date(2025, 3, 31), 1050, ptype="FY")]
+    led = build_ledger([_gev("A", 25, datetime(2024, 5, 1, tzinfo=IST)),
+                        _gev("B", 15, datetime(2024, 11, 1, tzinfo=IST))],
+                       FinancialSeries.build("T", rows), datetime(2025, 7, 1, tzinfo=IST))
+    assert led[0].latest_outcome == GuidanceOutcome.MISSED
+    assert _status(led) == EvidenceStatus.CONTRADICTED
+
+
+def test_conservative_guidance_beaten_is_fine():
+    from makrograph.earnings_inflection.financial_series import FinancialSeries
+    from makrograph.earnings_inflection.guidance_ledger import build_ledger
+    rows = [_fm(Metric.REVENUE, date(2024, 3, 31), 1000, ptype="FY"),
+            _fm(Metric.REVENUE, date(2025, 3, 31), 1400, ptype="FY")]
+    led = build_ledger([_gev("A", 10, datetime(2024, 5, 1, tzinfo=IST))],
+                       FinancialSeries.build("T", rows), datetime(2025, 7, 1, tzinfo=IST))
+    assert led[0].outcome == GuidanceOutcome.MET and not led[0].flags
+    assert _status(led) != EvidenceStatus.CONTRADICTED
+
+
+def test_disappearing_target_flagged():
+    from makrograph.earnings_inflection.guidance_ledger import build_ledger
+    later = [datetime(2024, 8, 10, tzinfo=IST), datetime(2024, 11, 10, tzinfo=IST)]
+    led = build_ledger([_gev("A", 25, datetime(2024, 5, 1, tzinfo=IST))], None,
+                       datetime(2024, 12, 1, tzinfo=IST), commentary_times=later)
+    assert any("disappearing" in f for f in led[0].flags)
+    led2 = build_ledger([_gev("A", 25, datetime(2024, 5, 1, tzinfo=IST))], None,
+                        datetime(2024, 12, 1, tzinfo=IST), commentary_times=later[:1])
+    assert not led2[0].flags
