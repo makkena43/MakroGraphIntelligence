@@ -279,7 +279,7 @@ class BeneficiaryDiscoveryLayer:
                                 'capex_increase','capacity_shortage',
                                 'localization_opportunity','tender_pipeline')) DESC,
                             COUNT(*) DESC
-                        LIMIT 40
+                        LIMIT 400
                         """,
                         [floor, as_of] + [kw.lower() for kw in entity_keywords],
                     )
@@ -351,6 +351,89 @@ class BeneficiaryDiscoveryLayer:
                 logger.warning(f"[BeneficiaryDiscovery] persist failed {b.company}: {e}")
         return saved
 
+    @staticmethod
+    def backfill_corroboration(pg_store) -> dict:
+        """Set the `corroborated` flag on every beneficiary row by joining to
+        the capability mapper (mg_company_capabilities). Run this AFTER both
+        beneficiary discovery and the capability build for the period.
+
+        The beneficiary mapper scores conviction from signal VOLUME with no
+        check that the company supplies the product — so it mapped 2,805
+        companies (staffing firms, banks, cement) to Defense electronics at
+        up to 0.85 conviction. This flag is the corrective: it records whether
+        the company's OWN filings independently evidence making the product.
+
+        TRUE  = corroborated maker (keep at full weight)
+        FALSE = product is coverable by the capability mapper but this company
+                is not among its makers — the co-occurrence junk
+        NULL  = product not coverable by the capability mapper (term-coverage
+                gap, e.g. CRGO Steel) — cannot judge, pass through untouched
+                so real winners are never deleted by a coverage gap.
+
+        Validated before shipping (scripts/research/mapper_corroboration_test.py,
+        3 anchors, 3y forward): keeping TRUE+NULL lifted the basket median from
+        56.2% to 76.7% while the dropped FALSE names returned only 54.7%, and
+        industry coherence went 17% -> 70%.
+        """
+        # The capability mapper and the beneficiary mapper use DIFFERENT label
+        # vocabularies for the same product ("Printed Circuit Boards" vs
+        # "PCB / Printed Circuit Board", "Passive Components (MLCCs, resistors)"
+        # vs "Passive Components"). An exact-string join therefore silently
+        # dropped whole products' capability coverage — PCB kept 0 corroborated
+        # makers and showed pure co-occurrence noise (WEBELSOLAR under PCB) even
+        # though 10 of its 14 capability makers (KAYNES/SYRMA/AMBER...) were
+        # right there in the beneficiary rows. Join on a NORMALISED product key
+        # instead: lowercased, last "/"-segment (drop an acronym alias prefix),
+        # parentheticals removed, non-alnum collapsed, trailing-s per word
+        # stripped. Verified to map every capability product to exactly one
+        # beneficiary product with no cross-collisions.
+        norm = (
+            r"regexp_replace("
+            r"  regexp_replace("
+            r"    regexp_replace("
+            r"      regexp_replace("
+            r"        regexp_replace(lower({col}), '^.*/\s*', ''),"
+            r"      '\(.*?\)', ' ', 'g'),"
+            r"    '[^a-z0-9]+', ' ', 'g'),"
+            r"  's\y', '', 'g'),"
+            r"'\s+', ' ', 'g')"
+        )
+        cap_key = norm.format(col="c.product")
+        cov_key = norm.format(col="cv.product")
+        ben_key = norm.format(col="b.constrained_product")
+        with pg_store._conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("ALTER TABLE mg_india_beneficiaries "
+                            "ADD COLUMN IF NOT EXISTS corroborated BOOLEAN")
+                cur.execute(f"""
+                WITH cap AS (
+                  SELECT product, ticker, as_of_date
+                  FROM mg_company_capabilities WHERE manufacturer
+                ),
+                covered AS (SELECT DISTINCT product, as_of_date FROM cap)
+                UPDATE mg_india_beneficiaries b
+                SET corroborated = CASE
+                    WHEN EXISTS (SELECT 1 FROM cap c
+                        WHERE trim({cap_key})=trim({ben_key})
+                          AND UPPER(TRIM(c.ticker))=UPPER(TRIM(b.ticker))
+                          AND c.as_of_date=(SELECT MAX(as_of_date)
+                              FROM mg_company_capabilities
+                              WHERE as_of_date<=b.as_of_date))
+                    THEN TRUE
+                    WHEN EXISTS (SELECT 1 FROM covered cv
+                        WHERE trim({cov_key})=trim({ben_key})
+                          AND cv.as_of_date=(SELECT MAX(as_of_date)
+                              FROM mg_company_capabilities
+                              WHERE as_of_date<=b.as_of_date))
+                    THEN FALSE
+                    ELSE NULL END
+                WHERE b.constrained_product IS NOT NULL
+                """)
+                conn.commit()
+                cur.execute("""SELECT corroborated, count(*) FROM mg_india_beneficiaries
+                               WHERE constrained_product IS NOT NULL GROUP BY 1""")
+                return {str(k): v for k, v in cur.fetchall()}
+
     def _ensure_schema(self, pg_store):
         try:
             with pg_store._conn() as conn:
@@ -371,10 +454,25 @@ class BeneficiaryDiscoveryLayer:
                             has_order_book_signals   BOOLEAN DEFAULT FALSE,
                             import_substitution_play BOOLEAN DEFAULT FALSE,
                             as_of_date               DATE,
+                            -- corroboration flag (Aug-2026): set by
+                            -- backfill_corroboration() AFTER the capability
+                            -- mapper has run for the same as_of. TRUE = the
+                            -- company's own filings evidence making the
+                            -- product; FALSE = product is coverable by the
+                            -- capability mapper but this company is not a
+                            -- maker (the co-occurrence junk — a staffing firm
+                            -- under Defense electronics); NULL = product not
+                            -- coverable, cannot judge (e.g. CRGO Steel), pass
+                            -- through untouched. Validated (3 anchors, 3y
+                            -- forward): keeping corroborated+NULL lifted the
+                            -- basket 56%->77% and coherence 17%->70%.
+                            corroborated             BOOLEAN,
                             created_at               TIMESTAMPTZ DEFAULT NOW(),
                             updated_at               TIMESTAMPTZ DEFAULT NOW(),
                             UNIQUE (company, theme_name)
                         )
                     """)
+                    cur.execute("ALTER TABLE mg_india_beneficiaries "
+                                "ADD COLUMN IF NOT EXISTS corroborated BOOLEAN")
         except Exception as e:
             logger.debug(f"[BeneficiaryDiscovery] schema check: {e}")

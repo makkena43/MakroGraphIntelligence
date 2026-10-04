@@ -124,6 +124,15 @@ class CapacityGap:
     severity: str                # "critical" | "high" | "moderate" | "low"
     target_year: Optional[int]
     confidence: float = 0.75
+    source_url: Optional[str] = None
+    source_title: Optional[str] = None
+    source_published_at: Optional[date] = None
+    source_family: Optional[str] = None
+    provenance_status: str = "PENDING_SOURCE"
+    ingestion_method: str = "STATIC_ENGINEERING_ESTIMATE"
+    # A policy target divided by a rough current-capacity estimate is a future
+    # build requirement, not proof that today's market is physically binding.
+    measurement_basis: str = "FUTURE_POLICY_TARGET"
 
 
 class CapacityRequirementGenerator:
@@ -153,12 +162,18 @@ class CapacityRequirementGenerator:
 
 
 class CapacityGapDetector:
-    """Layer 3: Compute demand vs domestic capacity and generate investable gap themes."""
+    """Layer 3: Compute future build requirements for the research queue.
+
+    The bundled engineering ratios and rough 2024 capacities are discovery
+    priors.  They must never be consumed as a current physical shortage until a
+    primary observation supplies a current supply-demand denominator.
+    """
 
     def detect(
         self,
         requirements: list[CapacityRequirement],
         supply_chain_db=None,
+        as_of_date: Optional[date] = None,
     ) -> list[CapacityGap]:
         """Detect capacity gaps by comparing requirements against domestic capacity.
 
@@ -183,11 +198,18 @@ class CapacityGapDetector:
             except Exception as _e:
                 logger.debug(f"[CapacityGapDetector] supply_chain_db lookup failed: {_e}")
 
+        observation_date = as_of_date or date.today()
         gaps: list[CapacityGap] = []
         for req in requirements:
             domestic = _DOMESTIC_CAPACITY.get(req.component)
             if domestic is None:
                 continue  # no capacity data — can't compute gap
+            # The bundled capacity reference is explicitly a 2024 estimate.
+            # It must not be projected backwards into a 2020-23 replay.  Treat
+            # year-only references conservatively as available at year end.
+            reference_date = date(int(domestic["as_of"]), 12, 31)
+            if reference_date > observation_date:
+                continue
 
             dom_cap = domestic["capacity"]
             gap_qty = req.required_quantity - dom_cap
@@ -281,11 +303,16 @@ class CapacityGapDetector:
         readable = component.replace("_", " ").title()
         return f"{readable} Capacity Gap"
 
-    def persist(self, gaps: list[CapacityGap], pg_store) -> int:
+    def persist(
+        self,
+        gaps: list[CapacityGap],
+        pg_store,
+        as_of_date: Optional[date] = None,
+    ) -> int:
         """Upsert capacity gaps into mg_capacity_gaps table."""
         self._ensure_schema(pg_store)
         saved = 0
-        today = date.today()
+        observation_date = as_of_date or date.today()
         for g in gaps:
             try:
                 with pg_store._conn() as conn:
@@ -295,9 +322,12 @@ class CapacityGapDetector:
                             INSERT INTO mg_capacity_gaps
                                 (sector, component, required_quantity, domestic_capacity,
                                  gap, gap_pct, unit, supply_chain_stage, theme_name,
-                                 severity, target_year, confidence, as_of_date)
-                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                            ON CONFLICT (component, target_year)
+                                 severity, target_year, confidence, as_of_date,
+                                 source_url, source_title, source_published_at,
+                                 source_family, provenance_status, ingestion_method,
+                                 measurement_basis)
+                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                            ON CONFLICT (component, target_year, as_of_date)
                             DO UPDATE SET
                                 required_quantity = EXCLUDED.required_quantity,
                                 gap               = EXCLUDED.gap,
@@ -305,12 +335,22 @@ class CapacityGapDetector:
                                 severity          = EXCLUDED.severity,
                                 theme_name        = EXCLUDED.theme_name,
                                 as_of_date        = EXCLUDED.as_of_date,
+                                source_url        = EXCLUDED.source_url,
+                                source_title      = EXCLUDED.source_title,
+                                source_published_at = EXCLUDED.source_published_at,
+                                source_family     = EXCLUDED.source_family,
+                                provenance_status = EXCLUDED.provenance_status,
+                                ingestion_method  = EXCLUDED.ingestion_method,
+                                measurement_basis = EXCLUDED.measurement_basis,
                                 updated_at        = NOW()
                             """,
                             (g.sector, g.component, g.required_quantity,
                              g.domestic_capacity, g.gap, g.gap_pct, g.unit,
                              g.supply_chain_stage, g.theme_name, g.severity,
-                             g.target_year, g.confidence, today),
+                             g.target_year, g.confidence, observation_date,
+                             g.source_url, g.source_title, g.source_published_at,
+                             g.source_family, g.provenance_status, g.ingestion_method,
+                             g.measurement_basis),
                         )
                 saved += 1
             except Exception as e:
@@ -338,10 +378,38 @@ class CapacityGapDetector:
                             target_year        INTEGER,
                             confidence         NUMERIC DEFAULT 0.75,
                             as_of_date         DATE,
+                            source_url         TEXT,
+                            source_title       TEXT,
+                            source_published_at DATE,
+                            source_family      TEXT,
+                            provenance_status  TEXT DEFAULT 'PENDING_SOURCE',
+                            ingestion_method   TEXT,
+                            measurement_basis  TEXT DEFAULT 'FUTURE_POLICY_TARGET',
                             created_at         TIMESTAMPTZ DEFAULT NOW(),
                             updated_at         TIMESTAMPTZ DEFAULT NOW(),
-                            UNIQUE (component, target_year)
+                            UNIQUE (component, target_year, as_of_date)
                         )
+                    """)
+                    cur.execute("""
+                        ALTER TABLE mg_capacity_gaps
+                          ADD COLUMN IF NOT EXISTS source_url TEXT,
+                          ADD COLUMN IF NOT EXISTS source_title TEXT,
+                          ADD COLUMN IF NOT EXISTS source_published_at DATE,
+                          ADD COLUMN IF NOT EXISTS source_family TEXT,
+                          ADD COLUMN IF NOT EXISTS provenance_status TEXT DEFAULT 'PENDING_SOURCE',
+                          ADD COLUMN IF NOT EXISTS ingestion_method TEXT,
+                          ADD COLUMN IF NOT EXISTS measurement_basis TEXT DEFAULT 'FUTURE_POLICY_TARGET'
+                    """)
+                    # Older installations keyed only on component/target year,
+                    # which overwrote history on every replay. Migrate to a
+                    # dated snapshot key before the next insert.
+                    cur.execute("""
+                        ALTER TABLE mg_capacity_gaps
+                        DROP CONSTRAINT IF EXISTS mg_capacity_gaps_component_target_year_key
+                    """)
+                    cur.execute("""
+                        CREATE UNIQUE INDEX IF NOT EXISTS uq_capacity_gaps_snapshot
+                        ON mg_capacity_gaps(component, target_year, as_of_date)
                     """)
         except Exception as e:
             logger.debug(f"[CapacityGapDetector] schema check: {e}")

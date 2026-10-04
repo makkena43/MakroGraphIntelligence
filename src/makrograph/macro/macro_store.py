@@ -178,13 +178,13 @@ class MacroStore:
             (policy_id, source, policy_type, title, description, status,
              introduced_date, enacted_date, effective_date, sponsor,
              sectors_affected, technologies_affected, impact_direction,
-             impact_magnitude, keywords, raw_url, country)
+             impact_magnitude, keywords, raw_url, country, full_text)
         VALUES
             (%(policy_id)s, %(source)s, %(policy_type)s, %(title)s,
              %(description)s, %(status)s, %(introduced_date)s, %(enacted_date)s,
              %(effective_date)s, %(sponsor)s, %(sectors_affected)s,
              %(technologies_affected)s, %(impact_direction)s, %(impact_magnitude)s,
-             %(keywords)s, %(raw_url)s, %(country)s)
+             %(keywords)s, %(raw_url)s, %(country)s, %(full_text)s)
         ON CONFLICT (policy_id)
         DO UPDATE SET
             status             = EXCLUDED.status,
@@ -195,6 +195,11 @@ class MacroStore:
             sectors_affected   = EXCLUDED.sectors_affected,
             technologies_affected = EXCLUDED.technologies_affected,
             country            = EXCLUDED.country,
+            title              = EXCLUDED.title,
+            description        = EXCLUDED.description,
+            full_text          = COALESCE(NULLIF(EXCLUDED.full_text, ''),
+                                          mg_policy_events.full_text),
+            raw_url            = EXCLUDED.raw_url,
             created_at         = mg_policy_events.created_at
         """
         normalised = [
@@ -216,6 +221,7 @@ class MacroStore:
                 "keywords":            e.get("keywords", []),
                 "raw_url":             e.get("raw_url", ""),
                 "country":             e.get("country", "US"),
+                "full_text":           e.get("full_text", "") or "",
             }
             for e in events
         ]

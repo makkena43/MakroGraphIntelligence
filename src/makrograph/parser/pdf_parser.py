@@ -7,6 +7,30 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+# Column bucket width (PDF points) for grouping text blocks into reading columns.
+# ~80pt reliably separates slide-deck / two-up columns without splitting a single
+# prose column; blocks within a bucket are read top-to-bottom, buckets left-to-right.
+_COLUMN_BUCKET_PT = 80
+
+
+def _pymupdf_page_text_layout(page) -> str:
+    """Return a page's text in layout-aware reading order (column, then y).
+
+    ``page.get_text("blocks")`` yields (x0, y0, x1, y1, text, block_no, type).
+    Sorting by a coarse column bucket (x0) then vertical position keeps each
+    visual column's text contiguous, which flow-order extraction scrambles for
+    multi-column layouts. Non-text (image) blocks are skipped. Falls back to
+    flow order if no text blocks are present."""
+    try:
+        blocks = [b for b in page.get_text("blocks")
+                  if len(b) >= 7 and b[6] == 0 and (b[4] or "").strip()]
+    except Exception:
+        blocks = []
+    if not blocks:
+        return page.get_text("text")
+    blocks.sort(key=lambda b: (round(b[0] / _COLUMN_BUCKET_PT), round(b[1])))
+    return "\n".join((b[4] or "").strip() for b in blocks)
+
 
 @dataclass
 class ParseResult:
@@ -124,7 +148,18 @@ class PDFParser:
         return result
 
     def _parse_with_pymupdf(self, pdf_path: Path) -> ParseResult:
-        """Extract text using PyMuPDF (fitz)."""
+        """Extract text using PyMuPDF (fitz), layout-aware (block reading order).
+
+        Multi-column layouts — especially investor-presentation slide decks —
+        defeat flow-order extraction (``get_text("text")`` and pdfplumber's
+        ``extract_text``): text from adjacent visual columns interleaves, so a
+        capacity table renders as "Cells: 500 MW Inception manufacturing Cells:
+        75 MW" and a downstream "manufactures X" phrase binds to the wrong
+        product. Reading text BLOCKS ordered by column then vertical position
+        preserves the intended reading order and keeps product terms adjacent to
+        their manufacturing/capacity context. Falls back to flow order only if
+        block extraction yields nothing.
+        """
         result = ParseResult(source_path=pdf_path, engine_used="pymupdf")
         try:
             import fitz  # PyMuPDF
@@ -141,7 +176,7 @@ class PDFParser:
             for i, page in enumerate(doc):
                 if i >= self.max_pages:
                     break
-                text = page.get_text("text")
+                text = _pymupdf_page_text_layout(page)
                 if text.strip():
                     pages_text.append(text)
 

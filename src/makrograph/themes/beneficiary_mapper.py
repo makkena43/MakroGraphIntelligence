@@ -309,11 +309,20 @@ class BeneficiaryMapper:
         self.min_relevance = config.get("min_relevance_score", 10.0)
         self.use_graph = config.get("use_graph_for_beneficiaries", True)
         self.max_beneficiaries = config.get("max_beneficiaries_per_theme", 30)
+        # The legacy in-code capability catalog contains named companies and
+        # has no effective dates.  It is therefore hindsight-prone in a replay.
+        # Keep it available only as an explicitly opted-in research aid; the
+        # default mapper and every investment gate use dated issuer evidence.
+        self.use_static_capability_catalog = config.get(
+            "use_static_capability_catalog", False
+        )
         self._classifier = CompanyClassifier(config)
         # Lazy-load CompanyCapabilityDB (Change 1)
         self._capability_db = None
 
     def _get_capability_db(self):
+        if not self.use_static_capability_catalog:
+            return None
         if self._capability_db is None:
             try:
                 from ..india.company_capability_db import CompanyCapabilityDB
@@ -413,10 +422,10 @@ class BeneficiaryMapper:
             indirect = self._from_graph(theme_slug, graph_store, as_of_date=_as_of)
             result.indirect.extend(indirect)
 
-        # ── Change 1: Apply Company Capability DB boost ──────────────────────
-        # Boost relevance for companies with documented product-level capability
-        # matching the theme keywords. This rewards specialist manufacturers over
-        # diversified conglomerates that merely mention the keyword in passing.
+        # Optional research-only relevance boost from the undated static
+        # catalog.  It is off by default because a named catalog cannot be
+        # reconstructed point-in-time and must never determine historical
+        # inclusion or investment eligibility.
         cap_db = self._get_capability_db()
         if cap_db and theme_keywords:
             for b in result.direct:

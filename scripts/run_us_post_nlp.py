@@ -4,7 +4,8 @@
 Stages (in order):
   1. Graph + Events  — monthly pass over all nlp_done US docs (resume-aware)
   2. Causal chains   — single discovery pass over full data
-  3. Theme snapshots — yearly: 2020, 2021, 2022, 2023, 2024, 2025, current
+  3. Company roles + constraint candidates — country-scoped yearly snapshots
+  4. Theme snapshots — yearly: 2020, 2021, 2022, 2023, 2024, 2025, current
 
 Usage:
   python scripts/run_us_post_nlp.py [--resume-from YYYY-MM-DD]
@@ -152,6 +153,30 @@ if not args.skip_themes:
             pipeline.config.setdefault("themes", {})["signal_window_days"] = 365
         else:
             pipeline.config.setdefault("themes", {})["signal_window_days"] = 730
+
+        # The theme detector consumes this durable bridge. Previously US ran
+        # only theme clustering, so no exact issuer-product role could ever
+        # reach the selector's physical-constraint decision path.
+        try:
+            role_stats = pipeline.run_company_roles(
+                as_of_date=replay_date, country="US", pg_store=pipeline._pg_store,
+            )
+            logger.info(
+                "US roles: %s rows; %s evidenced; %s exact links",
+                role_stats.get("company_product_roles", 0),
+                role_stats.get("evidenced_roles", 0),
+                role_stats.get("exact_constraint_links", 0),
+            )
+            constraint_stats = pipeline.run_constraint_candidate_snapshot(
+                as_of_date=replay_date, country="US", pg_store=pipeline._pg_store,
+            )
+            logger.info(
+                "US constraints: %s chains; %s company links",
+                constraint_stats.get("constraint_candidates", 0),
+                constraint_stats.get("constraint_company_candidates", 0),
+            )
+        except Exception as e:
+            logger.warning(f"US company-role/constraint bridge failed for {label}: {e}", exc_info=True)
 
         try:
             result = pipeline.run_themes(as_of_date=replay_date, country="US")

@@ -1841,6 +1841,107 @@ class ThemeDetector:
 
     # =================================================================
     # BOTTLENECK THEME DETECTION
+    def detect_from_constraint_candidates(
+        self,
+        pg_store,
+        as_of_date: date,
+        country: str = "IN",
+        min_research_priority: int = 45,
+    ) -> list[InvestmentTheme]:
+        """Materialise upstream constraint candidates as research themes.
+
+        This path is independent of beneficiary count. A measured physical
+        product remains visible even with zero listed-company mappings, while
+        an NLP-only chain remains explicitly unmeasured. The selector still
+        owns all investment gates.
+        """
+        try:
+            from psycopg2.extras import RealDictCursor
+            with pg_store._conn() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute("""
+                        SELECT MAX(as_of_date) AS snapshot
+                        FROM mg_constraint_candidates
+                        WHERE country=%s AND as_of_date <= %s
+                    """, (country, as_of_date))
+                    snapshot_row = cur.fetchone()
+                    snapshot = snapshot_row.get("snapshot") if snapshot_row else None
+                    if not snapshot:
+                        return []
+                    cur.execute("""
+                        SELECT * FROM mg_constraint_candidates
+                        WHERE country=%s AND as_of_date=%s
+                          AND research_priority >= %s
+                        ORDER BY research_priority DESC, product_label
+                    """, (country, snapshot, min_research_priority))
+                    rows = [dict(row) for row in cur.fetchall()]
+        except Exception as exc:
+            logger.debug(f"Constraint candidate snapshot unavailable: {exc}")
+            return []
+
+        themes: list[InvestmentTheme] = []
+        for row in rows:
+            slug = re.sub(r"[^a-z0-9]+", "-", row["constraint_key"].casefold()).strip("-")[:90]
+            evidence = row.get("evidence_legs") or {}
+            missing = row.get("missing_legs") or []
+            source_count = int(row.get("independent_source_count") or 0)
+            quality = row.get("physical_quality") or "UNMEASURED"
+            if quality in {"A", "B"} and source_count >= 2:
+                conviction = ThemeConviction.DEVELOPING
+            else:
+                conviction = ThemeConviction.EMERGING
+            signal_types = []
+            if evidence.get("demand_source_count"):
+                signal_types.append("demand_surge")
+            if evidence.get("binding_source_count"):
+                signal_types.append("capacity_constraint_seller")
+            if evidence.get("barrier_source_count"):
+                signal_types.append("qualification_barrier")
+            if evidence.get("policy_source_count"):
+                signal_types.append("policy_support")
+            description = (
+                f"Point-in-time constraint candidate for {row['product_label']}. "
+                f"Mechanism: {row['mechanism'].replace('_', ' ').lower()}; "
+                f"physical quality: {quality}; {source_count} independent current source "
+                f"families; {int(row.get('company_count') or 0)} same-product company leads."
+            )
+            if missing:
+                description += " Missing proof: " + "; ".join(missing[:3]) + "."
+            themes.append(InvestmentTheme(
+                theme_name=row["theme_name"],
+                theme_slug=f"constraint-candidate-{slug}",
+                description=description,
+                sectors=[],
+                signal_types=signal_types,
+                strength_score=float(row["research_priority"]),
+                momentum_score=50.0,
+                conviction=conviction,
+                first_detected=row.get("first_detected_date"),
+                last_updated=snapshot,
+                doc_count=source_count,
+                company_count=int(row.get("company_count") or 0),
+                metadata={
+                    "theme_type": "constraint_candidate",
+                    "constraint_key": row["constraint_key"],
+                    "product_label": row["product_label"],
+                    "mechanism": row["mechanism"],
+                    "physical_quality": quality,
+                    "research_state": row["research_state"],
+                    "resolution_risk": row["resolution_risk"],
+                    "detection_origins": row.get("detection_origins") or [],
+                    "missing_legs": missing,
+                    "is_bottleneck": row["mechanism"] == "PHYSICAL_CONSTRAINT",
+                    "supply_constraint_count": int(evidence.get("binding_source_count") or 0),
+                    "selection_use": "research prioritisation only — selector gates unchanged",
+                },
+                country=country,
+            ))
+        logger.info(
+            "Constraint-candidate detection: %s themes from snapshot %s",
+            len(themes), snapshot,
+        )
+        return themes
+
     # Detects specific supply bottlenecks by searching for constraint
     # keywords in signal context text — shortages, backlogs, lead times.
     # These are the highest-conviction explosive themes.

@@ -41,6 +41,13 @@ CREATE INDEX IF NOT EXISTS idx_mg_docs_type      ON mg_documents(doc_type);
 CREATE INDEX IF NOT EXISTS idx_mg_docs_filed     ON mg_documents(filed_at DESC);
 CREATE INDEX IF NOT EXISTS idx_mg_docs_status    ON mg_documents(processing_status);
 CREATE INDEX IF NOT EXISTS idx_mg_docs_country   ON mg_documents(country);
+-- Exact maker verification asks for a bounded set of issuer filings inside a
+-- dated lookback window.  The individual ticker and date indexes force
+-- PostgreSQL to combine broad scans before it can evaluate the evidence
+-- passage.  This composite index keeps that final, decision-critical proof
+-- check proportional to the candidate universe rather than the full corpus.
+CREATE INDEX IF NOT EXISTS idx_mg_docs_country_ticker_filed
+    ON mg_documents(country, ticker, filed_at DESC);
 
 -- ============================================================
 -- 2. ENTITIES (spaCy + FinBERT extracted)
@@ -857,3 +864,725 @@ LEFT JOIN mg_macro_events  me ON me.id  = mtl.macro_event_id
 LEFT JOIN mg_policy_events pe ON pe.id  = mtl.policy_event_id
 WHERE mtl.as_of_date >= CURRENT_DATE - INTERVAL '180 days'
 ORDER BY mtl.strength DESC;
+
+-- ============================================================
+-- 25. DATED CONSTRAINT LEDGER  (point-in-time investment research)
+-- ============================================================
+-- The beneficiary mapper is an opportunity-discovery system.  This ledger is
+-- the separate, auditable record of what was actually known about a shortage
+-- or supply-chain constraint on a given date.  Its evidence is intentionally
+-- typed and dated so broad policy context cannot be mistaken for an exact,
+-- current, investible physical constraint.
+CREATE TABLE IF NOT EXISTS mg_constraint_ledgers (
+    id                      BIGSERIAL PRIMARY KEY,
+    country                 VARCHAR(10) NOT NULL DEFAULT 'IN',
+    constraint_key          VARCHAR(160) NOT NULL,
+    constraint_name         TEXT NOT NULL,
+    as_of_date              DATE NOT NULL,
+    state                   VARCHAR(24) NOT NULL,
+    classification          VARCHAR(32) NOT NULL,
+    product_scope           VARCHAR(24) NOT NULL DEFAULT 'EXACT_CHAIN',
+    investment_eligibility  VARCHAR(24) NOT NULL DEFAULT 'RESEARCH_ONLY',
+    import_dependency_ratio NUMERIC(9, 6),
+    measurement_date        DATE,
+    import_value            NUMERIC,
+    import_value_unit       TEXT,
+    primary_origin          VARCHAR(120),
+    primary_origin_ratio    NUMERIC(9, 6),
+    capacity_gap_ratio      NUMERIC(9, 6),
+    domestic_capacity       NUMERIC,
+    capacity_unit           TEXT,
+    demand_volume           NUMERIC,
+    demand_unit             TEXT,
+    binding_demand_status   VARCHAR(24) NOT NULL DEFAULT 'UNPROVED',
+    resupply_barrier_status VARCHAR(24) NOT NULL DEFAULT 'UNPROVED',
+    resolution_status       VARCHAR(24) NOT NULL DEFAULT 'UNKNOWN',
+    next_validation_date    DATE,
+    summary                 TEXT NOT NULL,
+    review_note             TEXT,
+    physical_state          VARCHAR(24) NOT NULL DEFAULT 'UNKNOWN',
+    trajectory              VARCHAR(24) NOT NULL DEFAULT 'UNKNOWN',
+    evidence_completeness   VARCHAR(24) NOT NULL DEFAULT 'UNMEASURED',
+    mechanism               VARCHAR(40) NOT NULL DEFAULT 'UNCLASSIFIED_RESEARCH',
+    derivation_method       VARCHAR(64) NOT NULL DEFAULT 'REVIEWED_PACKET',
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(country, constraint_key, as_of_date),
+    CHECK (state IN ('DISCOVERY', 'EVIDENCED', 'MEASURED', 'BINDING',
+                     'INVESTIBLE', 'RESOLVING', 'RESOLVED', 'OVERCAPACITY',
+                     'STALE', 'REJECTED')),
+    CHECK (classification IN ('PHYSICAL_CONSTRAINT', 'POLICY_PROCUREMENT',
+                              'DEMAND_THEME', 'WATCH')),
+    CHECK (product_scope IN ('EXACT_CHAIN', 'FAMILY', 'BROAD', 'POLICY')),
+    CHECK (investment_eligibility IN ('RESEARCH_ONLY', 'EARLY_ELIGIBLE',
+                                      'CORE_ELIGIBLE', 'EXCLUDED')),
+    CHECK (binding_demand_status IN ('UNPROVED', 'INDICATED', 'CONFIRMED')),
+    CHECK (resupply_barrier_status IN ('UNPROVED', 'INDICATED', 'CONFIRMED')),
+    CHECK (resolution_status IN ('UNKNOWN', 'STILL_BINDING', 'RESOLVING',
+                                 'RESOLVED', 'REJECTED')),
+    CHECK (import_dependency_ratio IS NULL OR
+           import_dependency_ratio BETWEEN 0 AND 1),
+    CHECK (primary_origin_ratio IS NULL OR
+           primary_origin_ratio BETWEEN 0 AND 1),
+    CHECK (capacity_gap_ratio IS NULL OR capacity_gap_ratio BETWEEN 0 AND 1)
+);
+-- Keep the live database compatible when it was created before the richer
+-- import-origin and demand fields were added to the ledger definition.
+ALTER TABLE mg_constraint_ledgers ADD COLUMN IF NOT EXISTS import_value NUMERIC;
+ALTER TABLE mg_constraint_ledgers ADD COLUMN IF NOT EXISTS measurement_date DATE;
+ALTER TABLE mg_constraint_ledgers ADD COLUMN IF NOT EXISTS import_value_unit TEXT;
+ALTER TABLE mg_constraint_ledgers ADD COLUMN IF NOT EXISTS primary_origin VARCHAR(120);
+ALTER TABLE mg_constraint_ledgers ADD COLUMN IF NOT EXISTS primary_origin_ratio NUMERIC(9, 6);
+ALTER TABLE mg_constraint_ledgers ADD COLUMN IF NOT EXISTS demand_volume NUMERIC;
+ALTER TABLE mg_constraint_ledgers ADD COLUMN IF NOT EXISTS demand_unit TEXT;
+ALTER TABLE mg_constraint_ledgers ADD COLUMN IF NOT EXISTS physical_state VARCHAR(24) NOT NULL DEFAULT 'UNKNOWN';
+ALTER TABLE mg_constraint_ledgers ADD COLUMN IF NOT EXISTS trajectory VARCHAR(24) NOT NULL DEFAULT 'UNKNOWN';
+ALTER TABLE mg_constraint_ledgers ADD COLUMN IF NOT EXISTS evidence_completeness VARCHAR(24) NOT NULL DEFAULT 'UNMEASURED';
+ALTER TABLE mg_constraint_ledgers ADD COLUMN IF NOT EXISTS mechanism VARCHAR(40) NOT NULL DEFAULT 'UNCLASSIFIED_RESEARCH';
+ALTER TABLE mg_constraint_ledgers ADD COLUMN IF NOT EXISTS derivation_method VARCHAR(64) NOT NULL DEFAULT 'REVIEWED_PACKET';
+ALTER TABLE mg_constraint_ledgers ALTER COLUMN import_value_unit TYPE TEXT;
+ALTER TABLE mg_constraint_ledgers ALTER COLUMN capacity_unit TYPE TEXT;
+ALTER TABLE mg_constraint_ledgers ALTER COLUMN demand_unit TYPE TEXT;
+ALTER TABLE mg_constraint_ledgers DROP CONSTRAINT IF EXISTS mg_constraint_ledgers_state_check;
+ALTER TABLE mg_constraint_ledgers ADD CONSTRAINT mg_constraint_ledgers_state_check
+    CHECK (state IN ('DISCOVERY', 'EVIDENCED', 'MEASURED', 'BINDING',
+                     'INVESTIBLE', 'RESOLVING', 'RESOLVED', 'OVERCAPACITY',
+                     'STALE', 'REJECTED'));
+CREATE INDEX IF NOT EXISTS idx_constraint_ledgers_asof
+    ON mg_constraint_ledgers(country, constraint_key, as_of_date DESC);
+CREATE INDEX IF NOT EXISTS idx_constraint_ledgers_state
+    ON mg_constraint_ledgers(country, classification, state, as_of_date DESC);
+
+CREATE TABLE IF NOT EXISTS mg_constraint_ledger_evidence (
+    id                  BIGSERIAL PRIMARY KEY,
+    ledger_id           BIGINT NOT NULL REFERENCES mg_constraint_ledgers(id)
+                        ON DELETE CASCADE,
+    evidence_type       VARCHAR(32) NOT NULL,
+    source_date         DATE NOT NULL,
+    source_url          TEXT NOT NULL,
+    source_title        TEXT NOT NULL,
+    source_publisher    TEXT,
+    claim               TEXT NOT NULL,
+    value_numeric       NUMERIC,
+    value_unit          VARCHAR(64),
+    is_primary          BOOLEAN NOT NULL DEFAULT TRUE,
+    independence_key    VARCHAR(200),
+    published_at        DATE,
+    available_at        DATE,
+    source_hash         VARCHAR(64),
+    admissibility_status VARCHAR(24) NOT NULL DEFAULT 'ADMISSIBLE',
+    quarantine_reason   TEXT,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(ledger_id, evidence_type, source_date, source_url),
+    CHECK (evidence_type IN ('DEMAND', 'SUPPLY', 'IMPORT', 'BARRIER',
+                             'BINDING', 'RESOLUTION', 'POLICY'))
+);
+CREATE INDEX IF NOT EXISTS idx_constraint_ledger_evidence_ledger
+    ON mg_constraint_ledger_evidence(ledger_id, source_date DESC);
+ALTER TABLE mg_constraint_ledger_evidence ADD COLUMN IF NOT EXISTS published_at DATE;
+ALTER TABLE mg_constraint_ledger_evidence ADD COLUMN IF NOT EXISTS available_at DATE;
+ALTER TABLE mg_constraint_ledger_evidence ADD COLUMN IF NOT EXISTS source_hash VARCHAR(64);
+ALTER TABLE mg_constraint_ledger_evidence ADD COLUMN IF NOT EXISTS admissibility_status VARCHAR(24) NOT NULL DEFAULT 'ADMISSIBLE';
+ALTER TABLE mg_constraint_ledger_evidence ADD COLUMN IF NOT EXISTS quarantine_reason TEXT;
+
+-- A source discovered after a historical snapshot is not admissible for that
+-- snapshot.  The trigger makes that point-in-time rule a database invariant,
+-- instead of a convention in the report renderer.
+CREATE OR REPLACE FUNCTION mg_constraint_ledger_evidence_asof_guard()
+RETURNS TRIGGER AS $$
+DECLARE
+    snapshot_date DATE;
+BEGIN
+    SELECT as_of_date INTO snapshot_date
+    FROM mg_constraint_ledgers
+    WHERE id = NEW.ledger_id;
+    IF snapshot_date IS NULL THEN
+        RAISE EXCEPTION 'constraint ledger % does not exist', NEW.ledger_id;
+    END IF;
+    IF NEW.source_date > snapshot_date THEN
+        RAISE EXCEPTION
+            'evidence date % is after constraint snapshot %',
+            NEW.source_date, snapshot_date;
+    END IF;
+    IF COALESCE(NEW.published_at, NEW.source_date) > snapshot_date OR
+       COALESCE(NEW.available_at, NEW.published_at, NEW.source_date) > snapshot_date THEN
+        RAISE EXCEPTION
+            'evidence was published/available after constraint snapshot %', snapshot_date;
+    END IF;
+    IF LOWER(NEW.source_url) LIKE 'scheme:%' AND NEW.evidence_type <> 'POLICY' THEN
+        RAISE EXCEPTION
+            'scheme evidence may be POLICY only, not physical evidence type %', NEW.evidence_type;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_constraint_ledger_evidence_asof_guard
+    ON mg_constraint_ledger_evidence;
+CREATE TRIGGER trg_constraint_ledger_evidence_asof_guard
+BEFORE INSERT OR UPDATE OF ledger_id, source_date, published_at, available_at,
+                           source_url, evidence_type ON mg_constraint_ledger_evidence
+FOR EACH ROW EXECUTE FUNCTION mg_constraint_ledger_evidence_asof_guard();
+
+-- ============================================================
+-- 26. CONSTRAINT COVERAGE, PRODUCT ALIASES, AND EVIDENCE QUEUE
+-- ============================================================
+-- Product labels are operational data, not selector code.  A reviewed alias
+-- connects a mapper label to one constraint chain; an automatically discovered
+-- alias establishes coverage only and must be reviewed before it can attach to
+-- a physical-chain ledger record.
+CREATE TABLE IF NOT EXISTS mg_constraint_product_aliases (
+    id                  BIGSERIAL PRIMARY KEY,
+    country             VARCHAR(10) NOT NULL DEFAULT 'IN',
+    product_label       TEXT NOT NULL,
+    normalized_label    TEXT NOT NULL,
+    constraint_key      VARCHAR(160) NOT NULL,
+    match_scope         VARCHAR(16) NOT NULL DEFAULT 'BROAD',
+    status              VARCHAR(24) NOT NULL DEFAULT 'AUTO_DISCOVERY',
+    first_seen_date     DATE,
+    last_seen_date      DATE,
+    source              TEXT NOT NULL DEFAULT 'constraint coverage bootstrap',
+    review_note         TEXT,
+    effective_from      DATE,
+    effective_to        DATE,
+    provenance_url      TEXT,
+    reviewed_at         DATE,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(country, normalized_label),
+    CHECK (match_scope IN ('EXACT', 'FAMILY', 'BROAD', 'POLICY')),
+    CHECK (status IN ('AUTO_DISCOVERY', 'REVIEWED', 'REJECTED'))
+);
+CREATE INDEX IF NOT EXISTS idx_constraint_product_aliases_chain
+    ON mg_constraint_product_aliases(country, constraint_key, status);
+ALTER TABLE mg_constraint_product_aliases ADD COLUMN IF NOT EXISTS effective_from DATE;
+ALTER TABLE mg_constraint_product_aliases ADD COLUMN IF NOT EXISTS effective_to DATE;
+ALTER TABLE mg_constraint_product_aliases ADD COLUMN IF NOT EXISTS provenance_url TEXT;
+ALTER TABLE mg_constraint_product_aliases ADD COLUMN IF NOT EXISTS reviewed_at DATE;
+
+CREATE TABLE IF NOT EXISTS mg_constraint_product_alias_versions (
+    id                  BIGSERIAL PRIMARY KEY,
+    country             VARCHAR(10) NOT NULL DEFAULT 'IN',
+    product_label       TEXT NOT NULL,
+    normalized_label    TEXT NOT NULL,
+    constraint_key      VARCHAR(160) NOT NULL,
+    match_scope         VARCHAR(16) NOT NULL,
+    status              VARCHAR(24) NOT NULL,
+    effective_from      DATE NOT NULL,
+    effective_to        DATE,
+    provenance_url      TEXT,
+    source              TEXT NOT NULL,
+    review_note         TEXT,
+    reviewed_at         DATE,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(country, normalized_label, effective_from),
+    CHECK (match_scope IN ('EXACT', 'FAMILY', 'BROAD', 'POLICY')),
+    CHECK (status IN ('AUTO_DISCOVERY', 'REVIEWED', 'REJECTED')),
+    CHECK (effective_to IS NULL OR effective_to >= effective_from)
+);
+CREATE INDEX IF NOT EXISTS idx_constraint_alias_versions_asof
+    ON mg_constraint_product_alias_versions(country, normalized_label,
+                                             effective_from, effective_to);
+
+-- Automated collectors put source rows here first.  A queued row is neither
+-- ledger evidence nor a Buy-gate leg: it needs a dated, reviewable source
+-- before an analyst promotes it into mg_constraint_ledger_evidence.
+CREATE TABLE IF NOT EXISTS mg_constraint_observation_queue (
+    id                  BIGSERIAL PRIMARY KEY,
+    country             VARCHAR(10) NOT NULL DEFAULT 'IN',
+    constraint_key      VARCHAR(160) NOT NULL,
+    product_label       TEXT NOT NULL,
+    observation_type    VARCHAR(32) NOT NULL,
+    observed_at         DATE NOT NULL,
+    source_table        VARCHAR(80) NOT NULL,
+    source_row_id       BIGINT,
+    source_key          TEXT NOT NULL,
+    source_url          TEXT,
+    source_title        TEXT,
+    metrics             JSONB NOT NULL DEFAULT '{}'::jsonb,
+    provenance_status   VARCHAR(24) NOT NULL DEFAULT 'PENDING_SOURCE',
+    review_status       VARCHAR(24) NOT NULL DEFAULT 'PENDING',
+    review_note         TEXT,
+    economic_period_start DATE,
+    economic_period_end DATE,
+    published_at        DATE,
+    available_at        DATE,
+    source_family       TEXT,
+    source_hash         VARCHAR(64),
+    product_scope       VARCHAR(16) NOT NULL DEFAULT 'EXACT',
+    revision            INTEGER NOT NULL DEFAULT 1,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(country, constraint_key, observation_type, source_key),
+    CHECK (observation_type IN ('CAPACITY', 'IMPORT', 'DEMAND', 'TRADE_FLOW',
+                                'LEAD_TIME', 'COMMISSIONING')),
+    CHECK (provenance_status IN ('PENDING_SOURCE', 'PRIMARY_SOURCE', 'REJECTED')),
+    CHECK (review_status IN ('PENDING', 'ACCEPTED', 'REJECTED'))
+);
+CREATE INDEX IF NOT EXISTS idx_constraint_observation_queue_review
+    ON mg_constraint_observation_queue(country, constraint_key, review_status,
+                                       observed_at DESC);
+ALTER TABLE mg_constraint_observation_queue ADD COLUMN IF NOT EXISTS economic_period_start DATE;
+ALTER TABLE mg_constraint_observation_queue ADD COLUMN IF NOT EXISTS economic_period_end DATE;
+ALTER TABLE mg_constraint_observation_queue ADD COLUMN IF NOT EXISTS published_at DATE;
+ALTER TABLE mg_constraint_observation_queue ADD COLUMN IF NOT EXISTS available_at DATE;
+ALTER TABLE mg_constraint_observation_queue ADD COLUMN IF NOT EXISTS source_family TEXT;
+ALTER TABLE mg_constraint_observation_queue ADD COLUMN IF NOT EXISTS source_hash VARCHAR(64);
+ALTER TABLE mg_constraint_observation_queue ADD COLUMN IF NOT EXISTS product_scope VARCHAR(16) NOT NULL DEFAULT 'EXACT';
+ALTER TABLE mg_constraint_observation_queue ADD COLUMN IF NOT EXISTS revision INTEGER NOT NULL DEFAULT 1;
+
+-- Backfill availability only where the original source table preserves it.
+-- Accepted legacy rows without a recoverable date are demoted to review rather
+-- than guessed into historical availability.
+UPDATE mg_constraint_observation_queue q
+SET published_at=d.filed_at::date,
+    available_at=d.filed_at::date,
+    source_family=COALESCE(q.source_family,
+                           CONCAT('issuer:', UPPER(TRIM(d.ticker)), ':', d.filed_at::date)),
+    source_hash=COALESCE(q.source_hash, d.content_hash)
+FROM mg_documents d
+WHERE q.source_table='mg_documents' AND q.source_row_id=d.id
+  AND (q.published_at IS NULL OR q.available_at IS NULL);
+
+DO $$ BEGIN
+    IF to_regclass('public.mg_capacity_gaps') IS NOT NULL THEN
+        UPDATE mg_constraint_observation_queue q
+        SET published_at=c.source_published_at,
+            available_at=c.source_published_at,
+            source_family=COALESCE(q.source_family, c.source_family, c.source_url)
+        FROM mg_capacity_gaps c
+        WHERE q.source_table='mg_capacity_gaps' AND q.source_row_id=c.id
+          AND c.source_published_at IS NOT NULL
+          AND (q.published_at IS NULL OR q.available_at IS NULL);
+    END IF;
+    IF to_regclass('public.mg_import_dependencies') IS NOT NULL THEN
+        UPDATE mg_constraint_observation_queue q
+        SET published_at=i.source_published_at,
+            available_at=i.source_published_at,
+            source_family=COALESCE(q.source_family, i.source_family, i.source_url)
+        FROM mg_import_dependencies i
+        WHERE q.source_table='mg_import_dependencies' AND q.source_row_id=i.id
+          AND i.source_published_at IS NOT NULL
+          AND (q.published_at IS NULL OR q.available_at IS NULL);
+    END IF;
+END $$;
+
+-- Make old evidence-free auto-coverage rows explicitly replaceable by the
+-- event materializer. Analyst-reviewed/nonempty ledgers are untouched.
+UPDATE mg_constraint_ledgers l
+SET derivation_method='COVERAGE_PLACEHOLDER',
+    physical_state=COALESCE(physical_state, 'DISCOVERY'),
+    trajectory=COALESCE(trajectory, 'STABLE_OR_UNKNOWN'),
+    evidence_completeness=COALESCE(evidence_completeness, 'UNMEASURED'),
+    mechanism=COALESCE(mechanism, 'UNCLASSIFIED_RESEARCH')
+WHERE l.state='DISCOVERY' AND l.classification='WATCH'
+  AND l.derivation_method IS NULL
+  AND NOT EXISTS (
+      SELECT 1 FROM mg_constraint_ledger_evidence e
+      WHERE e.ledger_id=l.id AND e.is_primary
+        AND COALESCE(e.admissibility_status, 'ADMISSIBLE')='ADMISSIBLE'
+  );
+
+UPDATE mg_constraint_observation_queue
+SET review_status='PENDING', provenance_status='PENDING_SOURCE',
+    review_note=CONCAT_WS(' ', review_note,
+        'Legacy acceptance demoted: publication/availability date was not recoverable.')
+WHERE review_status='ACCEPTED'
+  AND (published_at IS NULL OR available_at IS NULL OR source_url IS NULL);
+
+-- Accepted source observations are immutable economic events. A later source
+-- revision must be inserted with a new source_key/revision rather than silently
+-- changing what a historical report knew.
+CREATE OR REPLACE FUNCTION mg_constraint_observation_immutable_guard()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.review_status = 'ACCEPTED' AND (
+        NEW.constraint_key, NEW.product_label, NEW.observation_type,
+        NEW.observed_at, NEW.source_key, NEW.source_url, NEW.metrics,
+        NEW.published_at, NEW.available_at, NEW.source_hash,
+        NEW.product_scope, NEW.provenance_status
+    ) IS DISTINCT FROM (
+        OLD.constraint_key, OLD.product_label, OLD.observation_type,
+        OLD.observed_at, OLD.source_key, OLD.source_url, OLD.metrics,
+        OLD.published_at, OLD.available_at, OLD.source_hash,
+        OLD.product_scope, OLD.provenance_status
+    ) THEN
+        RAISE EXCEPTION 'accepted constraint observation % is immutable; insert a revision', OLD.id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_constraint_observation_immutable
+    ON mg_constraint_observation_queue;
+CREATE TRIGGER trg_constraint_observation_immutable
+BEFORE UPDATE ON mg_constraint_observation_queue
+FOR EACH ROW EXECUTE FUNCTION mg_constraint_observation_immutable_guard();
+
+CREATE OR REPLACE FUNCTION mg_constraint_observation_acceptance_guard()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.review_status = 'ACCEPTED' THEN
+        IF NEW.provenance_status <> 'PRIMARY_SOURCE' OR NEW.source_url IS NULL OR
+           NEW.published_at IS NULL OR NEW.available_at IS NULL THEN
+            RAISE EXCEPTION 'accepted observation requires primary URL, published_at and available_at';
+        END IF;
+        IF NEW.available_at < NEW.published_at OR NEW.available_at < NEW.observed_at THEN
+            RAISE EXCEPTION 'available_at cannot precede publication/economic observation';
+        END IF;
+        IF NEW.product_scope <> 'EXACT' THEN
+            RAISE EXCEPTION 'accepted constraint observation must be exact-product scoped';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_constraint_observation_acceptance
+    ON mg_constraint_observation_queue;
+CREATE TRIGGER trg_constraint_observation_acceptance
+BEFORE INSERT OR UPDATE OF review_status, provenance_status, source_url,
+                           published_at, available_at, product_scope
+ON mg_constraint_observation_queue
+FOR EACH ROW EXECUTE FUNCTION mg_constraint_observation_acceptance_guard();
+
+-- The evidence table links back to the immutable event that justified it.
+ALTER TABLE mg_constraint_ledger_evidence ADD COLUMN IF NOT EXISTS observation_id BIGINT;
+DO $$ BEGIN
+    ALTER TABLE mg_constraint_ledger_evidence
+      ADD CONSTRAINT fk_constraint_evidence_observation
+      FOREIGN KEY (observation_id) REFERENCES mg_constraint_observation_queue(id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Reviewed, effective-dated product/HS relationships. Trade rows outside the
+-- effective window or without a reviewed crosswalk remain momentum context.
+CREATE TABLE IF NOT EXISTS mg_product_hs_crosswalks (
+    id                  BIGSERIAL PRIMARY KEY,
+    country             VARCHAR(10) NOT NULL DEFAULT 'IN',
+    normalized_product  TEXT NOT NULL,
+    hs_code             VARCHAR(16) NOT NULL,
+    relationship_scope  VARCHAR(24) NOT NULL DEFAULT 'EXACT',
+    effective_from      DATE NOT NULL,
+    effective_to        DATE,
+    review_status       VARCHAR(24) NOT NULL DEFAULT 'PENDING',
+    source_url          TEXT,
+    review_note         TEXT,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(country, normalized_product, hs_code, effective_from),
+    CHECK (relationship_scope IN ('EXACT', 'FAMILY', 'BROAD')),
+    CHECK (review_status IN ('PENDING', 'REVIEWED', 'REJECTED')),
+    CHECK (effective_to IS NULL OR effective_to >= effective_from)
+);
+CREATE INDEX IF NOT EXISTS idx_product_hs_crosswalk_asof
+    ON mg_product_hs_crosswalks(country, hs_code, effective_from, effective_to);
+
+-- Non-destructive audit trail for evidence removed from decision authority.
+CREATE TABLE IF NOT EXISTS mg_constraint_evidence_quarantine (
+    evidence_id         BIGINT PRIMARY KEY,
+    ledger_id           BIGINT NOT NULL,
+    quarantined_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    reason              TEXT NOT NULL,
+    original_payload    JSONB NOT NULL
+);
+
+-- Optional official total-return benchmark feed. Forward tests must state a
+-- visible fallback when this table lacks the requested point-in-time series.
+CREATE TABLE IF NOT EXISTS mg_benchmark_prices (
+    country             VARCHAR(10) NOT NULL,
+    benchmark_key       VARCHAR(80) NOT NULL,
+    price_date          DATE NOT NULL,
+    total_return_index  NUMERIC NOT NULL,
+    source_url          TEXT NOT NULL,
+    available_at        DATE NOT NULL,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY(country, benchmark_key, price_date),
+    CHECK (available_at >= price_date)
+);
+
+-- Legacy India reference tables are created by their respective engines.
+-- When present, every decision-grade physical row must carry auditable
+-- point-in-time provenance. Static engineering estimates remain useful
+-- discovery context but default to PENDING_SOURCE and cannot satisfy a
+-- measured constraint gate.
+ALTER TABLE IF EXISTS mg_capacity_gaps
+  ADD COLUMN IF NOT EXISTS source_url TEXT,
+  ADD COLUMN IF NOT EXISTS source_title TEXT,
+  ADD COLUMN IF NOT EXISTS source_published_at DATE,
+  ADD COLUMN IF NOT EXISTS source_family TEXT,
+  ADD COLUMN IF NOT EXISTS provenance_status TEXT DEFAULT 'PENDING_SOURCE',
+  ADD COLUMN IF NOT EXISTS ingestion_method TEXT,
+  ADD COLUMN IF NOT EXISTS measurement_basis TEXT DEFAULT 'UNKNOWN';
+
+ALTER TABLE IF EXISTS mg_import_dependencies
+  ADD COLUMN IF NOT EXISTS source_url TEXT,
+  ADD COLUMN IF NOT EXISTS source_title TEXT,
+  ADD COLUMN IF NOT EXISTS source_published_at DATE,
+  ADD COLUMN IF NOT EXISTS source_family TEXT,
+  ADD COLUMN IF NOT EXISTS provenance_status TEXT DEFAULT 'PENDING_SOURCE',
+  ADD COLUMN IF NOT EXISTS ingestion_method TEXT,
+  ADD COLUMN IF NOT EXISTS measurement_basis TEXT DEFAULT 'UNKNOWN';
+
+-- Existing estimates predate the semantic split.  Preserve their values for
+-- research display, but label them explicitly so no downstream gate can treat
+-- an unknown/current-looking percentage as a measured physical constraint.
+DO $$ BEGIN
+    IF to_regclass('public.mg_capacity_gaps') IS NOT NULL THEN
+        UPDATE mg_capacity_gaps
+        SET measurement_basis='STATIC_REFERENCE_CONTEXT'
+        WHERE measurement_basis IS NULL OR measurement_basis='UNKNOWN';
+    END IF;
+    IF to_regclass('public.mg_import_dependencies') IS NOT NULL THEN
+        UPDATE mg_import_dependencies
+        SET measurement_basis='STATIC_REFERENCE_CONTEXT'
+        WHERE measurement_basis IS NULL OR measurement_basis='UNKNOWN';
+    END IF;
+END $$;
+
+-- Company filings are the source of truth for what a listed company actually
+-- makes, installs, or integrates.  Keep this product-role layer separate from
+-- the constraint ledger: a direct company product disclosure can discover a
+-- new product theme, but it does not establish that the product is scarce.
+CREATE TABLE IF NOT EXISTS mg_company_product_roles (
+    id                          BIGSERIAL PRIMARY KEY,
+    country                     VARCHAR(10) NOT NULL DEFAULT 'IN',
+    as_of_date                  DATE NOT NULL,
+    ticker                      VARCHAR(32) NOT NULL,
+    company                     TEXT,
+    product_phrase              TEXT NOT NULL,
+    normalized_product           TEXT NOT NULL,
+    role_type                   VARCHAR(32) NOT NULL,
+    role_state                  VARCHAR(24) NOT NULL DEFAULT 'DISCOVERY',
+    constraint_key              VARCHAR(160),
+    constraint_link_type        VARCHAR(24) NOT NULL DEFAULT 'UNLINKED',
+    first_evidence_date         DATE NOT NULL,
+    last_evidence_date          DATE NOT NULL,
+    independent_document_count  INTEGER NOT NULL DEFAULT 0,
+    physical_evidence_count     INTEGER NOT NULL DEFAULT 0,
+    pipeline_evidence_count     INTEGER NOT NULL DEFAULT 0,
+    earnings_capture_count      INTEGER NOT NULL DEFAULT 0,
+    demand_or_policy_count      INTEGER NOT NULL DEFAULT 0,
+    evidence                    JSONB NOT NULL DEFAULT '[]'::jsonb,
+    extraction_method           VARCHAR(64) NOT NULL,
+    review_status               VARCHAR(24) NOT NULL DEFAULT 'AUTO_DISCOVERY',
+    review_note                 TEXT,
+    adjudication_state          VARCHAR(48) NOT NULL DEFAULT 'QUARANTINED_AMBIGUOUS_ROLE',
+    adjudication_reason         TEXT,
+    missing_evidence            JSONB NOT NULL DEFAULT '[]'::jsonb,
+    created_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(country, as_of_date, ticker, normalized_product, role_type),
+    CHECK (role_type IN ('MANUFACTURER', 'DIRECT_PRODUCT_SUPPLIER',
+                         'EPC_OR_INSTALLER', 'SYSTEM_INTEGRATOR',
+                         'INPUT_SUPPLIER', 'DIRECT_ROLE_UNCLASSIFIED')),
+    CHECK (role_state IN ('DISCOVERY', 'EVIDENCED', 'REJECTED')),
+    CHECK (constraint_link_type IN ('EXACT', 'EXACT_PRODUCT',
+                                    'REVIEWED_ADJACENT', 'UNLINKED')),
+    CHECK (review_status IN ('AUTO_DISCOVERY', 'REVIEWED', 'REJECTED')),
+    CHECK (first_evidence_date <= last_evidence_date),
+    CHECK (last_evidence_date <= as_of_date)
+);
+-- Idempotent migration for installations created before automatic company-role
+-- adjudication was introduced.
+ALTER TABLE mg_company_product_roles
+    ADD COLUMN IF NOT EXISTS pipeline_evidence_count INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS earnings_capture_count INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS adjudication_state VARCHAR(48) NOT NULL DEFAULT 'QUARANTINED_AMBIGUOUS_ROLE',
+    ADD COLUMN IF NOT EXISTS adjudication_reason TEXT,
+    ADD COLUMN IF NOT EXISTS missing_evidence JSONB NOT NULL DEFAULT '[]'::jsonb;
+-- PostgreSQL names the inline role check deterministically.  Replace the old
+-- constraint so existing installations can persist the separately identified
+-- direct commercial-supplier role without weakening any other role state.
+ALTER TABLE mg_company_product_roles
+    DROP CONSTRAINT IF EXISTS mg_company_product_roles_role_type_check;
+ALTER TABLE mg_company_product_roles
+    ADD CONSTRAINT mg_company_product_roles_role_type_check
+    CHECK (role_type IN ('MANUFACTURER', 'DIRECT_PRODUCT_SUPPLIER',
+                         'EPC_OR_INSTALLER', 'SYSTEM_INTEGRATOR',
+                         'INPUT_SUPPLIER', 'DIRECT_ROLE_UNCLASSIFIED'));
+-- Exact issuer-product identity and exact product-to-theme identity are
+-- separate judgments.  ``EXACT_PRODUCT`` preserves the former when the
+-- reviewed economic-theme alias is family-level or broad.
+ALTER TABLE mg_company_product_roles
+    DROP CONSTRAINT IF EXISTS mg_company_product_roles_constraint_link_type_check;
+ALTER TABLE mg_company_product_roles
+    ADD CONSTRAINT mg_company_product_roles_constraint_link_type_check
+    CHECK (constraint_link_type IN ('EXACT', 'EXACT_PRODUCT',
+                                    'REVIEWED_ADJACENT', 'UNLINKED'));
+CREATE INDEX IF NOT EXISTS idx_company_product_roles_asof
+    ON mg_company_product_roles(country, as_of_date DESC, normalized_product);
+CREATE INDEX IF NOT EXISTS idx_company_product_roles_constraint
+    ON mg_company_product_roles(country, constraint_key, as_of_date DESC);
+
+-- A review is intentionally separate from the derived company-role snapshot.
+-- Rebuilding an extraction snapshot must never overwrite an analyst decision,
+-- and a decision made today must never appear in a historical report.  The
+-- ``decision_available_from`` field is therefore the point-in-time guard for
+-- company role approval, just as source_date is for ledger evidence.
+CREATE TABLE IF NOT EXISTS mg_company_role_reviews (
+    id                          BIGSERIAL PRIMARY KEY,
+    country                     VARCHAR(10) NOT NULL DEFAULT 'IN',
+    ticker                      VARCHAR(32) NOT NULL,
+    normalized_product          TEXT NOT NULL,
+    role_type                   VARCHAR(32) NOT NULL,
+    review_status               VARCHAR(24) NOT NULL,
+    evidence_through_date       DATE NOT NULL,
+    decision_available_from     DATE NOT NULL DEFAULT CURRENT_DATE,
+    reviewer                    TEXT NOT NULL,
+    review_note                 TEXT NOT NULL,
+    source_url                  TEXT,
+    source_title                TEXT,
+    created_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(country, ticker, normalized_product, role_type, decision_available_from),
+    CHECK (role_type IN ('MANUFACTURER', 'EPC_OR_INSTALLER',
+                         'SYSTEM_INTEGRATOR', 'INPUT_SUPPLIER',
+                         'DIRECT_ROLE_UNCLASSIFIED')),
+    CHECK (review_status IN ('APPROVED', 'REJECTED')),
+    CHECK (evidence_through_date <= decision_available_from)
+);
+CREATE INDEX IF NOT EXISTS idx_company_role_reviews_asof
+    ON mg_company_role_reviews(country, ticker, normalized_product, role_type,
+                               decision_available_from DESC);
+
+-- Broad policy discovery is a monthly research job, not a synchronous report
+-- query.  Materialising its dated output keeps the decision path fast while
+-- preserving names that appear in policy filings before the theme mapper.
+CREATE TABLE IF NOT EXISTS mg_policy_company_signals (
+    id                  BIGSERIAL PRIMARY KEY,
+    country             VARCHAR(10) NOT NULL DEFAULT 'IN',
+    as_of_date          DATE NOT NULL,
+    scheme_name         TEXT NOT NULL,
+    ticker              VARCHAR(32) NOT NULL,
+    signal_tier         VARCHAR(24) NOT NULL,
+    first_mention_date  DATE,
+    n_docs_total        INTEGER NOT NULL DEFAULT 0,
+    n_last12m           INTEGER NOT NULL DEFAULT 0,
+    n_prior12m          INTEGER NOT NULL DEFAULT 0,
+    first_commit_date   DATE,
+    n_commit_docs       INTEGER NOT NULL DEFAULT 0,
+    industry            TEXT,
+    source_method       VARCHAR(80) NOT NULL,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(country, as_of_date, scheme_name, ticker),
+    CHECK (signal_tier IN ('QUALIFIED', 'EARLY_PING')),
+    CHECK (n_docs_total >= 0 AND n_last12m >= 0 AND n_prior12m >= 0 AND n_commit_docs >= 0),
+    CHECK (first_mention_date IS NULL OR first_mention_date <= as_of_date),
+    CHECK (first_commit_date IS NULL OR first_commit_date <= as_of_date)
+);
+CREATE INDEX IF NOT EXISTS idx_policy_company_signals_asof
+    ON mg_policy_company_signals(country, as_of_date DESC, scheme_name, signal_tier);
+
+-- Product phrases appearing in a dated company-policy disclosure are a
+-- separate high-recall discovery source.  They are not aliases, constraints,
+-- or company endorsements: the company-product-role extractor must still
+-- recover an issuer-owned manufacturing disclosure, and an analyst must still
+-- establish demand/supply economics before the phrase can enter a decision.
+CREATE TABLE IF NOT EXISTS mg_policy_product_discoveries (
+    id                  BIGSERIAL PRIMARY KEY,
+    country             VARCHAR(10) NOT NULL DEFAULT 'IN',
+    as_of_date          DATE NOT NULL,
+    scheme_name         TEXT NOT NULL,
+    product_label       TEXT NOT NULL,
+    normalized_product  TEXT NOT NULL,
+    source_document_count INTEGER NOT NULL DEFAULT 0,
+    source_issuer_count INTEGER NOT NULL DEFAULT 0,
+    first_source_date   DATE,
+    last_source_date    DATE,
+    source_method       VARCHAR(80) NOT NULL,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(country, as_of_date, scheme_name, normalized_product),
+    CHECK (source_document_count > 0),
+    CHECK (source_issuer_count > 0),
+    CHECK (first_source_date IS NULL OR first_source_date <= as_of_date),
+    CHECK (last_source_date IS NULL OR last_source_date <= as_of_date)
+);
+CREATE INDEX IF NOT EXISTS idx_policy_product_discoveries_asof
+    ON mg_policy_product_discoveries(country, as_of_date DESC, normalized_product);
+
+-- ============================================================
+-- 27. UPSTREAM CONSTRAINT CANDIDATE SNAPSHOTS
+-- ============================================================
+-- This is the bridge between ingestion/NLP and the selector. It preserves a
+-- product chain even when no beneficiary mapper row exists, records each
+-- missing mechanism leg, and keeps company-role discovery separate from the
+-- physical constraint score. Research priority is not investment authority.
+CREATE TABLE IF NOT EXISTS mg_constraint_candidates (
+    id                         BIGSERIAL PRIMARY KEY,
+    country                    VARCHAR(10) NOT NULL DEFAULT 'IN',
+    as_of_date                 DATE NOT NULL,
+    constraint_key             VARCHAR(160) NOT NULL,
+    product_label              TEXT NOT NULL,
+    normalized_product         TEXT NOT NULL,
+    theme_name                 TEXT NOT NULL,
+    mechanism                  VARCHAR(40) NOT NULL,
+    physical_quality           VARCHAR(16) NOT NULL,
+    research_priority          INTEGER NOT NULL,
+    research_state             VARCHAR(24) NOT NULL,
+    resolution_risk            VARCHAR(24) NOT NULL,
+    detection_origins          TEXT[] NOT NULL DEFAULT '{}',
+    evidence_legs              JSONB NOT NULL DEFAULT '{}'::jsonb,
+    missing_legs               TEXT[] NOT NULL DEFAULT '{}',
+    independent_source_count   INTEGER NOT NULL DEFAULT 0,
+    company_count              INTEGER NOT NULL DEFAULT 0,
+    reviewed_company_count     INTEGER NOT NULL DEFAULT 0,
+    first_detected_date        DATE,
+    last_evidence_date         DATE,
+    next_action                TEXT NOT NULL,
+    extractor_version          VARCHAR(80) NOT NULL,
+    created_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(country, as_of_date, constraint_key, normalized_product),
+    CHECK (mechanism IN ('PHYSICAL_CONSTRAINT', 'LOCALISATION_QUALIFICATION',
+                         'DEPLOYMENT_DEMAND_PULL', 'UNCLASSIFIED_RESEARCH')),
+    CHECK (physical_quality IN ('A', 'B', 'WEAK', 'UNMEASURED')),
+    CHECK (research_priority BETWEEN 0 AND 100),
+    CHECK (research_state IN ('INVESTIGATE_NOW', 'MEASURE_NEXT', 'DISCOVERY'))
+);
+CREATE INDEX IF NOT EXISTS idx_constraint_candidates_priority
+    ON mg_constraint_candidates(country, as_of_date DESC, research_priority DESC);
+
+CREATE TABLE IF NOT EXISTS mg_constraint_company_candidates (
+    id                          BIGSERIAL PRIMARY KEY,
+    country                     VARCHAR(10) NOT NULL DEFAULT 'IN',
+    as_of_date                  DATE NOT NULL,
+    constraint_key              VARCHAR(160) NOT NULL,
+    normalized_product          TEXT NOT NULL,
+    product_label               TEXT NOT NULL,
+    ticker                      VARCHAR(32) NOT NULL,
+    company                     TEXT,
+    role_type                   VARCHAR(32) NOT NULL,
+    role_state                  VARCHAR(24) NOT NULL,
+    link_type                   VARCHAR(32) NOT NULL,
+    independent_document_count  INTEGER NOT NULL DEFAULT 0,
+    physical_evidence_count     INTEGER NOT NULL DEFAULT 0,
+    pipeline_evidence_count     INTEGER NOT NULL DEFAULT 0,
+    earnings_capture_count      INTEGER NOT NULL DEFAULT 0,
+    demand_signal_count         INTEGER NOT NULL DEFAULT 0,
+    role_confidence             NUMERIC(6, 3) NOT NULL DEFAULT 0,
+    selection_state             VARCHAR(40) NOT NULL,
+    earnings_capture_status     VARCHAR(24) NOT NULL DEFAULT 'UNPROVED',
+    adjudication_state          VARCHAR(48),
+    adjudication_reason         TEXT,
+    evidence                    JSONB NOT NULL DEFAULT '[]'::jsonb,
+    extractor_version           VARCHAR(80) NOT NULL,
+    created_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(country, as_of_date, constraint_key, normalized_product, ticker),
+    CHECK (selection_state IN ('APPROVED_OPERATING_MAKER', 'PIPELINE_DIRECT_ROLE',
+                               'EXACT_ROLE_REVIEW', 'PRODUCT_ROLE_DISCOVERY',
+                               'CAPABILITY_LEAD')),
+    CHECK (earnings_capture_status IN ('UNPROVED', 'INDICATED', 'CONFIRMED')),
+    CHECK (role_confidence BETWEEN 0 AND 1)
+);
+ALTER TABLE mg_constraint_company_candidates
+    ADD COLUMN IF NOT EXISTS pipeline_evidence_count INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS earnings_capture_count INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS adjudication_state VARCHAR(48),
+    ADD COLUMN IF NOT EXISTS adjudication_reason TEXT;
+CREATE INDEX IF NOT EXISTS idx_constraint_company_candidates_chain
+    ON mg_constraint_company_candidates(country, as_of_date DESC,
+                                         constraint_key, role_confidence DESC);

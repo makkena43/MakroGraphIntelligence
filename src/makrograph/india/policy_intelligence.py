@@ -285,12 +285,15 @@ class PolicyIntelligenceEngine:
                         don't contaminate historical snapshots (Change 3).
         """
         today = date.today()
-        ref_year = as_of_date.year if as_of_date else today.year
+        observation_date = as_of_date or today
         targets = []
         for t in _STATIC_POLICY_TARGETS:
             announced = t.get("announced_year")
-            # Filter: skip targets announced after the replay as_of_date
-            if announced and ref_year < announced:
+            # A year-only knowledge-base entry is conservatively available at
+            # year end. This prevents a December policy from appearing in a
+            # January report from the same year.
+            available_from = date(int(announced), 12, 31) if announced else None
+            if available_from and observation_date < available_from:
                 continue
             targets.append(PolicyTarget(
                 source=t["source"],
@@ -300,14 +303,20 @@ class PolicyIntelligenceEngine:
                 unit=t["unit"],
                 target_year=t.get("target_year"),
                 confidence=t.get("confidence", 0.80),
-                extracted_at=as_of_date or today,
+                extracted_at=available_from or observation_date,
             ))
         return targets
 
-    def extract_from_text(self, text: str, source: str = "unknown") -> list[PolicyTarget]:
+    def extract_from_text(
+        self,
+        text: str,
+        source: str = "unknown",
+        observed_at: Optional[date] = None,
+        doc_url: str = "",
+    ) -> list[PolicyTarget]:
         """Extract policy targets from raw policy document text using regex patterns."""
         targets: list[PolicyTarget] = []
-        today = date.today()
+        source_date = observed_at or date.today()
 
         for sector, metric, pattern in _TARGET_PATTERNS:
             for match in pattern.finditer(text):
@@ -327,7 +336,8 @@ class PolicyIntelligenceEngine:
                     target_year=year,
                     confidence=0.70,
                     raw_text=match.group(0)[:200],
-                    extracted_at=today,
+                    doc_url=doc_url,
+                    extracted_at=source_date,
                 ))
 
         logger.info(f"[PolicyIntelligence] Extracted {len(targets)} targets from '{source}' text")
