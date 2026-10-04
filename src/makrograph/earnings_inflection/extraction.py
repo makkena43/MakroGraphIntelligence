@@ -139,6 +139,9 @@ def fy_label_for(period_end: date, period_type: str) -> str:
     fy = period_end.year + 1 if period_end.month > 3 else period_end.year
     if period_type == "FY":
         return f"FY{fy % 100:02d}"
+    if period_type == "H":
+        h = {9: "H1", 3: "H2"}.get(period_end.month, "H?")
+        return f"{h}FY{fy % 100:02d}"
     q = {6: "Q1", 9: "Q2", 12: "Q3", 3: "Q4"}.get(period_end.month, "Q?")
     return f"{q}FY{fy % 100:02d}"
 

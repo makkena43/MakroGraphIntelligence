@@ -5,8 +5,11 @@ Rules:
   never mixed inside a calculation.
 * For each (metric, period) the latest version public by the as-of date is
   used; earlier versions are kept as lineage (restatements are visible).
-* Trailing-twelve-month (TTM) values are the SUM of four consecutive reported
-  quarters.  The latest quarter is NEVER annualised and labelled trailing.
+* Trailing-twelve-month (TTM) values are the SUM of the periods covering 12
+  months: four quarters, or two half-years for issuers that report
+  half-yearly (SME platforms).  The latest period is NEVER annualised.
+* Each series has one reporting cadence ("Q" or "H"); quarterly and
+  half-yearly figures are never mixed in a growth or TTM calculation.
 * Present-day snapshot tables (``fundamentals_snapshot``) are rejected for
   historical calculations unless the exact dated version is proven.
 """
@@ -39,6 +42,19 @@ def assert_point_in_time_source(source_name: str, dated_version_proven: bool = F
 
 def _prev_quarter_end(d: date) -> date:
     return {6: date(d.year, 3, 31), 9: date(d.year, 6, 30), 12: date(d.year, 9, 30), 3: date(d.year - 1, 12, 31)}[d.month]
+
+
+def _prev_half_end(d: date) -> date:
+    """Half-years end 30 Sep (H1) and 31 Mar (H2) in the Indian fiscal year."""
+    return {9: date(d.year, 3, 31), 3: date(d.year - 1, 9, 30)}[d.month]
+
+
+PERIODS_PER_YEAR = {"Q": 4, "H": 2}
+PERIOD_WORD = {"Q": "quarter", "H": "half-year"}
+
+
+def prev_period_end(d: date, ptype: str) -> date:
+    return _prev_half_end(d) if ptype == "H" else _prev_quarter_end(d)
 
 
 def _year_ago(d: date) -> date:
@@ -88,6 +104,7 @@ class FinancialSeries:
                     f"{key[0].value} {key[1]} {key[2]}: revised from {vs[0].value} ({vs[0].doc_id}) "
                     f"to {latest.value} ({latest.doc_id})")
         series._derive_missing_q4()
+        series._derive_missing_h2()
         series._derive_ebitda()
         return series
 
@@ -103,6 +120,18 @@ class FinancialSeries:
             if nine:
                 self.points[(metric, "Q", end)] = SeriesPoint(p.value - nine.value, p.unit, "derived:FY-9M",
                                                               p.doc_ids + nine.doc_ids)
+
+    def _derive_missing_h2(self) -> None:
+        """H2 = FY - H1 when a half-yearly reporter publishes only H1 and the full year."""
+        for (metric, ptype, end), p in list(self.points.items()):
+            if ptype != "FY" or metric in (Metric.DILUTED_EPS, Metric.BASIC_EPS):
+                continue
+            if (metric, "H", end) in self.points:
+                continue
+            h1 = self.points.get((metric, "H", date(end.year - 1, 9, 30)))
+            if h1:
+                self.points[(metric, "H", end)] = SeriesPoint(p.value - h1.value, p.unit, "derived:FY-H1",
+                                                              p.doc_ids + h1.doc_ids)
 
     def _derive_ebitda(self) -> None:
         for (metric, ptype, end), rev in list(self.points.items()):
@@ -122,23 +151,50 @@ class FinancialSeries:
     def get(self, metric: Metric, end: date, ptype: str = "Q") -> Optional[SeriesPoint]:
         return self.points.get((metric, ptype, end))
 
+    def period_ends(self, metric: Metric = Metric.REVENUE, ptype: str = "Q") -> list[date]:
+        ends = sorted(e for (m, t, e) in self.points if m == metric and t == ptype)
+        if ptype == "H":
+            ends = [e for e in ends if e.month in (3, 9)]
+        return ends
+
     def quarter_ends(self, metric: Metric = Metric.REVENUE) -> list[date]:
-        return sorted(e for (m, t, e) in self.points if m == metric and t == "Q")
+        return self.period_ends(metric, "Q")
+
+    def latest_period(self, metric: Metric = Metric.REVENUE, ptype: str = "Q") -> Optional[date]:
+        e = self.period_ends(metric, ptype)
+        return e[-1] if e else None
 
     def latest_quarter(self, metric: Metric = Metric.REVENUE) -> Optional[date]:
-        q = self.quarter_ends(metric)
-        return q[-1] if q else None
+        return self.latest_period(metric, "Q")
 
-    def ttm(self, metric: Metric, end: date) -> tuple[Optional[float], list[str]]:
-        """Sum of four consecutive quarters ending ``end``; (None, missing) if any is absent."""
+    def cadence(self, metric: Metric = Metric.REVENUE) -> Optional[str]:
+        """Reporting cadence to analyse: "Q", "H" (half-yearly, typical for SME issuers) or None.
+
+        The most recent cadence that supports a year-on-year comparison wins;
+        quarterly is preferred on ties (mainboard Q2 statements also carry H1
+        columns).  A company that migrated from SME to mainboard is analysed
+        half-yearly until four quarters with a year-ago comparison exist.
+        """
+        cands = []
+        for p in ("Q", "H"):
+            end = self.latest_period(metric, p)
+            if end is not None:
+                cands.append((end, p == "Q", p, self.yoy(metric, end, p) is not None))
+        if not cands:
+            return None
+        cands.sort(key=lambda c: (c[3], c[0], c[1]), reverse=True)
+        return cands[0][2]
+
+    def ttm(self, metric: Metric, end: date, ptype: str = "Q") -> tuple[Optional[float], list[str]]:
+        """Sum of the periods covering 12 months to ``end``; (None, missing) if any is absent."""
         vals, missing, d = [], [], end
-        for _ in range(4):
-            p = self.get(metric, d)
+        for _ in range(PERIODS_PER_YEAR[ptype]):
+            p = self.get(metric, d, ptype)
             if p is None:
-                missing.append(f"{metric.value} quarter ending {d}")
+                missing.append(f"{metric.value} {PERIOD_WORD[ptype]} ending {d}")
             else:
                 vals.append(p.value)
-            d = _prev_quarter_end(d)
+            d = prev_period_end(d, ptype)
         if missing:
             return None, missing
         return sum(vals), []
@@ -174,9 +230,14 @@ class FinancialSeries:
         return val, notes
 
     def shares_diluted_crore(self, end: date, ptype: str = "Q") -> Optional[float]:
-        """Implied diluted shares = attributable PAT / diluted EPS (both reported)."""
-        eps = self.get(Metric.DILUTED_EPS, end, ptype)
-        pat = self.get(Metric.PAT_ATTRIBUTABLE, end, ptype) or self.get(Metric.PAT, end, ptype)
-        if not eps or not pat or abs(eps.value) < 1e-9:
-            return None
-        return pat.value / eps.value
+        """Implied diluted shares = attributable PAT / diluted EPS (both reported).
+
+        Falls back to the previous period when the latest one is derived
+        (e.g. H2 = FY - H1 carries no EPS).
+        """
+        for d in (end, prev_period_end(end, ptype)):
+            eps = self.get(Metric.DILUTED_EPS, d, ptype)
+            pat = self.get(Metric.PAT_ATTRIBUTABLE, d, ptype) or self.get(Metric.PAT, d, ptype)
+            if eps and pat and abs(eps.value) > 1e-9:
+                return pat.value / eps.value
+        return None

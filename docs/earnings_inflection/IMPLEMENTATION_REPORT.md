@@ -84,6 +84,7 @@ Fixture outcomes at as-of 2024-10-31. These show the mechanics only and are not 
 | Fictional issuer | Scenario exercised | Status |
 |---|---|---|
 | ACMEGRID | order announced, then repeated in a call (deduplicated); repeat order; LoI from an unnamed buyer; guidance reiterated; 2 quarters of material growth | EXECUTION_CONFIRMED |
+| SMEFAB | SME issuer reporting half-yearly; 2 consecutive half-years of material growth; one disclosed order | EXECUTION_CONFIRMED (EXECUTION_EMERGING before the H1FY25 results) |
 | PLAINCO | flat business; latest results have a date-only `filed_at` | NO_MATERIAL_CHANGE |
 | CONTRACO | FY24 guidance of 30% growth, actual 5% | CONTRADICTED (bridge not computed: missing quarter) |
 | SAMPLEBANK | bank | UNSUPPORTED_FINANCIAL_MODEL |
@@ -103,7 +104,14 @@ Fixture outcomes at as-of 2024-10-31. These show the mechanics only and are not 
   - SME half-yearly and annual-only statements.
   - Date headers as `dd.mm.yyyy`, `dd.mm.yy`, `30-Jun-24`, `Jun-24` and `June 30, 2024`, and fiscal-label headers such as `Q3 FY25`, `9M FY25` and `FY24`.
 
-  It still needs period columns on one header line. Dates split across lines, merged headers and segment-reporting tables need fixtures drawn from real filings. Drivers use quarterly series only, so SME half-yearly figures are parsed but don't yet feed growth drivers.
+  It still needs period columns on one header line. Dates split across lines, merged headers and segment-reporting tables need fixtures drawn from real filings.
+- **SME half-yearly reporters** are analysed in half-years:
+  - Year-on-year growth compares the same half a year earlier.
+  - Trailing 12 months is the sum of the last two halves; the latest half is never doubled.
+  - When only H1 and the full year are filed, H2 is derived as FY − H1 and labelled as derived.
+  - The bridge uses the same cadence, and its base period is shown as, for example, "TTM to H1FY25".
+  - Persistence means two consecutive half-years, a full year of evidence, so changes surface up to six months later than for quarterly reporters. Each report states this.
+  - The cadence is chosen per company. After an SME-to-mainboard migration, the company stays half-yearly until four quarters with year-ago comparisons exist.
 - **Point in time:** `filed_at` alone gives day resolution. Exchange dissemination timestamps should be preferred wherever fetchers store them.
 - **Identity:** without a supplied symbol history the ticker is assumed stable, and this is disclosed in each output. SME migration, mergers and renames need a curated history.
 - **Financial issuers:** the bank / NBFC / insurer classification uses industry metadata, then strong name keywords, then statement layout. Weak keywords ("Capital", "Finance") leave the model UNKNOWN for review.

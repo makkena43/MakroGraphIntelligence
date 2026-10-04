@@ -102,6 +102,44 @@ def results_text(company, q, quarters, scope="Consolidated", pdfplumber_style=Fa
     return "\n".join(lines)
 
 
+def hend(y, m):
+    return date(y, m, 30 if m == 9 else 31)
+
+
+def sme_results_text(company, h, halves):
+    """SME half-yearly statement in pdfplumber style, amounts in Rs lakhs.
+
+    Columns follow the SME layout: current half, previous half, year-ago half,
+    then year-ended column(s) (two for the H2 statement).
+    """
+    prev_h = hend(h.year, 3) if h.month == 9 else hend(h.year - 1, 9)
+    cols = [h, prev_h, yago(h)]
+    fy_cols = [h, yago(h)] if h.month == 3 else [date(h.year, 3, 31)]
+
+    def fy(d):
+        return sum_pl([halves[hend(d.year - 1, 9)], halves[d]])
+
+    data = [halves[c] for c in cols] + [fy(c) for c in fy_cols]
+    period = "half year" if h.month == 9 else "half year and year"
+    lines = [company.upper(),
+             f"Statement of Standalone Financial Results for the {period} ended {h.strftime('%d %B, %Y')}",
+             "(Rs. in lakhs)", "Particulars Half year ended Year ended",
+             " ".join(fmt(c) for c in cols + fy_cols)]
+
+    def row(label, key):
+        return label + " " + " ".join(f"{d[key] * 100:,.2f}" for d in data)   # crore -> lakhs
+
+    def eps_row(label):
+        return label + " " + " ".join(f"{d['eps']:,.2f}" for d in data)
+
+    lines += [row("1. Revenue from operations", "rev"), row("2. Other income", "oi"),
+              row("4. Total expenses", "te"), row("Depreciation and amortisation expense", "da"),
+              row("Finance costs", "fin"), row("5. Profit before tax", "pbt"), row("6. Tax expense", "tax"),
+              row("7. Profit for the period", "pat"), "8. Earnings per share (face value Rs 10 each)",
+              eps_row("(a) Basic"), eps_row("(b) Diluted")]
+    return "\n".join(lines)
+
+
 def build():
     docs, issuers = [], {}
 
@@ -211,6 +249,23 @@ def build():
         docs.append({"doc_id": f"CONTRA-R-{q.isoformat()}", "ticker": "CONTRACO", "source_name": "nse",
                      "title": "Financial Results", "published_at": ts,
                      "text": results_text("Contra Industries Limited", q, contra)})
+
+    # ---------------- SMEFAB: SME platform, half-yearly reporting ------------
+    issuers["SMEFAB"] = {"name": "Small Fab Engineering Limited", "industry": "Industrial Machinery",
+                         "series": "SM"}
+    hrev = {hend(2022, 9): 40, hend(2023, 3): 45, hend(2023, 9): 48, hend(2024, 3): 60, hend(2024, 9): 68}
+    hmar = {hend(2022, 9): .10, hend(2023, 3): .10, hend(2023, 9): .11, hend(2024, 3): .13, hend(2024, 9): .15}
+    sme = {d: quarter_pl(r, hmar[d], shares=2.0, minority=0.0, oi=0.2, da=1.0, fin=0.5) for d, r in hrev.items()}
+    for h, ts in {hend(2023, 9): "2023-11-14T18:00:00+05:30", hend(2024, 3): "2024-05-28T18:00:00+05:30",
+                  hend(2024, 9): "2024-11-12T18:00:00+05:30"}.items():
+        docs.append({"doc_id": f"SME-R-{h.isoformat()}", "ticker": "SMEFAB", "source_name": "nse",
+                     "title": "Half yearly financial results", "published_at": ts,
+                     "text": sme_results_text("Small Fab Engineering Limited", h, sme)})
+    docs.append({"doc_id": "SME-PR-1", "ticker": "SMEFAB", "source_name": "nse", "title": "Press release",
+                 "published_at": "2024-06-05T10:00:00+05:30",
+                 "text": ("Small Fab Engineering Limited has received a purchase order worth Rs 35 crore from "
+                          "Eastern Rail Systems Limited for fabricated bogie frames. "
+                          "We expect revenue growth of 30% in FY25.")})
 
     # ---------------- SAMPLEBANK: unsupported financial model ---------------
     issuers["SAMPLEBANK"] = {"name": "Sample Cooperative Bank Limited", "industry": "Private Sector Bank", "series": "EQ"}

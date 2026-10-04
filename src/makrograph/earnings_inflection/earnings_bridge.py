@@ -15,7 +15,7 @@ from .contracts import (
     BridgeScenario, EarningsBridge, GuidanceOutcome, GuidanceRecord, IssuerModel, Metric, ScenarioStatus,
 )
 from .extraction import fy_label_for
-from .financial_series import FinancialSeries
+from .financial_series import PERIOD_WORD, PERIODS_PER_YEAR, FinancialSeries
 
 
 def build_bridge(series: Optional[FinancialSeries], issuer_model: IssuerModel,
@@ -24,24 +24,27 @@ def build_bridge(series: Optional[FinancialSeries], issuer_model: IssuerModel,
         return EarningsBridge(ScenarioStatus.UNSUPPORTED_FINANCIAL_MODEL,
                               missing_inputs=[f"operating-margin bridge not applicable to {issuer_model.value}"])
     missing: list[str] = []
-    end = series.latest_quarter() if series else None
+    p = series.cadence() if series else None
+    end = series.latest_period(Metric.REVENUE, p) if p else None
     if end is None:
-        return EarningsBridge(ScenarioStatus.NOT_COMPUTED_MISSING_INPUTS, missing_inputs=["quarterly revenue series"])
+        return EarningsBridge(ScenarioStatus.NOT_COMPUTED_MISSING_INPUTS,
+                              missing_inputs=["quarterly or half-yearly revenue series"])
+    w = PERIOD_WORD[p]
 
     def ttm(metric):
-        v, miss = series.ttm(metric, end)
+        v, miss = series.ttm(metric, end, p)
         missing.extend(miss)
         return v
 
     rev, ebitda, da, fin = ttm(Metric.REVENUE), ttm(Metric.EBITDA), ttm(Metric.DEPRECIATION), ttm(Metric.FINANCE_COST)
     pbt, tax = ttm(Metric.PBT), ttm(Metric.TAX)
-    pat, pat_attr = series.ttm(Metric.PAT, end)[0], series.ttm(Metric.PAT_ATTRIBUTABLE, end)[0]
-    shares = series.shares_diluted_crore(end)
+    pat, pat_attr = series.ttm(Metric.PAT, end, p)[0], series.ttm(Metric.PAT_ATTRIBUTABLE, end, p)[0]
+    shares = series.shares_diluted_crore(end, p)
     if shares is None:
-        missing.append("diluted share count (reported diluted EPS and PAT for latest quarter)")
+        missing.append(f"diluted share count (reported diluted EPS and PAT for latest {w})")
     if missing:
         return EarningsBridge(ScenarioStatus.NOT_COMPUTED_MISSING_INPUTS,
-                              base_period_label=f"TTM to {fy_label_for(end, 'Q')}", missing_inputs=sorted(set(missing)))
+                              base_period_label=f"TTM to {fy_label_for(end, p)}", missing_inputs=sorted(set(missing)))
 
     tax_rate = tax / pbt if pbt and pbt > 0 else 0.25
     tax_note = "effective TTM tax rate" if pbt and pbt > 0 else "25% statutory-style assumption (TTM PBT <= 0)"
@@ -59,14 +62,15 @@ def build_bridge(series: Optional[FinancialSeries], issuer_model: IssuerModel,
                               recurring_pat_attributable_crore=round(pat_r, 2),
                               recurring_diluted_eps=round(pat_r / shares, 2), notes=list(extra_notes))
 
-    label = f"TTM to {fy_label_for(end, 'Q')}"
+    label = f"TTM to {fy_label_for(end, p)}"
+    n = PERIODS_PER_YEAR[p]
     scenarios = [scen("trailing_run_rate", rev, base_margin,
-                      ["sum of last four reported quarters; latest quarter NOT annualised"])]
-    g = series.yoy(Metric.REVENUE, end)
-    m_latest = series.margin(end)
+                      [f"sum of last {n} reported {w}s; latest {w} NOT annualised"])]
+    g = series.yoy(Metric.REVENUE, end, p)
+    m_latest = series.margin(end, p)
     if g is not None and m_latest is not None:
-        scenarios.append(scen("latest_quarter_trend_persists", rev * (1 + g / 100), m_latest,
-                              [f"TTM revenue grown at latest quarter YoY ({g:.1f}%) for one year; latest-quarter margin "
+        scenarios.append(scen("latest_period_trend_persists", rev * (1 + g / 100), m_latest,
+                              [f"TTM revenue grown at latest {w} YoY ({g:.1f}%) for one year; latest-{w} margin "
                                "held; an illustration of persistence, not a forecast"]))
     rg = [r for r in guidance if r.metric == Metric.REVENUE_GROWTH_GUIDANCE and r.outcome == GuidanceOutcome.PENDING]
     mg = [r for r in guidance if r.metric == Metric.MARGIN_GUIDANCE and r.outcome == GuidanceOutcome.PENDING]

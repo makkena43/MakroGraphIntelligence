@@ -12,7 +12,7 @@ from datetime import date, timedelta
 from typing import Optional
 
 from .contracts import DriverChange, EconomicEvent, Evidence, IssuerModel, Metric, Unit
-from .financial_series import FinancialSeries, _prev_quarter_end, _year_ago
+from .financial_series import PERIOD_WORD, FinancialSeries, _year_ago, prev_period_end
 
 DEFAULT_THRESHOLDS = {
     "revenue_yoy_pct": 25.0,
@@ -38,60 +38,64 @@ def compute_drivers(series: FinancialSeries, events: list[EconomicEvent], eviden
     th = {**DEFAULT_THRESHOLDS, **(thresholds or {})}
     out: list[DriverChange] = []
     missing: list[str] = []
-    end = series.latest_quarter()
+    p = series.cadence()
+    end = series.latest_period(Metric.REVENUE, p) if p else None
     if end is None:
-        missing.append("no comparable quarterly revenue series")
+        missing.append("no comparable quarterly or half-yearly revenue series")
     else:
-        prev_q = _prev_quarter_end(end)
-        docs = series.get(Metric.REVENUE, end).doc_ids
+        w = PERIOD_WORD[p]                       # "quarter" | "half-year"
+        prev_p = prev_period_end(end, p)
+        docs = series.get(Metric.REVENUE, end, p).doc_ids
+        cadence_note = ([f"half-yearly reporter: each period is 6 months; persistence needs "
+                         f"consecutive half-years"] if p == "H" else [])
 
-        # Revenue growth and acceleration (same-quarter YoY; no annualisation)
-        g, g_prev = series.yoy(Metric.REVENUE, end), series.yoy(Metric.REVENUE, prev_q)
+        # Revenue growth and acceleration (same period YoY; no annualisation)
+        g, g_prev = series.yoy(Metric.REVENUE, end, p), series.yoy(Metric.REVENUE, prev_p, p)
         if g is None:
-            missing.append(f"year-ago revenue for quarter ending {end}")
+            missing.append(f"year-ago revenue for {w} ending {end}")
         else:
-            out.append(_dc("revenue_yoy_growth", series, end, g, None, "pct", "quarter vs same quarter last year",
-                           g >= th["revenue_yoy_pct"], docs, change=g))
+            out.append(_dc("revenue_yoy_growth", series, end, g, None, "pct", f"{w} vs same {w} last year",
+                           g >= th["revenue_yoy_pct"], docs, change=g, notes=cadence_note))
             if g_prev is not None:
                 out.append(_dc("revenue_growth_acceleration", series, end, g, g_prev, "pp",
-                               "YoY growth this quarter minus YoY growth previous quarter",
-                               (g - g_prev) >= th["revenue_yoy_acceleration_pp"], docs))
+                               f"YoY growth this {w} minus YoY growth previous {w}",
+                               (g - g_prev) >= th["revenue_yoy_acceleration_pp"], docs, notes=cadence_note))
 
         if not issuer_model.is_financial:
-            m, m_prev = series.margin(end), series.margin(_year_ago(end))
+            m, m_prev = series.margin(end, p), series.margin(_year_ago(end), p)
             if m is not None and m_prev is not None:
                 bps = (m - m_prev) * 100
-                ebitda_src = series.get(Metric.EBITDA, end).source
-                out.append(_dc("ebitda_margin_change", series, end, m, m_prev, "bps", "EBITDA/revenue vs year-ago quarter",
+                ebitda_src = series.get(Metric.EBITDA, end, p).source
+                out.append(_dc("ebitda_margin_change", series, end, m, m_prev, "bps", f"EBITDA/revenue vs year-ago {w}",
                                abs(bps) >= th["ebitda_margin_change_bps"], docs, change=bps,
-                               notes=[f"EBITDA {ebitda_src}"] if ebitda_src != "reported" else []))
-                rg = series.yoy(Metric.REVENUE, end)
-                eg = series.yoy(Metric.EBITDA, end)
+                               notes=([f"EBITDA {ebitda_src}"] if ebitda_src != "reported" else []) + cadence_note))
+                rg = series.yoy(Metric.REVENUE, end, p)
+                eg = series.yoy(Metric.EBITDA, end, p)
                 if rg and eg is not None and rg > 0:
                     out.append(_dc("operating_leverage", series, end, eg / rg, None, "x",
                                    "EBITDA YoY growth / revenue YoY growth", eg / rg >= 1.5 and bps > 0, docs,
-                                   change=eg / rg))
+                                   change=eg / rg, notes=cadence_note))
             else:
-                missing.append("EBITDA (reported or derivable) for current and year-ago quarter")
+                missing.append(f"EBITDA (reported or derivable) for current and year-ago {w}")
 
-        pat_g = series.yoy(Metric.PAT_ATTRIBUTABLE, end) or series.yoy(Metric.PAT, end)
+        pat_g = series.yoy(Metric.PAT_ATTRIBUTABLE, end, p) or series.yoy(Metric.PAT, end, p)
         if pat_g is not None:
-            out.append(_dc("pat_yoy_growth", series, end, pat_g, None, "pct", "PAT vs year-ago quarter",
-                           pat_g >= th["pat_yoy_pct"], docs, change=pat_g))
+            out.append(_dc("pat_yoy_growth", series, end, pat_g, None, "pct", f"PAT vs year-ago {w}",
+                           pat_g >= th["pat_yoy_pct"], docs, change=pat_g, notes=cadence_note))
 
-        # consecutive quarters of material revenue growth (persistence)
+        # consecutive periods of material revenue growth (persistence)
         streak, d = 0, end
         while True:
-            gg = series.yoy(Metric.REVENUE, d)
+            gg = series.yoy(Metric.REVENUE, d, p)
             if gg is None or gg < th["revenue_yoy_pct"]:
                 break
             streak += 1
-            d = _prev_quarter_end(d)
-        out.append(_dc("material_growth_streak_quarters", series, end, float(streak), None, "quarters",
-                       f"consecutive quarters with revenue YoY >= {th['revenue_yoy_pct']}%", streak >= 2, docs,
-                       change=float(streak)))
+            d = prev_period_end(d, p)
+        out.append(_dc("material_growth_streak", series, end, float(streak), None, f"{w}s",
+                       f"consecutive {w}s with revenue YoY >= {th['revenue_yoy_pct']}%", streak >= 2, docs,
+                       change=float(streak), notes=cadence_note))
 
-        ttm_rev, miss = series.ttm(Metric.REVENUE, end)
+        ttm_rev, miss = series.ttm(Metric.REVENUE, end, p)
         if ttm_rev is None:
             missing.extend(miss)
         else:
