@@ -1362,12 +1362,16 @@ class IntelligencePipeline:
                             "roic_high_sustained",      # quality signal = seller-type business
                             "competitive_moat",         # quality signal
                             "pricing_power_emerging",
+                            "lead_time_extension",
+                            "qualification_barrier",
                         ):
                             _perspective = "seller"
                         # Buyer perspective = company NEEDS the constrained item
                         elif sig.signal_type in (
                             "supply_bottleneck", "inventory_drawdown",
                             "capacity_shortage", "demand_exceeds_supply",
+                            "import_dependency_quantified",
+                            "supply_response_commissioning",
                         ):
                             _perspective = "buyer"
                         # Neutral but company-positive (demand for their products)
@@ -1704,6 +1708,9 @@ class IntelligencePipeline:
             # Expanded signal families (Change 5)
             "capacity_shortage", "localization_opportunity",
             "tender_pipeline", "policy_support",
+            # Explicit constraint-mechanism legs retained by NLP.
+            "lead_time_extension", "qualification_barrier",
+            "import_dependency_quantified", "supply_response_commissioning",
         ]
 
         # ── Path A: Raw signals WITHOUT entity join (~15K rows)
@@ -1815,8 +1822,20 @@ class IntelligencePipeline:
         except Exception as e:
             logger.warning(f"Downstream-constraint detection failed: {e}")
 
+        # 6th path: the durable upstream constraint-candidate snapshot. Unlike
+        # signal clustering, this path can preserve a physical/import chain
+        # before a beneficiary mapper has found a listed company.
+        constraint_candidate_themes: list = []
+        try:
+            constraint_candidate_themes = self._theme_detector.detect_from_constraint_candidates(
+                self._pg_store, as_of_date=_as_of, country=_country,
+            )
+        except Exception as e:
+            logger.warning(f"Constraint-candidate theme detection failed: {e}")
+
         all_themes = self._theme_detector.merge_themes(
-            [seed_themes, auto_themes, graph_themes, bottleneck_themes, downstream_themes]
+            [seed_themes, auto_themes, graph_themes, bottleneck_themes,
+             downstream_themes, constraint_candidate_themes]
         )
         # Stamp every detected theme with the active market country so the DB
         # row is correctly tagged regardless of the InvestmentTheme default.
@@ -2359,8 +2378,19 @@ class IntelligencePipeline:
             ("bertrend",   self.run_bertrend,      {}),
         ]
 
-        # Change 2: India intelligence layers run before theme detection
+        # India government/policy data must exist before constraint discovery;
+        # the old order fetched it after themes, making every policy observation
+        # arrive one full run late.  The post-theme macro constraint refresh
+        # below scores the newly generated themes without refetching sources.
         if _country == "IN":
+            _stages.append(("macro", self.run_macro, {"country": _country}))
+            _stages.append(
+                ("india_policy_company_snapshot",
+                 self.run_india_policy_company_snapshot, {})
+            )
+            _stages.append(
+                ("india_company_roles", self.run_india_company_roles, {})
+            )
             _stages.append(
                 ("india_intelligence", self.run_india_intelligence, {})
             )
@@ -2368,7 +2398,15 @@ class IntelligencePipeline:
         _stages.extend([
             ("themes",         self.run_themes,        {"country": _country}),
             ("contradictions", self.run_contradictions, {}),
-            ("macro",          self.run_macro,          {}),
+        ])
+        if _country == "IN":
+            _stages.append(
+                ("macro_constraint_refresh", self.run_macro_constraint_score,
+                 {"country": _country})
+            )
+        else:
+            _stages.append(("macro", self.run_macro, {"country": _country}))
+        _stages.extend([
             ("graph_rag",      self.run_graph_rag,      {}),
             ("llm",            self.run_llm_enrichment, {"country": _country}),
             ("gemini_analysis", self.run_gemini_analysis, {"country": _country}),
@@ -3056,7 +3094,9 @@ class IntelligencePipeline:
                             "source":                f"IN:{src_key}",
                             "policy_type":           doc.filing_type or doc.doc_type or "notice",
                             "title":                 doc.title or "",
-                            "description":           "",
+                            "description":           (doc.metadata or {}).get("summary", ""),
+                            "full_text":             ((doc.metadata or {}).get("body_text") or
+                                                       (doc.metadata or {}).get("summary", "")),
                             "status":                "published",
                             "introduced_date":       doc.published_at.date() if doc.published_at else None,
                             "enacted_date":          None,
@@ -3094,7 +3134,9 @@ class IntelligencePipeline:
                 if isinstance(_as_of, str):
                     from datetime import date as _d
                     _as_of = _d.fromisoformat(_as_of)
-                active_themes = self._pg_store.get_active_themes(min_strength=5.0)
+                active_themes = self._pg_store.get_active_themes(
+                    min_strength=5.0, country=_country,
+                )
                 enriched = self._constraint_engine.run(active_themes, as_of_date=_as_of)
                 constraint_results = len(enriched)
                 logger.info(
@@ -3108,6 +3150,28 @@ class IntelligencePipeline:
         logger.info(f"Macro stage complete: {stats}")
         self._log_run("macro", stats)
         return stats
+
+    def run_macro_constraint_score(self, as_of_date=None, country: str = None) -> dict:
+        """Re-score freshly generated themes without refetching macro sources."""
+        if not self._macro_store or not self._constraint_engine:
+            self._init_macro()
+        if not self._constraint_engine or not self._pg_store:
+            return {"skipped": True, "reason": "macro constraint engine unavailable"}
+        try:
+            _country = country or self.config.get("market", {}).get("country", "US")
+            active_themes = self._pg_store.get_active_themes(
+                min_strength=5.0, country=_country,
+            )
+            enriched = self._constraint_engine.run(active_themes, as_of_date=as_of_date)
+            stats = {
+                "country": _country,
+                "themes_constraint_scored": len(enriched),
+            }
+            self._log_run("macro_constraint_refresh", stats)
+            return stats
+        except Exception as exc:
+            logger.error("Macro constraint refresh failed: %s", exc, exc_info=True)
+            return {"themes_constraint_scored": 0, "error": str(exc)}
 
     # ----------------------------------------------------------
     # STAGE: GEMINI AI POST-PIPELINE ANALYSIS
@@ -3193,7 +3257,123 @@ class IntelligencePipeline:
         return stats
 
     # ----------------------------------------------------------
-    # INDIA INTELLIGENCE PIPELINE (Layers 1–10)
+    # INDIA POLICY/PRODUCT SNAPSHOT
+    # ----------------------------------------------------------
+    def run_india_policy_company_snapshot(
+        self,
+        as_of_date=None,
+        pg_store=None,
+    ) -> dict:
+        """Materialise policy-bearing issuer products before role discovery."""
+        from datetime import date as _date
+        from scripts.policy.snapshot_company_policy_signals import (
+            snapshot_company_policy_signals,
+        )
+
+        _pg = pg_store or self._pg_store
+        _as_of = as_of_date or _date.today()
+        if hasattr(_as_of, "date"):
+            _as_of = _as_of.date()
+        if not _pg:
+            return {"skipped": True, "reason": "PostgreSQL not configured"}
+        with _pg._conn() as conn:
+            stats = snapshot_company_policy_signals(
+                conn, _as_of, country="IN", dry_run=False,
+            )
+        self._log_run("india_policy_company_snapshot", stats)
+        return stats
+
+    # ----------------------------------------------------------
+    # COUNTRY-SCOPED COMPANY-PRODUCT ROLE REFRESH
+    # ----------------------------------------------------------
+    def run_company_roles(
+        self,
+        as_of_date=None,
+        country: str = "IN",
+        lookback_days: int = 1095,
+        pg_store=None,
+    ) -> dict:
+        """Build the dated issuer-owned product-role snapshot upstream.
+
+        Product phrases come from NLP/database vocabulary. This stage proves
+        only what an issuer makes/installs/supplies; it never asserts that the
+        product is constrained or that the stock is investible.
+        """
+        from datetime import date as _date
+        from psycopg2.extras import RealDictCursor
+        from scripts.stock_report.company_product_roles import (
+            discover_roles, ensure_table, store_roles,
+        )
+
+        _pg = pg_store or self._pg_store
+        _country = (country or "IN").upper()
+        _as_of = as_of_date or _date.today()
+        if hasattr(_as_of, "date"):
+            _as_of = _as_of.date()
+        if not _pg:
+            return {"skipped": True, "reason": "PostgreSQL not configured"}
+        with _pg._conn() as conn:
+            ensure_table(conn)
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            rows = discover_roles(
+                cur, _as_of, country=_country, lookback_days=lookback_days,
+            )
+            store_roles(conn, rows, _as_of, country=_country)
+        stats = {
+            "as_of": str(_as_of),
+            "country": _country,
+            "company_product_roles": len(rows),
+            "evidenced_roles": sum(row["role_state"] == "EVIDENCED" for row in rows),
+            "exact_constraint_links": sum(
+                row["constraint_link_type"] == "EXACT" for row in rows
+            ),
+        }
+        self._log_run(f"{_country.lower()}_company_roles", stats)
+        return stats
+
+    def run_india_company_roles(
+        self,
+        as_of_date=None,
+        lookback_days: int = 1095,
+        pg_store=None,
+    ) -> dict:
+        """Compatibility wrapper for existing India replay callers."""
+        return self.run_company_roles(
+            as_of_date=as_of_date,
+            country="IN",
+            lookback_days=lookback_days,
+            pg_store=pg_store,
+        )
+
+    def run_constraint_candidate_snapshot(
+        self,
+        as_of_date=None,
+        country: str = "IN",
+        lookback_days: int = 540,
+        pg_store=None,
+    ) -> dict:
+        """Materialise the country-scoped ingestion/NLP constraint bridge."""
+        from datetime import date as _date
+        from ..india.constraint_candidate_engine import ConstraintCandidateEngine
+
+        _pg = pg_store or self._pg_store
+        _as_of = as_of_date or _date.today()
+        if hasattr(_as_of, "date"):
+            _as_of = _as_of.date()
+        if not _pg:
+            return {"skipped": True, "reason": "PostgreSQL not configured"}
+        _country = (country or "IN").upper()
+        stats = ConstraintCandidateEngine(self.config).run(
+            _pg,
+            as_of_date=_as_of,
+            country=_country,
+            lookback_days=lookback_days,
+        )
+        self._log_run(f"{_country.lower()}_constraint_candidates", stats)
+        return stats
+
+    # ----------------------------------------------------------
+    # INDIA INTELLIGENCE PIPELINE (Layers 1–11)
     # Does NOT touch the US pipeline. Safe to call independently.
     # ----------------------------------------------------------
     def run_india_intelligence(
@@ -3203,7 +3383,7 @@ class IntelligencePipeline:
         tender_records: list = None,
         pg_store=None,
     ) -> dict:
-        """Run all 10 India-specific upstream intelligence layers.
+        """Run all India-specific upstream intelligence layers.
 
         Layers (India only — US pipeline untouched):
           1. PolicyIntelligenceEngine       — extract government policy targets
@@ -3215,7 +3395,8 @@ class IntelligencePipeline:
           7. BeneficiaryDiscoveryLayer      — themes → constraints → suppliers → beneficiaries
           8. TenderIntelligence             — parse & store tender demand signals
           9. OrderBookPressureDetector      — convert order book commentary → signals
-         10. IndiaCausalChainGenerator      — generate & persist India causal chains
+         10. ConstraintCandidateEngine      — union evidence legs + literal company roles
+         11. IndiaCausalChainGenerator      — generate & persist India causal chains
 
         Args:
             as_of_date:      Lookback ceiling (defaults to today).
@@ -3242,6 +3423,10 @@ class IntelligencePipeline:
             "capacity_gaps": 0,
             "import_dependencies": 0,
             "localization_opportunities": 0,
+            "constraint_candidates": 0,
+            "constraint_company_candidates": 0,
+            "constraint_observations_queued": 0,
+            "constraint_ledgers_materialized": 0,
             "beneficiaries_discovered": 0,
             "tender_signals_ingested": 0,
             "order_book_signals_generated": 0,
@@ -3273,19 +3458,29 @@ class IntelligencePipeline:
             # Also try to extract from any policy event text already in the DB
             if _pg:
                 try:
-                    with self._pg_store._conn() as conn:
+                    with _pg._conn() as conn:
                         from psycopg2.extras import RealDictCursor
                         with conn.cursor(cursor_factory=RealDictCursor) as cur:
                             cur.execute("""
-                                SELECT content, source_name FROM mg_policy_events
-                                WHERE country = 'IN'
-                                  AND published_at >= %s AND published_at <= %s
+                            SELECT COALESCE(full_text, description, '') AS content,
+                                   source AS source_name,
+                                   COALESCE(effective_date, enacted_date,
+                                            introduced_date) AS source_date,
+                                   raw_url
+                            FROM mg_policy_events
+                            WHERE country = 'IN'
+                                  AND COALESCE(effective_date, enacted_date,
+                                               introduced_date) >= %s
+                                  AND COALESCE(effective_date, enacted_date,
+                                               introduced_date) <= %s
                                 LIMIT 200
                             """, (_as_of - _td(days=365), _as_of))
                             for row in cur.fetchall():
                                 extracted = pie.extract_from_text(
                                     row.get("content") or "",
                                     source=row.get("source_name") or "policy_db",
+                                    observed_at=row.get("source_date"),
+                                    doc_url=row.get("raw_url") or "",
                                 )
                                 policy_targets.extend(extracted)
                 except Exception as _pe:
@@ -3316,10 +3511,10 @@ class IntelligencePipeline:
             from ..india.capacity_engine import CapacityGapDetector
             cgd = CapacityGapDetector()
             # Change 6: pass sc_db so critical nodes upgrade gap severity
-            gaps = cgd.detect(requirements, supply_chain_db=sc_db)
+            gaps = cgd.detect(requirements, supply_chain_db=sc_db, as_of_date=_as_of)
             gap_theme_names = [g.theme_name for g in gaps]
             if _pg:
-                cgd.persist(gaps, _pg)
+                cgd.persist(gaps, _pg, as_of_date=_as_of)
             stats["capacity_gaps"] = len(gaps)
             for g in gaps[:5]:
                 logger.info(f"[IndiaIntelligence] Layer 3 gap: {g.theme_name} "
@@ -3334,9 +3529,9 @@ class IntelligencePipeline:
         try:
             from ..india.import_localization import ImportDependencyEngine
             ide = ImportDependencyEngine()
-            dependencies = ide.get_dependencies(min_import_share=0.50)
+            dependencies = ide.get_dependencies(min_import_share=0.50, as_of_date=_as_of)
             if _pg:
-                ide.persist(dependencies, _pg)
+                ide.persist(dependencies, _pg, as_of_date=_as_of)
             stats["import_dependencies"] = len(dependencies)
             logger.info(f"[IndiaIntelligence] Layer 4 (ImportDep): {len(dependencies)} dependencies")
         except Exception as e:
@@ -3351,7 +3546,7 @@ class IntelligencePipeline:
             opportunities = loe.identify(dependencies)
             localization_theme_names = [o.theme_name for o in opportunities]
             if _pg:
-                loe.persist(opportunities, _pg)
+                loe.persist(opportunities, _pg, as_of_date=_as_of)
             stats["localization_opportunities"] = len(opportunities)
             logger.info(f"[IndiaIntelligence] Layer 5 (Localization): {len(opportunities)} opportunities")
         except Exception as e:
@@ -3419,7 +3614,69 @@ class IntelligencePipeline:
             logger.error(f"[IndiaIntelligence] Layer 9 failed: {e}", exc_info=True)
             stats["errors"].append(f"L9:{e}")
 
-        # ── Layer 10: India Causal Chain Generator (runs LAST — feeds ThemeRanker)
+        # Collect and materialise accepted evidence BEFORE candidate scoring.
+        # The previous order introduced a one-run lag: the current run's
+        # observations were invisible until the next snapshot.  The ledger is
+        # event-sourced, so materialisation preserves original observation dates
+        # and never restamps stale evidence at ``_as_of``.
+        try:
+            if _pg:
+                from psycopg2.extras import RealDictCursor
+                from scripts.policy.ingest_primary_constraint_observations import (
+                    DEFAULT_INPUT, ingest_path,
+                )
+                from scripts.policy.queue_constraint_observations import collect_observations
+                from scripts.policy.materialize_constraint_ledger import materialize
+                from scripts.policy.seed_constraint_ledger import ensure_schema
+                with _pg._conn() as conn:
+                    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                        ensure_schema(cur)
+                        feed_stats = ingest_path(cur, DEFAULT_INPUT, "IN", _as_of, False)
+                        queued, covered = collect_observations(cur, "IN", _as_of)
+                        ledger_stats = materialize(cur, "IN", _as_of)
+                stats["constraint_observations_queued"] = queued
+                stats["primary_constraint_observations_ingested"] = feed_stats.get(
+                    "inserted", 0
+                )
+                stats["constraint_products_covered"] = covered
+                stats["constraint_ledgers_materialized"] = ledger_stats.get(
+                    "snapshots_written", 0
+                )
+                logger.info(
+                    "[IndiaIntelligence] Constraint truth refresh: %s queued across %s products; %s ledgers",
+                    queued, covered, stats["constraint_ledgers_materialized"],
+                )
+        except Exception as e:
+            logger.error(f"[IndiaIntelligence] Constraint truth refresh failed: {e}", exc_info=True)
+            stats["errors"].append(f"CONSTRAINT_TRUTH:{e}")
+
+        # ── Layer 10: Constraint Candidate Union ──────────────────────────
+        # Current accepted observations and their derived ledger state now
+        # participate in the same run.
+        try:
+            from ..india.constraint_candidate_engine import ConstraintCandidateEngine
+            if _pg:
+                candidate_engine = ConstraintCandidateEngine(self.config)
+                candidate_stats = candidate_engine.run(
+                    _pg, as_of_date=_as_of, country="IN",
+                    lookback_days=max(365, lookback_days),
+                )
+                stats["constraint_candidates"] = candidate_stats.get("constraint_candidates", 0)
+                stats["constraint_company_candidates"] = candidate_stats.get(
+                    "constraint_company_candidates", 0
+                )
+                stats["constraint_candidate_summary"] = candidate_stats.get("top_candidates", [])
+                logger.info(
+                    "[IndiaIntelligence] Layer 10 (ConstraintCandidates): %s chains, %s company links",
+                    stats["constraint_candidates"], stats["constraint_company_candidates"],
+                )
+            else:
+                logger.info("[IndiaIntelligence] Layer 10 (ConstraintCandidates): skipped (no DB)")
+        except Exception as e:
+            logger.error(f"[IndiaIntelligence] Layer 10 failed: {e}", exc_info=True)
+            stats["errors"].append(f"L10:{e}")
+
+        # ── Layer 11: India Causal Chain Generator (runs LAST — feeds ThemeRanker)
         try:
             from ..india.causal_chain_generator import IndiaCausalChainGenerator
             iccg = IndiaCausalChainGenerator(self.config)
@@ -3433,7 +3690,7 @@ class IntelligencePipeline:
                 logger.info(f"[IndiaIntelligence] Layer 10 (CausalChain): {len(chains)} chains built (no DB)")
         except Exception as e:
             logger.error(f"[IndiaIntelligence] Layer 10 failed: {e}", exc_info=True)
-            stats["errors"].append(f"L10:{e}")
+            stats["errors"].append(f"L11:{e}")
 
         stats["duration_sec"] = round(time.time() - start, 2)
         self._log_run("india_intelligence", stats)

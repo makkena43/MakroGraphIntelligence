@@ -31,6 +31,33 @@ supply-side companies benefit, and which stocks deserve a full report next.
 
 ## Workflow
 
+### Step 0 — Monthly production run (PMS mode, Jul-2026)
+
+For the live monthly cycle use the orchestrator instead of individual scripts:
+
+```bash
+.venv/bin/python scripts/stock_report/run_monthly.py --as-of <YYYY-MM-DD> [--country IN]
+```
+
+It gates on data freshness (bhavcopy ≤7d, filings ≤21d, mapping snapshot ≤120d
+— abort on stale, `--force` is loud), runs the scan, STOPS if the judgment
+sidecar (with `decision` block) doesn't exist yet — the judgment pass is
+Claude's job via this skill — then resumes: portfolio_construct (weights/caps),
+render, PDF, and log_decisions (append-only mg_decisions track record; the
+GVT&D/POWERINDIA-class evidence for PMS marketing accrues there automatically).
+Also run monthly: `scripts/policy/ingest_pib.py` (day-0 scheme announcements →
+mg_policy_announcements; scheme_score ≥3 rows feed the 3b-pre scorecard) and
+`scripts/portal/build_portal.py` (static track-record site; publishing needs
+compliance sign-off).
+
+New judgment evidence available per scan (Jul-2026): each candidate carries
+`order_book_quantified` (₹cr latest/prev/trend parsed from its own filings —
+verify against the boolean flag; single-order vs full-backlog readings can mix,
+read n_readings); report fields `exclusion_proposals` (HIGH governance events +
+the GENSOL suspension signature: enforcement-type filing then >90d disclosure
+silence) and `mapping_artifacts` (mapped beneficiaries whose own filings never
+mention the product — presumptive pure-play-leg failures).
+
 ### Step 1 — Extract
 
 ```bash
@@ -39,11 +66,11 @@ supply-side companies benefit, and which stocks deserve a full report next.
 
 Run from project root; prints the JSON path (data/reports/stock_selector_<country>_<date>_data.json).
 Default emergence window is 12 months (`--window-months 6` for a tighter scan).
-**US mode** (`--country US`): constraints come from bottleneck themes in the theme
-graph (no constrained-product mapper / capacity-gap / import tables for US), and
-there is NO technical overlay (no US price data in DB) — leave price/technical
-columns out entirely for US candidates and point to finviz/stockanalysis for chart
-checks. See `us_data_note` in the JSON.
+**US mode** (`--country US`): build the country-scoped company-product-role and
+constraint-candidate snapshots first, then use the same exact
+constraint-product-company decision contract as India. Never reuse legacy India
+capacity/import tables for US. Local US technical data is unavailable, so valuation,
+liquidity and chart entry checks remain mandatory. See `us_data_note` in the JSON.
 
 **Theme-focus mode** — when the user names ONE theme or constraint (e.g. "transformer",
 "Solar Cell", "PCB", "Artificial Intelligence"), add `--theme "<name>"` (fuzzy match):
@@ -64,8 +91,36 @@ nothing, list a few available theme names (query mg_themes) and ask which one.
 
 Check the SUMMARY line for `cross_theme_overlap_leaders` and `high_confidence_themes`.
 If the JSON was generated before these improvements, re-run Step 1. The JSON must
-contain: `evidence_dashboard`, `cross_theme_overlap`, `bear_cases`, and each candidate
-must have `scoring_breakdown`. Use `jq '.evidence_dashboard[:3]'` to confirm.
+contain: `final_decision`, `evidence_dashboard`, `cross_theme_overlap`, `bear_cases`,
+and each candidate must have `scoring_breakdown`. The only position-authority lanes
+are `priorities`, `early_timing_candidates`, and the separately capped
+`discovery_starter_candidates`. Use `jq '.final_decision'` to confirm.
+
+### Step 1c — Verify constraint-detection coverage before judging stocks
+
+Read `final_decision.constraint_detection_coverage` and each displayed
+constraint's `detection_origins`. The detector must union mapper products,
+dated capacity/import reference records, reviewed `EXACT` aliases linked to
+the dated constraint ledger, and the upstream ingestion/NLP candidate
+snapshot. A current reference-only chain may be real
+before any listed producer has been mapped; classify it `MAP_COMPANIES` / no
+position until the company-role pipeline recovers an exact listed supplier.
+Never turn broad, family, or policy aliases into item-level physical shortages.
+
+Use the reference record's `as_of_date` or ledger `source_date`, never a
+database `created_at` timestamp, in historical work. Inspect
+`constraint_quality.source_diversity`: multiple fields from the same release
+are one source family, not independent confirmations. Multiple uploads by one
+issuer on one date are one evidence event, and grade A requires at least two
+independent evidence dates. Diversity is a research quality diagnostic, not a
+relaxation of the physical or company gates.
+
+Use dated `mg_constraint_candidates` and
+`mg_constraint_company_candidates` snapshots as the upstream detection
+contract. `UPSTREAM_CONSTRAINT_PIPELINE` expands research coverage but never
+relaxes physical or Buy gates. Company states through
+`APPROVED_OPERATING_MAKER` prove only a product role; earnings capture and
+underwriting remain separate.
 
 ### Step 2 — Analyze and present (chat answer by default)
 
@@ -92,6 +147,16 @@ pipeline as the stock-report skill). Structure:
    why (domestic capacity vs demand, import dependence + origin country, qualification
    barriers), how broad (n_companies mapped), how convinced the pipeline is
    (avg/max conviction), and whether order-book evidence exists (any_order_book).
+   **Maker-universe rule:** cover every selected constraint explicitly. For each
+   atomic product node, separate (a) independently corroborated operating direct
+   producers, (b) evidenced capacity pipelines/direct product roles, and (c)
+   coverage gaps. A parent/group disclosure with exact product-and-capacity proof
+   is valid evidence even when its exchange industry label differs; disclose the
+   entity scope instead of vetoing it. Do not put EPC firms, developers, buyers,
+   generic policy references, or lexical collisions in the direct-maker table.
+   Keep those in the audit data or, where separately evidenced, an adjacent
+   beneficiary table. Two evidence events must be non-duplicative; one clean
+   capacity plan is a research lead, not an operating maker or Buy.
 4. **Beneficiary stocks under EVERY theme/constraint (MANDATORY)** (from
    `supply_side_beneficiaries`): each theme or constraint presented in the briefing
    must carry its own beneficiary stock list (top 5-8 tickers in theme-rank order) —
@@ -149,6 +214,224 @@ pipeline as the stock-report skill). Structure:
 11. **Next step**: suggest running the full report for the top picks, e.g.
     "generate report for KAYNES as of <date>" (the makrograph-stock-report skill).
 
+### Step 2.5 — THE DECISION section (MANDATORY, rendered SECOND — the user's rule)
+
+**Report section order (user mandate, updated Aug-2026):** THE DECISION (top) →
+Constraint maker lists ("Who actually makes this") → PLI Shortlist → rest of
+report content. Everything after THE DECISION is mechanical/discovery input;
+the audit trail follows.
+
+**MOONSHOT SLEEVE REMOVED from the client report (user decision, Aug-2026),
+superseding the Jul-2026 "top of report" mandate.** The unified section
+scorecard (11 anchors, 3-year forward) measured it the weakest section:
++46.8% median, only +9.8pp over benchmark, versus constraint maker lists
++63.6% (+26.6pp) and a plain mapped-beneficiary basket +65.4% (+28.4pp).
+Most complex machinery in the system, smallest edge. The screen still runs
+and `moonshot_candidates` stays in the data JSON as an internal watch-list,
+but it does NOT render. Reinstate only as a small, explicit venture
+allocation if ever — never as a default client-facing section.
+
+**What the scorecard established the report SHOULD lead with:** constraint
+choice dominates stock choice ~6:1 (best-vs-worst constraint spread 242pp vs
+~40pp between stock-selection methods). Grade constraints primarily on
+SCARCITY OF LISTED VEHICLES — the one grading leg that predicted on both the
+flawed data (+26pp) and clean uncapped data (+22.9pp). Quantified capacity
+gap went INVERSE on clean data (-19.3pp); conviction score is mildly inverse
+(-9.5pp) yet still orders ranked_candidates — a live defect to fix. Caveat:
+scarcity rests on n=33 over 3 snapshots with CRGO Steel + Power Transformer
+(one correlated bet) carrying much of it — firm up before betting heavily.
+
+**PMS-grade standard (user rule, Jul-2026):** the user is launching PMS
+(Portfolio Management Services) around Aug-Sep 2026. The report is a production
+deliverable — the user must never need their own judgment to extract the
+constraint shortlist or the stock list. Any ambiguity that survives into the
+rendered report is a DEFECT. Concretely: (1) THE DECISION box carries everything
+actionable; (2) the mechanical `pli_shortlist` field renders directly below it
+(sector-filtered, evidence-sorted, labeled not-judgment-reviewed — a discovery
+feed, never a second buy list); (3) no verdict anywhere may read "user should
+verify/decide" — the judgment layer does the verifying and states the outcome.
+
+The user runs the pipeline MONTHLY, not yearly. That changes the semantics of
+every verdict: "Timing Buy — wait for trigger X" is ambiguity the SYSTEM must
+resolve, because next month's scan re-decides everything anyway. Every report's
+judgment sidecar MUST carry a `decision` block, rendered as the first content
+section, with exactly two words allowed: **BUY** (with size: FULL/HALF and a
+one-line why) and **NO** (with the exact named condition that flips it to BUY
+at a future monthly run). Rules:
+- A fired trigger is RESOLVED into BUY or NO in the same report — never left
+  "pending confirmation". Take the decision; the monthly rerun corrects it.
+- Timing Buy / Watch / archetypes remain as internal machinery in Step 4 (do
+  not remove those sections) — but the decision box collapses them: a Timing
+  Buy whose trigger has fired becomes BUY; one whose trigger hasn't becomes NO
+  with the flip condition stated.
+- The box also lists the SHORTLISTED CONSTRAINTS (1-3, plain one-line why) and
+  ends with a one-line portfolio summary (n positions, sizes).
+- An empty BUY list is an acceptable decision; an ambiguous one is not.
+- **PORTFOLIO CONSTRUCTION (PMS-grade, Jul-2026):** after the decision block is
+  written, run `scripts/stock_report/portfolio_construct.py <judgment.json>
+  <data.json>` — it converts FULL/HALF/STARTER into risk-budgeted weights
+  (FULL=2u, HALF=1u, STARTER=0.5u) under explicit limits: single stock ≤15%,
+  single CONSTRAINT BUCKET ≤40% (same-chain stocks are ONE bet — the 2020-23
+  CRGO book was 4 tickers but 1 bet), cash floor 10%; capped-away weight goes
+  to cash, never redistributed into weaker names. The decision box renders the
+  allocation table. Note: tickers absent from the snapshot's candidate/chain
+  mapping fall into their own bucket (conservative for stock cap, but it can
+  UNDER-aggregate a real shared bet — when writing the decision, if two
+  unmapped buys share a thesis (e.g. two battery names), keep them as one
+  basket position ("A + B") so they share units.
+- **EXIT RULES (mandatory, per Return Archetype — entries without exits are
+  half a system):** every OPEN position is re-tested at every monthly scan and
+  a fired exit goes in `decision.exits` [{ticker, action: EXIT|TRIM, rule,
+  why}], rendered in the decision box and logged to mg_decisions. The rules:
+  - **C (cyclical squeeze / MU-class):** ALWAYS a trade. EXIT when chain capex
+    momentum flips positive-to-negative-to-positive cycle completes (supply
+    arriving), OR price gives back >30% from its post-entry peak — whichever
+    fires first. Never marry a C.
+  - **B (op-leverage burst, scheme-funded):** EXIT when the scheme's
+    disbursement runway ends (scheme end date/last tranche) or citation trend
+    goes fading for 2 consecutive scans with no successor scheme.
+  - **A1/A2 (compounders):** hold while the constraint stays Grade A/B+ AND
+    the four legs stay intact; TRIM to HALF when the chain state turns
+    EXTENDED_CROWDED; EXIT only on constraint resolution (gap closing in
+    data), a failed leg (order book stops converting, capex stops), or a
+    governance red flag. Multi-year holding is the intent — exits here are
+    thesis-failure exits, not price exits.
+  - **A3 (late compounder):** TRIM half on any quarter with >50% run;
+    remainder follows A2 rules.
+  - **E (re-rating + kicker):** EXIT when the re-rating completes (PE band
+    reached its historical top) or the kicker event resolves either way.
+  - **D (ballast):** exit only on regulatory-cap change; not expected to fire.
+  Technicals still never SELECT — the >30% give-back rule on C-archetypes is a
+  cycle-position rule scoped to trades that are DEFINED by cycle position.
+
+### Step 2.6 — THE MOONSHOT SLEEVE (40-100x hunting, user mandate Jul-2026)
+
+The user's explicit goal: catch the 40-100x-in-3-4-years class (KERNEX 126x,
+GRAVITA 46x, HBLPOWER 12x — the cohort the explosion-fingerprint study was
+built on). Be honest about the math and engineer around it: ~1-in-500 stocks
+does this per window; NO system picks them reliably one at a time. What works
+is a VENTURE-STYLE SLEEVE: fish only where 100x happens, enter at arc-bottom,
+size small, hold long. A 10-name sleeve where 2 hit 40x+ and 8 die returns
+~8-9x on the sleeve — the discipline is (a) never miss the setup class,
+(b) never sell the winners at 3x.
+
+Wired into `select_stocks.py` (Jul-2026) — every IN scan calls
+`compute_moonshot_candidates` and the report renders a "Moonshot Sleeve"
+section (mechanical, clearly labeled not-a-buy-list, same tier as the PLI
+Shortlist — this one IS client-facing per the report/internal-review split,
+because candidate names are decision-relevant, unlike audit/review-queue
+content). It emits candidates that pass ALL of:
+- **evidence-linked universe** (mapped beneficiaries + mandate/PLI-class
+  scheme citers — no random smallcaps),
+- **small-half turnover** (a largecap can 3x, not 40x),
+- **ARC GATE, signal-relative and alias-aware**: price run since the SIGNAL's
+  first appearance in the company's own filings (≤1.5x), or since its 2-yr low
+  when there's no scheme signal (≤2.0x) — not distance from an absolute low,
+  which covid-crash bases distort (the KERNEX lesson: bought at the boring
+  bottom, BEFORE the mandate monetizes, measured from when the story starts),
+- **BACKTEST-GATED T1 PROMOTION (Jul-2026 v5 — "quality not great except PLI"
+  review, the correct diagnosis):** widening the mandate table (BIS-QCO,
+  Hallmarking, AIS-140, ALMM) without backtesting each addition individually
+  diluted quality exactly as the user predicted. A 19-quarter backtest
+  (2022-2026, 349 pick-instances) resolved it BY SUB-FINGERPRINT: KAVACH-class
+  (Safety/Compliance Mandate) is genuinely strong (12m/24m/36m median
+  +44.8%/+75.3%/+45.1%, n=18-28, KERNEX's 3 entries all +170% to +365% at
+  24-36m) — BIS Quality Control Orders is ACTIVELY NEGATIVE (-20.1%/-12.7%,
+  n=2-8) — Gold Hallmarking is benchmark-level and inconsistent (median +20%
+  but mean +8%, n=10-11). Also found T3-alone (allowed on the strength of the
+  single GRAVITA anecdote) is bad in aggregate: median -11.0% at 12m, -80.4%
+  at 36m (n=5, dragged by CEREBRAINT/AVROIND) — reverted, T3 needs a pairing
+  partner again. LESSON: one validated example (GRAVITA, KAVACH) does not
+  justify an acceptance rule for the whole scheme/fingerprint class — backtest
+  the full population before promoting.
+  **Mechanism (mirrors the novel-vocab auto-graduate/promote/reject workflow):**
+  `mg_tracked_schemes.t1_alone_eligible` (boolean, default false) gates
+  whether a mandate/quality_gate scheme can make T1 qualify ALONE. New
+  mandate schemes enter as `t1_alone_eligible=false` — their hits still count
+  as one T1p (provisional) fingerprint, needing a pairing partner like T2/T4,
+  same treatment T3 now gets. Promotion to `t1_alone_eligible=true` requires
+  a backtest run (`scratchpad`-style: quarterly snapshots, forward returns by
+  sub-fingerprint) showing a genuine multi-quarter edge, not a single ticker
+  story. Currently promoted: Safety/Compliance Mandate (KAVACH-class) only.
+- **T6 + T1 FINAL DESIGN (Jul-2026 v3, walk-forward locked):** the screen's
+  two alone-qualifying fingerprints are (a) **T1 mandate signature** — vendor
+  language within ~500 chars of the mandate text, OR commitment verbs within
+  200 chars of it ("awarded an Order of Rs. X Cr for ... KAVACH" — the literal
+  KERNEX filing); gaps must ALLOW periods, since every rupee amount contains
+  them (a no-period gap silently killed the KERNEX catch); and (b) **T6
+  early-vintage PLI commitment** — per-scheme commitment to a pli_family
+  scheme within 36 months of the scheme's launch date (table data; NULL
+  launch dates silently demote everything — keep them filled). T6 names get
+  arc headroom to 2.5x since-signal because scheme-funded bursts re-rate on
+  the commitment news itself (PGEL was ~2x by Dec-2021 and did >10x more).
+  Validated: KERNEX @ Dec-2022 (pre-126x), PGEL @ Dec-2021 (pre-50x),
+  LUMAXTECH/NEOGEN/SANSERA (the +77-105%/2yr early-PLI cohort) all caught;
+  logistics/hotels ("turnaround time"), obligated-payer EPR packaging, and
+  \yLED\y-matching-"led" false commits all structurally dead. Weak-scheme
+  claimants (food-PLI class) still appear when genuinely committed — the
+  scheme-side 5-question scorecard discount is the judgment layer's job, per
+  the two-sided funnel.
+- **FINGERPRINT PRECISION RULES (Jul-2026, after user review flagged noise —
+  "moonshot stocks look crap and same stocks coming every year"):** a bare
+  mandate-scheme citation is NOT a fingerprint (it matched "mandatory
+  compliance" boilerplate); vendor language counts only WITH a tracked-scheme
+  citation; T3 requires the WINNER side (registered recycler/certificate
+  holder — the obligated packaging payer is the losing side of formalization);
+  T5 turnaround is context-only and never carries acceptance (the old pattern
+  matched "turnaround time" and admitted logistics/hotels); candidates in
+  mg_manual_exclusions or with >120d disclosure silence are dropped
+  (distress ≠ coil). Result of the fix at Dec-2022: 12 noisy names → 3 sharp
+  ones (KERNEX still caught). RECURRENCE NOTE: after this fix, a name
+  recurring across years at flat arc with fingerprints intact is the FEATURE
+  (KERNEX sat at the boring bottom for 2 years — that recurring appearance IS
+  the entry window); junk recurring was the bug, and precision, not
+  deduplication, was the correct fix.
+- **≥2 explosion fingerprints** (T1:mandate+vendor alone also qualifies — it's
+  the complete KERNEX/126x fingerprint on its own): T1 mandate(+approved-vendor), T2
+  sole-listed-vehicle of a narrow constraint, T3 formalization share-shift,
+  T4 capex-outlier-for-its-size, T5 turnaround inflection; plus bonus signals
+  ✅commitment and order-book/size ratio.
+
+Judgment rules for the sleeve (decision box gets a MOONSHOT section):
+- Every candidate is verified by hand-of-judgment: fingerprints real? quality
+  gates (no GENSOL signatures, real revenue base)? scheme scored ≥3/5 on the
+  3b-pre scorecard where scheme-driven?
+- Sizes: 1-2% each, 5-10 names, STARTER semantics. The sleeve TOTAL ≤10-15%
+  of book — it is expected to lose on most names.
+- **HOLD RULE: no exit before 3 years except THESIS-FAILURE** (fingerprint
+  invalidated, mandate cancelled, governance signature). Price doing nothing
+  for 18 months is the EXPECTED path (KERNEX was flat 2020-2022). First
+  profit-review only after 10x. Selling a fingerprint-intact moonshot at 3x
+  is the defined failure mode of this sleeve.
+- Report each candidate with: fingerprints, arc position, what kills it, and
+  the explicit "expected ~80% single-name failure" disclosure (PMS clients
+  must see the sleeve's venture math, not per-name conviction).
+- Walk-forward standard: the screen must retro-catch KERNEX/HBLPOWER (2022,
+  pre-run) and GRAVITA-class formalization names — re-validate after any
+  detector change.
+- **Patient early-investor rule (user standing preference):** the user accepts a
+  position doing nothing for a year+ if the thesis is real — they want to be
+  EARLY, pre-catalyst. So distinguish two kinds of "not yet": (a) waiting on
+  CATALYST TIMING only (evidence is real, the constraint/scheme is validated,
+  just unknown when it pays — e.g. a coil forming, a vintage-1 scheme cohort
+  with an established ✅committed supplier) → that is a **BUY at STARTER size**,
+  not a NO; (b) waiting on VERIFICATION or QUALITY (order book unverified,
+  cash-burn survival risk, artifact suspicion, claimant-not-winner) → stays NO.
+  Sizes are FULL / HALF / STARTER. Patience covers timing risk, never
+  quality risk.
+- **MANDATORY ARC CHECK before ANY buy (the HBLENGINE lesson, Jul-2026):**
+  every BUY/STARTER line must state the stock's run since its ~3-yr cycle low,
+  and that check MUST include renamed-symbol and BSE-era history (HBLPOWER→
+  HBLENGINE hid a 12x KAVACH run; AMARAJABAT→ARE&M; GET&D→GVT&D; TINNARUBR's
+  Apr-2025 NSE listing hid a completed BSE multibagger). Root cause to guard
+  against: citation-intensity screens structurally LAG — a company talks most
+  about a scheme AFTER winning and re-rating on it, so a "rising" policy screen
+  can surface a story that already paid 10x. A name that already ran ≥5x on the
+  same thesis is a late-arc entry (A3 at best) and needs a NEW leg to justify
+  any buy — being early on a scheme label is worthless if you're late on the
+  stock. This arc check is cycle-position/archetype input (which the user
+  explicitly requires), distinct from the banned chart-technicals (200DMA etc.).
+
 ### Step 3 — Judgment layer (MANDATORY — this is the product)
 
 The formula is a screen anyone could build. The value of this skill is the reasoning
@@ -165,7 +448,9 @@ should tell a first-time reader what the table means without any legend.
 
 The script surfaces ~30 themes; most don't deserve capital. Selection is decided by
 the quality of the underlying constraint — the physical/economic reality — NOT by
-past returns and NOT by the strength score. Grade every major/emerging theme A/B/C:
+past returns and NOT by the strength score. Keep **physical quality** separate from
+**evidence completeness**: `UNMEASURED` means the as-of record lacks the quantified
+supply/import leg; it is not a verdict that the constraint is weak.
 
 **Constraint-quality grade:**
 - **Grade A (select)** — all four:
@@ -186,11 +471,25 @@ past returns and NOT by the strength score. Grade every major/emerging theme A/B
   months), or binding evidence mixed, or demand cyclical. Needs a 1-2 quarter
   confirmation catalyst (policy deadline, commissioning date, tender award) to be
   selected; otherwise Watch.
-- **Grade C (reject)** — asserted, not measured: theme exists in labels/filings
-  count only, no quantified gap, no resupply barrier, or an NLP artifact (labels
+- **WEAK (reject for Core Buy)** — a physical measure exists but binding demand or a
+  resupply barrier is not proved. This is a genuine weak-quality verdict.
+- **UNMEASURED (not Core or Early/Timing)** — the theme
+  exists in contemporaneous mapper/company filings but no point-in-time quantified
+  gap or import observation has been captured. Seek measurement before Core sizing;
+  do not relabel the constraint weak or erase a company-led opportunity. It cannot
+  enter the physical-constraint Core or Early/Timing lane. It may enter only the
+  separately labelled Discovery Starter lane when dated binding-demand evidence plus
+  either structured constraint evidence or exact-role catalysts from at least two
+  independent producer-ledger companies agree. Each stock also needs an exact operating/pipeline
+  producer-ledger role, a same-product catalyst, and NORMAL risk. Mapper-only and quarantined
+  roles have no position authority. Cap producer-ledger names at 1.0% when unmeasured,
+  five names and 5% aggregate. Revalidate quarterly over a 6–12 month discovery window;
+  graduate to Early/Core on new evidence or exit.
+  NLP artifacts (labels
   like "X: Constraint from ESG/FDA/Real Estate Demand" — name the real chain or
   discard; a beneficiary list dominated by services/software names in a hardware
-  constraint is an artifact).
+  constraint is an artifact). Missing structured coverage lowers certainty; it is
+  never a generic reason to erase a dated company-led opportunity.
 
 **Layer type decides the playbook (`layer_type` in `chain_capex_momentum`)** —
 grade the constraint first, then read its layer:
@@ -334,6 +633,82 @@ theme verdict.
   single policy reversal that would kill it.
 - **Beneficiary vs claimant**: a filing *mentioning* PLI ≠ *winning* an allocation.
   Read the latest_title; "approved under PLI" beats "expects to benefit from PLI".
+- **PLI report pipeline**: client-facing PLI output is a research workflow, never a
+  ranked shortlist. A visible row needs a dated company filing, a stated stage
+  (application / award / capacity-capex / operating), an exact constrained-product
+  phrase in the same local disclosure as the policy/action, a primary source passage,
+  and materiality classified as product capacity, company/project capex, scheme-wide
+  amount, or unqualified. An award, scheme outlay, or generic PLI mention is never
+  company capacity. Promote to `Research now` only after two independent dated
+  product-linked capacity/capex events; otherwise route it to `Monitor milestone`.
+  Keep credible but unlinked policy activity as an internal new-theme monitor, and
+  count independent dated evidence families rather than repeated promotional releases.
+  PLI also belongs in the constraint's **resolution clock**: funded new capacity can
+  create an early-company lead while shortening the shortage's investment window.
+
+**3b-pre. SCHEME-FIRST PLAYBOOK — evaluating a NEW scheme at announcement and
+predicting beneficiaries BEFORE any filings exist (the forward method).**
+Derived from measured outcomes of every PLI-era scheme 2020-2026. When a new
+scheme/mandate is announced (budget day, cabinet approval, ministry
+notification — the day-0 sources are OUTSIDE the filings corpus: PIB releases,
+gazette; check them in the monthly ritual), score the SCHEME first on five
+questions, then predict the winners:
+
+SCHEME QUALITY — five questions (answerable on announcement day):
+1. **Does it substitute concentrated imports?** The single best predictor.
+   Import-substituting schemes paid (electronics/white-goods/telecom PLI:
+   Dixon +360%, Amber +293%, PGEL +196% over 2yrs; pharma-API +207%);
+   domestic-oriented schemes disappointed (food-processing −8%, chemicals
+   −32%). Cross-check `import_dependencies` for the product.
+2. **Is it paired with a trade/demand barrier?** Scheme + BCD hike / ALMM-type
+   approved-list / trusted-source rule / compulsory mandate = the winners'
+   common fingerprint. A subsidy without a moat leaks to price cuts.
+3. **Does the incentive reward INCREMENTAL PRODUCTION** (% of incremental
+   sales — strong) or just capex/interest (weak)? Production-linked structure
+   forces output growth into protected demand.
+4. **Outlay vs sector size**: outlay meaningful relative to the sector's
+   annual profit pool, or symbolic?
+5. **Do eligibility thresholds favor listed incumbents?** Minimum-investment /
+   existing-capacity criteria pre-select the established #1-#3 domestic
+   players — which is exactly who the vintage rule says to buy.
+
+BENEFICIARY PREDICTION (day 0, zero filings needed): from the scheme's target
+product, list the established domestic top-3 listed manufacturers via
+classification data (`security_master` industry) + existing capacity; they
+are the probable allottees (2021 proof: Dixon/Amber/Havells/Blue Star were
+predictable from white-goods eligibility criteria months before committing).
+Then confirm through the existing ladder as evidence arrives: ministry
+allottee lists (public PDFs — manual monthly check, not yet ingested) →
+commitment disclosures (`✅` detector) → citation intensity → vintage/cohort
+quality. ARC-CHECK every predicted name before any buy. Enter in scheme years
+1-2 with established-incumbent cohorts only; stand down when the citing
+cohort turns IPO/microcap-heavy.
+
+KNOWN DATA GAP (say it in briefings until fixed): day-0 scheme announcements
+and ministry allottee lists live on PIB/gazette/ministry sites, which the
+document pipeline does NOT ingest — those two checks are manual monthly steps
+for now, and PIB ingestion is the highest-value pipeline addition for this
+playbook.
+
+**THE TWO-SIDED FUNNEL — how scheme-side and company-side signals meet.**
+The playbook above (3b-pre) is TOP-DOWN: score the scheme, predict winners from
+eligibility + classification. The detectors below are BOTTOM-UP: what companies
+themselves say in filings, as a five-rung ladder of increasing conviction —
+1. `novel_policy_vocabulary` — a NEW scheme word bursting before we know it
+   (KAVACH, dictionary-free)
+2. `policy_early_pings` — 1-3 mentions of a known scheme (Shakti-2022 tier,
+   watch-only radar)
+3. **✅ commitment disclosure** — "applied for / approved under" phrasing,
+   single-doc, same-day winner confirmation (Dixon Apr-2021, Aarti Jun-2020)
+4. `policy_beneficiary_screen` — ≥4-doc citation intensity + 12-month trend
+5. vintage/cohort-quality + fading-cohort exit
+CROSS-CONFIRMATION RULE: the two sides validate each other. A scheme-side
+PREDICTED beneficiary that then ✅commits in its own filings = the highest-
+confidence policy signal in the system (predicted → confirmed). The inverse
+catches the trap: a company loudly citing a scheme the 5-question scorecard
+rated ≤2/5 is a claimant marketing a weak scheme (GREAVESCOT/FAME,
+Foods & Inns/food-PLI) — company-side noise never overrides scheme-side
+quality. And EVERY name from either side passes the arc check before any buy.
 
 **3b-bis. Policy-explosion discovery (`policy_beneficiary_screen`) — MANDATORY
 review for India.** This is the SECOND discovery engine, independent of theme
@@ -359,6 +734,97 @@ screen IS reportable news.
 `--all --max-docs 500`) BEFORE the monthly scan — it extracts attachment-PDF
 text into raw_text so scheme/evidence regexes can see what cover letters hide
 (~15k thin IN docs; the reason Shakti's KUSUM attribution was invisible).
+(3d) **Novel-vocabulary review (`novel_policy_vocabulary`) — MANDATORY every
+monthly scan (the KAVACH lesson).** Scheme regexes only contain words already
+known — KAVACH was detectable Aug-Sep-2022 (KERNEX at ~₹250, HBLPOWER at ~₹98,
+both pre-10x) but the pattern for it was only written in 2026 after studying
+the winners. This field lists capitalized terms BURSTING from zero in policy-
+context filing windows, dictionary-free. It is ~90% noise BY DESIGN (OCR
+fragments, signatory names) — the review is SEMANTIC, not lexical: scan the
+list, discard the obvious junk in seconds, and investigate any term cited by
+2+ companies from a coherent industry cluster (the validation case: "KAVACH —
+KERNEX + HBLENGINE", two rail-safety suppliers, mid-2023). A real find gets
+(a) promoted into INDIA_POLICY_SCHEMES as a named pattern, and (b) its citing
+tickers arc-checked immediately — the whole point is to be at the ₹98 end of
+the curve, not the ₹1,099 end.
+**Review ALL terms, never a truncated head (the ECMS lesson, Jul-2026):** on
+the 31-Mar-2026 scan, "ECMS" (Electronics Components Manufacturing Scheme,
+₹22,919cr, the next PLI-class electronics wave) sat at #11 of 60 with a
+textbook good-vintage cohort already citing it (AMBER ×10 docs since May-2025,
+SYRMA, PGEL, EPACK, UNOMINDA, MOTHERSON — established incumbents, not IPO
+tourists) — and was missed for months because only the top-8 terms were
+eyeballed. The detector's recall worked; the review's coverage failed. Rules:
+(i) the judgment layer reads the FULL term list from the data JSON's
+`novel_policy_vocabulary` field every scan — NEVER rendered into the
+client-facing report (PMS zero-judgment rule, Jul-2026: the user should never
+see machine review-queue noise); (ii) the monthly review covers every term —
+60 terms takes under a minute of semantic scanning; (iii) a graduating scheme
+is promoted in the DATABASE, never in code — see the no-hardcode layer below.
+
+**NO-HARDCODE REFERENCE LAYER (user rule, Jul-2026 — "no hardcoded constraints,
+PLI schemes or stock names at any stage"):** every entity the pipeline uses is
+DB data or computation, maintained by the judgment layer with SQL, never code
+edits. The tables (all in makrograph):
+- `mg_tracked_schemes` (scheme_name, pattern, scheme_class, status) — the
+  policy-scheme dictionary. Novel-vocab terms meeting the objective bar
+  (≥3 tickers, ≥3 docs, zero prior-12m, alphabetic) AUTO-INSERT as
+  status='auto_candidate' on live scans; the monthly judgment review promotes
+  (`UPDATE ... SET status='active', scheme_class='pli_family'|...`) or rejects
+  (`status='rejected'`). PLI-family membership = scheme_class='pli_family'.
+- `mg_manual_exclusions` (ticker, reason) — fraud/enforcement exclusions.
+- `mg_chain_classifications` (chain_key, layer_type, rationale) — the
+  differentiated/commodity/service/epc layer map; new chains surface as
+  "unclassified" and the judgment layer INSERTs a classification with
+  rationale.
+- `mg_symbol_renames` — AUTO-DETECTED from bhavcopy price-series continuity
+  (old series ends, new begins ≤7 days later, price+volume continuity,
+  mutual-best match; symbol-LCS similarity upgrades to confidence='high', and
+  widens the volume-ratio floor to 0.15 since a genuine rename can see a
+  transient liquidity dip before price continuity even matters — the
+  HBLPOWER→HBLENGINE case sat at vr=0.22, missed for months by a flat 0.25
+  floor until traced and fixed). High-confidence pairs feed price_symbols()
+  automatically; medium-confidence pairs sit in `reference_data.
+  symbol_renames_pending_review` in the data JSON — confirm/reject via UPDATE.
+  This found HBLPOWER→HBLENGINE, GET&D→GVT&D, AMARAJABAT→ARE&M,
+  MINDAIND→UNOMINDA, STRTECH→STLTECH and dozens more with no dictionary.
+- Market proxy: computed top-25 by trailing-12m traded value, point-in-time.
+All of this (tracked schemes, graduation candidates, pending renames,
+exclusion proposals, mapping-artifact suspects) lives in the data JSON's
+`reference_data` / `scheme_graduation_candidates` / `exclusion_proposals` /
+`mapping_artifacts` fields — read directly by the judgment layer as an
+internal monthly checklist (see `run_monthly.py`'s end-of-run printout).
+**NONE of it renders into the client-facing report** — the user should never
+need to parse machine review-queue content to act on a report (PMS
+zero-judgment rule, Jul-2026). Seeds in code (`_SEED_*`) are one-time
+migrations for empty tables only.
+
+**Leading-indicator sources (Jul-2026, "greatest PMS" push) — same
+judgment-review-only treatment, same reason: neither is a scored theme with
+beneficiaries, both are corroborating signal the judgment layer weighs
+before promoting or dismissing a theme.**
+- `regulatory_watchlist` — `scripts/policy/ingest_pib.py`'s `stage` column
+  (draft/notified/unclear) now catches pre-finalization language ("draft
+  notification", "for stakeholder consultation", "invites comments",
+  "in-principle approval") that the original 5 keyword families missed
+  completely. A draft QCO or PLI amendment is public 2-4 quarters before any
+  company's filing mentions compliance — nothing is binding yet, so nobody
+  discloses it. `compute_regulatory_watchlist()` surfaces `stage='draft'`
+  rows, point-in-time, as a watchlist. A draft can be watered down or
+  dropped — never treat it as an investable theme by itself, only as an
+  early flag to watch the *notified* mg_policy_announcements feed for.
+- `trade_momentum_signals` — `scripts/policy/ingest_trade_flows.py` pulls
+  real monthly India import data (free UN Comtrade "preview" endpoint) for
+  every HS code already in `mg_import_dependencies` (no hardcoded HS-code
+  list — add a row there to track a new one). `compute_trade_momentum_signals()`
+  compares recent-half vs prior-half average import value per HS code and
+  flags widening/narrowing/flat trend. This is monthly customs reality, not
+  a company's self-reported quarterly disclosure — a widening trend here
+  typically precedes a filing mention of the same constraint by 1-2+
+  quarters. HS codes are commodity-level, not 1:1 to a company, so this
+  confirms a constraint's trajectory — it never names a beneficiary by
+  itself; cross-reference against `constrained_products`/`import_dependencies`
+  to see which existing theme it corroborates.
+
 (4) **VINTAGE RULE (walk-forward validated):** policy schemes pay like vintages.
 Years 1-3 of a scheme wave, when established manufacturers commit
 (Dixon/Amber/Havells class), returned +77%/+105%/+52% (2021/2022/2023 screen
@@ -525,6 +991,11 @@ evidence. State this discipline once in the briefing for historical dates.
 
 - No data dated after the as-of date, ever. The script enforces this; don't add
   DB queries without a `<= as_of` filter.
+- Judge every gate on one exact constraint-product-company tuple. Unrelated failed
+  mapper tags or adjacent product mappings cannot veto or validate that tuple.
+- The final investable shortlist is the only action list. If empty, say
+  `NO ALLOCATION FROM THIS STRATEGY`; do not promote Raw, PLI, policy,
+  producer-universe, or quarantine rows to fill a pick count.
 - Apply judgment on top of scores: broad noisy themes (100-relevance breadth themes),
   single-signal mappings, and thin tickers (technical=null) should be called out, not
   hidden. The score is a screen, not the conclusion.

@@ -1,0 +1,668 @@
+{
+  "method": {
+    "entry": "first trading-session close strictly after the disclosure date",
+    "benchmark": "JUNIORBEES price-return ETF proxy",
+    "corporate_actions": "exclude series with >=45% one-day discontinuity",
+    "case_file": "tests/fixtures/guidance_radar_development_cases.json"
+  },
+  "decisions": [
+    {
+      "ticker": "PGEL",
+      "company": "PG Electroplast Limited",
+      "as_of_date": "2021-11-13",
+      "action": "WATCH",
+      "score": 0.0,
+      "components": {
+        "guidance_magnitude": 0.0,
+        "demand_visibility": 4.0,
+        "execution": 0.0,
+        "guidance_consistency": 0.0,
+        "balance_sheet_and_cash": 0.0,
+        "valuation": 0.0,
+        "entry_timing": 0.0,
+        "evidence_quality": 3.0
+      },
+      "hard_vetoes": [],
+      "why_now": [
+        "no formal numeric guidance was recovered"
+      ],
+      "missing_proof": [
+        "formal numeric management guidance",
+        "commissioning or realized earnings proof",
+        "point-in-time diluted valuation"
+      ],
+      "invalidation": [
+        "commissioning/order conversion slips without a dated explanation",
+        "cash conversion weakens while receivables or inventory accelerate",
+        "audit, default, enforcement, or unexplained dilution hard veto appears"
+      ],
+      "max_position_pct": 0.0,
+      "evidence_dates": 2,
+      "model_name": "deterministic-gates-v1"
+    },
+    {
+      "ticker": "TARIL",
+      "company": "Transformers And Rectifiers (India) Limited",
+      "as_of_date": "2022-06-10",
+      "action": "WATCH",
+      "score": 15.0,
+      "components": {
+        "guidance_magnitude": 0.0,
+        "demand_visibility": 13.0,
+        "execution": 0.0,
+        "guidance_consistency": 0.0,
+        "balance_sheet_and_cash": 0.0,
+        "valuation": 0.0,
+        "entry_timing": 3.0,
+        "evidence_quality": 3.0
+      },
+      "hard_vetoes": [],
+      "why_now": [
+        "multiple dated orders/order-book/capacity events support visibility",
+        "no formal numeric guidance was recovered"
+      ],
+      "missing_proof": [
+        "formal numeric management guidance",
+        "commissioning or realized earnings proof",
+        "point-in-time diluted valuation"
+      ],
+      "invalidation": [
+        "commissioning/order conversion slips without a dated explanation",
+        "cash conversion weakens while receivables or inventory accelerate",
+        "audit, default, enforcement, or unexplained dilution hard veto appears"
+      ],
+      "max_position_pct": 0.0,
+      "evidence_dates": 2,
+      "model_name": "deterministic-gates-v1"
+    },
+    {
+      "ticker": "GVT&D",
+      "company": "GE Vernova T&D India Limited",
+      "as_of_date": "2023-02-13",
+      "action": "WATCH",
+      "score": 61.0,
+      "components": {
+        "guidance_magnitude": 10.0,
+        "demand_visibility": 15.0,
+        "execution": 20.0,
+        "guidance_consistency": 6.0,
+        "balance_sheet_and_cash": 2.0,
+        "valuation": 0.0,
+        "entry_timing": 3.0,
+        "evidence_quality": 5.0
+      },
+      "hard_vetoes": [],
+      "why_now": [
+        "numeric management guidance is now on record",
+        "multiple dated orders/order-book/capacity events support visibility",
+        "reported execution is beginning to validate the promise",
+        "formal guidance repeated across 1 metric(s)"
+      ],
+      "missing_proof": [
+        "point-in-time diluted valuation"
+      ],
+      "invalidation": [
+        "material cut or miss in capacity guidance",
+        "material cut or miss in orderbook guidance",
+        "commissioning/order conversion slips without a dated explanation",
+        "cash conversion weakens while receivables or inventory accelerate",
+        "audit, default, enforcement, or unexplained dilution hard veto appears"
+      ],
+      "max_position_pct": 0.0,
+      "evidence_dates": 7,
+      "model_name": "deterministic-gates-v1"
+    },
+    {
+      "ticker": "TEMBO",
+      "company": "Tembo Global Industries Limited",
+      "as_of_date": "2023-10-05",
+      "action": "REJECT",
+      "score": 0.0,
+      "components": {
+        "guidance_magnitude": 0.0,
+        "demand_visibility": 0,
+        "execution": 0.0,
+        "guidance_consistency": 0.0,
+        "balance_sheet_and_cash": 0.0,
+        "valuation": 0.0,
+        "entry_timing": 3.0,
+        "evidence_quality": 0.0
+      },
+      "hard_vetoes": [],
+      "why_now": [
+        "no formal numeric guidance was recovered"
+      ],
+      "missing_proof": [
+        "formal numeric management guidance",
+        "a second independent dated execution event",
+        "commissioning or realized earnings proof",
+        "point-in-time diluted valuation"
+      ],
+      "invalidation": [
+        "commissioning/order conversion slips without a dated explanation",
+        "cash conversion weakens while receivables or inventory accelerate",
+        "audit, default, enforcement, or unexplained dilution hard veto appears"
+      ],
+      "max_position_pct": 0.0,
+      "evidence_dates": 0,
+      "model_name": "deterministic-gates-v1"
+    },
+    {
+      "ticker": "WEBELSOLAR",
+      "company": "Websol Energy System Limited",
+      "as_of_date": "2023-12-31",
+      "action": "WATCH",
+      "score": 29.0,
+      "components": {
+        "guidance_magnitude": 5.0,
+        "demand_visibility": 15.0,
+        "execution": 20.0,
+        "guidance_consistency": 4.0,
+        "balance_sheet_and_cash": 0.0,
+        "valuation": 0.0,
+        "entry_timing": 0.0,
+        "evidence_quality": 5.0
+      },
+      "hard_vetoes": [],
+      "why_now": [
+        "numeric management guidance is now on record",
+        "multiple dated orders/order-book/capacity events support visibility",
+        "reported execution is beginning to validate the promise",
+        "only one dated formal-guidance observation is available"
+      ],
+      "missing_proof": [
+        "point-in-time diluted valuation"
+      ],
+      "invalidation": [
+        "material cut or miss in capacity guidance",
+        "commissioning/order conversion slips without a dated explanation",
+        "cash conversion weakens while receivables or inventory accelerate",
+        "audit, default, enforcement, or unexplained dilution hard veto appears"
+      ],
+      "max_position_pct": 0.0,
+      "evidence_dates": 3,
+      "model_name": "deterministic-gates-v1"
+    },
+    {
+      "ticker": "SHAKTIPUMP",
+      "company": "Shakti Pumps (India) Limited",
+      "as_of_date": "2023-12-31",
+      "action": "WATCH",
+      "score": 20.5,
+      "components": {
+        "guidance_magnitude": 10.0,
+        "demand_visibility": 5.0,
+        "execution": 0.0,
+        "guidance_consistency": 4.0,
+        "balance_sheet_and_cash": 0.0,
+        "valuation": 0.0,
+        "entry_timing": 3.0,
+        "evidence_quality": 2.5
+      },
+      "hard_vetoes": [],
+      "why_now": [
+        "numeric management guidance is now on record",
+        "only one dated formal-guidance observation is available"
+      ],
+      "missing_proof": [
+        "a second independent dated execution event",
+        "commissioning or realized earnings proof",
+        "point-in-time diluted valuation"
+      ],
+      "invalidation": [
+        "material cut or miss in capacity guidance",
+        "material cut or miss in revenue guidance",
+        "commissioning/order conversion slips without a dated explanation",
+        "cash conversion weakens while receivables or inventory accelerate",
+        "audit, default, enforcement, or unexplained dilution hard veto appears"
+      ],
+      "max_position_pct": 0.0,
+      "evidence_dates": 1,
+      "model_name": "deterministic-gates-v1"
+    },
+    {
+      "ticker": "GENSOL",
+      "company": "Gensol Engineering Limited",
+      "as_of_date": "2024-01-23",
+      "action": "WATCH",
+      "score": 12.5,
+      "components": {
+        "guidance_magnitude": 5.0,
+        "demand_visibility": 2.0,
+        "execution": 0.0,
+        "guidance_consistency": 1.0,
+        "balance_sheet_and_cash": 0.0,
+        "valuation": 0.0,
+        "entry_timing": 10.0,
+        "evidence_quality": 2.5
+      },
+      "hard_vetoes": [],
+      "why_now": [
+        "numeric management guidance is now on record",
+        "capacity guidance was cut materially"
+      ],
+      "missing_proof": [
+        "a second independent dated execution event",
+        "commissioning or realized earnings proof",
+        "point-in-time diluted valuation",
+        "corporate-action-adjusted price history"
+      ],
+      "invalidation": [
+        "material cut or miss in capacity guidance",
+        "commissioning/order conversion slips without a dated explanation",
+        "cash conversion weakens while receivables or inventory accelerate",
+        "audit, default, enforcement, or unexplained dilution hard veto appears"
+      ],
+      "max_position_pct": 0.0,
+      "evidence_dates": 1,
+      "model_name": "deterministic-gates-v1"
+    }
+  ],
+  "outcomes": [
+    {
+      "ticker": "PGEL",
+      "action": "WATCH",
+      "decision_date": "2021-11-13",
+      "entry_date": "2021-11-15",
+      "exit_date": "2022-11-11",
+      "horizon_months": 12,
+      "return_pct": 90.95,
+      "benchmark_return_pct": -1.78,
+      "alpha_pct": 92.73,
+      "reliable": true,
+      "exclusion_reason": ""
+    },
+    {
+      "ticker": "PGEL",
+      "action": "WATCH",
+      "decision_date": "2021-11-13",
+      "entry_date": "2021-11-15",
+      "exit_date": "2023-11-13",
+      "horizon_months": 24,
+      "return_pct": 304.71,
+      "benchmark_return_pct": 4.89,
+      "alpha_pct": 299.82,
+      "reliable": true,
+      "exclusion_reason": ""
+    },
+    {
+      "ticker": "PGEL",
+      "action": "WATCH",
+      "decision_date": "2021-11-13",
+      "entry_date": "2021-11-15",
+      "exit_date": "2024-11-13",
+      "horizon_months": 36,
+      "return_pct": 20.66,
+      "benchmark_return_pct": 53.98,
+      "alpha_pct": -33.32,
+      "reliable": false,
+      "exclusion_reason": "unadjusted corporate-action-sized price discontinuity"
+    },
+    {
+      "ticker": "PGEL",
+      "action": "WATCH",
+      "decision_date": "2021-11-13",
+      "entry_date": "2021-11-15",
+      "exit_date": "2026-07-03",
+      "horizon_months": null,
+      "return_pct": 7.81,
+      "benchmark_return_pct": 67.62,
+      "alpha_pct": -59.81,
+      "reliable": false,
+      "exclusion_reason": "unadjusted corporate-action-sized price discontinuity"
+    },
+    {
+      "ticker": "TARIL",
+      "action": "WATCH",
+      "decision_date": "2022-06-10",
+      "entry_date": null,
+      "exit_date": null,
+      "horizon_months": 12,
+      "return_pct": null,
+      "benchmark_return_pct": null,
+      "alpha_pct": null,
+      "reliable": false,
+      "exclusion_reason": "price coverage unavailable"
+    },
+    {
+      "ticker": "TARIL",
+      "action": "WATCH",
+      "decision_date": "2022-06-10",
+      "entry_date": null,
+      "exit_date": null,
+      "horizon_months": 24,
+      "return_pct": null,
+      "benchmark_return_pct": null,
+      "alpha_pct": null,
+      "reliable": false,
+      "exclusion_reason": "price coverage unavailable"
+    },
+    {
+      "ticker": "TARIL",
+      "action": "WATCH",
+      "decision_date": "2022-06-10",
+      "entry_date": "2024-08-26",
+      "exit_date": "2025-06-10",
+      "horizon_months": 36,
+      "return_pct": -29.13,
+      "benchmark_return_pct": 89.41,
+      "alpha_pct": -118.55,
+      "reliable": false,
+      "exclusion_reason": "unadjusted corporate-action-sized price discontinuity"
+    },
+    {
+      "ticker": "TARIL",
+      "action": "WATCH",
+      "decision_date": "2022-06-10",
+      "entry_date": "2024-08-26",
+      "exit_date": "2026-07-03",
+      "horizon_months": null,
+      "return_pct": -53.97,
+      "benchmark_return_pct": 100.54,
+      "alpha_pct": -154.51,
+      "reliable": false,
+      "exclusion_reason": "unadjusted corporate-action-sized price discontinuity"
+    },
+    {
+      "ticker": "GVT&D",
+      "action": "WATCH",
+      "decision_date": "2023-02-13",
+      "entry_date": null,
+      "exit_date": null,
+      "horizon_months": 12,
+      "return_pct": null,
+      "benchmark_return_pct": null,
+      "alpha_pct": null,
+      "reliable": false,
+      "exclusion_reason": "price coverage unavailable"
+    },
+    {
+      "ticker": "GVT&D",
+      "action": "WATCH",
+      "decision_date": "2023-02-13",
+      "entry_date": "2024-11-05",
+      "exit_date": "2025-02-13",
+      "horizon_months": 24,
+      "return_pct": -10.96,
+      "benchmark_return_pct": 61.3,
+      "alpha_pct": -72.26,
+      "reliable": true,
+      "exclusion_reason": ""
+    },
+    {
+      "ticker": "GVT&D",
+      "action": "WATCH",
+      "decision_date": "2023-02-13",
+      "entry_date": "2024-11-05",
+      "exit_date": "2026-02-13",
+      "horizon_months": 36,
+      "return_pct": 103.84,
+      "benchmark_return_pct": 83.31,
+      "alpha_pct": 20.53,
+      "reliable": true,
+      "exclusion_reason": ""
+    },
+    {
+      "ticker": "GVT&D",
+      "action": "WATCH",
+      "decision_date": "2023-02-13",
+      "entry_date": "2024-11-05",
+      "exit_date": "2026-07-03",
+      "horizon_months": null,
+      "return_pct": 152.52,
+      "benchmark_return_pct": 93.16,
+      "alpha_pct": 59.35,
+      "reliable": true,
+      "exclusion_reason": ""
+    },
+    {
+      "ticker": "TEMBO",
+      "action": "REJECT",
+      "decision_date": "2023-10-05",
+      "entry_date": "2023-10-06",
+      "exit_date": "2024-10-04",
+      "horizon_months": 12,
+      "return_pct": 105.53,
+      "benchmark_return_pct": 68.78,
+      "alpha_pct": 36.75,
+      "reliable": true,
+      "exclusion_reason": ""
+    },
+    {
+      "ticker": "TEMBO",
+      "action": "REJECT",
+      "decision_date": "2023-10-05",
+      "entry_date": "2023-10-06",
+      "exit_date": "2025-10-03",
+      "horizon_months": 24,
+      "return_pct": 144.97,
+      "benchmark_return_pct": 54.4,
+      "alpha_pct": 90.57,
+      "reliable": true,
+      "exclusion_reason": ""
+    },
+    {
+      "ticker": "TEMBO",
+      "action": "REJECT",
+      "decision_date": "2023-10-05",
+      "entry_date": "2023-10-06",
+      "exit_date": "2026-07-03",
+      "horizon_months": null,
+      "return_pct": 141.75,
+      "benchmark_return_pct": 64.05,
+      "alpha_pct": 77.69,
+      "reliable": true,
+      "exclusion_reason": ""
+    },
+    {
+      "ticker": "WEBELSOLAR",
+      "action": "WATCH",
+      "decision_date": "2023-12-31",
+      "entry_date": "2024-01-01",
+      "exit_date": "2024-12-31",
+      "horizon_months": 12,
+      "return_pct": 565.13,
+      "benchmark_return_pct": 27.96,
+      "alpha_pct": 537.17,
+      "reliable": true,
+      "exclusion_reason": ""
+    },
+    {
+      "ticker": "WEBELSOLAR",
+      "action": "WATCH",
+      "decision_date": "2023-12-31",
+      "entry_date": "2024-01-01",
+      "exit_date": "2025-12-31",
+      "horizon_months": 24,
+      "return_pct": -63.98,
+      "benchmark_return_pct": 31.11,
+      "alpha_pct": -95.09,
+      "reliable": false,
+      "exclusion_reason": "unadjusted corporate-action-sized price discontinuity"
+    },
+    {
+      "ticker": "WEBELSOLAR",
+      "action": "WATCH",
+      "decision_date": "2023-12-31",
+      "entry_date": "2024-01-01",
+      "exit_date": "2026-07-03",
+      "horizon_months": null,
+      "return_pct": -57.12,
+      "benchmark_return_pct": 37.42,
+      "alpha_pct": -94.54,
+      "reliable": false,
+      "exclusion_reason": "unadjusted corporate-action-sized price discontinuity"
+    },
+    {
+      "ticker": "SHAKTIPUMP",
+      "action": "WATCH",
+      "decision_date": "2023-12-31",
+      "entry_date": "2024-01-01",
+      "exit_date": "2024-12-31",
+      "horizon_months": 12,
+      "return_pct": 3.72,
+      "benchmark_return_pct": 27.96,
+      "alpha_pct": -24.24,
+      "reliable": false,
+      "exclusion_reason": "unadjusted corporate-action-sized price discontinuity"
+    },
+    {
+      "ticker": "SHAKTIPUMP",
+      "action": "WATCH",
+      "decision_date": "2023-12-31",
+      "entry_date": "2024-01-01",
+      "exit_date": "2025-12-31",
+      "horizon_months": 24,
+      "return_pct": -29.65,
+      "benchmark_return_pct": 31.11,
+      "alpha_pct": -60.76,
+      "reliable": false,
+      "exclusion_reason": "unadjusted corporate-action-sized price discontinuity"
+    },
+    {
+      "ticker": "SHAKTIPUMP",
+      "action": "WATCH",
+      "decision_date": "2023-12-31",
+      "entry_date": "2024-01-01",
+      "exit_date": "2026-07-03",
+      "horizon_months": null,
+      "return_pct": -44.22,
+      "benchmark_return_pct": 37.42,
+      "alpha_pct": -81.64,
+      "reliable": false,
+      "exclusion_reason": "unadjusted corporate-action-sized price discontinuity"
+    },
+    {
+      "ticker": "GENSOL",
+      "action": "WATCH",
+      "decision_date": "2024-01-23",
+      "entry_date": "2024-01-24",
+      "exit_date": "2025-01-23",
+      "horizon_months": 12,
+      "return_pct": -17.54,
+      "benchmark_return_pct": 17.84,
+      "alpha_pct": -35.38,
+      "reliable": true,
+      "exclusion_reason": ""
+    },
+    {
+      "ticker": "GENSOL",
+      "action": "WATCH",
+      "decision_date": "2024-01-23",
+      "entry_date": "2024-01-24",
+      "exit_date": "2025-10-20",
+      "horizon_months": 24,
+      "return_pct": -95.98,
+      "benchmark_return_pct": 29.6,
+      "alpha_pct": -125.58,
+      "reliable": true,
+      "exclusion_reason": ""
+    },
+    {
+      "ticker": "GENSOL",
+      "action": "WATCH",
+      "decision_date": "2024-01-23",
+      "entry_date": "2024-01-24",
+      "exit_date": "2025-10-20",
+      "horizon_months": null,
+      "return_pct": -95.98,
+      "benchmark_return_pct": 29.6,
+      "alpha_pct": -125.58,
+      "reliable": true,
+      "exclusion_reason": ""
+    }
+  ],
+  "summary": [
+    {
+      "action": "REJECT",
+      "horizon_months": 12,
+      "n_emitted": 1,
+      "n_measured": 1,
+      "coverage_pct": 100.0,
+      "median_return_pct": 105.53,
+      "median_alpha_pct": 36.75,
+      "positive_pct": 100.0,
+      "beat_benchmark_pct": 100.0,
+      "multibagger_pct": 100.0,
+      "severe_loss_pct": 0.0
+    },
+    {
+      "action": "REJECT",
+      "horizon_months": 24,
+      "n_emitted": 1,
+      "n_measured": 1,
+      "coverage_pct": 100.0,
+      "median_return_pct": 144.97,
+      "median_alpha_pct": 90.57,
+      "positive_pct": 100.0,
+      "beat_benchmark_pct": 100.0,
+      "multibagger_pct": 100.0,
+      "severe_loss_pct": 0.0
+    },
+    {
+      "action": "REJECT",
+      "horizon_months": null,
+      "n_emitted": 1,
+      "n_measured": 1,
+      "coverage_pct": 100.0,
+      "median_return_pct": 141.75,
+      "median_alpha_pct": 77.69,
+      "positive_pct": 100.0,
+      "beat_benchmark_pct": 100.0,
+      "multibagger_pct": 100.0,
+      "severe_loss_pct": 0.0
+    },
+    {
+      "action": "WATCH",
+      "horizon_months": 12,
+      "n_emitted": 6,
+      "n_measured": 3,
+      "coverage_pct": 50.0,
+      "median_return_pct": 90.95,
+      "median_alpha_pct": 92.73,
+      "positive_pct": 66.7,
+      "beat_benchmark_pct": 66.7,
+      "multibagger_pct": 33.3,
+      "severe_loss_pct": 0.0
+    },
+    {
+      "action": "WATCH",
+      "horizon_months": 24,
+      "n_emitted": 6,
+      "n_measured": 3,
+      "coverage_pct": 50.0,
+      "median_return_pct": -10.96,
+      "median_alpha_pct": -72.26,
+      "positive_pct": 33.3,
+      "beat_benchmark_pct": 33.3,
+      "multibagger_pct": 33.3,
+      "severe_loss_pct": 33.3
+    },
+    {
+      "action": "WATCH",
+      "horizon_months": 36,
+      "n_emitted": 3,
+      "n_measured": 1,
+      "coverage_pct": 33.3,
+      "median_return_pct": 103.84,
+      "median_alpha_pct": 20.53,
+      "positive_pct": 100.0,
+      "beat_benchmark_pct": 100.0,
+      "multibagger_pct": 100.0,
+      "severe_loss_pct": 0.0
+    },
+    {
+      "action": "WATCH",
+      "horizon_months": null,
+      "n_emitted": 6,
+      "n_measured": 2,
+      "coverage_pct": 33.3,
+      "median_return_pct": 28.27,
+      "median_alpha_pct": -33.11,
+      "positive_pct": 50.0,
+      "beat_benchmark_pct": 50.0,
+      "multibagger_pct": 50.0,
+      "severe_loss_pct": 50.0
+    }
+  ]
+}

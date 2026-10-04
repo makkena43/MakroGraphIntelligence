@@ -323,6 +323,27 @@ _RAW_PATTERNS: list[tuple[str, str, str, float]] = [
     (r"\b(?:backlog|order\s+backlog).{0,40}(?:\d+\s*(?:months?|quarters?|years?))",
      "capacity_shortage", "negative", 0.82),
 
+    # ── CONSTRAINT MECHANISM LEGS ───────────────────────────────────────
+    # These signals are intentionally generic. They preserve the specific
+    # evidence legs needed by the upstream constraint-candidate engine rather
+    # than flattening everything into a broad theme-strength count.
+    (r"\b(?:lead[ -]?times?|delivery\s+(?:period|schedule|timeline))\b.{0,55}"
+     r"(?:extend|lengthen|stretch|increase|longer|\d+\s*(?:weeks?|months?|quarters?))",
+     "lead_time_extension", "positive", 0.88),
+    (r"\b(?:customer|vendor|product|plant|facility)?\s*"
+     r"(?:qualification|certification|validation|approval)\s+"
+     r"(?:cycle|process|period|requirement)s?\b.{0,70}"
+     r"(?:\d+\s*(?:weeks?|months?|years?)|lengthy|long|multi[ -]?year|stringent)",
+     "qualification_barrier", "positive", 0.87),
+    (r"\b(?:imports?\s+(?:account(?:ed|s)?\s+for|constitut(?:e|ed|es)|meet(?:s|ing)?|"
+     r"represent(?:s|ed)?)|(?:dependent|reliant)\s+on\s+imports?)\b.{0,55}"
+     r"(?:\d{1,3}(?:\.\d+)?\s*%|majority|substantial|entire|all)",
+     "import_dependency_quantified", "neutral", 0.86),
+    (r"\b(?:commercial\s+(?:production|operations?)\s+(?:commenced|started)|"
+     r"commissioned|became\s+operational|started\s+production)\b.{0,80}"
+     r"(?:plant|facility|line|unit|capacity|\d+(?:\.\d+)?\s*(?:GW|MW|GWh|MTPA|TPA))",
+     "supply_response_commissioning", "negative", 0.88),
+
     # ── LOCALIZATION OPPORTUNITY ─────────────────────────────────────────
     # Import substitution / Make in India / PLI-driven domestic production
     (r"\b(?:import\s+substitut|localiz(?:ation|ing|ed?)|indigeniz(?:ation|ing)|"
@@ -808,7 +829,7 @@ class SignalExtractor:
         sorted_sigs = sorted(signals, key=lambda s: -s.confidence)
 
         seen_positions: dict[str, list[int]] = {}   # signal_type → [positions kept]
-        seen_contexts:  set[str]             = set() # exact context dedup
+        seen_contexts:  set[tuple[str, str]] = set() # (type, context) dedup
         type_counts:    dict[str, int]       = {}    # per-type cap
 
         # Max signals per type — prevents risk-factor boilerplate flooding
@@ -831,7 +852,7 @@ class SignalExtractor:
             ctx   = sig.context_text or ""
 
             # Exact context duplicate (same text matched in overlapping chunk)
-            if ctx and ctx in seen_contexts:
+            if ctx and (stype, ctx) in seen_contexts:
                 continue
 
             # Position-proximity duplicate (within chunk overlap window of 500 chars)
@@ -848,7 +869,7 @@ class SignalExtractor:
             # Accept this signal
             seen_positions.setdefault(stype, []).append(sig.position)
             if ctx:
-                seen_contexts.add(ctx)
+                seen_contexts.add((stype, ctx))
             type_counts[stype] = type_counts.get(stype, 0) + 1
             result.append(sig)
 

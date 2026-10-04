@@ -18,6 +18,11 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+# The bundled figures below are a dated 2024 reference packet, not timeless
+# facts. Live ingestion may add other dated rows; historical replay must never
+# project this packet backwards merely because it is available in code.
+_STATIC_REFERENCE_DATE = date(2024, 12, 31)
+
 
 # ---------------------------------------------------------------------------
 # Static import dependency knowledge base
@@ -148,6 +153,13 @@ class ImportDependency:
     substitute_possible: bool
     substitution_horizon_years: int
     risk_level: str              # "critical" | "high" | "moderate"
+    source_url: Optional[str] = None
+    source_title: Optional[str] = None
+    source_published_at: Optional[date] = None
+    source_family: Optional[str] = None
+    provenance_status: str = "PENDING_SOURCE"
+    ingestion_method: str = "STATIC_REFERENCE_PACKET"
+    measurement_basis: str = "STATIC_REFERENCE_CONTEXT"
 
 
 @dataclass
@@ -166,7 +178,18 @@ class LocalizationOpportunity:
 class ImportDependencyEngine:
     """Layer 4: Track India's import dependencies by sector/component."""
 
-    def get_dependencies(self, min_import_share: float = 0.50) -> list[ImportDependency]:
+    def get_dependencies(
+        self,
+        min_import_share: float = 0.50,
+        as_of_date: Optional[date] = None,
+    ) -> list[ImportDependency]:
+        observation_date = as_of_date or date.today()
+        if observation_date < _STATIC_REFERENCE_DATE:
+            logger.info(
+                "[ImportDependencyEngine] static 2024 reference excluded from "
+                "historical as-of %s", observation_date,
+            )
+            return []
         results = []
         for d in _IMPORT_DEPENDENCY_DATA:
             if d["import_share"] < min_import_share:
@@ -189,10 +212,15 @@ class ImportDependencyEngine:
                     f"(threshold ≥ {min_import_share:.0%})")
         return results
 
-    def persist(self, deps: list[ImportDependency], pg_store) -> int:
+    def persist(
+        self,
+        deps: list[ImportDependency],
+        pg_store,
+        as_of_date: Optional[date] = None,
+    ) -> int:
         self._ensure_schema(pg_store)
         saved = 0
-        today = date.today()
+        observation_date = as_of_date or date.today()
         for d in deps:
             try:
                 with pg_store._conn() as conn:
@@ -202,19 +230,32 @@ class ImportDependencyEngine:
                             INSERT INTO mg_import_dependencies
                                 (sector, component, import_share, import_value_bn_usd,
                                  primary_origin, hs_code, substitute_possible,
-                                 substitution_horizon_years, risk_level, as_of_date)
-                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                            ON CONFLICT (sector, component)
+                                 substitution_horizon_years, risk_level, as_of_date,
+                                 source_url, source_title, source_published_at,
+                                 source_family, provenance_status, ingestion_method,
+                                 measurement_basis)
+                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                            ON CONFLICT (sector, component, as_of_date)
                             DO UPDATE SET
                                 import_share                = EXCLUDED.import_share,
                                 import_value_bn_usd         = EXCLUDED.import_value_bn_usd,
                                 risk_level                  = EXCLUDED.risk_level,
                                 as_of_date                  = EXCLUDED.as_of_date,
+                                source_url                  = EXCLUDED.source_url,
+                                source_title                = EXCLUDED.source_title,
+                                source_published_at         = EXCLUDED.source_published_at,
+                                source_family               = EXCLUDED.source_family,
+                                provenance_status           = EXCLUDED.provenance_status,
+                                ingestion_method            = EXCLUDED.ingestion_method,
+                                measurement_basis           = EXCLUDED.measurement_basis,
                                 updated_at                  = NOW()
                             """,
                             (d.sector, d.component, d.import_share, d.import_value_bn_usd,
                              ",".join(d.primary_origin), d.hs_code, d.substitute_possible,
-                             d.substitution_horizon_years, d.risk_level, today),
+                             d.substitution_horizon_years, d.risk_level, observation_date,
+                             d.source_url, d.source_title, d.source_published_at,
+                             d.source_family, d.provenance_status, d.ingestion_method,
+                             d.measurement_basis),
                         )
                 saved += 1
             except Exception as e:
@@ -238,10 +279,35 @@ class ImportDependencyEngine:
                             substitution_horizon_years   INTEGER,
                             risk_level                   TEXT,
                             as_of_date                   DATE,
+                            source_url                   TEXT,
+                            source_title                 TEXT,
+                            source_published_at          DATE,
+                            source_family                TEXT,
+                            provenance_status            TEXT DEFAULT 'PENDING_SOURCE',
+                            ingestion_method             TEXT,
+                            measurement_basis            TEXT DEFAULT 'STATIC_REFERENCE_CONTEXT',
                             created_at                   TIMESTAMPTZ DEFAULT NOW(),
                             updated_at                   TIMESTAMPTZ DEFAULT NOW(),
-                            UNIQUE (sector, component)
+                            UNIQUE (sector, component, as_of_date)
                         )
+                    """)
+                    cur.execute("""
+                        ALTER TABLE mg_import_dependencies
+                          ADD COLUMN IF NOT EXISTS source_url TEXT,
+                          ADD COLUMN IF NOT EXISTS source_title TEXT,
+                          ADD COLUMN IF NOT EXISTS source_published_at DATE,
+                          ADD COLUMN IF NOT EXISTS source_family TEXT,
+                          ADD COLUMN IF NOT EXISTS provenance_status TEXT DEFAULT 'PENDING_SOURCE',
+                          ADD COLUMN IF NOT EXISTS ingestion_method TEXT,
+                          ADD COLUMN IF NOT EXISTS measurement_basis TEXT DEFAULT 'STATIC_REFERENCE_CONTEXT'
+                    """)
+                    cur.execute("""
+                        ALTER TABLE mg_import_dependencies
+                        DROP CONSTRAINT IF EXISTS mg_import_dependencies_sector_component_key
+                    """)
+                    cur.execute("""
+                        CREATE UNIQUE INDEX IF NOT EXISTS uq_import_dependencies_snapshot
+                        ON mg_import_dependencies(sector, component, as_of_date)
                     """)
         except Exception as e:
             logger.debug(f"[ImportDependencyEngine] schema check: {e}")
@@ -309,10 +375,15 @@ class LocalizationOpportunityEngine:
         logger.info(f"[LocalizationOpportunityEngine] {len(opportunities)} localization opportunities identified")
         return opportunities
 
-    def persist(self, opportunities: list[LocalizationOpportunity], pg_store) -> int:
+    def persist(
+        self,
+        opportunities: list[LocalizationOpportunity],
+        pg_store,
+        as_of_date: Optional[date] = None,
+    ) -> int:
         self._ensure_schema(pg_store)
         saved = 0
-        today = date.today()
+        observation_date = as_of_date or date.today()
         for opp in opportunities:
             try:
                 with pg_store._conn() as conn:
@@ -324,7 +395,7 @@ class LocalizationOpportunityEngine:
                                  incentive_schemes, opportunity_score, theme_name,
                                  rationale, horizon_years, as_of_date)
                             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                            ON CONFLICT (sector, component)
+                            ON CONFLICT (sector, component, as_of_date)
                             DO UPDATE SET
                                 opportunity_score  = EXCLUDED.opportunity_score,
                                 incentive_schemes  = EXCLUDED.incentive_schemes,
@@ -336,7 +407,7 @@ class LocalizationOpportunityEngine:
                              opp.import_value_bn_usd,
                              ";".join(opp.incentive_schemes),
                              opp.opportunity_score, opp.theme_name,
-                             opp.rationale[:1000], opp.horizon_years, today),
+                             opp.rationale[:1000], opp.horizon_years, observation_date),
                         )
                 saved += 1
             except Exception as e:
@@ -362,8 +433,16 @@ class LocalizationOpportunityEngine:
                             as_of_date          DATE,
                             created_at          TIMESTAMPTZ DEFAULT NOW(),
                             updated_at          TIMESTAMPTZ DEFAULT NOW(),
-                            UNIQUE (sector, component)
+                            UNIQUE (sector, component, as_of_date)
                         )
+                    """)
+                    cur.execute("""
+                        ALTER TABLE mg_localization_opportunities
+                        DROP CONSTRAINT IF EXISTS mg_localization_opportunities_sector_component_key
+                    """)
+                    cur.execute("""
+                        CREATE UNIQUE INDEX IF NOT EXISTS uq_localization_opportunities_snapshot
+                        ON mg_localization_opportunities(sector, component, as_of_date)
                     """)
         except Exception as e:
             logger.debug(f"[LocalizationOpportunityEngine] schema check: {e}")

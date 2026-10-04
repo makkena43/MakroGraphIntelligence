@@ -44,6 +44,8 @@ parser.add_argument("--skip-graph", action="store_true",
                     help="Skip Stage 1 graph+events pass (already done)")
 parser.add_argument("--skip-intelligence", action="store_true",
                     help="Skip Stage 2 India Intelligence L1-L10 per year")
+parser.add_argument("--skip-company-roles", action="store_true",
+                    help="Skip dated issuer product-role rebuild before constraint detection")
 parser.add_argument("--from-year", type=int, default=None,
                     help="Only run yearly stages for this year and later")
 args = parser.parse_args()
@@ -147,6 +149,33 @@ if args.from_year:
     ]
     logger.info(f"--from-year {args.from_year}: running {len(REPLAY_DATES)} snapshots")
 
+# The exact-role extractor can use short product heads only when the same
+# ticker has a dated capability row for the canonical product. Build every
+# requested snapshot in one corpus pass before the yearly role snapshots;
+# otherwise 2024/25 silently reuse the last available 2023 vocabulary gate.
+if not args.skip_company_roles:
+    logger.info("\n=== PRE-STAGE: dated company capabilities (one corpus pass) ===")
+    from psycopg2.extras import RealDictCursor as _RealDictCursor
+    from scripts.stock_report.company_capabilities import (
+        build as _build_capabilities,
+        ensure_table as _ensure_capability_table,
+    )
+    _cap_dates = [d for d in REPLAY_DATES if d is not None]
+    if None in REPLAY_DATES:
+        _cap_dates.append(date.today())
+    _cap_conn = psycopg2.connect(
+        host=pg["host"], port=pg["port"], dbname=pg["dbname"],
+        user=pg["user"], password=pg.get("password", ""),
+    )
+    try:
+        _ensure_capability_table(_cap_conn)
+        _cap_cur = _cap_conn.cursor(cursor_factory=_RealDictCursor)
+        _build_capabilities(_cap_conn, _cap_cur, _cap_dates)
+    finally:
+        _cap_conn.close()
+else:
+    logger.info("\n=== PRE-STAGE: dated company capabilities SKIPPED ===")
+
 # Wipe existing year-end snapshots before rebuild so we get clean data
 # (avoids stale rows from previous runs coexisting with new ones)
 import psycopg2 as _pg
@@ -196,6 +225,36 @@ for replay_date in REPLAY_DATES:
     # MUST run before themes — populates mg_causal_chains and mg_capacity_gaps
     # which ThemeRanker and ThemeDetector read during the themes stage.
     if not args.skip_intelligence:
+        logger.info(f"  [Stage 2a] Policy/company discovery snapshot as_of={label} ...")
+        try:
+            policy_stats = pipeline.run_india_policy_company_snapshot(
+                as_of_date=replay_date,
+                pg_store=pipeline._pg_store,
+            )
+            logger.info(
+                "  [Stage 2a] Done: company_policy=%s product_discoveries=%s",
+                policy_stats.get("company_policy_signals", 0),
+                policy_stats.get("policy_product_discoveries", 0),
+            )
+        except Exception as e:
+            logger.warning(f"  [Stage 2a] Policy/company snapshot failed ({e}) — continuing")
+        if not args.skip_company_roles:
+            logger.info(f"  [Stage 2b] Company-product roles as_of={label} ...")
+            try:
+                role_stats = pipeline.run_india_company_roles(
+                    as_of_date=replay_date,
+                    pg_store=pipeline._pg_store,
+                )
+                logger.info(
+                    "  [Stage 2b] Done: roles=%s evidenced=%s exact_links=%s",
+                    role_stats.get("company_product_roles", 0),
+                    role_stats.get("evidenced_roles", 0),
+                    role_stats.get("exact_constraint_links", 0),
+                )
+            except Exception as e:
+                logger.warning(f"  [Stage 2b] Company-product role build failed ({e}) — continuing")
+        else:
+            logger.info("  [Stage 2b] Company-product roles SKIPPED (--skip-company-roles)")
         logger.info(f"  [Stage 2] India Intelligence L1-L10 as_of={label} ...")
         try:
             intel_stats = pipeline.run_india_intelligence(

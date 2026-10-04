@@ -119,4 +119,14 @@ for as_of in year_dates:
     except Exception as e:
         logger.error(f"[{as_of.year}] Beneficiary stage failed: {e}", exc_info=True)
 
+# Corroboration flag: mark which mapped beneficiaries the capability mapper
+# independently confirms as makers. Runs once at the end, after all years are
+# persisted; only takes effect for products/dates the capability build has
+# already covered (harmless where it hasn't — those rows stay NULL).
+try:
+    counts = IndiaBeneficiaryDiscovery.backfill_corroboration(pg_store)
+    logger.info(f"Corroboration backfill: {counts}")
+except Exception as e:
+    logger.warning(f"Corroboration backfill skipped: {e}")
+
 logger.info("\nIndia yearly chains + beneficiaries complete.")

@@ -17,6 +17,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Optional
 
+from .product_quality import is_product_label
+
 logger = logging.getLogger(__name__)
 
 TECHNOLOGY_KEYWORDS = {
@@ -74,6 +76,73 @@ _SPACY_ORG_NOISE: frozenset = frozenset({
     # Time / reporting period terms
     "quarter", "year", "period", "month", "fiscal",
 })
+
+# Generic issuer-product discovery. These patterns deliberately describe
+# grammar, not industries: they recover the literal object of a making action
+# or the noun phrase attached to an owned production asset. The result is only
+# a PRODUCT vocabulary candidate; downstream role and constraint stages still
+# require repeated issuer evidence and independent supply/demand proof.
+_PRODUCT_ACTION_RE = re.compile(
+    r"\b(?:manufactur(?:e|es|ed|ing)|produc(?:e|es|ed|ing)|"
+    r"fabricat(?:e|es|ed|ing)|assembl(?:e|es|ed|ing))\s+(?:of\s+)?"
+    r"(?!(?:plant|facility|unit|line|capacity)\b)"
+    r"(?P<product>[A-Za-z][A-Za-z0-9&+./-]*(?:\s+[A-Za-z][A-Za-z0-9&+./-]*){1,4}?)"
+    r"(?=\s+(?:at|in|from|for|with|using|through|under|which|that|and|or)\b|[,.;:\n])",
+    re.I,
+)
+_PRODUCT_ASSET_RE = re.compile(
+    r"\b(?P<product>[A-Za-z][A-Za-z0-9&+./-]*(?:\s+[A-Za-z][A-Za-z0-9&+./-]*){1,4}?)\s+"
+    r"(?:manufacturing|production|fabrication|assembly)\s+"
+    r"(?:plant|facility|unit|line|capacity)\b",
+    re.I,
+)
+_PRODUCT_OWNED_ASSET_RE = re.compile(
+    r"\b(?:our|a|an|the|new|existing|dedicated)\s+"
+    r"(?P<product>[A-Za-z][A-Za-z0-9&+./-]*(?:\s+[A-Za-z][A-Za-z0-9&+./-]*){1,3})\s+"
+    r"(?:manufacturing|production|fabrication|assembly)\s+"
+    r"(?:plant|facility|unit|line|capacity)\b",
+    re.I,
+)
+_PRODUCT_NOISE = frozenset(
+    "the a an our new existing proposed current company group business market "
+    "industry demand supply annual report financial result results revenue sales "
+    "profit margin cash flow capital capacity manufacturing production plant "
+    "facility unit line project service services solution solutions operations "
+    "equipment system systems various multiple products product goods activity "
+    "activities value growth high low total other crore million year years "
+    "at in from for with using through under which that and or its it is are "
+    "manufacture manufactures manufactured manufacturing produce produces "
+    "produced producing fabricate fabricates fabricated fabricating assemble "
+    "assembles assembled assembling plans plan set setting up coming".split()
+)
+
+
+def _clean_product_phrase(value: str) -> str | None:
+    """Return a conservative 2-5 word product phrase or ``None``.
+
+    Precision is enforced by form and disclosure grammar. No company, sector,
+    theme, or product allowlist participates in this decision.
+    """
+    phrase = re.sub(r"\s+", " ", (value or "").strip(" -–—,.;:"))
+    words = re.findall(r"[A-Za-z][A-Za-z0-9&+./-]*", phrase)
+    if not 2 <= len(words) <= 5:
+        return None
+    lowered = [word.casefold().strip("./") for word in words]
+    while lowered and lowered[0] in {"the", "a", "an", "our", "new", "existing", "proposed"}:
+        words.pop(0)
+        lowered.pop(0)
+    if not 2 <= len(words) <= 5:
+        return None
+    if sum(word not in _PRODUCT_NOISE for word in lowered) < 2:
+        return None
+    if any(word in {"company", "industry", "market", "demand", "report", "results",
+                    "manufacture", "manufactures", "manufacturing", "produce",
+                    "produces", "production", "fabricate", "assemble", "capacity",
+                    "plant", "facility", "unit", "line", "at", "in", "for", "its"}
+           for word in lowered):
+        return None
+    phrase = " ".join(words)
+    return phrase if is_product_label(phrase, min_words=2, max_words=5) else None
 
 
 @dataclass
@@ -242,6 +311,13 @@ class EntityExtractor:
             "PERSON": "PERSON", "MONEY": "AMOUNT", "PERCENT": "AMOUNT",
         }
         for ent in doc.ents:
+            # General-purpose NER PRODUCT labels are exploratory brand/entity
+            # guesses, not physical-product vocabulary.  In filings they have
+            # repeatedly labelled auditors, people, locations and table captions
+            # as products.  The grammar extractor below is the authoritative
+            # PRODUCT path because it requires a making/production relationship.
+            if ent.label_ == "PRODUCT":
+                continue
             mapped = spacy_type_map.get(ent.label_, "CONCEPT")
             raw_text = ent.text.strip()
             if ent.label_ == "ORG":
@@ -326,6 +402,28 @@ class EntityExtractor:
                     canonical_name=kw,
                     confidence=0.85,
                     metadata={"source": "keyword"},
+                ))
+
+        # Novel product phrases near generic making/production grammar. This
+        # expands the research vocabulary before a theme or company has been
+        # manually named. It does not establish that the issuer owns the role;
+        # company_product_roles.py performs that stricter, dated test.
+        product_seen: set[str] = set()
+        for pattern in (_PRODUCT_ACTION_RE, _PRODUCT_OWNED_ASSET_RE, _PRODUCT_ASSET_RE):
+            for match in pattern.finditer(text):
+                phrase = _clean_product_phrase(match.group("product"))
+                if not phrase or phrase.casefold() in product_seen:
+                    continue
+                product_seen.add(phrase.casefold())
+                entities.append(ExtractedEntity(
+                    entity_text=phrase,
+                    entity_type="PRODUCT",
+                    canonical_name=phrase,
+                    confidence=0.74,
+                    start_char=match.start("product"),
+                    end_char=match.end("product"),
+                    context=text[max(0, match.start() - 100):match.end() + 140],
+                    metadata={"source": "generic_manufacturing_phrase_v1"},
                 ))
 
         # Dollar amounts (capex signals)
