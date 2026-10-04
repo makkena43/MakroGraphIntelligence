@@ -38,11 +38,12 @@ def compute_drivers(series: FinancialSeries, events: list[EconomicEvent], eviden
     th = {**DEFAULT_THRESHOLDS, **(thresholds or {})}
     out: list[DriverChange] = []
     missing: list[str] = []
-    p = series.cadence()
-    end = series.latest_period(Metric.REVENUE, p) if p else None
-    if end is None:
+    p, end, stale = series.current_period(as_of_date)
+    if stale:
+        missing.append(stale)
+    elif end is None:
         missing.append("no comparable quarterly or half-yearly revenue series")
-    else:
+    if end is not None:
         w = PERIOD_WORD[p]                       # "quarter" | "half-year"
         prev_p = prev_period_end(end, p)
         docs = series.get(Metric.REVENUE, end, p).doc_ids

@@ -140,6 +140,76 @@ def sme_results_text(company, h, halves):
     return "\n".join(lines)
 
 
+def board_outcome_text(company, q, quarters, header_style):
+    """Realistic 'Outcome of Board Meeting' filing: cover letter (which also
+    announces the earnings call) + standalone statement in pdfplumber style with
+    roman-numeral rows, current/deferred tax rows and Rs lakhs."""
+    if q.month == 6:
+        cols, kinds = [q, qend(q.year, 3), yago(q), qend(q.year, 3)], ["Q", "Q", "Q", "FY"]
+        heading, groups = "Quarter", "Quarter ended Year ended"
+    elif q.month == 9:
+        cols, kinds = [q, qend(q.year, 6), yago(q), q, yago(q), qend(q.year, 3)], ["Q", "Q", "Q", "H", "H", "FY"]
+        heading, groups = "Quarter and Half Year", "Quarter ended Half year ended Year ended"
+    else:
+        cols, kinds = [q, qend(q.year, 9), yago(q), q, yago(q), qend(q.year, 3)], ["Q", "Q", "Q", "9M", "9M", "FY"]
+        heading, groups = "Quarter and Nine Months", "Quarter ended Nine months ended Year ended"
+
+    def period(d, k):
+        if k == "Q":
+            return quarters[d]
+        fy_start = d.year if d.month > 3 else d.year - 1
+        months = {"H": [6, 9], "9M": [6, 9, 12], "FY": [6, 9, 12, 3]}[k]
+        return sum_pl([quarters[qend(fy_start + (1 if m == 3 else 0), m)] for m in months])
+
+    data = [period(d, k) for d, k in zip(cols, kinds)]
+    if header_style == "single":
+        header = ["Sl. " + groups, "No. Particulars " + " ".join(fmt(c) for c in cols)]
+    elif header_style == "wrapped":
+        header = ["Sl. " + groups, "No. Particulars " + " ".join(fmt(c) for c in cols[:3]),
+                  " ".join(fmt(c) for c in cols[3:])]
+    else:  # stacked day / month / year
+        def ordinal(n):
+            return f"{n}{'st' if n in (1, 21, 31) else 'nd' if n in (2, 22) else 'rd' if n in (3, 23) else 'th'}"
+        header = ["Particulars " + groups, " ".join(ordinal(c.day) for c in cols),
+                  " ".join(c.strftime("%B") for c in cols), " ".join(str(c.year) for c in cols)]
+
+    def row(label, key):
+        return label + " " + " ".join(f"{d[key] * 100:,.2f}" for d in data)
+
+    def eps(label):
+        return label + " " + " ".join(f"{d['eps']:,.2f}" for d in data)
+
+    cover = "\n".join([
+        f"Sub: Outcome of Board Meeting held on {q.strftime('%d %B %Y')}",
+        f"The Board approved the Unaudited Standalone and Consolidated Financial Results for the {heading.lower()} "
+        f"ended {q.strftime('%d %B %Y')}.",
+        "An intimation regarding the earnings conference call will follow. Dial-in details will be shared.",
+        "The company expects revenue of 1 million in the coming year from the new line.",
+    ])
+    stmt = "\n".join([
+        "D c I o T m ! , E w D e b F n o t r e v e n u e",        # garbled PDF header
+        company.upper(),
+        f"Statement of Unaudited Standalone Financial Results for the {heading} ended {q.strftime('%d %B, %Y')}",
+        "(Rs. in Lakhs)", *header,
+        " ".join("(Audited)" if k == "FY" else "(Unaudited)" for k in kinds),
+        "I Revenue from", "operations " + " ".join(f"{d['rev'] * 100:,.2f}" for d in data),
+        row("II Other income", "oi"),
+        "IV Expenses",
+        row("b) Finance costs", "fin"),
+        row("c) Depreciation and amortisation expense", "da"),
+        row("Total expenses (IV)", "te"),
+        row("VII Profit before tax (V-VI)", "pbt"),
+        "VIII Tax expense",
+        "(1) Current tax " + " ".join(f"{d['tax'] * 80:,.2f}" for d in data),
+        "(2) Deferred tax " + " ".join(f"{d['tax'] * 20:,.2f}" for d in data),
+        row("IX Profit for the period (VII-VIII)", "pat"),
+        "X Other comprehensive income",
+        "XI Earnings per equity share (of Rs.2/- each)",
+        eps("(1) Basic"), eps("(2) Diluted"),
+    ])
+    return cover + "\n\f\n" + stmt
+
+
 def build():
     docs, issuers = [], {}
 
@@ -266,6 +336,23 @@ def build():
                  "text": ("Small Fab Engineering Limited has received a purchase order worth Rs 35 crore from "
                           "Eastern Rail Systems Limited for fabricated bogie frames. "
                           "We expect revenue growth of 30% in FY25.")})
+
+    # ---------------- GRANITEWK: realistic NSE filings (regression for real-data failures) ----
+    issuers["GRANITEWK"] = {"name": "Granite Works Limited", "industry": "Building Materials", "series": "EQ"}
+    grev = {qend(2022, 6): 100, qend(2022, 9): 105, qend(2022, 12): 110, qend(2023, 3): 120,
+            qend(2023, 6): 130, qend(2023, 9): 140, qend(2023, 12): 150}
+    gmar = {d: (.12 if d <= qend(2023, 3) else .15) for d in grev}
+    gw = {d: quarter_pl(r, gmar[d], shares=31.0, minority=0.0) for d, r in grev.items()}
+    for q, ts, style in ((qend(2023, 6), "2023-08-10T15:30:00+05:30", "single"),
+                         (qend(2023, 9), "2023-11-09T15:30:00+05:30", "wrapped"),
+                         (qend(2023, 12), "2024-02-08T15:30:00+05:30", "stacked")):
+        docs.append({"doc_id": f"GW-R-{q.isoformat()}", "ticker": "GRANITEWK", "source_name": "nse",
+                     "title": "Outcome of Board Meeting", "filing_type": "Outcome of Board Meeting",
+                     "published_at": ts, "text": board_outcome_text("Granite Works Limited", q, gw, style)})
+    docs.append({"doc_id": "GW-ORD-2021", "ticker": "GRANITEWK", "source_name": "nse", "title": "Receipt of order",
+                 "published_at": "2021-11-15T12:00:00+05:30",
+                 "text": "Granite Works Limited has received a purchase order worth Rs 2.88 crore from "
+                         "Coastal Stone Traders Limited."})
 
     # ---------------- SAMPLEBANK: unsupported financial model ---------------
     issuers["SAMPLEBANK"] = {"name": "Sample Cooperative Bank Limited", "industry": "Private Sector Bank", "series": "EQ"}

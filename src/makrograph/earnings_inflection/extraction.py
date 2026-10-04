@@ -69,6 +69,10 @@ def parse_inr(text: str) -> Optional[Quantity]:
         val, scale = m.group(1), m.group(2)
     else:
         val, scale = m.group(3), m.group(4)
+        # Without a currency marker only "crore"/"lakh" are unambiguous money words
+        # in Indian filings; "1 million" may be doses, units or tonnes.
+        if scale.lower().startswith(("mn", "million", "bn", "billion")):
+            return None
     scale = scale.lower().rstrip(".")
     factor = _INR_SCALE_TO_CRORE.get(scale, _INR_SCALE_TO_CRORE.get(scale + ".", 1.0))
     return Quantity(round(_num(val) * factor, 4), Unit.INR_CRORE, m.group(0))
@@ -153,22 +157,40 @@ def fy_label_for(period_end: date, period_type: str) -> str:
 _MONTHS = {m: i for i, m in enumerate(
     ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], start=1)}
 
+# Row labels are matched AFTER stripping enumerators such as "I", "IV",
+# "1.", "a)", "(2)", "Less:", so the patterns below anchor at the start of
+# the remaining text.
+_ENUMERATOR = re.compile(
+    r"^\s*(?:(?:\(?(?:[ivxlIVXL]{1,5}|\d{1,2}|[a-zA-Z])\s*[.):]|(?:[ivxlIVXL]{1,5}|\d{1,2})\s)\s*|"
+    r"(?:less|add)\s*:\s*|[-–•*]\s*)+")
+
+
+def _strip_enumerator(label: str) -> str:
+    return _ENUMERATOR.sub("", label, count=1).strip()
+
+
+_P = r"profit\s*(?:/\s*\(?\s*loss\s*\)?)?"           # "Profit", "Profit/(Loss)", "Profit / (loss)"
 _ROW_METRICS = [
-    (re.compile(r"^\s*(?:\d+\.?|[a-z]\)|\([a-z0-9]+\))?\s*revenue from operations", re.I), Metric.REVENUE),
-    (re.compile(r"^\s*(?:\d+\.?|[a-z]\)|\([a-z0-9]+\))?\s*(?:net )?sales(?:/income from operations)?\b", re.I), Metric.REVENUE),
-    (re.compile(r"^\s*(?:\d+\.?|[a-z]\)|\([a-z0-9]+\))?\s*other income", re.I), Metric.OTHER_INCOME),
-    (re.compile(r"^\s*(?:\d+\.?|[a-z]\)|\([a-z0-9]+\))?\s*total expenses", re.I), Metric.TOTAL_EXPENSES),
-    (re.compile(r"^\s*(?:\d+\.?|[a-z]\)|\([a-z0-9]+\))?\s*ebitda\b(?!\s*margin)", re.I), Metric.EBITDA),
-    (re.compile(r"^\s*(?:\d+\.?|[a-z]\)|\([a-z0-9]+\))?\s*depreciation", re.I), Metric.DEPRECIATION),
-    (re.compile(r"^\s*(?:\d+\.?|[a-z]\)|\([a-z0-9]+\))?\s*finance costs?", re.I), Metric.FINANCE_COST),
-    (re.compile(r"^\s*(?:\d+\.?|[a-z]\)|\([a-z0-9]+\))?\s*exceptional items?", re.I), Metric.EXCEPTIONAL_ITEMS),
-    (re.compile(r"^\s*(?:\d+\.?|[a-z]\)|\([a-z0-9]+\))?\s*profit(?:/\(loss\))? before tax", re.I), Metric.PBT),
-    (re.compile(r"^\s*(?:\d+\.?|[a-z]\)|\([a-z0-9]+\))?\s*(?:total )?tax expense", re.I), Metric.TAX),
-    (re.compile(r"^\s*(?:\d+\.?|[a-z]\)|\([a-z0-9]+\))?\s*(?:net )?profit(?:/\(loss\))? (?:after tax|for the (?:period|year|quarter))", re.I), Metric.PAT),
-    (re.compile(r"^\s*-?\s*(?:owners|equity (?:share)?holders) of the (?:company|parent)", re.I), Metric.PAT_ATTRIBUTABLE),
-    (re.compile(r"diluted", re.I), Metric.DILUTED_EPS),
-    (re.compile(r"^\s*(?:\(?[a-z]\)?\s*)?basic", re.I), Metric.BASIC_EPS),
+    (re.compile(rf"(?:net\s+)?{_P}.{{0,40}}attributable\s+to\s+(?:the\s+)?(?:owners|equity|shareholders)", re.I),
+     Metric.PAT_ATTRIBUTABLE),
+    (re.compile(r"(?:total\s+)?(?:revenue|income)\s+from\s+operations\b", re.I), Metric.REVENUE),
+    (re.compile(r"(?:net\s+)?sales\b", re.I), Metric.REVENUE),
+    (re.compile(r"other\s+income\b", re.I), Metric.OTHER_INCOME),
+    (re.compile(r"total\s+expenses?\b", re.I), Metric.TOTAL_EXPENSES),
+    (re.compile(r"ebitda\b(?!\s*margin)|earnings\s+before\s+interest,?\s+tax(?:es)?,?\s+depreciation", re.I),
+     Metric.EBITDA),
+    (re.compile(r"depreciation", re.I), Metric.DEPRECIATION),
+    (re.compile(r"finance\s+costs?\b|interest\s+(?:and\s+finance\s+)?(?:costs?|expenses?)\b", re.I), Metric.FINANCE_COST),
+    (re.compile(r"exceptional\s+items?\b", re.I), Metric.EXCEPTIONAL_ITEMS),
+    (re.compile(rf"(?:\(\s*loss\s*\)\s*/\s*)?{_P}\s*before\s+tax", re.I), Metric.PBT),
+    (re.compile(r"(?:total\s+)?(?:income\s+)?tax\s+expenses?\b", re.I), Metric.TAX),
+    (re.compile(rf"(?:net\s+)?{_P}\s*(?:after\s+tax|for\s+the\s+(?:period|year|quarter|half))", re.I), Metric.PAT),
+    (re.compile(r"(?:owners|equity\s+(?:share)?holders|shareholders)\s+of\s+the\s+(?:company|parent|holding)", re.I),
+     Metric.PAT_ATTRIBUTABLE),
 ]
+_TAX_PARTS = re.compile(r"(?:current\s+tax|deferred\s+tax|(?:tax\s+(?:in\s+respect\s+of|relating\s+to|for)\s+)?"
+                        r"(?:earlier|prior)\s+(?:years?|periods?))\b", re.I)
+_COMPREHENSIVE = re.compile(r"comprehensive\s+income", re.I)
 
 _CELL = re.compile(r"\(?-?\d[\d,]*(?:\.\d+)?\)?")
 
@@ -179,10 +201,19 @@ def _cell_value(s: str) -> float:
     return -v if neg else v
 
 
+_SCALE_WORD = r"(crores?|lakhs?|lacs?|million|mn|thousands?)"
+_SCALE_PATTERNS = [
+    re.compile(rf"(?:rs\.?|inr|₹|rupees|amounts?|figures)[^\n]{{0,30}}?\b{_SCALE_WORD}\b", re.I),
+    re.compile(rf"\(\s*in\s+{_SCALE_WORD}\b", re.I),
+]
+
+
 def _table_scale(header: str, page_text: str) -> Optional[float]:
     for src in (header, page_text):
-        m = re.search(r"(?:rs\.?|inr|₹|amount)[^\n]{0,25}?\b(crores?|lakhs?|lacs|million|mn|thousands?)\b", src, re.I)
-        if m:
+        for pat in _SCALE_PATTERNS:
+            m = pat.search(src)
+            if not m:
+                continue
             w = m.group(1).lower()
             if w.startswith("crore"):
                 return 1.0
@@ -195,7 +226,16 @@ def _table_scale(header: str, page_text: str) -> Optional[float]:
     return None
 
 
+_SCOPE_TITLE = re.compile(r"^.*(?:statement|financial\s+results|results\s+for).*$", re.I | re.M)
+
+
 def _scope_from(text: str) -> Scope:
+    # Prefer the scope named in a statement title line; fall back to word presence.
+    for line in _SCOPE_TITLE.findall(text):
+        t = line.lower()
+        has_c, has_s = "consolidated" in t, "standalone" in t
+        if has_c != has_s:
+            return Scope.CONSOLIDATED if has_c else Scope.STANDALONE
     t = text.lower()
     has_c, has_s = "consolidated" in t, "standalone" in t
     if has_c and not has_s:
@@ -208,6 +248,34 @@ def _scope_from(text: str) -> Scope:
     return Scope.UNKNOWN
 
 
+def _resolve_scope(c: Chunk, page_texts: list[str]) -> Scope:
+    page = page_texts[c.page - 1] if 0 < c.page <= len(page_texts) else ""
+    sc = _scope_from(c.header + "\n" + page[:1500])
+    if sc != Scope.UNKNOWN:
+        return sc
+    if c.page >= 2:                                   # title at the bottom of the previous page
+        sc = _scope_from(page_texts[c.page - 2][-800:])
+        if sc != Scope.UNKNOWN:
+            return sc
+    # whole document: only if every statement title names the same scope
+    scopes = {_scope_from(l) for pt in page_texts for l in _SCOPE_TITLE.findall(pt)} - {Scope.UNKNOWN}
+    return scopes.pop() if len(scopes) == 1 else Scope.UNKNOWN
+
+
+def _match_metrics(label: str) -> list[Metric]:
+    lab = _strip_enumerator(label)
+    if re.search(r"\bbasic\b", lab, re.I) and re.search(r"\bdiluted\b", lab, re.I):
+        return [Metric.BASIC_EPS, Metric.DILUTED_EPS]
+    if re.search(r"\bdiluted\b", lab, re.I):
+        return [Metric.DILUTED_EPS]
+    if re.match(r"basic\b", lab, re.I):
+        return [Metric.BASIC_EPS]
+    for pat, m in _ROW_METRICS:
+        if pat.match(lab):
+            return [m]
+    return []
+
+
 def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list[FinancialMeasurement], list[str]]:
     """Parse results statements into measurements.  Returns (rows, issues)."""
     out: list[FinancialMeasurement] = []
@@ -218,36 +286,68 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
             continue
         page_text = page_texts[c.page - 1] if 0 < c.page <= len(page_texts) else ""
         lines = [l for l in c.text.split("\n") if l.strip()]
-        resolved, col_issue = resolve_columns(c.header.split("\n") + lines[:3])
-        if col_issue:
-            issues.append(f"{doc.doc_id}:p{c.page}: {col_issue}")
+        resolved, col_issue = resolve_columns(c.header.split("\n") + lines[:4])
         if not resolved:
             continue
+        if col_issue:
+            issues.append(f"{doc.doc_id}:p{c.page}: {col_issue}")
         cols = [d for d, _ in resolved]
         ptypes = [t for _, t in resolved]
+        n = len(cols)
         scale = _table_scale(c.header, page_text)
-        scope = _scope_from(c.header + "\n" + page_text[:600])
+        scope = _resolve_scope(c, page_texts)
         if scale is None:
             issues.append(f"{doc.doc_id}:p{c.page}: results table without unit line; amounts not used")
+        found: dict[Metric, list] = {}
+        tax_parts: list[list[Optional[float]]] = []
+        pending, after_comprehensive, misaligned = "", False, 0
         for l in lines:
             label, cells = split_numeric_row(l)
-            metric = next((m for pat, m in _ROW_METRICS if pat.search(label)), None)
-            if metric is None:
+            if _COMPREHENSIVE.search(label):
+                after_comprehensive = True
+            if not cells:
+                # a label wrapped onto the next line ("Revenue from" / "operations 1,234 ...")
+                pending = label if len(label) < 80 else ""
                 continue
-            # A row with fewer cells than period columns cannot be aligned safely
-            # (pdf text drops blank cells); skip it rather than shift values.
-            if len(cells) < len(cols):
+            is_tax_part = bool(_TAX_PARTS.match(_strip_enumerator(label)))
+            # Join a wrapped label only when this line has no enumerator of its own:
+            # "(1) Current tax" under "VIII Tax expense" is a sub-row, not a continuation.
+            continuation = pending and not is_tax_part and _strip_enumerator(label) == label.strip()
+            metrics = _match_metrics(label) or (_match_metrics(f"{pending} {label}") if continuation else [])
+            pending = ""
+            if not metrics and not is_tax_part:
                 continue
-            cells = cells[-len(cols):]
-            for col_i, (d, cell) in enumerate(zip(cols, cells)):
-                if not _CELL.fullmatch(cell):
-                    continue            # "-" / "nil" = not reported
+            if Metric.PAT_ATTRIBUTABLE in metrics and after_comprehensive:
+                continue   # "owners of the company" share of comprehensive income, not of profit
+            if len(cells) < n:
+                continue   # blank cells dropped by the PDF text; cannot align safely
+            if len(cells) > n + 1:
+                misaligned += 1  # more values than identified columns: header was mis-read
+                continue
+            cells = cells[-n:]   # one extra leading value = note reference column
+            vals: list[Optional[float]] = []
+            for cell in cells:
                 try:
-                    v = _cell_value(cell)
+                    vals.append(_cell_value(cell) if _CELL.fullmatch(cell) else None)   # "-"/"nil" = blank
                 except ValueError:
+                    vals.append(None)
+            if is_tax_part and not metrics:
+                tax_parts.append(vals)
+                continue
+            for m in metrics:
+                if m not in found:            # first occurrence wins (later = sub-totals / OCI)
+                    found[m] = [l, vals]
+        if tax_parts and Metric.TAX not in found:
+            summed = [None if all(p[i] is None for p in tax_parts) else sum(p[i] or 0.0 for p in tax_parts)
+                      for i in range(n)]
+            found[Metric.TAX] = ["(sum of current/deferred/earlier-year tax rows)", summed]
+        if misaligned:
+            issues.append(f"{doc.doc_id}:p{c.page}: {misaligned} row(s) had more values than the {n} "
+                          f"identified period columns; skipped")
+        for metric, (line, vals) in found.items():
+            for col_i, (d, v) in enumerate(zip(cols, vals)):
+                if v is None or ptypes[col_i] is None:
                     continue
-                if ptypes[col_i] is None:
-                    continue            # column period could not be identified safely
                 if metric in (Metric.DILUTED_EPS, Metric.BASIC_EPS):
                     unit, val = Unit.INR_PER_SHARE, v
                 else:
@@ -256,8 +356,8 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
                     unit, val = Unit.INR_CRORE, round(v * scale, 4)
                 out.append(FinancialMeasurement(
                     ticker=doc.ticker, metric=metric, period_end=d, period_type=ptypes[col_i],
-                    value=val, unit=unit, scope=scope, doc_id=doc.doc_id,
-                    available_at=doc.available_at, quote=f"{c.header.splitlines()[-1] if c.header else ''} | {l.strip()}"[:400],
+                    value=val, unit=unit, scope=scope, doc_id=doc.doc_id, available_at=doc.available_at,
+                    quote=f"{c.header.splitlines()[-1] if c.header else ''} | {line.strip()}"[:400],
                 ))
     return out, issues
 
@@ -329,6 +429,48 @@ def _column_tokens(line: str) -> list[tuple[date, Optional[str]]]:
     return [t for t in out if t[0].month in (3, 6, 9, 12)]
 
 
+_DAY_TOK = re.compile(r"^(\d{1,2})(?:st|nd|rd|th)?[,.]?$", re.I)
+_YEAR_TOK = re.compile(r"^'?(\d{4}|\d{2})[,.]?$")
+
+
+def _stacked_dates(lines: list[str]) -> list[tuple[date, Optional[str]]]:
+    """Dates whose day / month / year are stacked on consecutive lines:
+        "31st 30th 31st"  /  "December September December"  /  "2023 2023 2022"
+    (also month-over-year and day-month-over-year).  Counts must agree."""
+    rows = [l.split() for l in lines]
+    if any(not r for r in rows):
+        return []
+    if len(rows) == 3:
+        d, m, y = rows
+        if (len(d) == len(m) == len(y) and all(_DAY_TOK.match(t) for t in d)
+                and all(t[:3].lower() in _MONTHS for t in m) and all(_YEAR_TOK.match(t) for t in y)):
+            return _column_tokens(" ".join(f"{a} {b} {c}" for a, b, c in zip(d, m, y)))
+    if len(rows) == 2:
+        top, y = rows
+        if len(top) == len(y) and all(_YEAR_TOK.match(t) for t in y):
+            return _column_tokens(" ".join(f"{a} {b}" for a, b in zip(top, y)))
+    return []
+
+
+def _header_candidates(header_lines: list[str]):
+    """(index, tokens) candidates: single lines, two wrapped lines joined, stacked dates."""
+    toks = [_column_tokens(l) for l in header_lines]
+    for i, line in enumerate(header_lines):
+        if _TITLE_LINE.search(line) and len(toks[i]) < 3:
+            continue          # a title naming one or two periods is not a column header
+        yield i, toks[i]
+        # period dates wrapped onto the next line: "30.09.2023 30.06.2023 30.09.2022" / "30.09.2023 ..."
+        if i + 1 < len(header_lines) and toks[i] and toks[i + 1] and not _TITLE_LINE.search(header_lines[i + 1]):
+            yield i + 1, toks[i] + toks[i + 1]
+        for k in (2, 3):
+            window = [re.sub(r"(?i)^\s*(?:particulars|sl\.?\s*no\.?|sr\.?\s*no\.?)\s*", "", l)
+                      for l in header_lines[i:i + k]]
+            if len(window) == k:
+                st = _stacked_dates(window)
+                if len(st) >= 2:
+                    yield i + k - 1, st
+
+
 def resolve_columns(header_lines: list[str]) -> tuple[list[tuple[date, Optional[str]]], str]:
     """Return [(period_end, period_type)] for the table's value columns.
 
@@ -336,10 +478,7 @@ def resolve_columns(header_lines: list[str]) -> tuple[list[tuple[date, Optional[
     values are not used).  The second element is an issue string or "".
     """
     best_i, best = -1, []
-    for i, line in enumerate(header_lines):
-        if _TITLE_LINE.search(line) and len(_column_tokens(line)) < 3:
-            continue          # a title naming one or two periods is not a column header
-        toks = _column_tokens(line)
+    for i, toks in _header_candidates(header_lines):
         if len(toks) >= 2 and len(toks) >= len(best):
             best_i, best = i, toks
     if not best:
@@ -490,6 +629,25 @@ def _evidence_id(doc_id: str, quote: str, metric: Metric) -> str:
     return hashlib.sha1(f"{doc_id}|{metric.value}|{quote}".encode()).hexdigest()[:16]
 
 
+_WORDLIKE = re.compile(r"^[A-Za-z][a-z]*[aeiouy][a-z]*[.,;:!?)]*$|^[A-Z]{2,6}[.,;:)]*$", re.I)
+
+
+def is_garbled(text: str) -> bool:
+    """True for PDF text that has decomposed into letters/fragments, e.g.
+    "D c I o T m ! , E w D e b F" (letter-spaced or mis-encoded fonts)."""
+    toks = [t for t in text.split() if not re.fullmatch(r"[\d.,%()₹/-]+", t)]
+    if len(toks) < 5:
+        return False
+    singles = sum(1 for t in toks if len(t.strip(".,;:!?()")) <= 1)
+    wordlike = sum(1 for t in toks if _WORDLIKE.match(t))
+    return singles / len(toks) > 0.35 or wordlike / len(toks) < 0.5
+
+
+def garbled_ratio(text: str) -> float:
+    lines = [l for l in text.split("\n") if len(l.split()) >= 5]
+    return (sum(1 for l in lines if is_garbled(l)) / len(lines)) if lines else 0.0
+
+
 def extract_sentence_evidence(doc: SourceDocument, chunks: list[Chunk]) -> list[Evidence]:
     """Deterministic evidence from prose (tables are handled by the results parser)."""
     out: list[Evidence] = []
@@ -499,7 +657,7 @@ def extract_sentence_evidence(doc: SourceDocument, chunks: list[Chunk]) -> list[
             continue
         for s in sentences(c):
             s_clean = re.sub(r"\s+", " ", s).strip()
-            if len(s_clean) < 12:
+            if len(s_clean) < 12 or is_garbled(s_clean):
                 continue
             metric = next((m for pat, m in _METRIC_CUES if pat.search(s_clean)), None)
             if metric is None:

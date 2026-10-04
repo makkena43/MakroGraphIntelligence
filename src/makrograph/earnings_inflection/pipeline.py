@@ -35,7 +35,7 @@ from .document_versions import availability, is_restatement, link_versions
 from .drivers import compute_drivers
 from .earnings_bridge import build_bridge
 from .event_resolution import resolve_events
-from .extraction import ConstrainedLLMExtractor, extract_sentence_evidence, parse_results_tables
+from .extraction import ConstrainedLLMExtractor, extract_sentence_evidence, garbled_ratio, parse_results_tables
 from .financial_series import FinancialSeries
 from .guidance_ledger import build_ledger
 from .identity import IdentityResolver, SymbolSpan, classify_issuer_model, listing_segment_from
@@ -112,6 +112,7 @@ class EarningsInflectionPipeline:
         docs = link_versions(visible)   # lineage built only from what was public
         coverage["no_text"] = sum(1 for d in docs if not d.full_text().strip())
         coverage["title_only_classified"] = sum(1 for d in docs if d.kind_basis.startswith("title_only"))
+        coverage["garbled_text_docs"] = sum(1 for d in docs if d.full_text() and garbled_ratio(d.full_text()) > 0.3)
         coverage["superseded_or_duplicate"] = sum(1 for d in docs if d.superseded_by)
         coverage["by_kind"] = {}
         for d in docs:
@@ -136,7 +137,11 @@ class EarningsInflectionPipeline:
             if not d.full_text().strip() or exact_dup:
                 continue
             chunks = chunk_document(d)
-            if d.kind.value in ("financial_results", "annual_report", "investor_presentation"):
+            # Tables are parsed in EVERY text document, not only those classified
+            # as results: a misclassified "Outcome of Board Meeting" filing must not
+            # hide its results statement.  The parser itself requires period
+            # columns, recognised rows and a unit line.
+            if d.kind.value not in ("earnings_call_transcript",):
                 rows, iss = parse_results_tables(d, chunks)
                 if d.superseded_by:
                     rows = []   # a later version for the same period replaces these numbers
@@ -158,20 +163,27 @@ class EarningsInflectionPipeline:
 
         # 5. series, drivers, ledger, counterparties, bridge
         series = FinancialSeries.build(ticker, measurements)
-        cadence = series.cadence()
-        end = series.latest_period(Metric.REVENUE, cadence) if cadence else None
+        cadence, end, stale_note = series.current_period(as_of.date())
         ttm_rev = series.ttm(Metric.REVENUE, end, cadence)[0] if end else None
+        # Revenue guidance given as an amount must be plausible against the
+        # current revenue base (catches "1 million doses"-type mis-reads).
+        for e in evidence:
+            if (e.usable and e.metric == Metric.REVENUE_GUIDANCE and e.quantity is not None
+                    and ttm_rev and not (0.25 * ttm_rev <= e.quantity.value <= 20 * ttm_rev)):
+                e.validation_issues.append(
+                    f"FATAL: revenue guidance {e.quantity.value:g} cr implausible vs TTM revenue {ttm_rev:.1f} cr")
         drivers, missing = compute_drivers(series, events, evidence, issuer_model, as_of.date(),
                                            self.cfg.get("thresholds"))
         commentary_times = [d.available_at for d in docs if d.kind in (
             DocumentKind.EARNINGS_CALL_TRANSCRIPT, DocumentKind.INVESTOR_PRESENTATION)]
         guidance = build_ledger(evidence, series, as_of, docs_by_id, commentary_times)
         profiles = build_profiles(events, ttm_rev)
-        bridge = build_bridge(series, issuer_model, guidance)
+        bridge = build_bridge(series, issuer_model, guidance, as_of.date())
         missing += [m for m in bridge.missing_inputs if m not in missing]
 
         usable_docs = sum(1 for d in docs if d.full_text().strip())
-        status, why = decide_status(drivers, events, evidence, guidance, usable_docs, ttm_rev)
+        status, why = decide_status(drivers, events, evidence, guidance, usable_docs, ttm_rev, as_of,
+                                    int(self.cfg.get("event_lookback_days", 365)))
         first_public = {d.doc_id: d.available_at for d in docs}
 
         contradictions = [f"{g.metric.value} {g.target_period_label}: {f}" for g in guidance for f in g.flags]
@@ -198,6 +210,12 @@ class EarningsInflectionPipeline:
 
         lim = limitations_for(issuer_model, identity_basis, coverage)
         lim += [f"Revised figures: {n}" for n in series.lineage_notes]
+        if stale_note:
+            lim.insert(0, "Stale financial series, so no growth or margin drivers were computed: " + stale_note
+                       + ". Run --diagnose to see why recent results did not parse.")
+        if coverage.get("garbled_text_docs"):
+            lim.append(f"{coverage['garbled_text_docs']} document(s) contain mostly garbled PDF text "
+                       "(letter-spaced or mis-encoded fonts); garbled sentences were ignored.")
         lim += [f"Data issue: {i}" for i in issues if "unit line" in i or "excluded" in i][:10]
         if cadence == "H":
             lim.append("Half-yearly reporter: growth, margin and TTM use half-years (TTM = last two halves). "
@@ -223,7 +241,8 @@ class EarningsInflectionPipeline:
             listing_segment=segment, evidence_status=status,
             review_status=review_status_for(evidence, [d.kind_basis for d in docs]),
             scenario_status=bridge.status, status_rationale=why,
-            what_changed=what_changed(drivers, events, guidance, evidence, first_public),
+            what_changed=what_changed(drivers, events, guidance, evidence, first_public, as_of,
+                                      int(self.cfg.get("event_lookback_days", 365))),
             drivers=drivers, guidance=guidance, events=events, counterparties=profiles, bridge=bridge,
             contradictions=contradictions, financing_risks=financing_risks(evidence, ttm_rev, bridge),
             customer_risks=[f"{p.name}: {f}" for p in profiles for f in p.risk_flags],
@@ -233,6 +252,69 @@ class EarningsInflectionPipeline:
         )
         a.validate()
         return a
+
+    # -- diagnostics -----------------------------------------------------------
+
+    def diagnose(self, ticker: str, as_of) -> str:
+        """Plain-text report of how each visible document was read (for debugging parsing)."""
+        from collections import Counter
+        from .chunking import chunk_document
+        from .extraction import _table_scale, _resolve_scope, resolve_columns
+        as_of = as_of_datetime(as_of)
+        raw = self.repo.documents(ticker, self.country, as_of)
+        visible = [d for d in raw if availability(d)[0] is not None and availability(d)[0] <= as_of]
+        docs = sorted(link_versions(visible), key=lambda d: (d.available_at, d.doc_id))
+        out = [f"DIAGNOSE {ticker} as of {as_of.isoformat()}: {len(raw)} returned, {len(docs)} public with a timestamp"]
+        all_rows = []
+        for d in docs:
+            text = d.full_text()
+            out.append("")
+            out.append(f"== {d.doc_id}  {d.available_at:%Y-%m-%d %H:%M}  {d.title[:70]!r}")
+            out.append(f"   kind={d.kind.value} ({d.kind_basis})  chars={len(text)}  pages={text.count(chr(12)) + 1}"
+                       f"  garbled_lines={garbled_ratio(text):.0%}" + (f"  superseded_by={d.superseded_by}" if d.superseded_by else ""))
+            if not text.strip():
+                out.append("   no text: run the PDF-fetch stage with store_text_to_db=True")
+                continue
+            chunks = chunk_document(d)
+            pages = d.pages or text.split("\f")
+            tables = [c for c in chunks if c.kind == "table"]
+            rows, issues = parse_results_tables(d, chunks)
+            all_rows += rows
+            parsed_any = False
+            for c in tables:
+                lines = [l for l in c.text.split("\n") if l.strip()]
+                cols, col_issue = resolve_columns(c.header.split("\n") + lines[:4])
+                if not cols:
+                    continue
+                parsed_any = True
+                scale = _table_scale(c.header, pages[c.page - 1] if c.page <= len(pages) else "")
+                found = Counter(r.metric.value for r in rows
+                                if r.quote.split(" | ")[-1].strip() in {l.strip() for l in lines}
+                                or r.quote.startswith(c.header.splitlines()[-1] if c.header else "\0"))
+                out.append(f"   table p{c.page}: columns=" + ", ".join(f"{dt:%d.%m.%Y}:{t or '?'}" for dt, t in cols)
+                           + f"  scale={'crore x' + str(scale) if scale else 'MISSING'}"
+                           + f"  scope={_resolve_scope(c, pages).value}")
+                out.append(f"      rows matched: {dict(found) or 'none'}")
+                if col_issue:
+                    out.append(f"      issue: {col_issue}")
+            if not parsed_any and re.search(r"financial\s+results|revenue\s+from\s+operations", text, re.I):
+                i = re.search(r"revenue\s+from\s+operations", text, re.I)
+                start = max(0, (i.start() if i else 0) - 700)
+                snippet = text[start:start + 1100].replace("\f", "\n<page break>\n")
+                out.append("   RESULTS-LIKE TEXT BUT NO PERIOD COLUMNS FOUND. Text around the revenue row:")
+                out += ["      | " + l for l in snippet.split("\n")]
+            for i in issues:
+                out.append(f"   issue: {i}")
+        series = FinancialSeries.build(ticker, all_rows)
+        p, end, stale = series.current_period(as_of.date())
+        out.append("")
+        out.append(f"SERIES scope={series.scope.value} cadence={p} latest={end} {stale}")
+        for pt in ("Q", "H", "FY"):
+            ends = series.period_ends(Metric.REVENUE, pt)
+            if ends:
+                out.append(f"   revenue {pt}: " + ", ".join(f"{e:%Y-%m}={series.get(Metric.REVENUE, e, pt).value:,.1f}"
+                                                        for e in ends[-10:]))
+        return "\n".join(out)
 
     # -- persistence (disabled by default) ----------------------------------
 

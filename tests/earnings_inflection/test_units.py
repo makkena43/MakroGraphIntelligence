@@ -726,3 +726,102 @@ def test_half_year_guidance_judged_on_half_year_actuals():
 def test_fy_label_for_half_years():
     from makrograph.earnings_inflection.extraction import fy_label_for
     assert fy_label_for(date(2024, 9, 30), "H") == "H1FY25" and fy_label_for(date(2025, 3, 31), "H") == "H2FY25"
+
+
+# ---------------- real-filing label / header / text-quality cases ----------------
+
+@pytest.mark.parametrize("label,metric", [
+    ("I Revenue from operations", Metric.REVENUE),
+    ("1. Income from Operations", Metric.REVENUE),
+    ("(a) Revenue from operations", Metric.REVENUE),
+    ("VII Profit before tax (V-VI)", Metric.PBT),
+    ("V Profit before exceptional items and tax (III-IV)", None),
+    ("IX Profit/(Loss) for the period (VII-VIII)", Metric.PAT),
+    ("Net Profit attributable to owners of the Company", Metric.PAT_ATTRIBUTABLE),
+    ("c) Depreciation and amortisation expense", Metric.DEPRECIATION),
+    ("Total expenses (IV)", Metric.TOTAL_EXPENSES),
+    ("(2) Diluted (in Rs.)", Metric.DILUTED_EPS),
+    ("III Total Income (I+II)", None),
+])
+def test_row_label_matching(label, metric):
+    from makrograph.earnings_inflection.extraction import _match_metrics
+    got = _match_metrics(label)
+    assert (got[0] if got else None) == metric
+
+
+def test_amounts_without_currency():
+    from makrograph.earnings_inflection.extraction import parse_inr
+    assert parse_inr("revenue of 1 million in the coming year") is None
+    assert parse_inr("revenue of Rs 1 million").value == 0.1
+    assert parse_inr("an order of 450 crore").value == 450.0
+
+
+def test_garbled_text_detection():
+    from makrograph.earnings_inflection.extraction import is_garbled
+    assert is_garbled("D c I o T m ! , E w D e b F n o t r e v e n u e")
+    assert not is_garbled("We do not expect revenue growth to slow in FY25.")
+    assert not is_garbled("Revenue from operations grew 36% to Rs 150 crore in Q3 FY24.")
+
+
+def test_board_outcome_letter_with_call_details_is_results():
+    from makrograph.earnings_inflection.document_versions import classify_document
+    d = doc("Sub: Outcome of Board Meeting. The Board approved the Unaudited Standalone and Consolidated Financial "
+            "Results. Dial-in details for the earnings conference call will follow.\n"
+            "Statement of Unaudited Standalone Financial Results for the quarter ended 31 December 2023\n"
+            "I Revenue from operations 17,345.12 16,210.40 12,001.11")
+    assert classify_document(d)[0] == DocumentKind.FINANCIAL_RESULTS
+
+
+def test_wrapped_and_stacked_headers():
+    from makrograph.earnings_inflection.extraction import resolve_columns
+    want = [(date(2023, 12, 31), "Q"), (date(2023, 9, 30), "Q"), (date(2022, 12, 31), "Q"),
+            (date(2023, 12, 31), "9M"), (date(2022, 12, 31), "9M"), (date(2023, 3, 31), "FY")]
+    assert resolve_columns(["Quarter ended Nine months ended Year ended", "31.12.2023 30.09.2023 31.12.2022",
+                            "31.12.2023 31.12.2022 31.03.2023"])[0] == want
+    assert resolve_columns(["Particulars", "31st 30th 31st 31st 31st 31st",
+                            "December September December December December March",
+                            "2023 2023 2022 2023 2022 2023"])[0] == want
+
+
+def test_row_with_more_values_than_columns_is_skipped_not_shifted():
+    rev, issues = _rev_by_period("\n".join([
+        "Statement of Unaudited Financial Results for the quarter ended 30 June 2024", "(Rs. in crore)",
+        "Particulars Quarter ended", "30.06.2024 31.03.2024 30.06.2023",
+        "1. Revenue from operations 270.00 260.00 230.00 950.00 900.00"]))
+    assert rev == {} and any("more values" in i for i in issues)
+
+
+def test_tax_summed_from_current_and_deferred_rows():
+    from makrograph.earnings_inflection.chunking import chunk_document
+    from makrograph.earnings_inflection.extraction import parse_results_tables
+    d = doc("\n".join([
+        "Statement of Unaudited Standalone Financial Results for the quarter ended 30 June 2024", "(Rs. in crore)",
+        "Particulars Quarter ended Year ended", "30.06.2024 31.03.2024 30.06.2023 31.03.2024",
+        "VIII Tax expense", "(1) Current tax 10.00 9.00 8.00 36.00", "(2) Deferred tax 1.00 - (1.00) 2.00"]),
+        published_at=datetime(2024, 8, 1, tzinfo=IST))
+    d.available_at = d.published_at
+    rows, _ = parse_results_tables(d, chunk_document(d))
+    tax = {r.period_end: r.value for r in rows if r.metric == Metric.TAX and r.period_type == "Q"}
+    assert tax == {date(2024, 6, 30): 11.0, date(2024, 3, 31): 9.0, date(2023, 6, 30): 7.0}
+
+
+def test_stale_latest_period():
+    from makrograph.earnings_inflection.financial_series import FinancialSeries
+    rows = [_fm(Metric.REVENUE, d, v) for d, v in ((date(2021, 6, 30), 50), (date(2022, 6, 30), 200))]
+    p, end, note = FinancialSeries.build("T", rows).current_period(date(2024, 3, 31))
+    assert end is None and "2022-06-30" in note
+
+
+def test_old_or_unmeasurable_orders_do_not_make_commitment_backed():
+    from makrograph.earnings_inflection.assessments import decide_status
+    from makrograph.earnings_inflection.contracts import EconomicEvent
+    old = EconomicEvent("e1", "T", Metric.ORDER_WIN, Quantity(2.88, Unit.INR_CRORE), "X",
+                        datetime(2021, 11, 15, tzinfo=IST), commitment_strength=CommitmentStrength.BINDING)
+    st, _ = decide_status([], [old], [], [], 1, 100.0, datetime(2024, 3, 31, tzinfo=IST))
+    assert st != EvidenceStatus.COMMITMENT_BACKED
+    new = EconomicEvent("e2", "T", Metric.ORDER_WIN, Quantity(500.0, Unit.INR_CRORE), "Y",
+                        datetime(2024, 1, 15, tzinfo=IST), commitment_strength=CommitmentStrength.BINDING)
+    st, why = decide_status([], [new], [], [], 1, None, datetime(2024, 3, 31, tzinfo=IST))
+    assert st != EvidenceStatus.COMMITMENT_BACKED and any("materiality cannot be judged" in w for w in why)
+    st, _ = decide_status([], [new], [], [], 1, 1000.0, datetime(2024, 3, 31, tzinfo=IST))
+    assert st == EvidenceStatus.COMMITMENT_BACKED
