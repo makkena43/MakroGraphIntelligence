@@ -558,3 +558,128 @@ def test_disappearing_target_flagged():
     led2 = build_ledger([_gev("A", 25, datetime(2024, 5, 1, tzinfo=IST))], None,
                         datetime(2024, 12, 1, tzinfo=IST), commentary_times=later[:1])
     assert not led2[0].flags
+
+
+# ---------------- results-table column / year-ago matching ----------------
+
+def _rev_by_period(text):
+    from makrograph.earnings_inflection.chunking import chunk_document
+    from makrograph.earnings_inflection.extraction import parse_results_tables
+    d = doc(text, published_at=datetime(2025, 2, 10, tzinfo=IST))
+    d.available_at = d.published_at
+    rows, issues = parse_results_tables(d, chunk_document(d))
+    return {(r.period_end, r.period_type): r.value for r in rows if r.metric == Metric.REVENUE}, issues
+
+
+Q3_TITLE = "Statement of Consolidated Unaudited Financial Results for the quarter and nine months ended 31 December 2024"
+
+
+def test_q3_statement_separates_quarter_nine_months_and_year():
+    rev, _ = _rev_by_period("\n".join([
+        Q3_TITLE, "(Rs. in crore)", "Particulars Quarter ended Nine months ended Year ended",
+        "31.12.2024 30.09.2024 31.12.2023 31.12.2024 31.12.2023 31.03.2024",
+        "1. Revenue from operations 300.00 280.00 250.00 850.00 700.00 950.00"]))
+    assert rev == {(date(2024, 12, 31), "Q"): 300.0, (date(2024, 9, 30), "Q"): 280.0,
+                   (date(2023, 12, 31), "Q"): 250.0,                      # year-ago quarter
+                   (date(2024, 12, 31), "9M"): 850.0, (date(2023, 12, 31), "9M"): 700.0,
+                   (date(2024, 3, 31), "FY"): 950.0}
+
+
+def test_q2_statement_half_year_columns_not_taken_as_quarters():
+    rev, _ = _rev_by_period("\n".join([
+        "Statement of Standalone Unaudited Financial Results for the quarter and half year ended 30 September 2024",
+        "(Rs. in crore)", "Particulars Quarter ended Half year ended Year ended",
+        "30.09.2024 30.06.2024 30.09.2023 30.09.2024 30.09.2023 31.03.2024",
+        "1. Revenue from operations 280.00 270.00 240.00 550.00 470.00 950.00"]))
+    assert rev[(date(2023, 9, 30), "Q")] == 240.0 and rev[(date(2024, 9, 30), "Q")] == 280.0
+    assert rev[(date(2024, 9, 30), "H")] == 550.0 and rev[(date(2024, 3, 31), "FY")] == 950.0
+
+
+def test_q4_statement_repeated_march_dates_are_full_years():
+    rev, _ = _rev_by_period("\n".join([
+        "Statement of Audited Financial Results for the quarter and year ended 31 March 2025", "(Rs. in crore)",
+        "Particulars Quarter ended Year ended",
+        "31.03.2025 31.12.2024 31.03.2024 31.03.2025 31.03.2024",
+        "1. Revenue from operations 320.00 300.00 260.00 1,170.00 950.00"]))
+    assert rev[(date(2024, 3, 31), "Q")] == 260.0 and rev[(date(2024, 3, 31), "FY")] == 950.0
+    assert rev[(date(2025, 3, 31), "Q")] == 320.0 and rev[(date(2025, 3, 31), "FY")] == 1170.0
+
+
+@pytest.mark.parametrize("header", [
+    "30-Jun-24 31-Mar-24 30-Jun-23 31-Mar-24",
+    "Jun-24 Mar-24 Jun-23 Mar-24",
+    "June 30, 2024 March 31, 2024 June 30, 2023 March 31, 2024",
+    "30.06.24 31.03.24 30.06.23 31.03.24",
+])
+def test_alternative_date_header_formats(header):
+    rev, _ = _rev_by_period("\n".join([
+        "Statement of Consolidated Unaudited Financial Results for the quarter ended 30 June 2024",
+        "(Rs. in crore)", "Particulars Quarter ended Year ended", header,
+        "1. Revenue from operations 270.00 260.00 230.00 950.00"]))
+    assert rev == {(date(2024, 6, 30), "Q"): 270.0, (date(2024, 3, 31), "Q"): 260.0,
+                   (date(2023, 6, 30), "Q"): 230.0, (date(2024, 3, 31), "FY"): 950.0}
+
+
+def test_fiscal_label_headers():
+    rev, _ = _rev_by_period("\n".join([
+        "Consolidated financial highlights", "(Rs. in crore)",
+        "Particulars Q3 FY25 Q2 FY25 Q3 FY24 9M FY25 9M FY24 FY24",
+        "Revenue from operations 300.0 280.0 250.0 850.0 700.0 950.0"]))
+    assert rev[(date(2023, 12, 31), "Q")] == 250.0 and rev[(date(2024, 12, 31), "9M")] == 850.0
+    assert rev[(date(2024, 3, 31), "FY")] == 950.0
+
+
+def test_q1_without_previous_quarter_column():
+    rev, _ = _rev_by_period("\n".join([
+        "Statement of Unaudited Financial Results for the quarter ended 30 June 2024", "(Rs. in crore)",
+        "Particulars Quarter ended Year ended", "30.06.2024 30.06.2023 31.03.2024",
+        "1. Revenue from operations 270.00 230.00 950.00"]))
+    assert rev == {(date(2024, 6, 30), "Q"): 270.0, (date(2023, 6, 30), "Q"): 230.0,
+                   (date(2024, 3, 31), "FY"): 950.0}
+
+
+def test_missing_year_ago_column_is_reported():
+    _, issues = _rev_by_period("\n".join([
+        "Statement of Unaudited Financial Results for the quarter ended 30 June 2024", "(Rs. in crore)",
+        "Particulars Quarter ended", "30.06.2024 31.03.2024",
+        "1. Revenue from operations 270.00 260.00"]))
+    assert any("no year-ago quarter" in i for i in issues)
+
+
+def test_yearless_month_day_not_read_as_year():
+    from makrograph.earnings_inflection.extraction import resolve_columns
+    cols, _ = resolve_columns(["Quarter ended Sep 30 Jun 30"])
+    assert cols == []
+
+
+def test_yoy_uses_year_ago_quarter_from_q3_statement():
+    from makrograph.earnings_inflection.chunking import chunk_document
+    from makrograph.earnings_inflection.extraction import parse_results_tables
+    from makrograph.earnings_inflection.financial_series import FinancialSeries
+    d = doc("\n".join([
+        Q3_TITLE, "(Rs. in crore)", "Particulars Quarter ended Nine months ended Year ended",
+        "31.12.2024 30.09.2024 31.12.2023 31.12.2024 31.12.2023 31.03.2024",
+        "1. Revenue from operations 300.00 280.00 250.00 850.00 700.00 950.00"]),
+        published_at=datetime(2025, 2, 10, tzinfo=IST))
+    d.available_at = d.published_at
+    rows, _ = parse_results_tables(d, chunk_document(d))
+    s = FinancialSeries.build("T", rows)
+    assert s.yoy(Metric.REVENUE, date(2024, 12, 31)) == pytest.approx(20.0)     # 300 vs 250, not vs 700
+
+
+def test_sme_half_yearly_statement():
+    rev, issues = _rev_by_period("\n".join([
+        "Statement of Unaudited Financial Results for the half year ended 30 September 2024", "(Rs. in lakhs)",
+        "Particulars Half year ended Year ended", "30.09.2024 31.03.2024 30.09.2023 31.03.2024",
+        "1. Revenue from operations 6,000.00 5,500.00 4,500.00 10,000.00"]))
+    assert rev == {(date(2024, 9, 30), "H"): 60.0, (date(2024, 3, 31), "H"): 55.0,
+                   (date(2023, 9, 30), "H"): 45.0, (date(2024, 3, 31), "FY"): 100.0}
+    assert not issues
+
+
+def test_annual_only_statement():
+    rev, _ = _rev_by_period("\n".join([
+        "Statement of Audited Financial Results for the year ended 31 March 2025", "(Rs. in crore)",
+        "Particulars Year ended", "31.03.2025 31.03.2024",
+        "1. Revenue from operations 1,170.00 950.00"]))
+    assert rev == {(date(2025, 3, 31), "FY"): 1170.0, (date(2024, 3, 31), "FY"): 950.0}

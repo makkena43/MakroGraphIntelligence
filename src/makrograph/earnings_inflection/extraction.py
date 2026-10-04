@@ -123,7 +123,7 @@ def find_period_labels(text: str) -> list[str]:
 
 def fy_label_end(label: str) -> Optional[date]:
     """Period end date for an Indian fiscal label (FY25 -> 2025-03-31, Q1FY25 -> 2024-06-30)."""
-    m = re.fullmatch(r"(Q[1-4]|H[12])?FY(\d{2})", label or "")
+    m = re.fullmatch(r"(Q[1-4]|H[12]|9M)?FY(\d{2})", label or "")
     if not m:
         return None
     fy = 2000 + int(m.group(2))
@@ -131,7 +131,8 @@ def fy_label_end(label: str) -> Optional[date]:
     if not p:
         return date(fy, 3, 31)
     return {"Q1": date(fy - 1, 6, 30), "Q2": date(fy - 1, 9, 30), "Q3": date(fy - 1, 12, 31),
-            "Q4": date(fy, 3, 31), "H1": date(fy - 1, 9, 30), "H2": date(fy, 3, 31)}[p]
+            "Q4": date(fy, 3, 31), "H1": date(fy - 1, 9, 30), "H2": date(fy, 3, 31),
+            "9M": date(fy - 1, 12, 31)}[p]
 
 
 def fy_label_for(period_end: date, period_type: str) -> str:
@@ -146,11 +147,6 @@ def fy_label_for(period_end: date, period_type: str) -> str:
 # Results-statement tables
 # ---------------------------------------------------------------------------
 
-_DATE_TOKEN = re.compile(
-    r"(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})|"
-    r"(\d{1,2})(?:st|nd|rd|th)?\s*[- ]?([A-Za-z]{3,9})[,\s-]*(\d{4})|"
-    r"([A-Za-z]{3,9})\s+(\d{1,2}),?\s+(\d{4})",
-)
 _MONTHS = {m: i for i, m in enumerate(
     ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], start=1)}
 
@@ -172,21 +168,6 @@ _ROW_METRICS = [
 ]
 
 _CELL = re.compile(r"\(?-?\d[\d,]*(?:\.\d+)?\)?")
-
-
-def _parse_date(tok_match) -> Optional[date]:
-    g = tok_match.groups()
-    try:
-        if g[0]:
-            y = int(g[2]); y = y + 2000 if y < 100 else y
-            return date(y, int(g[1]), int(g[0]))
-        if g[3]:
-            return date(int(g[5]), _MONTHS[g[4][:3].lower()], int(g[3]))
-        if g[6]:
-            return date(int(g[8]), _MONTHS[g[6][:3].lower()], int(g[7]))
-    except (KeyError, ValueError):
-        return None
-    return None
 
 
 def _cell_value(s: str) -> float:
@@ -234,20 +215,13 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
             continue
         page_text = page_texts[c.page - 1] if 0 < c.page <= len(page_texts) else ""
         lines = [l for l in c.text.split("\n") if l.strip()]
-        header_blob = c.header + "\n" + "\n".join(lines[:3])
-        # column periods: dates found in header area, in order
-        cols: list[date] = []
-        col_line_idx = -1
-        for idx, l in enumerate((c.header + "\n" + c.text).split("\n")):
-            ds = [d for d in (_parse_date(m) for m in _DATE_TOKEN.finditer(l)) if d]
-            if len(ds) >= 2:
-                cols = ds
-                col_line_idx = idx
-                break
-        if not cols:
+        resolved, col_issue = resolve_columns(c.header.split("\n") + lines[:3])
+        if col_issue:
+            issues.append(f"{doc.doc_id}:p{c.page}: {col_issue}")
+        if not resolved:
             continue
-        # period types per column from header words, default by month span heuristic
-        ptypes = _column_period_types(header_blob, len(cols))
+        cols = [d for d, _ in resolved]
+        ptypes = [t for _, t in resolved]
         scale = _table_scale(c.header, page_text)
         scope = _scope_from(c.header + "\n" + page_text[:600])
         if scale is None:
@@ -269,6 +243,8 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
                     v = _cell_value(cell)
                 except ValueError:
                     continue
+                if ptypes[col_i] is None:
+                    continue            # column period could not be identified safely
                 if metric in (Metric.DILUTED_EPS, Metric.BASIC_EPS):
                     unit, val = Unit.INR_PER_SHARE, v
                 else:
@@ -283,25 +259,131 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
     return out, issues
 
 
-def _column_period_types(header: str, n: int) -> list[str]:
-    h = header.lower()
-    groups = []
-    for m in re.finditer(r"(quarter ended|three months ended|year ended|half[- ]year ended|six months ended|nine months ended)", h):
-        w = m.group(1)
-        groups.append("Q" if ("quarter" in w or "three" in w) else "FY" if "year ended" == w else
-                      "H" if ("half" in w or "six" in w) else "9M")
-    if not groups:
-        return ["Q"] * n
-    if len(groups) == n:
-        return groups
-    # Common layout: "Quarter ended" spans 3 cols, "Year ended" spans the rest.
-    if groups[0] == "Q" and "FY" in groups:
-        fy_cols = 1 if n <= 4 else 2
-        if "9M" in groups:
-            q_cols = n - fy_cols - 2
-            return ["Q"] * q_cols + ["9M", "9M"] + ["FY"] * fy_cols
-        return ["Q"] * (n - fy_cols) + ["FY"] * fy_cols
-    return [groups[0]] * n
+# --- column headers -------------------------------------------------------
+#
+# SEBI results statements put period columns in a fixed order:
+#   quarter columns (current, previous, year-ago quarter)
+#   -> cumulative columns (half-year / nine months, current and prior year)
+#   -> year-ended column(s).
+# Cumulative columns REPEAT the end date of a quarter column (e.g. 31.12.2024
+# is both "quarter ended" and "nine months ended"), so the first repeated date
+# marks the start of the cumulative block.  Header words are used only when
+# they give exactly one label per column; titles such as "results for the
+# quarter and nine months ended ..." are never used to type columns.
+
+_MONTH_END = {1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30, 7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}
+_COL_TOKEN = re.compile(
+    r"(?P<lab>\b(?P<lp>Q[1-4]|H[12]|9M)\s*[-']?\s*FY\s*'?(?P<ly>\d{2}(?:\d{2})?)\b)"
+    r"|(?P<fy>\bFY\s*'?(?P<fy1>\d{2}(?:\d{2})?)(?:\s*[-–/]\s*'?(?P<fy2>\d{2}(?:\d{2})?))?\b)"
+    r"|(?P<num>\b(?P<nd>\d{1,2})[./-](?P<nm>\d{1,2})[./-](?P<ny>\d{4}|\d{2})\b)"
+    r"|(?P<dmy>\b(?P<dd>\d{1,2})(?:st|nd|rd|th)?[\s-]*(?P<dmon>[A-Za-z]{3,9})[\s,'-]*(?P<dy>\d{4}|\d{2})\b)"
+    r"|(?P<mdy>\b(?P<mmon>[A-Za-z]{3,9})\s+(?P<md>\d{1,2}),?\s+(?P<my>\d{4})\b)"
+    # month-year only: "Jun-24", "Jun'24", "June 2024" (never "Sep 30": that is a day, not a year)
+    r"|(?P<my_only>\b(?P<omon>[A-Za-z]{3,9})(?:\s*[-']\s*(?P<oy2>\d{2})|\s*[-']?\s*(?P<oy4>\d{4}))\b)",
+    re.I,
+)
+_COL_GROUP_WORDS = re.compile(
+    r"(?P<q>quarter ended|three months ended)|(?P<h>half[- ]year ended|six months ended)"
+    r"|(?P<n>nine months ended)|(?P<y>year ended)", re.I)
+_TITLE_LINE = re.compile(r"statement of|results for|financial results|unaudited|audited", re.I)
+
+
+def _yr(y: str) -> int:
+    n = int(y)
+    return 2000 + n if n < 100 else n
+
+
+def _column_tokens(line: str) -> list[tuple[date, Optional[str]]]:
+    """Ordered (period_end, explicit_type) tokens found in a header line."""
+    out: list[tuple[date, Optional[str]]] = []
+    for m in _COL_TOKEN.finditer(line):
+        try:
+            if m.group("lab"):
+                lp = m.group("lp").upper()
+                d = fy_label_end(f"{lp}FY{_yr(m.group('ly')) % 100:02d}")
+                if d:
+                    out.append((d, "Q" if lp.startswith("Q") else "H" if lp.startswith("H") else "9M"))
+            elif m.group("fy"):
+                y = _yr(m.group("fy2") or m.group("fy1"))
+                out.append((date(y, 3, 31), "FY"))
+            elif m.group("num"):
+                out.append((date(_yr(m.group("ny")), int(m.group("nm")), int(m.group("nd"))), None))
+            elif m.group("dmy"):
+                mon = _MONTHS.get(m.group("dmon")[:3].lower())
+                if mon:
+                    out.append((date(_yr(m.group("dy")), mon, int(m.group("dd"))), None))
+            elif m.group("mdy"):
+                mon = _MONTHS.get(m.group("mmon")[:3].lower())
+                if mon:
+                    out.append((date(int(m.group("my")), mon, int(m.group("md"))), None))
+            elif m.group("my_only"):
+                mon = _MONTHS.get(m.group("omon")[:3].lower())
+                if mon:
+                    y = _yr(m.group("oy2") or m.group("oy4"))
+                    out.append((date(y, mon, _MONTH_END[mon]), None))
+        except ValueError:
+            continue
+    return [t for t in out if t[0].month in (3, 6, 9, 12)]
+
+
+def resolve_columns(header_lines: list[str]) -> tuple[list[tuple[date, Optional[str]]], str]:
+    """Return [(period_end, period_type)] for the table's value columns.
+
+    period_type is "Q", "H", "9M", "FY" or None (unidentifiable column: its
+    values are not used).  The second element is an issue string or "".
+    """
+    best_i, best = -1, []
+    for i, line in enumerate(header_lines):
+        if _TITLE_LINE.search(line) and len(_column_tokens(line)) < 3:
+            continue          # a title naming one or two periods is not a column header
+        toks = _column_tokens(line)
+        if len(toks) >= 2 and len(toks) >= len(best):
+            best_i, best = i, toks
+    if not best:
+        return [], ""
+    n = len(best)
+
+    # 1) explicit labels on every column (Q3 FY25, 9M FY25, FY24 ...)
+    if all(t is not None for _, t in best):
+        return best, ""
+
+    # 2) header words giving exactly one group label per column
+    above = " ".join(l for l in header_lines[max(0, best_i - 2):best_i] if not _TITLE_LINE.search(l))
+    words = [("Q" if g.group("q") else "H" if g.group("h") else "9M" if g.group("n") else "FY")
+             for g in _COL_GROUP_WORDS.finditer(above)]
+    if len(words) == n:
+        return [(d, t or w) for (d, t), w in zip(best, words)], ""
+
+    # 3) positional rule from repeated dates.  The leading block is quarters unless
+    #    the first header word says otherwise (SME half-yearly or annual-only statements).
+    base = words[0] if words and words[0] in ("H", "FY") and "Q" not in words else "Q"
+    seen: set[date] = set()
+    cumulative = False
+    out: list[tuple[date, Optional[str]]] = []
+    for d, explicit in best:
+        if explicit:
+            out.append((d, explicit))
+            seen.add(d)
+            continue
+        if d in seen:
+            cumulative = True
+        seen.add(d)
+        if not cumulative:
+            out.append((d, base))
+        else:
+            out.append((d, {3: "FY", 9: "H", 12: "9M"}.get(d.month)))   # June repeat: unidentifiable
+    # A trailing March column after the quarter block with "year ended" in the
+    # header but no repeated date (e.g. Q1 statement without previous quarter).
+    if (base == "Q" and not cumulative and n >= 3 and best[-1][0].month == 3 and best[-1][1] is None
+            and re.search(r"(?<!half )(?<!half-)\byear ended", above, re.I)
+            and best[-1][0] > best[0][0].replace(year=best[0][0].year - 1)
+            and best[-1][0] < best[0][0]):
+        out[-1] = (best[-1][0], "FY")
+    issue = ""
+    q_dates = [d for d, t in out if t == "Q"]
+    if q_dates and q_dates[0].replace(year=q_dates[0].year - 1) not in q_dates:
+        issue = f"no year-ago quarter column found for {q_dates[0]}"
+    return out, issue
 
 
 # ---------------------------------------------------------------------------
