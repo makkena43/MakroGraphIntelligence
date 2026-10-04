@@ -1,0 +1,36 @@
+{
+  "country": "IN",
+  "observations": [
+    {
+      "constraint_key": "semiconductors",
+      "product_label": "Semiconductor IC",
+      "observation_type": "IMPORT",
+      "observed_at": "2024-12-28",
+      "published_at": "2024-12-31",
+      "available_at": "2024-12-31",
+      "economic_period_start": "2023-12-28",
+      "economic_period_end": "2024-12-28",
+      "source_url": "https://comtradeapi.un.org/public/v1/preview/C/M/HS?reporterCode=699&partnerCode=0&flowCode=M&cmdCode=8542&period=202412",
+      "source_title": "UN Comtrade India monthly imports HS 8542 (Semiconductor IC); domestic denominator: Semicon India Programme (Rs 76,000 cr) approved as India had no commercial semiconductor fab",
+      "source_family": "UN_COMTRADE_IMPORTS",
+      "metrics": {
+        "measurement_basis": "CURRENT_IMPORT_SHARE",
+        "import_share": 1.0,
+        "numerator": 3922323628.38,
+        "denominator": 3922323628.38,
+        "numerator_basis": "trailing_12m_comtrade_import_usd",
+        "denominator_basis": "imports_plus_reviewed_domestic_output_usd",
+        "domestic_value_usd": 0.0,
+        "import_value_bn_usd": 3.9223,
+        "primary_origin": [
+          "China",
+          "Taiwan",
+          "South Korea"
+        ],
+        "substitution_horizon_years": 5,
+        "domestic_source_url": "https://www.pib.gov.in/PressReleasePage.aspx?PRID=1781723",
+        "excerpt": "India trailing-12m imports of Semiconductor IC (HS 8542) were $3.92bn to 202412; against reviewed domestic output $0.00bn this is a 100% current import share. No commercial wafer fab operating in India through 2024; domestic IC output negligible, so imports ~= total supply."
+      }
+    }
+  ]
+}

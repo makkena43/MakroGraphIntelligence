@@ -1,0 +1,24 @@
+{
+  "country": "IN",
+  "observations": [
+    {
+      "constraint_key": "crgo_electrical_steel",
+      "product_label": "CRGO Steel",
+      "observation_type": "IMPORT",
+      "observed_at": "2024-10-28",
+      "published_at": "2024-10-28",
+      "available_at": "2024-10-28",
+      "source_url": "https://www.business-standard.com/industry/news/crgo-steel-shortage-could-impact-india-s-power-sector-expansion-plans-gtri-124102800575_1.html",
+      "source_title": "GTRI: India's power sector facing ~85% import dependence on CRGO steel",
+      "source_family": "GTRI_TRADE_RESEARCH",
+      "metrics": {
+        "measurement_basis": "SOURCE_REPORTED_IMPORT_SHARE",
+        "import_share": 0.85,
+        "ratio_reported_by_source": true,
+        "primary_origin": ["Japan", "South Korea", "China"],
+        "substitution_horizon_years": 4,
+        "excerpt": "India imports the bulk of its CRGO steel requirement; GTRI flagged ~85% import dependence as a risk to power-sector transformer manufacturing."
+      }
+    }
+  ]
+}
