@@ -1,0 +1,503 @@
+"""Typed records, enums and output guards for the Earnings Inflection Detector.
+
+RESEARCH-ONLY.  Nothing in this package produces investment actions
+(BUY / STARTER / ACCUMULATE), position sizes or portfolio instructions.
+States describe *evidence*, never what to do about it.
+
+All records are stdlib dataclasses so the package carries no new runtime
+dependency.  ``validate()`` methods raise ``ContractError`` on malformed data.
+"""
+
+from __future__ import annotations
+
+import dataclasses
+import re
+from dataclasses import dataclass, field
+from datetime import date, datetime, timezone, timedelta
+from enum import Enum
+from typing import Any, Optional
+
+IST = timezone(timedelta(hours=5, minutes=30))
+
+RESEARCH_ONLY_NOTICE = (
+    "Research-only evidence assessment. Not an investment recommendation, "
+    "rating, price target, position size or portfolio instruction. Analytical "
+    "states change as evidence changes and confer no investment authority."
+)
+
+
+class ContractError(ValueError):
+    """Raised when a record violates its contract."""
+
+
+# ---------------------------------------------------------------------------
+# Enums
+# ---------------------------------------------------------------------------
+
+class DocumentKind(str, Enum):
+    FINANCIAL_RESULTS = "financial_results"
+    ANNUAL_REPORT = "annual_report"
+    INVESTOR_PRESENTATION = "investor_presentation"
+    EARNINGS_CALL_TRANSCRIPT = "earnings_call_transcript"
+    EARNINGS_CALL_INVITATION = "earnings_call_invitation"   # NOT a transcript
+    ORDER_ANNOUNCEMENT = "order_announcement"
+    OTHER_ANNOUNCEMENT = "other_announcement"
+    UNKNOWN = "unknown"
+
+
+class IssuerModel(str, Enum):
+    OPERATING = "operating"
+    BANK = "bank"
+    INSURER = "insurer"
+    INVESTMENT_COMPANY = "investment_company"
+    NBFC = "nbfc"
+    UNKNOWN = "unknown"
+
+    @property
+    def is_financial(self) -> bool:
+        return self in (IssuerModel.BANK, IssuerModel.INSURER,
+                        IssuerModel.INVESTMENT_COMPANY, IssuerModel.NBFC)
+
+
+class ListingSegment(str, Enum):
+    MAINBOARD = "mainboard"
+    SME = "sme"
+    UNKNOWN = "unknown"
+
+
+class EvidenceTier(str, Enum):
+    """What kind of claim a piece of evidence is (spec question 2)."""
+    MANAGEMENT_ASSERTION = "management_assertion"   # forward-looking statement
+    COMMERCIAL_COMMITMENT = "commercial_commitment"  # order / contract / LoA
+    REALIZED_EXECUTION = "realized_execution"        # reported, audited/reviewed numbers
+
+
+class Modality(str, Enum):
+    REALIZED = "realized"
+    FORWARD = "forward"
+    CONDITIONAL = "conditional"
+    NEGATED = "negated"
+
+
+class Scope(str, Enum):
+    CONSOLIDATED = "consolidated"
+    STANDALONE = "standalone"
+    SEGMENT = "segment"
+    UNKNOWN = "unknown"
+
+
+class Metric(str, Enum):
+    REVENUE = "revenue"
+    OTHER_INCOME = "other_income"
+    TOTAL_EXPENSES = "total_expenses"
+    EBITDA = "ebitda"
+    EBITDA_MARGIN = "ebitda_margin"
+    DEPRECIATION = "depreciation"
+    FINANCE_COST = "finance_cost"
+    EXCEPTIONAL_ITEMS = "exceptional_items"
+    PBT = "pbt"
+    TAX = "tax"
+    PAT = "pat"
+    PAT_ATTRIBUTABLE = "pat_attributable"
+    DILUTED_EPS = "diluted_eps"
+    BASIC_EPS = "basic_eps"
+    OPERATING_CASH_FLOW = "operating_cash_flow"
+    CAPEX = "capex"
+    NET_DEBT = "net_debt"
+    ORDER_BOOK = "order_book"
+    ORDER_INFLOW = "order_inflow"
+    ORDER_WIN = "order_win"
+    CAPACITY = "capacity"
+    UTILIZATION = "utilization"
+    REVENUE_GUIDANCE = "revenue_guidance"
+    REVENUE_GROWTH_GUIDANCE = "revenue_growth_guidance"
+    MARGIN_GUIDANCE = "margin_guidance"
+    FUNDRAISE = "fundraise"
+
+
+class Unit(str, Enum):
+    INR_CRORE = "INR_crore"
+    USD_MN = "USD_mn"
+    PERCENT = "percent"
+    BPS = "bps"
+    INR_PER_SHARE = "INR_per_share"
+    SHARES_CRORE = "shares_crore"
+    MW = "MW"
+    GW = "GW"
+    TONNES_PER_ANNUM = "TPA"
+    UNITS = "units"
+    RATIO = "ratio"
+
+
+class CommitmentStrength(str, Enum):
+    BINDING = "binding"            # PO, contract signed, LoA/LoI accepted with value
+    PROVISIONAL = "provisional"    # L1 bidder, LoI, selected but not awarded
+    NON_BINDING = "non_binding"    # MoU, framework, "in discussions"
+    NOT_APPLICABLE = "not_applicable"
+
+
+class EvidenceStatus(str, Enum):
+    """Evidence-only assessment (no action authority)."""
+    INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"
+    NO_MATERIAL_CHANGE = "NO_MATERIAL_CHANGE"
+    ASSERTION_ONLY = "ASSERTION_ONLY"
+    COMMITMENT_BACKED = "COMMITMENT_BACKED"
+    EXECUTION_EMERGING = "EXECUTION_EMERGING"
+    EXECUTION_CONFIRMED = "EXECUTION_CONFIRMED"
+    CONTRADICTED = "CONTRADICTED"
+
+
+class ReviewStatus(str, Enum):
+    UNREVIEWED = "UNREVIEWED"
+    NEEDS_SOURCE_CHECK = "NEEDS_SOURCE_CHECK"
+    REVIEWED_ACCEPTED = "REVIEWED_ACCEPTED"
+    REVIEWED_REJECTED = "REVIEWED_REJECTED"
+
+
+class ScenarioStatus(str, Enum):
+    COMPUTED_ASSUMPTION_BASED = "COMPUTED_ASSUMPTION_BASED"
+    NOT_COMPUTED_MISSING_INPUTS = "NOT_COMPUTED_MISSING_INPUTS"
+    UNSUPPORTED_FINANCIAL_MODEL = "UNSUPPORTED_FINANCIAL_MODEL"
+
+
+class GuidanceOutcome(str, Enum):
+    PENDING = "PENDING"
+    MET = "MET"
+    PARTIALLY_MET = "PARTIALLY_MET"
+    MISSED = "MISSED"
+    UNVERIFIABLE = "UNVERIFIABLE"   # target period passed, no comparable realized data
+
+
+class RevisionDirection(str, Enum):
+    ORIGINAL = "original"
+    REITERATED = "reiterated"
+    RAISED = "raised"
+    LOWERED = "lowered"
+    WITHDRAWN = "withdrawn"
+
+
+# ---------------------------------------------------------------------------
+# Records
+# ---------------------------------------------------------------------------
+
+@dataclass
+class Quantity:
+    value: float
+    unit: Unit
+    raw: str = ""
+    low: Optional[float] = None    # for ranges ("15-18%")
+    high: Optional[float] = None
+
+    def validate(self) -> None:
+        if self.value is None or self.value != self.value:  # NaN
+            raise ContractError(f"quantity has no value: {self.raw!r}")
+        if self.unit == Unit.PERCENT and not (-1000 <= self.value <= 1000):
+            raise ContractError(f"implausible percent {self.value}")
+
+
+@dataclass
+class SourceDocument:
+    doc_id: str
+    source_name: str
+    ticker: str
+    country: str = "IN"
+    company: str = ""
+    title: str = ""
+    doc_type: str = ""
+    filing_type: str = ""
+    url: str = ""
+    filed_at: Optional[date] = None
+    published_at: Optional[datetime] = None
+    content_hash: str = ""
+    local_path: str = ""
+    text: Optional[str] = None
+    pages: Optional[list[str]] = None
+    # filled by document_versions
+    kind: DocumentKind = DocumentKind.UNKNOWN
+    kind_basis: str = ""
+    available_at: Optional[datetime] = None
+    availability_basis: str = ""
+    supersedes: list[str] = field(default_factory=list)
+    superseded_by: Optional[str] = None
+
+    def validate(self) -> None:
+        if not self.doc_id:
+            raise ContractError("document without id")
+        if not self.ticker:
+            raise ContractError(f"document {self.doc_id} has no ticker")
+
+    def full_text(self) -> str:
+        if self.pages:
+            return "\f".join(self.pages)
+        return self.text or ""
+
+
+@dataclass
+class Chunk:
+    chunk_id: str
+    doc_id: str
+    page: int
+    ordinal: int
+    kind: str              # "prose" | "table"
+    text: str
+    header: str = ""       # table header / nearest heading retained with the chunk
+    char_start: int = 0
+    char_end: int = 0
+
+
+@dataclass
+class Evidence:
+    evidence_id: str
+    doc_id: str
+    ticker: str
+    metric: Metric
+    tier: EvidenceTier
+    modality: Modality
+    quote: str
+    available_at: Optional[datetime]
+    page: int = 0
+    chunk_id: str = ""
+    quantity: Optional[Quantity] = None
+    period_label: str = ""
+    target_period_label: str = ""
+    scope: Scope = Scope.UNKNOWN
+    segment: str = ""
+    counterparty: str = ""
+    counterparty_named: bool = False
+    commitment_strength: CommitmentStrength = CommitmentStrength.NOT_APPLICABLE
+    distinct_marker: bool = False      # "repeat order", "fresh order", "another order"
+    extractor: str = "deterministic"   # "deterministic" | "llm"
+    validation_issues: list[str] = field(default_factory=list)
+
+    @property
+    def usable(self) -> bool:
+        return not any(i.startswith("FATAL:") for i in self.validation_issues)
+
+
+@dataclass
+class EconomicEvent:
+    event_id: str
+    ticker: str
+    kind: Metric                    # ORDER_WIN, FUNDRAISE, CAPACITY ...
+    amount: Optional[Quantity]
+    counterparty: str
+    first_public_at: Optional[datetime]
+    evidence_ids: list[str] = field(default_factory=list)
+    doc_ids: list[str] = field(default_factory=list)
+    commitment_strength: CommitmentStrength = CommitmentStrength.NOT_APPLICABLE
+    description: str = ""
+
+
+@dataclass
+class FinancialMeasurement:
+    ticker: str
+    metric: Metric
+    period_end: date
+    period_type: str               # "Q" | "FY" | "H" | "9M"
+    value: float
+    unit: Unit
+    scope: Scope
+    doc_id: str
+    available_at: Optional[datetime]
+    source: str = "reported"       # "reported" | "derived"
+    restated: bool = False
+    evidence_id: str = ""
+    quote: str = ""
+
+
+@dataclass
+class DriverChange:
+    driver: str
+    ticker: str
+    period_end: Optional[date]
+    current: Optional[float]
+    prior: Optional[float]
+    change: Optional[float]
+    unit: str
+    basis: str
+    material: bool = False
+    comparable: bool = True
+    notes: list[str] = field(default_factory=list)
+    source_doc_ids: list[str] = field(default_factory=list)
+
+
+@dataclass
+class GuidanceRevision:
+    stated_at: Optional[datetime]
+    doc_id: str
+    evidence_id: str
+    quantity: Optional[Quantity]
+    direction: RevisionDirection
+    quote: str
+
+
+@dataclass
+class GuidanceRecord:
+    guidance_id: str
+    ticker: str
+    metric: Metric
+    target_period_label: str
+    original: GuidanceRevision
+    revisions: list[GuidanceRevision] = field(default_factory=list)
+    outcome: GuidanceOutcome = GuidanceOutcome.PENDING
+    realized_value: Optional[float] = None
+    outcome_note: str = ""
+
+
+@dataclass
+class CounterpartyProfile:
+    name: str
+    named: bool
+    events: list[str] = field(default_factory=list)
+    total_amount_crore: float = 0.0
+    strongest_commitment: CommitmentStrength = CommitmentStrength.NOT_APPLICABLE
+    share_of_ttm_revenue: Optional[float] = None
+    risk_flags: list[str] = field(default_factory=list)
+
+
+@dataclass
+class BridgeScenario:
+    name: str
+    assumptions: dict[str, Any]
+    revenue_crore: Optional[float] = None
+    ebitda_crore: Optional[float] = None
+    recurring_pat_attributable_crore: Optional[float] = None
+    recurring_diluted_eps: Optional[float] = None
+    notes: list[str] = field(default_factory=list)
+
+
+@dataclass
+class EarningsBridge:
+    status: ScenarioStatus
+    base_period_label: str = ""
+    scenarios: list[BridgeScenario] = field(default_factory=list)
+    missing_inputs: list[str] = field(default_factory=list)
+    cash_notes: list[str] = field(default_factory=list)
+
+
+@dataclass
+class SourceRef:
+    doc_id: str
+    title: str
+    kind: str
+    available_at: Optional[datetime]
+    availability_basis: str
+    url: str = ""
+    quote: str = ""
+    page: int = 0
+
+
+@dataclass
+class ChangeFinding:
+    what: str
+    business: str
+    first_public_at: Optional[datetime]
+    tier: EvidenceTier
+    evidence_ids: list[str] = field(default_factory=list)
+
+
+@dataclass
+class Assessment:
+    ticker: str
+    company: str
+    country: str
+    as_of: datetime
+    issuer_model: IssuerModel
+    listing_segment: ListingSegment
+    evidence_status: EvidenceStatus
+    review_status: ReviewStatus
+    scenario_status: ScenarioStatus
+    status_rationale: list[str]
+    what_changed: list[ChangeFinding]
+    drivers: list[DriverChange]
+    guidance: list[GuidanceRecord]
+    events: list[EconomicEvent]
+    counterparties: list[CounterpartyProfile]
+    bridge: EarningsBridge
+    contradictions: list[str]
+    financing_risks: list[str]
+    customer_risks: list[str]
+    missing_inputs: list[str]
+    next_checks: list[str]
+    sources: list[SourceRef]
+    limitations: list[str]
+    coverage: dict[str, Any] = field(default_factory=dict)
+    notice: str = RESEARCH_ONLY_NOTICE
+
+    def validate(self) -> None:
+        if not self.limitations:
+            raise ContractError("assessment must carry limitations")
+        if self.evidence_status not in (EvidenceStatus.INSUFFICIENT_EVIDENCE,) and not self.sources:
+            raise ContractError("assessment with evidence status must cite sources")
+        assert_no_action_language(self)
+
+
+# ---------------------------------------------------------------------------
+# Output guard: no investment-action language in generated fields
+# ---------------------------------------------------------------------------
+
+FORBIDDEN_ACTION_PATTERNS = [
+    re.compile(r"\b(BUY|STRONG BUY|SELL|STARTER|ACCUMULATE|ADD ON DIPS|OVERWEIGHT|UNDERWEIGHT)\b"),
+    re.compile(r"\bposition[ _-]?siz", re.I),
+    re.compile(r"\b(?:portfolio|capital)\s+(?:allocation|weight)", re.I),
+    re.compile(r"\btarget\s+price\b|\bprice\s+target\b", re.I),
+    re.compile(r"\b(?:entry|exit)\s+(?:price|point)\b", re.I),
+]
+
+# Fields that carry verbatim source text; these are quoted evidence, not
+# generated language, and are excluded from the guard.
+_VERBATIM_FIELDS = {"quote", "raw", "title", "company", "counterparty", "url", "notice"}
+
+
+def _walk_generated_strings(obj: Any, path: str = ""):
+    if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
+        for f in dataclasses.fields(obj):
+            if f.name in _VERBATIM_FIELDS:
+                continue
+            yield from _walk_generated_strings(getattr(obj, f.name), f"{path}.{f.name}")
+    elif isinstance(obj, dict):
+        for k, v in obj.items():
+            yield str(k), f"{path}[key]"
+            if str(k) not in _VERBATIM_FIELDS:
+                yield from _walk_generated_strings(v, f"{path}[{k}]")
+    elif isinstance(obj, (list, tuple)):
+        for i, v in enumerate(obj):
+            yield from _walk_generated_strings(v, f"{path}[{i}]")
+    elif isinstance(obj, Enum):
+        yield str(obj.value), path
+    elif isinstance(obj, str):
+        yield obj, path
+
+
+def find_action_language(obj: Any) -> list[str]:
+    hits = []
+    for s, path in _walk_generated_strings(obj):
+        for pat in FORBIDDEN_ACTION_PATTERNS:
+            m = pat.search(s)
+            if m:
+                hits.append(f"{path}: {m.group(0)!r}")
+    return hits
+
+
+def assert_no_action_language(obj: Any) -> None:
+    hits = find_action_language(obj)
+    if hits:
+        raise ContractError("investment-action language in generated output: " + "; ".join(hits[:5]))
+
+
+# ---------------------------------------------------------------------------
+# Serialisation helpers
+# ---------------------------------------------------------------------------
+
+def to_jsonable(obj: Any) -> Any:
+    if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
+        return {f.name: to_jsonable(getattr(obj, f.name)) for f in dataclasses.fields(obj)}
+    if isinstance(obj, Enum):
+        return obj.value
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    if isinstance(obj, dict):
+        return {str(k): to_jsonable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple, set)):
+        return [to_jsonable(v) for v in obj]
+    return obj
