@@ -248,7 +248,21 @@ def _scope_from(text: str) -> Scope:
     return Scope.UNKNOWN
 
 
+def _title_scope(text: str) -> Scope:
+    for line in _SCOPE_TITLE.findall(text):
+        t = line.lower()
+        has_c, has_s = "consolidated" in t, "standalone" in t
+        if has_c != has_s:
+            return Scope.CONSOLIDATED if has_c else Scope.STANDALONE
+    return Scope.UNKNOWN
+
+
 def _resolve_scope(c: Chunk, page_texts: list[str]) -> Scope:
+    # A statement title inside the table's own header / first rows wins: text extracted
+    # without page breaks puts standalone and consolidated statements on one "page".
+    own = _title_scope(c.header + "\n" + c.text[:800])
+    if own != Scope.UNKNOWN:
+        return own
     page = page_texts[c.page - 1] if 0 < c.page <= len(page_texts) else ""
     sc = _scope_from(c.header + "\n" + page[:1500])
     if sc != Scope.UNKNOWN:
@@ -287,6 +301,11 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
         page_text = page_texts[c.page - 1] if 0 < c.page <= len(page_texts) else ""
         lines = [l for l in c.text.split("\n") if l.strip()]
         resolved, col_issue = resolve_columns(c.header.split("\n") + lines[:4])
+        if not resolved or col_issue:
+            # headers wrapped over many lines put some period dates beyond the first rows
+            wide, wide_issue = resolve_columns(c.header.split("\n") + lines[:12])
+            if wide and not wide_issue and len(wide) >= len(resolved):
+                resolved, col_issue = wide, wide_issue
         if not resolved:
             continue
         if col_issue:
@@ -525,7 +544,38 @@ def resolve_columns(header_lines: list[str]) -> tuple[list[tuple[date, Optional[
     q_dates = [d for d, t in out if t == "Q"]
     if q_dates and q_dates[0].replace(year=q_dates[0].year - 1) not in q_dates:
         issue = f"no year-ago quarter column found for {q_dates[0]}"
+    if issue:
+        layout = _sebi_layout_from_date_bag(header_lines)
+        if layout and len(layout) > n:
+            return layout, ""
     return out, issue
+
+
+def _month_end(y: int, m: int) -> date:
+    return date(y, m, 30 if m in (6, 9) else 31)
+
+
+def _sebi_layout_from_date_bag(header_lines: list[str]) -> list[tuple[date, Optional[str]]]:
+    """Header cells wrapped across many lines ("Preceding 3 months ended on 30.09.2023",
+    "Corresponding 3 months in the previous year ended on 31.12.2022", ...) scramble the
+    reading order of the dates, so positional reading fails.  The SEBI results layout is
+    fixed, so take the latest quarter end D and require every date that layout implies to
+    appear somewhere in the header; then the columns are known by construction:
+      Q2/Q3: Q(D) Q(D-3m) Q(D-1y) YTD(D) YTD(D-1y) FY(prev Mar)
+    (Q1 / Q4 layouts repeat dates, so only Q2/Q3 are inferred.)
+    The caller still checks each data row's cell count against this width."""
+    bag = {d for l in header_lines for d, _ in _column_tokens(l)}
+    if len(bag) < 3:
+        return []
+    top = max(bag)
+    y, m = top.year, top.month
+    prev_q = _month_end(y if m > 3 else y - 1, m - 3 if m > 3 else 12)
+    yago = _month_end(y - 1, m)
+    if m not in (9, 12):
+        return []     # Q1 / Q4 layouts repeat dates, so a date bag cannot distinguish them
+    layout = [(top, "Q"), (prev_q, "Q"), (yago, "Q"), (top, "H" if m == 9 else "9M"),
+              (yago, "H" if m == 9 else "9M"), (_month_end(y, 3), "FY")]
+    return layout if {d for d, _ in layout} <= bag else []
 
 
 # ---------------------------------------------------------------------------

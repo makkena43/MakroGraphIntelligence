@@ -34,9 +34,30 @@ def split_numeric_row(line: str) -> tuple[str, list[str]]:
     """
     tokens = line.strip().replace("|", " ").split()
     cells: list[str] = []
-    while tokens and _CELL_TOKEN.fullmatch(tokens[-1]):
-        cells.append(tokens.pop())
+    while tokens:
+        # OCR split a decimal across two tokens: "8,476." "75" -> "8,476.75"
+        if len(tokens) >= 2 and _SPLIT_DECIMAL_HEAD.fullmatch(tokens[-2]) and _SPLIT_DECIMAL_TAIL.fullmatch(tokens[-1]):
+            tokens[-2:] = [tokens[-2] + tokens[-1]]
+        tok = _repair_ocr_number(tokens[-1])
+        if not _CELL_TOKEN.fullmatch(tok):
+            break
+        tokens.pop()
+        cells.append(tok)
     return " ".join(tokens), cells[::-1]
+
+
+_SPLIT_DECIMAL_HEAD = re.compile(r"\(?-?[\d,]+\.")
+_SPLIT_DECIMAL_TAIL = re.compile(r"\d{1,3}\)?")
+_OCR_NUMBER = re.compile(r"\(?-?[\dSOlI,]*\d[\dSOlI,]*(?:\.[\dSOlI]+)?\)?|\(?-?[\dSOlI,]+\.\d[\dSOlI]*\)?")
+_OCR_DIGITS = str.maketrans({"S": "5", "O": "0", "l": "1", "I": "1"})
+
+
+def _repair_ocr_number(tok: str) -> str:
+    """Letters scanned in place of digits inside a figure ("S,981.34", "6,S59.95").
+    Only tokens that already contain a digit and nothing but digit-like letters are touched."""
+    if _CELL_TOKEN.fullmatch(tok) or not _OCR_NUMBER.fullmatch(tok):
+        return tok
+    return tok.translate(_OCR_DIGITS)
 
 
 def _is_tabular(line: str) -> bool:
