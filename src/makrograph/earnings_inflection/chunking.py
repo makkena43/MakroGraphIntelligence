@@ -22,11 +22,35 @@ _UNIT_LINE = re.compile(r"\((?:rs\.?|inr|₹|amount)[^)]{0,40}(?:crore|lakh|lacs
 _SENT_SPLIT = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9(\"'₹])")
 
 
+_CELL_TOKEN = re.compile(r"\(?-?\d[\d,]*(?:\.\d+)?\)?|-|–|—|nil", re.I)
+_DATE_TOKEN = re.compile(r"\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b")
+
+
+def split_numeric_row(line: str) -> tuple[str, list[str]]:
+    """Split "label  c1 c2 c3" into (label, trailing numeric cells).
+
+    Works for both column-aligned text and pdfplumber's default output, which
+    separates columns with a SINGLE space.  Dashes / "nil" count as empty cells.
+    """
+    tokens = line.strip().replace("|", " ").split()
+    cells: list[str] = []
+    while tokens and _CELL_TOKEN.fullmatch(tokens[-1]):
+        cells.append(tokens.pop())
+    return " ".join(tokens), cells[::-1]
+
+
 def _is_tabular(line: str) -> bool:
     if "|" in line and line.count("|") >= 2:
         return True
-    nums = _NUM.findall(line)
-    return len(nums) >= 2 and bool(re.search(r"\S\s{2,}\S|\t", line))
+    if len(_DATE_TOKEN.findall(line)) >= 2:          # period header row
+        return True
+    if len(line) > 250 or _ends_sentence(line):
+        return False
+    label, cells = split_numeric_row(line)
+    numeric = [c for c in cells if _NUM.fullmatch(c)]
+    # two numeric trailing columns, or three+ cells where blanks are shown as "-"
+    # (e.g. exceptional items); a sentence ending "... 2024." never qualifies
+    return (len(cells) >= 2 and len(numeric) >= 2) or (len(cells) >= 3 and len(numeric) >= 1)
 
 
 def split_pages(doc: SourceDocument) -> list[str]:

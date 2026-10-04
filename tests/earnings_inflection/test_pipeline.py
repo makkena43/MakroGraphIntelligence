@@ -192,3 +192,10 @@ def test_cli_refuses_implicit_market_run():
     r = subprocess.run([sys.executable, str(ROOT / "scripts/earnings_inflection.py"), "--as-of", "2024-10-31"],
                        capture_output=True, text=True)
     assert r.returncode != 0 and "required" in r.stderr
+
+
+def test_pdfplumber_style_company_produces_series_and_bridge(run_oct24):
+    a = run_oct24["PLAINCO"]
+    assert a.coverage["financial_rows"] > 50
+    assert a.scenario_status == ScenarioStatus.COMPUTED_ASSUMPTION_BASED
+    assert any(d.driver == "revenue_yoy_growth" for d in a.drivers)
