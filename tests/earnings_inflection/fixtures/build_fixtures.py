@@ -49,7 +49,12 @@ def fmt(d):
     return d.strftime("%d.%m.%Y")
 
 
-def results_text(company, q, quarters, scope="Consolidated"):
+def results_text(company, q, quarters, scope="Consolidated", pdfplumber_style=False):
+    """Results statement text.
+
+    ``pdfplumber_style=True`` mimics pdfplumber's default extract_text():
+    single spaces between columns and pages joined by the parser's "\n\f\n".
+    """
     cols = [q, prev_q(q), yago(q)]
     fy_cols = [q, yago(q)] if q.month == 3 else [fy_end_before(q)]
 
@@ -69,6 +74,8 @@ def results_text(company, q, quarters, scope="Consolidated"):
     ]
 
     def row(label, key, nd=2):
+        if pdfplumber_style:
+            return label.strip() + " " + " ".join(f"{d[key]:,.{nd}f}" for d in data)
         vals = "   ".join(f"{d[key]:,.{nd}f}" for d in data)
         return f"{label:<36}{vals}"
 
@@ -88,6 +95,10 @@ def results_text(company, q, quarters, scope="Consolidated"):
         "",
         "Notes: Previous period figures have been regrouped wherever necessary.",
     ]
+    if pdfplumber_style:
+        lines = [" ".join(l.split()) for l in lines[:-2] if l.strip()]
+        return ("\n".join(lines) + "\n\f\nNotes:\n1. The above results were reviewed by the Audit Committee."
+                "\n2. Previous period figures have been regrouped wherever necessary.")
     return "\n".join(lines)
 
 
@@ -174,7 +185,7 @@ def build():
                   qend(2024, 6): None}.items():
         d = {"doc_id": f"PLAIN-R-{q.isoformat()}", "ticker": "PLAINCO", "source_name": "bse",
              "doc_type": "announcement", "title": "Outcome of board meeting - results",
-             "text": results_text("Plain Components Limited", q, plain)}
+             "text": results_text("Plain Components Limited", q, plain, pdfplumber_style=True)}
         if ts:
             d["published_at"] = ts
         else:

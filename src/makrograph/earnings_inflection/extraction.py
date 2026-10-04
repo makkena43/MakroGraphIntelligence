@@ -30,7 +30,7 @@ import re
 from datetime import date, datetime
 from typing import Callable, Iterable, Optional
 
-from .chunking import sentences
+from .chunking import sentences, split_numeric_row
 from .contracts import (
     Chunk, CommitmentStrength, Evidence, EvidenceTier, FinancialMeasurement, Metric,
     Modality, Quantity, Scope, SourceDocument, Unit,
@@ -253,17 +253,18 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
         if scale is None:
             issues.append(f"{doc.doc_id}:p{c.page}: results table without unit line; amounts not used")
         for l in lines:
-            label = re.split(r"\s{2,}|\t|\|", l.strip())[0]
+            label, cells = split_numeric_row(l)
             metric = next((m for pat, m in _ROW_METRICS if pat.search(label)), None)
             if metric is None:
                 continue
-            rest = l[len(l) - len(l.lstrip()) + len(label):] if l.strip().startswith(label) else l
-            cells = _CELL.findall(rest)
-            # drop note references like "(Refer note 3)" etc: keep last len(cols) numbers
+            # A row with fewer cells than period columns cannot be aligned safely
+            # (pdf text drops blank cells); skip it rather than shift values.
             if len(cells) < len(cols):
                 continue
             cells = cells[-len(cols):]
             for col_i, (d, cell) in enumerate(zip(cols, cells)):
+                if not _CELL.fullmatch(cell):
+                    continue            # "-" / "nil" = not reported
                 try:
                     v = _cell_value(cell)
                 except ValueError:

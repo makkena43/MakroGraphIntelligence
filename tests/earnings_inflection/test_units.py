@@ -430,3 +430,42 @@ def test_postgres_repo_refuses_writable_session():
     repo = PostgresReadOnlyRepository(dsn="x", connect=lambda *a, **k: _FakeConn(ro="off"))
     with pytest.raises(ReadOnlyViolation):
         repo.tickers("IN")
+
+
+# ---------------- pdfplumber-style text (single-space columns, \f pages) ----------------
+
+def test_single_space_rows_are_tabular_but_sentences_are_not():
+    from makrograph.earnings_inflection.chunking import _is_tabular, split_numeric_row
+    assert _is_tabular("1. Revenue from operations 1,650.00 1,600.00 1,150.00 5,350.00")
+    assert _is_tabular("31.03.2024 31.12.2023 31.03.2023 31.03.2024")
+    assert _is_tabular("Exceptional items - - (12.50) -")
+    assert not _is_tabular("Our order book stands at Rs 1,400 crore as of March 31, 2024.")
+    assert not _is_tabular("Revenue grew 40% to Rs 165 crore in FY 2024")
+    assert split_numeric_row("(b) Diluted 3.66 2.10 (0.40)") == ("(b) Diluted", ["3.66", "2.10", "(0.40)"])
+
+
+def test_pdfplumber_style_statement_parses_with_pages_and_dash_cells():
+    from makrograph.earnings_inflection.chunking import chunk_document
+    from makrograph.earnings_inflection.extraction import parse_results_tables
+    page1 = "\n".join([
+        "Statement of Consolidated Unaudited Financial Results for the quarter ended 30 June 2024",
+        "(Rs. in lakhs)",
+        "Particulars Quarter ended Year ended",
+        "30.06.2024 31.03.2024 30.06.2023 31.03.2024",
+        "Unaudited Audited Unaudited Audited",
+        "1. Revenue from operations 15,000.00 12,000.00 10,000.00 45,000.00",
+        "Exceptional items - - (50.00) (50.00)",
+        "(b) Diluted 2.50 2.00 1.50 7.00",
+    ])
+    page2 = "Notes:\n1. Results reviewed by the Audit Committee."
+    d = doc(page1 + "\n\f\n" + page2, published_at=datetime(2024, 8, 1, tzinfo=IST))
+    d.available_at = d.published_at
+    chunks = chunk_document(d)
+    assert {c.page for c in chunks} == {1, 2}
+    rows, issues = parse_results_tables(d, chunks)
+    rev = {(r.period_end, r.period_type): r.value for r in rows if r.metric == Metric.REVENUE}
+    assert rev == {(date(2024, 6, 30), "Q"): 150.0, (date(2024, 3, 31), "Q"): 120.0,
+                   (date(2023, 6, 30), "Q"): 100.0, (date(2024, 3, 31), "FY"): 450.0}
+    exc = {r.period_end: r.value for r in rows if r.metric == Metric.EXCEPTIONAL_ITEMS}
+    assert exc == {date(2023, 6, 30): -0.5} or set(exc) == {date(2023, 6, 30), date(2024, 3, 31)}
+    assert not any(r.metric == Metric.EXCEPTIONAL_ITEMS and r.period_end == date(2024, 6, 30) for r in rows)
