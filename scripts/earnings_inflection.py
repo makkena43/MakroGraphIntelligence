@@ -49,6 +49,8 @@ def main(argv=None):
     ap.add_argument("--as-of", help="YYYY-MM-DD (end of day IST) or ISO timestamp")
     ap.add_argument("--out", help="output directory for <ticker>_<as_of>.json/.md (default: print markdown)")
     ap.add_argument("--preflight-only", action="store_true", help="report schema/coverage and exit")
+    ap.add_argument("--diagnose", action="store_true",
+                    help="show how each filing was parsed (columns, units, scope, rows) instead of assessing")
     args = ap.parse_args(argv)
 
     cfg = load_config(args.config)
@@ -68,6 +70,10 @@ def main(argv=None):
         ap.error("--ticker and --as-of are required (no implicit whole-market runs)")
 
     pipe = EarningsInflectionPipeline(cfg, repo)
+    if args.diagnose:
+        for t in args.ticker:
+            print(pipe.diagnose(t, args.as_of))
+        return 0
     result = pipe.run(args.ticker, args.as_of)
     out = Path(args.out) if args.out else None
     if out:

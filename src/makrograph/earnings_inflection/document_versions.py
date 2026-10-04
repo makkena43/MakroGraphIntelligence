@@ -38,11 +38,16 @@ _INVITATION_MARKERS = re.compile(
     re.I | re.S,
 )
 _RESULTS_MARKERS = re.compile(
-    r"statement of (?:standalone|consolidated)?\s*(?:audited|unaudited|un-audited)?\s*(?:standalone|consolidated)?\s*financial results|"
-    r"(?:audited|unaudited|un-audited) financial results for the (?:quarter|year|half)|"
-    r"limited review report",
+    # "Statement of Unaudited Standalone and Consolidated Financial Results ...",
+    # "Unaudited Standalone Financial Results for the quarter ...", "Limited Review Report"
+    r"statement\s+of\s+[^\n.]{0,80}?(?:financial\s+)?results|"
+    r"(?:audited|unaudited|un-audited|reviewed)\b[^\n.]{0,60}?financial\s+results|"
+    r"financial\s+results\s+for\s+the\s+(?:quarter|half|year|nine\s+months|period)|"
+    r"limited\s+review\s+report|independent\s+auditor'?s'?\s+review\s+report",
     re.I,
 )
+# A results statement has a revenue row followed by numbers.
+_RESULTS_TABLE = re.compile(r"(?:revenue|income)\s+from\s+operations[^\n]{0,40}?\d[\d,]*\.\d", re.I)
 _ANNUAL_REPORT_MARKERS = re.compile(
     r"directors'? report|board'?s report|management discussion and analysis|"
     r"corporate governance report|notice of (?:the )?\d+(?:st|nd|rd|th) annual general meeting|annual report",
@@ -71,6 +76,10 @@ def classify_document(doc: SourceDocument) -> tuple[DocumentKind, str]:
         # which a title-only classifier mistakes for a transcript.
         if transcript_hits >= 1 and speaker_turns >= 4:
             return DocumentKind.EARNINGS_CALL_TRANSCRIPT, f"content:dialogue(turns={speaker_turns})"
+        # Results before invitations: board-meeting outcome letters that carry the
+        # results statement often also announce the earnings call.
+        if _RESULTS_TABLE.search(text[:200000]) and _RESULTS_MARKERS.search(text[:200000]):
+            return DocumentKind.FINANCIAL_RESULTS, "content:results-statement+table"
         if invitation:
             return DocumentKind.EARNINGS_CALL_INVITATION, "content:call-logistics-no-dialogue"
         if _RESULTS_MARKERS.search(head):

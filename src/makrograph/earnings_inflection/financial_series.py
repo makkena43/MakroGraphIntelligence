@@ -50,6 +50,9 @@ def _prev_half_end(d: date) -> date:
 
 
 PERIODS_PER_YEAR = {"Q": 4, "H": 2}
+# Oldest acceptable latest period, in days before the as-of date: period length
+# + SEBI results deadline (60 days for the last period of the year) + 30 days grace.
+MAX_PERIOD_AGE_DAYS = {"Q": 92 + 60 + 30, "H": 183 + 60 + 30}
 PERIOD_WORD = {"Q": "quarter", "H": "half-year"}
 
 
@@ -184,6 +187,24 @@ class FinancialSeries:
             return None
         cands.sort(key=lambda c: (c[3], c[0], c[1]), reverse=True)
         return cands[0][2]
+
+    def current_period(self, as_of: date, metric: Metric = Metric.REVENUE
+                       ) -> tuple[Optional[str], Optional[date], str]:
+        """(cadence, latest period end, stale_note).
+
+        The latest parsed period is unusable when results for later periods
+        should already be public: drivers would otherwise describe a period
+        that is a year or more old.  Then end is None and stale_note explains.
+        """
+        p = self.cadence(metric)
+        end = self.latest_period(metric, p) if p else None
+        if end is None:
+            return p, None, ""
+        age = (as_of - end).days
+        if age > MAX_PERIOD_AGE_DAYS[p]:
+            return p, None, (f"latest parsed {PERIOD_WORD[p]} ends {end} ({age} days before as-of); "
+                             f"results for later {PERIOD_WORD[p]}s were not parsed from the filings")
+        return p, end, ""
 
     def ttm(self, metric: Metric, end: date, ptype: str = "Q") -> tuple[Optional[float], list[str]]:
         """Sum of the periods covering 12 months to ``end``; (None, missing) if any is absent."""

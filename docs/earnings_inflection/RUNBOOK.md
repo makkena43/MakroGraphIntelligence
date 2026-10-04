@@ -75,6 +75,22 @@ This reports:
 
 Run it before trusting any company result.
 
+### 3b. If a company's result looks wrong: diagnose its filings
+
+```bash
+python scripts/earnings_inflection.py --source postgres --ticker <SYMBOL> --as-of <date> --diagnose
+```
+
+For every filing public by the as-of date it prints:
+
+- classification and its basis;
+- character count and the share of garbled lines;
+- for each results table: the period columns found (date and Q/H/9M/FY), the unit scale, the scope (standalone or consolidated) and which rows matched.
+
+At the end it shows the revenue series by period and whether the latest period is stale.
+
+When a filing looks like results but no period columns were found, it prints the raw text around the revenue row. Paste that block into a chat to get the parser fixed for that layout.
+
 ### 4. Assess companies
 
 ```bash

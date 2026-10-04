@@ -44,7 +44,8 @@ def _driver(drivers: list[DriverChange], name: str) -> Optional[DriverChange]:
 
 def decide_status(drivers: list[DriverChange], events: list[EconomicEvent], evidence: list[Evidence],
                   guidance: list[GuidanceRecord], usable_docs: int,
-                  ttm_revenue: Optional[float]) -> tuple[EvidenceStatus, list[str]]:
+                  ttm_revenue: Optional[float], as_of: Optional[datetime] = None,
+                  event_lookback_days: int = 365) -> tuple[EvidenceStatus, list[str]]:
     why: list[str] = []
     if usable_docs == 0:
         return EvidenceStatus.INSUFFICIENT_EVIDENCE, ["no public, dated, usable documents by as-of"]
@@ -85,16 +86,21 @@ def decide_status(drivers: list[DriverChange], events: list[EconomicEvent], evid
         why.append(f"single {streak.unit.rstrip('s') if streak else 'period'} so far; persistence unproven")
         return EvidenceStatus.EXECUTION_EMERGING, why
 
-    firm = [e for e in events if e.commitment_strength in (CommitmentStrength.BINDING, CommitmentStrength.PROVISIONAL)]
+    # Only orders disclosed in the look-back window count; an old order says
+    # nothing about a current inflection.  Materiality needs a revenue base.
+    recent = [e for e in events if as_of is None or (e.first_public_at is not None and
+              (as_of - e.first_public_at).days <= event_lookback_days)]
+    firm = [e for e in recent if e.commitment_strength in (CommitmentStrength.BINDING, CommitmentStrength.PROVISIONAL)]
     firm_value = sum(e.amount.value for e in firm if e.amount and e.amount.unit == Unit.INR_CRORE)
     btb = _driver(drivers, "disclosed_order_inflow_to_ttm_revenue")
     cover = _driver(drivers, "order_book_cover")
-    if (btb and btb.material) or (cover and cover.material) or (ttm_revenue and firm_value >= 0.25 * ttm_revenue) \
-            or (ttm_revenue is None and firm):
-        why.append(f"{len(firm)} deduplicated firm/provisional order event(s), {firm_value:.1f} cr disclosed")
-        if ttm_revenue is None:
-            why.append("TTM revenue unavailable; materiality vs revenue not established")
+    if (btb and btb.material) or (cover and cover.material) or (ttm_revenue and firm_value >= 0.25 * ttm_revenue):
+        why.append(f"{len(firm)} deduplicated firm/provisional order event(s) in the last "
+                   f"{event_lookback_days} days, {firm_value:.1f} cr disclosed")
         return EvidenceStatus.COMMITMENT_BACKED, why
+    if firm and not ttm_revenue:
+        why.append(f"{len(firm)} recent order event(s) ({firm_value:.1f} cr) but no current revenue base, "
+                   "so materiality cannot be judged")
 
     assertions = [e for e in evidence if e.usable and e.tier == EvidenceTier.MANAGEMENT_ASSERTION
                   and e.modality in (Modality.FORWARD, Modality.CONDITIONAL)]
@@ -102,8 +108,8 @@ def decide_status(drivers: list[DriverChange], events: list[EconomicEvent], evid
         why.append(f"{len(assertions)} forward-looking management statement(s) without realized/commitment support")
         return EvidenceStatus.ASSERTION_ONLY, why
     if not drivers:
-        return EvidenceStatus.INSUFFICIENT_EVIDENCE, ["no comparable financial series and no qualifying evidence"]
-    return EvidenceStatus.NO_MATERIAL_CHANGE, ["no driver crossed materiality thresholds"]
+        return EvidenceStatus.INSUFFICIENT_EVIDENCE, why + ["no current comparable financial series and no qualifying evidence"]
+    return EvidenceStatus.NO_MATERIAL_CHANGE, why + ["no driver crossed materiality thresholds"]
 
 
 def review_status_for(evidence: list[Evidence], kind_bases: list[str]) -> ReviewStatus:
@@ -112,7 +118,8 @@ def review_status_for(evidence: list[Evidence], kind_bases: list[str]) -> Review
     return ReviewStatus.UNREVIEWED
 
 
-def what_changed(drivers, events, guidance, evidence, first_public: dict[str, datetime]) -> list[ChangeFinding]:
+def what_changed(drivers, events, guidance, evidence, first_public: dict[str, datetime],
+                 as_of: Optional[datetime] = None, event_lookback_days: int = 365) -> list[ChangeFinding]:
     out: list[ChangeFinding] = []
     for d in drivers:
         if d.material:
@@ -136,7 +143,9 @@ def what_changed(drivers, events, guidance, evidence, first_public: dict[str, da
         amt = f"{e.amount.value:g} {e.amount.unit.value}" if e.amount else "unquantified"
         out.append(ChangeFinding(
             what=f"order event {amt} from {e.counterparty or 'unnamed counterparty'} "
-                 f"({e.commitment_strength.value}; {len(e.doc_ids)} document(s) mention it)",
+                 f"({e.commitment_strength.value}; {len(e.doc_ids)} document(s) mention it)"
+                 + (f" [older than {event_lookback_days} days; not counted in status]"
+                    if as_of and e.first_public_at and (as_of - e.first_public_at).days > event_lookback_days else ""),
             business=next((x.segment for x in evidence if x.evidence_id in e.evidence_ids and x.segment), "") or "unspecified",
             first_public_at=e.first_public_at,
             tier=EvidenceTier.COMMERCIAL_COMMITMENT if e.commitment_strength != CommitmentStrength.NON_BINDING

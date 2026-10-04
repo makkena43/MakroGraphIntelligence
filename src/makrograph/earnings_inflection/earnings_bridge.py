@@ -19,16 +19,22 @@ from .financial_series import PERIOD_WORD, PERIODS_PER_YEAR, FinancialSeries
 
 
 def build_bridge(series: Optional[FinancialSeries], issuer_model: IssuerModel,
-                 guidance: list[GuidanceRecord]) -> EarningsBridge:
+                 guidance: list[GuidanceRecord], as_of_date=None) -> EarningsBridge:
     if issuer_model.is_financial:
         return EarningsBridge(ScenarioStatus.UNSUPPORTED_FINANCIAL_MODEL,
                               missing_inputs=[f"operating-margin bridge not applicable to {issuer_model.value}"])
     missing: list[str] = []
-    p = series.cadence() if series else None
-    end = series.latest_period(Metric.REVENUE, p) if p else None
+    stale = ""
+    if series is None:
+        p = end = None
+    elif as_of_date is not None:
+        p, end, stale = series.current_period(as_of_date)
+    else:
+        p = series.cadence()
+        end = series.latest_period(Metric.REVENUE, p) if p else None
     if end is None:
         return EarningsBridge(ScenarioStatus.NOT_COMPUTED_MISSING_INPUTS,
-                              missing_inputs=["quarterly or half-yearly revenue series"])
+                              missing_inputs=[stale or "quarterly or half-yearly revenue series"])
     w = PERIOD_WORD[p]
 
     def ttm(metric):

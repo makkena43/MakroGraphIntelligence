@@ -223,3 +223,50 @@ def test_sme_point_in_time_before_latest_half(repo):
     # only H2FY24 (+33% YoY) is public; H1FY24 was +20%, so persistence is not yet shown
     assert a.evidence_status == EvidenceStatus.EXECUTION_EMERGING
     assert any("half-year so far" in w for w in a.status_rationale)
+
+
+# ---------------- real-filing regressions (PANACEABIO / POKARNA failure modes) ----------------
+
+def _assess(repo, ticker, as_of):
+    from makrograph.earnings_inflection.pipeline import EarningsInflectionPipeline
+    return EarningsInflectionPipeline({}, repo).run([ticker], as_of).assessments[0]
+
+
+def test_board_outcome_filings_parse_latest_quarters(repo):
+    a = _assess(repo, "GRANITEWK", "2024-03-31")
+    assert a.coverage["by_kind"].get("financial_results") == 3          # not "earnings_call_invitation"
+    assert a.coverage["series_scope"] == "standalone"
+    g = next(d for d in a.drivers if d.driver == "revenue_yoy_growth")
+    assert g.period_end == date(2023, 12, 31) and g.current == pytest.approx(36.36, abs=0.01)  # Q3FY24 vs Q3FY23
+    assert a.evidence_status == EvidenceStatus.EXECUTION_CONFIRMED
+    assert not a.contradictions                                          # tax rows summed correctly
+    assert not a.guidance                                                # "revenue of 1 million": no currency
+    assert all("D c I o" not in e for e in a.contradictions)
+
+
+def test_garbled_text_produces_no_evidence(repo):
+    from makrograph.earnings_inflection.extraction import is_garbled
+    a = _assess(repo, "GRANITEWK", "2024-03-31")
+    assert all(not is_garbled(s.quote) for s in a.sources if s.quote)
+
+
+def test_stale_series_gives_no_drivers_and_old_order_no_commitment(repo):
+    a = _assess(repo, "GRANITEWK", "2024-09-30")      # latest parsed quarter (Dec 2023) is 274 days old
+    assert not [d for d in a.drivers if d.driver == "revenue_yoy_growth"]
+    assert a.evidence_status not in (EvidenceStatus.EXECUTION_CONFIRMED, EvidenceStatus.EXECUTION_EMERGING,
+                                     EvidenceStatus.COMMITMENT_BACKED)
+    assert any(l.startswith("Stale financial series") for l in a.limitations)
+    assert a.scenario_status == ScenarioStatus.NOT_COMPUTED_MISSING_INPUTS
+
+
+def test_diagnose_reports_columns_and_rows(repo):
+    from makrograph.earnings_inflection.pipeline import EarningsInflectionPipeline
+    out = EarningsInflectionPipeline({}, repo).diagnose("GRANITEWK", "2024-03-31")
+    assert "columns=31.12.2023:Q, 30.09.2023:Q, 31.12.2022:Q, 31.12.2023:9M" in out
+    assert "'revenue': 6" in out and "SERIES scope=standalone cadence=Q latest=2023-12-31" in out
+
+
+def test_cli_diagnose():
+    r = subprocess.run([sys.executable, str(ROOT / "scripts/earnings_inflection.py"), "--ticker", "GRANITEWK",
+                        "--as-of", "2024-03-31", "--diagnose"], capture_output=True, text=True)
+    assert r.returncode == 0 and "DIAGNOSE GRANITEWK" in r.stdout
