@@ -10,8 +10,12 @@ The evidence status ladder (weakest to strongest):
   EXECUTION_EMERGING     - one quarter of material realized change
   EXECUTION_CONFIRMED    - >= 2 consecutive quarters of material realized change
                            (no guidance required: silent management can qualify)
-  CONTRADICTED           - realized data or later statements contradict earlier
-                           commitments (missed / lowered / withdrawn guidance)
+  CONTRADICTED           - the company missed even its latest stated guidance, or
+                           made >= 2 downward revisions/withdrawals with no stated
+                           reason.  A single revision, or any revision with a
+                           stated reason, is disclosed for human review instead:
+                           conservative guidance and justified revisions are not
+                           penalised automatically.
 
 ``review_status`` is always UNREVIEWED (or NEEDS_SOURCE_CHECK) from the
 pipeline - only a human changes it.  None of these states is an action.
@@ -30,6 +34,9 @@ from .contracts import (
 )
 
 
+UNEXPLAINED_REVISIONS_LIMIT = 2   # repeated unexplained downward revisions -> CONTRADICTED
+
+
 def _driver(drivers: list[DriverChange], name: str) -> Optional[DriverChange]:
     return next((d for d in drivers if d.driver == name), None)
 
@@ -41,15 +48,22 @@ def decide_status(drivers: list[DriverChange], events: list[EconomicEvent], evid
     if usable_docs == 0:
         return EvidenceStatus.INSUFFICIENT_EVIDENCE, ["no public, dated, usable documents by as-of"]
 
-    contradicted = [g for g in guidance if g.outcome == GuidanceOutcome.MISSED]
-    lowered = [g for g in guidance if any(r.direction in (RevisionDirection.LOWERED, RevisionDirection.WITHDRAWN)
-                                          for r in g.revisions)]
-    if contradicted or lowered:
-        for g in contradicted:
-            why.append(f"{g.metric.value} {g.target_period_label} guidance MISSED ({g.outcome_note})")
-        for g in lowered:
-            why.append(f"{g.metric.value} {g.target_period_label} guidance lowered/withdrawn after original statement")
+    missed_latest = [g for g in guidance if g.latest_outcome == GuidanceOutcome.MISSED]
+    unexplained = [(g, r) for g in guidance for r in g.revisions
+                   if r.direction in (RevisionDirection.LOWERED, RevisionDirection.WITHDRAWN) and not r.explained]
+    if missed_latest or len(unexplained) >= UNEXPLAINED_REVISIONS_LIMIT:
+        for g in missed_latest:
+            what = "missed even the latest stated guidance" if g.revisions else "missed its guidance (never revised)"
+            why.append(f"{g.metric.value} {g.target_period_label}: {what} ({g.outcome_note})")
+        if len(unexplained) >= UNEXPLAINED_REVISIONS_LIMIT:
+            why.append(f"{len(unexplained)} downward revisions/withdrawals without a stated reason: "
+                       + "; ".join(f"{g.metric.value} {g.target_period_label} on "
+                                   f"{r.stated_at.date() if r.stated_at else '?'}" for g, r in unexplained))
         return EvidenceStatus.CONTRADICTED, why
+    for g in guidance:
+        if any(r.direction in (RevisionDirection.LOWERED, RevisionDirection.WITHDRAWN) for r in g.revisions):
+            why.append(f"note: {g.metric.value} {g.target_period_label} guidance was revised down "
+                       f"(not treated as contradiction; see guidance flags)")
 
     streak = _driver(drivers, "material_growth_streak_quarters")
     margin = _driver(drivers, "ebitda_margin_change")
@@ -158,6 +172,18 @@ def financing_risks(evidence: list[Evidence], ttm_revenue: Optional[float], brid
 def next_checks(drivers, events, guidance, missing, status: EvidenceStatus) -> list[str]:
     checks = []
     for g in guidance:
+        for r in g.revisions:
+            if r.direction not in (RevisionDirection.LOWERED, RevisionDirection.WITHDRAWN):
+                continue
+            if r.explained:
+                checks.append(f"Judge whether the stated reason for the {g.metric.value} {g.target_period_label} "
+                              f"revision is credible: \"{r.explanation[:160]}\"")
+            else:
+                checks.append(f"Find management's reason for the {g.metric.value} {g.target_period_label} revision "
+                              f"on {r.stated_at.date() if r.stated_at else '?'} (none found near the statement)")
+        if any("disappearing" in f for f in g.flags):
+            checks.append(f"Ask/check whether the {g.metric.value} {g.target_period_label} target still stands "
+                          "(not repeated in later commentary)")
         if g.outcome == GuidanceOutcome.PENDING:
             checks.append(f"Compare {g.metric.value} for {g.target_period_label} with the original statement "
                           f"({g.original.quantity.raw if g.original.quantity else ''}) when results are published")

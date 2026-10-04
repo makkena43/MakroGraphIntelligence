@@ -329,6 +329,11 @@ class GuidanceRevision:
     quantity: Optional[Quantity]
     direction: RevisionDirection
     quote: str
+    # For lowered / withdrawn revisions: did management give a reason nearby?
+    # True/False when the source text was checked, None when it was not available.
+    # Whether the reason is CREDIBLE is a human judgment and is never set here.
+    explained: Optional[bool] = None
+    explanation: str = ""          # verbatim sentence containing the stated reason
 
 
 @dataclass
@@ -339,9 +344,11 @@ class GuidanceRecord:
     target_period_label: str
     original: GuidanceRevision
     revisions: list[GuidanceRevision] = field(default_factory=list)
-    outcome: GuidanceOutcome = GuidanceOutcome.PENDING
+    outcome: GuidanceOutcome = GuidanceOutcome.PENDING          # vs ORIGINAL statement
+    latest_outcome: GuidanceOutcome = GuidanceOutcome.PENDING   # vs latest stated guidance
     realized_value: Optional[float] = None
     outcome_note: str = ""
+    flags: list[str] = field(default_factory=list)
 
 
 @dataclass
