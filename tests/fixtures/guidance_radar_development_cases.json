@@ -1,0 +1,37 @@
+[
+  {
+    "ticker": "PGEL",
+    "as_of_date": "2021-11-13",
+    "selection_reason": "results-led manufacturing scale-up archetype"
+  },
+  {
+    "ticker": "TARIL",
+    "as_of_date": "2022-06-10",
+    "selection_reason": "order-led industrial transformer archetype"
+  },
+  {
+    "ticker": "GVT&D",
+    "as_of_date": "2023-02-13",
+    "selection_reason": "backlog plus margin-transition archetype"
+  },
+  {
+    "ticker": "SHAKTIPUMP",
+    "as_of_date": "2023-12-31",
+    "selection_reason": "policy-order and operating-leverage archetype"
+  },
+  {
+    "ticker": "TEMBO",
+    "as_of_date": "2023-10-05",
+    "selection_reason": "small-cap management-presentation archetype"
+  },
+  {
+    "ticker": "WEBELSOLAR",
+    "as_of_date": "2023-12-31",
+    "selection_reason": "turnaround and capacity-ramp archetype"
+  },
+  {
+    "ticker": "GENSOL",
+    "as_of_date": "2024-01-23",
+    "selection_reason": "strong-guidance governance-failure control"
+  }
+]

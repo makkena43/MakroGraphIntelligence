@@ -1,0 +1,89 @@
+{
+  "country": "IN",
+  "aliases": [
+    {
+      "product_label": "Battery Cell (Li-ion)",
+      "constraint_key": "advanced_chemistry_cells",
+      "match_scope": "EXACT",
+      "source": "reviewed product-to-chain crosswalk",
+      "review_note": "Cell-level chain; not a module, pack, or vehicle alias."
+    },
+    {
+      "product_label": "CRGO Steel",
+      "constraint_key": "crgo_electrical_steel",
+      "match_scope": "EXACT",
+      "source": "reviewed product-to-chain crosswalk",
+      "review_note": "Electrical-grade CRGO input only."
+    },
+    {
+      "product_label": "Defense electronics",
+      "constraint_key": "defence_indigenisation",
+      "match_scope": "FAMILY",
+      "source": "reviewed product-to-chain crosswalk",
+      "review_note": "Procurement family context; it is not an item-level physical constraint."
+    },
+    {
+      "product_label": "EMS / Contract Manufacturing",
+      "constraint_key": "ems_contract_manufacturing",
+      "match_scope": "BROAD",
+      "source": "reviewed product-to-chain crosswalk",
+      "review_note": "Coverage label only until a specific component/input constraint is measured."
+    },
+    {
+      "product_label": "Optical Fiber Cable",
+      "constraint_key": "optical_fiber_cable",
+      "match_scope": "EXACT",
+      "source": "reviewed product-to-chain crosswalk",
+      "review_note": "Cable chain distinct from telecom rollout demand."
+    },
+    {
+      "product_label": "PCB / Printed Circuit Board",
+      "constraint_key": "electronic_components",
+      "match_scope": "FAMILY",
+      "source": "reviewed product-to-chain crosswalk",
+      "review_note": "Electronic-components family context; do not infer a specific PCB layer."
+    },
+    {
+      "product_label": "Power Transformer",
+      "constraint_key": "power_grid_equipment",
+      "match_scope": "FAMILY",
+      "source": "reviewed product-to-chain crosswalk",
+      "review_note": "Grid equipment demand is not transformer shortage evidence."
+    },
+    {
+      "product_label": "Rolling Stock / Locomotives",
+      "constraint_key": "rolling_stock_locomotives",
+      "match_scope": "BROAD",
+      "source": "reviewed product-to-chain crosswalk",
+      "review_note": "Coverage label only until an item-level supply constraint is measured."
+    },
+    {
+      "product_label": "Semiconductor IC",
+      "constraint_key": "semiconductors",
+      "match_scope": "FAMILY",
+      "source": "reviewed product-to-chain crosswalk",
+      "review_note": "Family context; no technology-node or end-market inference."
+    },
+    {
+      "product_label": "Solar Cell",
+      "constraint_key": "solar_cells",
+      "match_scope": "EXACT",
+      "source": "reviewed product-to-chain crosswalk",
+      "review_note": "Cell layer, intentionally separate from modules and wafers."
+    },
+    {
+      "product_label": "Solar Module",
+      "constraint_key": "solar_modules",
+      "match_scope": "EXACT",
+      "source": "reviewed product-to-chain crosswalk",
+      "review_note": "Module layer, intentionally separate from cells and wafers."
+    },
+    {
+      "product_label": "Solar Wafer",
+      "constraint_key": "solar_wafers",
+      "match_scope": "EXACT",
+      "source": "reviewed product-to-chain crosswalk",
+      "review_note": "Wafer layer, intentionally separate from cells and modules."
+    }
+  ]
+}
