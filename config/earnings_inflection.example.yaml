@@ -1,0 +1,47 @@
+# Earnings Inflection Detector - example configuration (research-only, opt-in)
+#
+# Copy to a local, untracked file before editing.  Every paid / writing
+# capability below defaults to OFF.  Enabling them does not authorise a
+# production activation or an expanded paid run; that needs explicit sign-off.
+earnings_inflection:
+  country: IN
+
+  source:
+    kind: fixtures                     # fixtures | postgres
+    path: tests/earnings_inflection/fixtures
+    # For kind: postgres the DSN is read from this env var and MUST be a
+    # read-only role.  Sessions also force default_transaction_read_only=on.
+    dsn_env: EI_READONLY_DSN
+    text_root: data/parsed             # where <local_path>.txt parsed text lives, if raw_text is absent
+
+  identity:
+    # Dated symbol history (renames, SME migrations). Empty = symbol assumed stable (disclosed).
+    symbol_history: []
+    #  - {symbol: OLDSYM, exchange: NSE, issuer_id: ISSUER1, valid_from: 2015-01-01, valid_to: 2021-06-30}
+    #  - {symbol: NEWSYM, exchange: NSE, issuer_id: ISSUER1, valid_from: 2021-07-01}
+
+  thresholds:                          # descriptive materiality flags, not decision rules
+    revenue_yoy_pct: 25.0
+    revenue_yoy_acceleration_pp: 10.0
+    ebitda_margin_change_bps: 200.0
+    pat_yoy_pct: 30.0
+    book_to_bill: 1.2
+    order_book_cover_years: 2.0
+    utilization_change_pp: 10.0
+
+  llm:
+    enabled: false                     # constrained extractor; requires an injected client AND budget.enabled
+    est_tokens_per_call: 2500
+
+  budget:
+    enabled: false
+    max_calls: 0
+    max_tokens: 0
+    max_spend_usd: 0.0
+    usd_per_1k_tokens: 0.0
+    cache_dir: data/earnings_inflection/llm_cache
+
+  persistence:
+    enabled: false                     # writes ONLY to schema earnings_inflection in a test database
+    dsn_env: EI_TEST_DSN
+    allowed_dbname_pattern: "(?:^|_)test(?:_|$)"
