@@ -825,3 +825,58 @@ def test_old_or_unmeasurable_orders_do_not_make_commitment_backed():
     assert st != EvidenceStatus.COMMITMENT_BACKED and any("materiality cannot be judged" in w for w in why)
     st, _ = decide_status([], [new], [], [], 1, 1000.0, datetime(2024, 3, 31, tzinfo=IST))
     assert st == EvidenceStatus.COMMITMENT_BACKED
+
+
+# --- real-filing regressions (WINDMACHIN Q3 FY24) -------------------------------
+
+WRAPPED_HEADER = [
+    "Corresponding 3 Year to date Year to date",
+    "Previous",
+    "Preceding 3 months in the figures for figures for",
+    "3 months ended Accounting Year",
+    "Sr. months ended previous year current previous",
+    "Particulars on 31.12.2023 ended on",
+    "No. on 30.09.2023 ended on period ended On period ended On",
+    "31.03.2023",
+    "31.12.2022 31.12.2023 31.12.2022",
+    "(Unaudited) (Unaudited) (Unaudited) (Unaudited) (Unaudited) (Audited)",
+]
+
+
+def test_header_cells_wrapped_over_many_lines_use_the_fixed_sebi_layout():
+    rev, issues = _rev_by_period("\n".join([
+        "STANDALONE UNAUDITED FINANCIAL RESULTS FOR THE QUARTER AND NINE MONTHS ENDED ON DECEMBER 31, 2023",
+        "PARTI Rs. in Lakhs", *WRAPPED_HEADER,
+        "a) Revenue from operations 8,409.92 8,476.75 9,167.68 23,446.62 22,725.79 35,112.84"]))
+    assert rev[(date(2023, 12, 31), "Q")] == pytest.approx(84.0992)
+    assert rev[(date(2022, 12, 31), "Q")] == pytest.approx(91.6768)
+    assert rev[(date(2023, 12, 31), "9M")] == pytest.approx(234.4662)
+    assert rev[(date(2023, 3, 31), "FY")] == pytest.approx(351.1284)
+
+
+def test_ocr_letters_and_split_decimals_inside_figures_are_repaired():
+    from makrograph.earnings_inflection.chunking import split_numeric_row
+    assert split_numeric_row("a) Revenue from operations 8,409.92 8,476. 75 9,167.68")[1] == \
+        ["8,409.92", "8,476.75", "9,167.68"]
+    assert split_numeric_row("Cost of raw materials S,981.34 (363.8S) 6,S59.95")[1] == \
+        ["5,981.34", "(363.85)", "6,559.95"]
+    # words are never turned into numbers
+    assert split_numeric_row("Total Income IS")[1] == []
+
+
+def test_standalone_and_consolidated_statements_in_one_page_keep_their_own_scope():
+    stmt = lambda title, rev: [title, "Rs. in Lakhs", *WRAPPED_HEADER,
+                               f"a) Revenue from operations {rev}", ""]
+    from makrograph.earnings_inflection.chunking import chunk_document
+    from makrograph.earnings_inflection.extraction import parse_results_tables
+    d = doc("\n".join(
+        stmt("STANDALONE UNAUDITED FINANCIAL RESULTS FOR THE QUARTER ENDED ON DECEMBER 31, 2023",
+             "8,409.92 8,476.75 9,167.68 23,446.62 22,725.79 35,112.84")
+        + stmt("CONSOLIDATED UNAUDITED FINANCIAL RESULTS FOR THE QUARTER ENDED ON DECEMBER 31, 2023",
+               "8,703.38 8,926.88 9,877.32 24,533.14 25,105.05 37,744.95")), published_at=datetime(2024, 2, 9, tzinfo=IST))
+    d.available_at = d.published_at
+    rows, _ = parse_results_tables(d, chunk_document(d))
+    q = {(r.scope.value, r.period_end): r.value for r in rows
+         if r.metric == Metric.REVENUE and r.period_type == "Q"}
+    assert q[("standalone", date(2023, 12, 31))] == pytest.approx(84.0992)
+    assert q[("consolidated", date(2023, 12, 31))] == pytest.approx(87.0338)
