@@ -98,7 +98,12 @@ Fixture outcomes at as-of 2024-10-31. These show the mechanics only and are not 
   - Hindi or regional-language text
   - segment tables
   - cash-flow statements (operating cash flow is not parsed from tables yet)
-- **Results-table parser** is built for the SEBI-format statement in which period columns appear on one header line. Multi-line or merged headers, layouts with "Nine months" columns, and segment-reporting tables need more fixtures drawn from real filings.
+- **Results-table parser** handles these layouts:
+  - Q1–Q4 statements, including half-year, nine-month and year-ended columns. The cumulative block is identified by repeated end dates, so the year-ago quarter is never confused with a cumulative column.
+  - SME half-yearly and annual-only statements.
+  - Date headers as `dd.mm.yyyy`, `dd.mm.yy`, `30-Jun-24`, `Jun-24` and `June 30, 2024`, and fiscal-label headers such as `Q3 FY25`, `9M FY25` and `FY24`.
+
+  It still needs period columns on one header line. Dates split across lines, merged headers and segment-reporting tables need fixtures drawn from real filings. Drivers use quarterly series only, so SME half-yearly figures are parsed but don't yet feed growth drivers.
 - **Point in time:** `filed_at` alone gives day resolution. Exchange dissemination timestamps should be preferred wherever fetchers store them.
 - **Identity:** without a supplied symbol history the ticker is assumed stable, and this is disclosed in each output. SME migration, mergers and renames need a curated history.
 - **Financial issuers:** the bank / NBFC / insurer classification uses industry metadata, then strong name keywords, then statement layout. Weak keywords ("Capital", "Finance") leave the model UNKNOWN for review.
