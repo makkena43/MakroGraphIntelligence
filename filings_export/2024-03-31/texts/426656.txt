@@ -1,0 +1,752 @@
+Date: February 20, 2023
+To, To,
+BSE Limited National Stock Exchange of India Limited
+Phiroze Jeejeebhoy Towers Exchange Plaza, C-1, Block G
+Dalal Street, Bandra Kurla Complex
+Mumbai – 400 001 Bandra (E), Mumbai – 400 051
+Scrip Code: 543434 Scrip Symbol: SUPRIYA
+Dear Sir (s),
+Subject: Transcript of Earnings Call of Q3 FY 2022-23
+Pursuant to Regulation 30 of the SEBI (Listing Obligations and Disclosure Requirements) Regulations,
+2015 we hereby enclose the transcript of the Earnings call held on Wednesday, February 15, 2023, at 11.00
+A.M. IST to discuss operational and financial performance of the Company for the quarter and nine month
+ended December 31, 2022.
+Clarification:
+During the question-and-answer discussion in the earning conference call, at the 29:55 minute mark, on
+being asked on guidance for revenue growth, management inadvertently mentioned that the revenue will
+double by FY2027 over a base of FY2023, However the correct guidance was provided during opening
+commentary, wherein it was mentioned that revenue will double by FY2026.
+Request you to take this intimation on record.
+We have kept the transcript verbatim to avoid any confusion, however, we request members through stock
+exchanges that transcript should be read with this clarification.
+Thanking you,
+Yours faithfully,
+For Supriya Lifescience Limited
+Shweta Singh
+Company Secretary & Compliance Officer
+Membership No.: A44973
+Corporate office : 207/208, Udyog Bhavan, Sonawala Road, Goregaon (East), Mumbai – 400 063. Maharashtra, India.
+Tel: +91 22 40332727 / 66942507 Fax : +91 22 26860011 GSTIN: 27AALCS8686A1ZX
+CIN: L51900MH2008PLC180452 E-mail: supriya@supriyalifescience .com Website: www.supriyalifescience.com
+Factory : A-5/2, Lote Parshuram Industrial Area, M.I.D.C. Tal.– Khed, Dist. – Ratnagiri, Pin :415 722, Maharashtra, India.
+Tel: +91 2356 272299 Fax: +91 2356 272178 E-mail: factory@supriyalifescience.com
+GOVT. RECOGNISED EXPORT HOUSE
+
+“Supriya Lifescience Limited
+Q3 FY2023 Earnings Conference Call”
+February 15, 2023
+MANAGEMENT: DR. SATISH WAGH – CHAIRMAN & MANAGING
+DIRECTOR – SUPRIYA LIFESCIENCE LIMITED
+DR. SALONI WAGH – DIRECTOR– SUPRIYA
+LIFESCIENCE LIMITED
+MR. KRISHNA RAGHUNATHAN –CHIEF FINANCIAL
+OFFICER - SUPRIYA LIFESCIENCE LIMITED
+INVESTOR RELATIONS: MS. RASIKA SAWANT – ORIENT CAPITAL
+Page 1 of 20
+
+Supriya Lifescience Limited
+February 15, 2023
+Moderator: Ladies and gentlemen, good day and welcome to the Q3 and nine months FY2023 Earnings
+Conference Call of Supriya Lifescience Limited. As a reminder all participant lines will be
+in the listen only mode and there will be an opportunity for you to ask questions after the
+presentation concludes. Should you need assistance during the conference call please signal
+an operator by pressing “*” then “0” on your touchtone phone. Please note that this
+conference is being recorded. I now hand the conference over to Ms. Rasika Sawant from
+Orient Capital. Thank you and over to you Madam!
+Rasika Sawant: Thank you and welcome to Q3 and nine months FY2023 Earnings Conference Call of
+Supriya Lifescience Limited. Today on this call we have Dr. Satish Wagh – Chairman and
+Managing Director of Supriya Lifescience Limited along with senior management team.
+This conference call may contain forward looking statements about the company which are
+based on beliefs, opinions, and expectations as of today. Actual results may differ
+materially. These statements are not the guarantees of future performance and involve risks
+and uncertainties that are difficult to predict. A detailed safer harbor statement is given on
+page number two of investor presentation of the company which has been uploaded on the
+stock exchange and company’s website as well. With this I now hand over the call to Dr.
+Satish Wagh for his opening remark over to you Sir!
+Satish Wagh: Good morning and warm welcome to all the participants. Thank you for joining us today to
+discuss the Q3 and 9M FY2023 Results of Supriya Lifescience Limited. To take us through
+the results and answer to your questions we have with us the top management from Supriya
+represented by Dr Saloni Wagh – Director, Mr. Krishna Raghunathan - Chief Financial
+Officer of Supriya Lifescience Limited and our investor relations department Orient
+Capital. I hope everyone got the opportunity to go through the financial results and investor
+presentation which have been uploaded on the stock exchanges as well as the company
+website.
+Before we discuss the business performance, I would like to brief you a few development at
+Supriya Lifescience. I am happy to report that the Board has appointed Mr. Krishna
+Raghunathan as Chief Financial Officer of the company. He is a dynamic professional and
+qualified chartered accountant having more than two decades of rich experience with an
+excellent track record in departments like finance, treasury and investor relations. Krishna
+has a demonstrated history of working in diverse industries including pharmaceutical,
+packaging, and information technology. He is a seasoned pharma specialist with more than
+two decades of experience in the companies like Dr. Reddy’s Laboratories Limited and
+Granules India Limited. His appointment is in line with the company’s strategy to achieve
+Page 2 of 20
+
+Supriya Lifescience Limited
+February 15, 2023
+accelerated growth in the years to come. We welcome him to Supriya Lifescience family
+and wish him all the success in his role.
+Let me now share some key highlights for the quarter nine months ended FY2023. As you
+all know it has been a challenging quarter for the global economy and our industry has been
+no exception. Due to continuous challenges posed by the lockdown in the major cities in
+China the drop in demand of key products has led to pressure on topline and profitability
+for quarter under review. However our endeavor is to navigate these challenges and
+focusing on getting adequate measures to minimize the impact on our business. Our primary
+focus remains on expanding our regulatory market presence with new emerging markets,
+backward integration and manufacturing capacity optimization. For 9 months ended
+FY2023 our operating revenue was 319 Crores as against 342 Crores in 9 months FY2022
+with an EBITDA of margin 23.2 and PAT margin of 16.2%. Our operating revenue in Q3
+financial year was Rs.105 Crores as against 117 Crores in Q3 FY2022 a degrowth of 10%
+on year-on-year basis. With this I now hand over the call to Dr. Saloni Wagh to share the
+key highlights of our business performance. Over to you Dr. Saloni!
+Saloni Wagh: Thank you and good morning to all the participants. We welcome you to the Q3 FY2023
+and 9 months FY2023 earnings call of Supriya Lifescience Limited. I would like to share an
+update on development and performance of the quarter under review. As informed by our
+CMD, Dr. Wagh we have had a challenging quarter. We have a leadership position in
+antihistamine range and for this China is one of our largest market. As this product range is
+a mature range for the company and already in regulated market the revenue and margin
+contribution of the same is high. There has been a severe outbreak of COVID in China for
+the past several months. We have been transparent about lockdown situation and have
+continuously communicated the supply challenges we have been facing. Due to the
+extended lockdown and widespread use of masks and sanitizers the demand for the
+antihistamine range of products has gone down significantly. We are facing demand and
+pricing pressure from this market. The situation in China remains grim and we anticipate a
+similar trend in the coming quarters before it starts to improve.
+Other markets and therapeutic categories continue to be stable. However, as we operate
+predominantly in export market and there are long holidays in December the sales get
+pushed to the last quarter. Hence for other therapies and regions we have not seen any sales
+loss. Considering our current situation we have already been working on the derisking
+strategy to mitigate the impact of our dependence on a particular product and or all
+geographies. We have enhanced our capacities and initiated registration for other therapies
+such as decongestant, antihypertensives, anti-asthmatic, vitamins and anti-allergic. These
+therapies have good volume potential in regulated markets. We anticipate that these will
+Page 3 of 20
+
+Supriya Lifescience Limited
+February 15, 2023
+start seeing a good traction in regulated markets in the next two quarters which will help
+stabilize our portfolio even if the situation in China does not improve the way we are
+expecting. Additionally, we are in the advanced stages of discussion for two CMO
+opportunities and getting multiple enquiries which, we believe will start contributing to our
+topline and bottomline from Q3 of FY2024. We are also evaluating new products in our
+R&D pipeline to increase our product basket and therapy exposure. Furthermore, we are
+strengthening our senior management team to enhance our business development,
+manufacturing, and R&D capabilities with the aim of creating a more robust business
+model.
+Talking about our facility upgradation work for capacity enhancement our E block which
+will add 350 KL capacity work is going on and we expect it to be operational by Q4 of
+FY2024. Our admin building at our Lote site with a new R&D center Q3 and finished
+goods warehouse will be operational by Q4 FY2023. R&D facility with pilot plant
+expansion activity at Lote site and Ambernath is going well in time.
+Lastly, I would like to touch upon company’s backward integration business model. The top
+12 products which we produce contribute to 72% of our total revenue. We are extending the
+backward integration model to our newer products as well to stay competitive. By adding
+more products, geographies, increased penetration in regulated markets, expanding our
+customer base, adding more operating sites we are completely derisking the business a
+stepping stone to our success story. We are confident of our derisking strategy and other
+initiatives that will help us recover our topline and improve margin profile in the quarters to
+come. Overall company’s growth strategy of doubling the topline by FY2026 remains the
+same with a healthy and sustainable margin. With this I will now hand over the call to our
+CFO, Krishna Raghunathan. Over to you Krishna.
+Krishna Raghunathan: Thank you Dr. Saloni. At the outset I would like to thank Dr. Wagh for the introduction and
+I am excited to join Supriya Lifescience Limited and be a part of such a talented and
+dedicated team. I am looking forward to contributing to the growth and success of the
+company and being a part of the exciting future that lies ahead.
+Let me share the highlights of our financial performance for the nine months and Q3
+FY2023 and following which we will open the floor for questions and answers. Company
+reported revenue from operations of Rs.105 Crores in Q3 FY2023 as against Rs.117 Crores
+in Q3 FY2022 and Rs.319 Crores in nine months FY2023 as against Rs.342 Crores in nine
+months FY2022. EBITDA in Q3 FY2023 stood at 14 Crores as against Rs.38 Crores in Q3
+FY2022 and Rs.74 Crores in nine months ended FY2023 as against Rs.132 Crores in nine
+months FY2022. EBITDA margin stood at 13.4% in Q3 FY2023 as against 33% in the
+Page 4 of 20
+
+Supriya Lifescience Limited
+February 15, 2023
+same period last year and 23.2% in nine months FY2023 as against 38.6 in nine months
+FY2022. Profit before tax was at Rs.12.6 Crores for Q3 FY2023 and 17.2 Crores for nine
+month FY2023. PAT stood at 9.5 Crores for Q3 FY2023 and Rs.52 for nine months
+FY2023. Operating revenue has remained similar in the nine months FY2022-2023 despite
+muted customer response in our key market which is China. However, since this market is a
+key margin generator there has been a dip in our margin, also we have not seen any major
+cost pressure on raw materials. Logistics challenges which we have faced in the earlier
+quarters has eased out. On the expense front there has been an increase in certain expenses
+like power, employee benefits and certain increase in repairs and maintenance which are in
+line with our business strategy and this is all from my side we can now open the floor for
+question and answers. Thanks to all of you.
+Moderator: Thank you very much. We will now begin the question and answer session. The first
+question is from the line of Aashish Upganlawar from InvesQ Investment Advisors. Please
+go ahead.
+Aashish Upganlawar: Thanks for the opportunity. If we grow through the past four, five quarters that Supriya has
+been listed and basically arranging these calls and we have been interacting with you so the
+entire commentary that has been there from the management if I recall it used to be 750
+Crores of topline in the target 2-3 years and then sustainable margin of 30-35% and all
+those things and if I have to look at it going back in past 12 months everything has kind of
+deteriorated to an extent where the commentary does not stand anything basically whatever
+has been told to the investors so the entire management team has changed do not know for
+what reason the CEO changed, CFO changed then all these numbers last quarter you were
+saying that in China logistical challenges were there now you are saying that there is more
+demand so as investors how are we supposed to join all the dots being in business for two to
+three decades these cycles typically tend to be known to the management how sustainable
+are the margins and stuffy, so your comments on that will be helpful and we will need some
+bit of doing on your part to ensure that we keep trust in whatever is told to us basically so
+your comments on this will be helpful?
+Saloni Wagh: So thank you for your question. See in terms of the last couple of quarters’ performance
+since this financial year began the major issues we have seen in the last three quarters and
+we have actually been very transparent throughout all our interactions with investors,
+earnings calls that we are facing logistics issues in China because of the continued
+lockdown so this is something we have been very transparent about. Now what has
+happened is that because of the continued lockdown and because of the widespread use of
+hand sanitizers, masks people are not going out of their homes the demand itself for
+antihistamine range has dropped down significantly so this is a result of the continued
+Page 5 of 20
+
+Supriya Lifescience Limited
+February 15, 2023
+lockdown which has been going on for over three months so that is one of the major
+impacts that we have faced and this is why in this quarter we are saying that yes we are now
+facing a demand drop because of this continued lockdown situation in China and what I
+would like to also highlight is in the past also we have said that the company has a
+leadership position in three molecules out of the 38 molecule portfolio that we have. These
+three molecules have moved into the regulated market space they are very mature molecules
+of the company and their contribution to our topline as well as our bottomline is very
+significant. Unfortunately for us because of the situation in China one of our key markets
+and key products has been badly impacted. If you look at the other therapies they have
+performed well the growth in those therapies is quite stable but because currently the
+dependence on this particular therapy and market of the company is high the impact on the
+topline and the bottomline is visibly quite significant. I don’t think even now the strategy
+for the company has changed we still maintain that the company will continue to show good
+growth in the next couple of quarters, for this what we have done is we have already
+identified a group of 5-6 products which we have now fast tracked into the regulated market
+space. These molecules have very good volume potential so they can add quite significantly
+to our topline and give us a decent margin as well so once these molecules start maturing
+into the regulated market in the span of next two to three quarters you will see that the
+portfolio would have been significantly derisked so whatever comments we have made in
+the past that we are looking at doubling the topline in the next three years or we still stand
+by those comments. We also have a lot of CMO opportunities which are at advanced stages
+in fact two of them have gone through the signing stage and we expect to see some revenue
+generation from the Q3 of next year, so yes we have identified the risk at our side and it is a
+risk which we have been very vocal about with all the investors and everyone in the past as
+well and now we are putting our best effort to try to mitigate that risk, so we are committed
+to showing growth in the next couple of quarters. As far as the senior management team
+getting changed is concerned, we have also addressed this in the past but I would still like to
+take this opportunity to address this. The CEO due to some personal reasons, family reasons
+he had to step down, he still continues to be with the company very much, he is our
+technical lead, it is not like he has left and taken some other job opportunities so he is still
+very much a part of Supriya and now with Krishna joining us in fact we have strengthened
+our finance side. He has a much wider experience and exposure to the pharmaceutical sector
+for over 20 years and he has been part of listed company so in fact I would say that on the
+finance part we have strengthened our team and we continue to strengthen our team further.
+We have identified areas like R&D, manufacturing, and technical areas where we would
+like to further strengthen our team so you will hear from us very soon on that front as well.
+Aashish Upganlawar: So what is the outlook on margins and related to that and how much China contribution is
+there on the topline and margin front if you can be a bit more clear on that it will help us
+Page 6 of 20
+
+Supriya Lifescience Limited
+February 15, 2023
+understand how the numbers can shape up from here and what is your outlook on the
+margin actually that will help us?
+Krishna Raghunathan: See at this point we are not giving any sort of a commentary on margins and also we are not
+giving any sort of a guidance for future but we believe that we will be in a steady state from
+now on. I think that is something which I can always say but we would like to what do you
+call perform for the next couple of quarters before giving any sort of guidance at this stage.
+We are not guiding anything at this stage. We will be waiting and watching for the next
+couple of quarters. I think we will let the performance speak Sir.
+Aashish Upganlawar: But what the tables say 13% margin that you reported this quarter or 20, 25, 30% that has
+been coming in the last?
+Krishna Raghunathan: It would be around what you call late or early 30s I would say but please do not take this as
+a guidance we are working on improving all of this further also but at this point in time you
+can say that around 30 should be a steady state in future.
+Aashish Upganlawar: So this is we are talking about the next two to three quarters or we are talking two years
+down the line or one year down the line?
+Krishna Raghunathan: No it would be for the next couple of quarters. See there is always a scope for improvement
+further. As of now whatever we are seeing looking at the Chinese situation this is what we
+believe would be the number at this stage but we expect a quarter-on-quarter improvement
+going forward.
+Aashish Upganlawar: The other part I asked was the China proportion to sales and margin. Madam this is very
+important because we have been investors and there are many people who have kind of had
+a bad experience till now so I think rather than a time limit it would be better if you could
+answer all those questions.
+Moderator: Thank you. The next question is from the line of Yogesh Tiwari from Arihant Capital
+Market. Please go ahead.
+Yogesh Tiwari: Sir my first question is, are you seeing any pricing drop in CPM and what would be the
+quantum approximately single digit, double digit?
+Saloni Wagh: So while we will not be able to share this information on the quantum see what has
+happened is because like I mentioned in my speech as well because of the continued
+lockdown the demand has dropped and when the demand drops there is definitely a pressure
+Page 7 of 20
+
+Supriya Lifescience Limited
+February 15, 2023
+on the pricing as well, so we are seeing a price and demand pressure from Chinese market
+on CPM.
+Yogesh Tiwari: What would be the seasonality for CPM like which are the main quarters for this product?
+Saloni Wagh: Usually Q2 and Q4 are typically the highest sales in terms of CPM but because of the
+lockdown which was there in China during Q2 we did not see that kind of impact but if you
+look at the revenue generation and if you look at the region wise contribution you will see
+that in terms of volume we have been able to sell CPM into the other markets like South
+east Asian markets like Indonesia, Malaysia, Vietnam so there we have seen good volume
+pickup so in terms of volume you might not see a large drop but because one particular
+market has been impacted and that market volume and price typically contributes very
+largely to the revenue and bottomline that is why you are able to see the hit in the P&L as
+well.
+Yogesh Tiwari: Madam regarding the gross margin so it has been all over the place like around 60% to now
+we are like approximately 51% so if we take a base of FY2026 where we double the
+revenue what would be the range for the gross margin, target range for the company if we
+can get a range for FY2026?
+Krishna Raghunathan: At this point it is too premature to talk about margins in FY2026. See I think let us cross
+this financial year and in future I think when we believe that we could give some sort of
+guidance, we will certainly guide the market. We are not shirking away from anything but
+since these are all what do you call one-off sort of issues which had happened which the
+company has not seen in the earlier instance so please also understand that we do not want
+to guide such a long term but it would be a very, very healthy margin that is something
+which the entire senior management is working upon Sir.
+Yogesh Tiwari: Do you believe the margins have bottomed out in this quarter?
+Krishna Raghunathan: Sir we do not want to give any sort of guidance but yes I would certainly say that this would
+be one of the lowest performances yet. I do not think it should be anything going way below
+this is what we also believe in.
+Saloni Wagh: I want to reiterate what Krishna said. I think is the lowest what has happened and we do not
+see it dipping from this anywhere.
+Yogesh Tiwari: What is the demand scenario for ketamine in Europe are we seeing any strong traction
+there?
+Page 8 of 20
+
+Supriya Lifescience Limited
+February 15, 2023
+Krishna Raghunathan: Sir we do not comment on product specific stuff because these are all our important
+product. I think it would be very, very improper for us to guide about single molecule in a
+call. If something you can always call me personally I think we can have a chat on this. It
+will be a bit or not inappropriate for us to talk about individual product margins at this stage
+Sir because these are all are confidential and important molecules and we would not like to
+share the demand as well as the margins in an open forum please.
+Yogesh Tiwari: Lastly like there will be a sharp spike in other expenses so what would be the component
+leading to that increase in other expenses for the quarter?
+Krishna Raghunathan: See basically what had happened is of course one is on a very good side the CPHI has
+started so the last quarter we had some expenditure on CPHI so that is on the marketing side
+of course a bit of power and fuel and we had to maintain a couple of reactors on the plant
+side so these were some of the expenditures which have gone up. Of course employee
+benefits also have gone up a bit which of course we have already said in our speech due to
+all the new personnel joining in so these are some of the areas where we have seen but we
+do expect a bit of reduction on the repairs and maintenance going forward but nothing
+significant is going to reduce Sir.
+Yogesh Tiwari: Thank you Sir. That is all from my side. Thank you.
+Moderator: Thank you. The next question is from the line of Naresh Vaswani from Sameeksha Capital.
+Please go ahead.
+Naresh Vaswani: So while you mentioned that because of the lockdown demand gone down but what we saw
+in India as well post the reopening the demand came back much stronger and now since we
+are hearing China has opened up why are we not seeing our demand recovering in the China
+for the CPM?
+Saloni Wagh: Like I have said in my speech as well as I explained before what has happened is that
+because of the extended lockdown and widespread use of masks and sanitizers and there
+was a very strict lockdown so people were not leaving their houses there was no flu that the
+common flu, cough, cold had gone down significantly, so of course when a scenario like
+this happens it will have an impact on the demand so that is why once things have opened
+up what we are understanding from our contacts in the market is that because of this
+extended lockdown situation the demand for the product itself has gone down. It is not a
+permanent situation but what we understand from them is that this situation will persist at
+least for the next couple of quarters, for a market to recover it will not be very immediate it
+will take a couple of quarters for the demand to stabilize that to what it was earlier.
+Page 9 of 20
+
+Supriya Lifescience Limited
+February 15, 2023
+Naresh Vaswani: Alright so that means there is some stocking still there in the market which would get
+utilized and post that you might see recovery in demand right?
+Saloni Wagh: Yes we anticipate at least in the next two to three quarters similar situation would be there
+but it will keep stabilizing post that is when we actually think that the market would be in a
+position to recover.
+Naresh Vaswani: Right and you mentioned that there are four to five products which will start to go into
+regulated markets and that will start to contribute in the next two to three quarters so can
+you help us understand which are these products and what would be the contribution of
+these products in next let us say two to three quarters?
+Saloni Wagh: So while I cannot give out specific product names but the therapeutic category yes, so we
+have some products from antihypertensive range, in the anesthetic range itself we have
+another product where we are seeing good traction in North American market and the
+asthmatic vitamins also we are working on some large CMO opportunity with the innovator
+where we can see a very large volume scale up, then decongestant is another category of
+products wherein we are completing the registrations in US and in Europe. We are
+expecting to get the USDMF number in Q2 of next year, so these are some of the therapies
+wherein for the product the volume demand is quite large and the margin profile is also
+quite decent so once these products and these regulatory approvals start coming in like I
+said from Q3 of FY2024 we should be able to start seeing good revenue generation from
+these products but the specific number on how much revenue and which products
+unfortunately I will not be able to discuss in this forum but these are just some of the
+therapies that we have already identified and we have been working in the last couple of
+years.
+Naresh Vaswani: But what I was trying to understand is will this take longer time to materialize or you
+already have the registration in place and you are starting to get some orders on these
+products so will it be like one year down the line thing or do you foresee it faster?
+Saloni Wagh: It could be faster because for some of these products some registrations have already started
+coming through. We are working on some specific projects with certain customers wherein
+the customers have already bought the validation volume so we are waiting for them to
+come back to us on the commercial requirements so it would definitely be faster than one
+year.
+Naresh Vaswani: Your guidance on doubling the revenue was on the base of effort by FY2022 on FY2026
+right?
+Page 10 of 20
+
+Supriya Lifescience Limited
+February 15, 2023
+Saloni Wagh: By 2027.
+Naresh Vaswani: So the doubling of revenue was on the basis of FY2022 revenues?
+Saloni Wagh: FY2023 revenue.
+Naresh Vaswani: One last question so in this two CMO projects where you were close to finalizing the terms
+what would be the size of this project if you can share on that and which therapies will this
+belong to?
+Saloni Wagh: So while I cannot talk about the size of the project but definitely these would be
+diversifying our portfolio further. This would be more on the advanced intermediate side of
+the products. It would not be API centric so definitely it will further make our portfolio
+more robust and make it more derisk I would say but in the next coming few months itself
+you can wait for some positive announcements from our side on this front.
+Naresh Vaswani: Okay thank you.
+Moderator: Thank you. The next question is from the line of Avnish Khara from VT Capital. Please go
+ahead.
+Avnish Khara: Hi thank you for taking my question. So my first question is on the China market I just
+wanted to get a sense of what is the right to win in the China market is it better compliance
+or some sort of technical excellence that we have in the work that we manufacture for them
+because I think it is a core market for us and it is a large high margin market as well so if
+you can just give us some colour on that?
+Saloni Wagh: So yes in terms of this China market we have both on the client side as well on the quality
+side, in terms of compliance we are the only registered foreign source with an NMPA which
+is the Chinese regulatory authority for this product, we are also the only manufacturer to
+have the NMPA site approval we are audited and approved by them. There is a very
+positive quality of material that we produce for the China market, they do not follow the
+normal monograph they have their own Chinese monographs wherein the impurity levels
+are far more stringent as compared to any other monographs. They also have very specific
+requirements when it comes to the infrastructure, when it comes to the GMP compliance at
+intermediate level also for which we have invested in our site and we have created that
+infrastructure because of all these things we have been able to get a premium price in that
+market and that will continue once the situation stabilizes in that market so it is both a
+combination of the quality we supply to that market as well as the regulatory compliance
+that we have.
+Page 11 of 20
+
+Supriya Lifescience Limited
+February 15, 2023
+Avnish Khara: I think if I look at your geographical numbers then US slowly I can see a slight uptick over
+there so you are talking about future growth so is it safe to assume that US will be a key
+focus market for you going forward and if you could also help us understand what are the
+other markets you will be focusing on where the growth for your new products will come
+from?
+Saloni Wagh: Yes like you very rightly mentioned we have seen some increase in the North American
+market and this is because we are getting good traction for some of our existing products
+there or when we talk about growth in market it will contribute largely to this growth
+because some of the other therapeutic category molecules which I discussed previously we
+see a very large market in North America so definitely as the next couple of quarters
+progress you will see more contribution from North American markets. Europe still
+continues to be one of our largest regulated markets. Even if you look at the numbers of Q3
+the only impact which has happened is because of the long holidays which happen in
+December month and we are unable to ship during this entire month so whatever sales we
+were not able to do has been (audio cut) 34:40 so as such we have not seen any sales loss
+for the Europe market as well so situation there also is stable and going forward one of
+these other therapies regulatory approval start coming Europe, North American markets,
+Latin American markets would be the larger contributors in regulated market space.
+Avnish Khara: Right and I just have one last question I think there was a debottlenecking done in blocks A
+and B so how much of improvement that led to and what current utilization levels are you at
+on a consolidated basis?
+Saloni Wagh: Currently the consolidated capacity utilization is at 72% and the debottlenecking has
+definitely helped increase the volumes of certain individual products wherein we were not
+able to get the larger model but overall we are at 72% currently.
+Avnish Khara: That’s it from my side. Thank you.
+Moderator: Thank you. The next question is from the line of Shashank from Crescentia. Please go
+ahead.
+Shashank: See my first question is after the investor wealth eroded are you sticking to a capex which
+you had planned and you published in your previous concalls or is there a change in the
+capex in terms of reduction of capex, my second question is that in slide #7 of the investor
+presentation where you see Asia contributing 50% of your total Q3 sales but for the last 15
+to 20 minutes you are saying China is not contributing and that is the one major reason from
+Page 12 of 20
+
+Supriya Lifescience Limited
+February 15, 2023
+29% it is going to 50% that means Asia and China is a major portion is contributing so I
+want to understand is am I reading a wrong data or is it something else that is my question?
+Krishna Raghunathan: You are reading the data in the other way around. I think see nine months FY2022 is 50%
+and nine months FY2023 is 42% and what has happened is in China the margins are pretty
+high but we were able to cover up most of the sales that is why if you see we have not seen
+much of a reduction on the topline. If you look at our topline we have not lost much but
+most of it had come and hit the margins so whatever you are saying nine months FY2023
+highlights see whatever it is it is based on what do you call my topline numbers. My topline
+numbers I have not lost much so it is only that I had sold much in other Asian territories
+like what Dr. Saloni has already said about and with respect to capex specifically see some
+of these capexes like module E and certain other stuff which we had already committed
+during IPO times is what we are carrying forward and I do not think there is any change in
+any of our thought process in that so that is happening accordingly. I do not see any reason
+for us to stop and looking at our expanded portfolio which Dr. Saloni has just specified we
+believe that our revenues are only going to grow north and we do not see it is a major
+problem see whatever that has happened in this quarter is just an aberration and it is not
+something which is very permanent.
+Shashank: Because I was referring to Q3 in specific only slide #7 I am not talking of nine months?
+Saloni Wagh: Yes Krishna have already explained and even I have also explained this when I was
+answering about China. What has happened is when we consider Asia we also consider all
+of these south east Asian countries so in countries such as Indonesia, Vietnam, Malaysia or
+some parts of middle east we have seen a good nice volume growth so rightly said that in
+terms of volume there is not major dip because we were able to compensate through some
+of these other south east Asian markets that is why overall if you see the Asia revenue
+generation has not dipped at all but what impact the China situation has caused is on the
+margin front and yes also on the topline if the China revenue would have been generated
+our topline as well as our bottomline would have been significantly higher but we have
+been able to get the volume from some of these other south east Asian markets and that is
+the reason why overall there is no dip in terms of revenue generation from Asia and see
+most of this capex is driven for capacity enhancement without which the further growth in
+the portfolio cannot happen so capex remains the same. We are continuing with that
+because the doubling of the topline will only happen if we have a larger capacity for some
+of these other molecules in the portfolio to grow and we are going to see a very good
+traction of these in regulated markets and we will need that capacity.
+Shashank: That is it from my side.
+Page 13 of 20
+
+Supriya Lifescience Limited
+February 15, 2023
+Moderator: Thank you. The next question is from the line of Jagvir Singh from Shade Capital. Please
+go ahead.
+Jagvir Singh: Thanks for the opportunity so I want to know what is the percentage of revenue we derive
+from China in the last nine months?
+Satish Wagh: Our CFO will answer but let me tell you something on China because some predictions is
+wrong at the end see China whatever CPM we were selling is not the major consumption of
+China. Chinese has got lots of big variants of tablets and capsules making combination units
+who cater all over the world and for that this is a GMP audited site only from India that is
+why the purchase was taking place and that too also from the beginning with limited
+quantity that you must understand it was told to us. If we do that suppose demand is 300
+tonnes and you feel that I should export 150 tonnes not possible at all otherwise there is
+going to be hit on the antidumping duty from China which today we are also doing from our
+end. This was the thing which was from the beginning when we registered the product it
+was told to us you cannot continue to say as much as you want you have a restriction of a
+quantity if you exceed antidumping is expected on you and then you lose the business this is
+what I would like to inform you all this is the type of business in China.
+Krishna Raghunathan: To add to Dr. Wagh see basically Chinese revenue is a very, very significant number see we
+do not want to answer very specifically with respect to China on the percentages but it is a
+very, very large chunk plus also a great margin contributor for us so by not having Chinese
+sale we had lost ground on the margins that is what I think the whole commentary is all
+about in this quarter so if we are able to recoup the sales as well as the margins I think our
+businesses would be skyrocketing that is how I can put it. I do not want to use any other
+adjectives beyond this being a conference call I think but if you could come one-on-one I
+think I could explain this further.
+Jagvir Singh: My next question is regarding 15 days is already gone in this quarter so what is the ground
+situation right now so I am not asking about any guidance I just wanted to know so we may
+see some improvement in the margins and the topline in this Q4 over Q3?
+Krishna Raghunathan: We do not want to guide anything for the market but this should be a better performance
+when compared to Q3. We would like the results to speak for itself Sir we do not want to
+unnecessarily guide the market and we do not want to raise any sort of an expectation with
+the people but yes having said that the performance of Q4 would be comparatively far, far
+better than Q3.
+Jagvir Singh: But Q4 seasonally always higher for Supriya?
+Page 14 of 20
+
+Supriya Lifescience Limited
+February 15, 2023
+Saloni Wagh: Correct, it is seasonally also higher and like Krishna said that definitely our performance for
+Q4 would be better than Q3 performance.
+Jagvir Singh: It would be better than because of Q4 is seasonally higher or there is some improvement
+because 15 days already gone so I just want to understand so there is any improvement in
+China part also not on the ground?
+Saloni Wagh: The China situation will continue like I said in my speech earlier also. The China situation
+would remain the same at least for the next couple of quarters; however, some of the other
+therapeutic category products, we have 38 products in our portfolio and while some of the
+other products might not be very high in terms of margin contribution, we have seen good
+traction for these products in some of our regulated markets so that is the reason why we are
+confident that it would be better because these product contributions would be seen in Q4 of
+this year.
+Jagvir Singh: Madam I just want to understand that if suppose in Q4 next year in the first half of the Q4
+even Chinese situation does not recover so from the other markets we can make the losses
+in the Chinese market so we can make these losses in the other market?
+Saloni Wagh: To compensate for the margin contribution that China was giving immediately would be
+very difficult because the number is significant but like I said we are working on a risk
+mitigation strategy so probably 3-4 quarters down the line yes we would be in a very strong
+position that even if the China situation remains as is some of the other products would
+have matured into the regulated market space and we would still be able to normalize our
+margins as well as our revenue but it would take at least a couple of more quarters for this
+situation to streamline.
+Jagvir Singh: Thanks a lot.
+Moderator: Thank you. The next question is from the line of Tushar Bohra from MK Ventures. Please
+go ahead.
+Tushar Bohra: Thanks for the opportunity, so my first question just to understand we have some products
+in Q3 in Europe which we have not been able to sell we believe it has got deferred to Q4
+right so would these product be on a cumulative aggregate basis the higher margin
+contributor to the average I am taking 30% now as the benchmark given on this call is it fair
+to say that A) the dip in Europe the contribution in sales this quarter is because of this
+deferment and in Q4 once these products come in we should expect better revenue as well
+as margin contribution?
+Page 15 of 20
+
+Supriya Lifescience Limited
+February 15, 2023
+Saloni Wagh: Absolutely yes. Like I said in my speech as well the sales dip in Europe is not because of
+any sales loss it is only that the sales has been pushed into the Q4 because of the long
+holidays in most of the export markets actually once these shipments go through like I said
+before as well Q4 performance would be better in terms of revenue also and in terms of
+margins as well as compared to Q3.
+Tushar Bohra: Would you be able to quantify or give some sense of how much revenue we are talking that
+has potentially got deferred?
+Saloni Wagh: That is something that we will not be in a position to share on this particular platform but
+we are happy to talk in detail separately but in this platform it would be very difficult to
+give any specific number?
+Tushar Bohra: Madam would it be safe to assume that against the average run rate of about not close to
+100, 110 Crores for the last three quarters would we therefore expect significantly higher
+traction in the coming quarter?
+Krishna Raghunathan: Of course Tushar you will see a better Q4. I think that is what we can say at this point in
+time yes it would be comparatively far, far better than Q3.
+Tushar Bohra: Sure my second question is if you can help understand the new CMO opportunities a bit
+better including the ones which you are saying that have sort of progressed as well on some
+of the other if we can have some qualitative highlights and also the milestones of what we
+should look forward to?
+Saloni Wagh: So in terms of CMO opportunities at the moment we have 8-9 concrete CMO opportunities
+most of these are wherein we would be a manufacturing certain advanced intermediates for
+multinational companies wherein the initial agreement has been signed and now we are in
+the process of tech transfer. Some of the CMO opportunities are also dicentric where we
+would be partnering with the innovator and we would be supplying their entire
+requirements from our GMP approved site so two to three projects are of this nature as well
+and then we have some CMO opportunities which are away from API and intermediates
+into more nutraceutical sectors so that would also definitely help in derisking our portfolio.
+In terms of how they are progressing most of them like I said are concrete opportunities
+when the initial agreements have been signed they are currently in the process of tech
+transfer and technical information exchange, two of these have moved to a very advanced
+stage and like I mentioned in my speech as well from Q3 of FY2024 we should be able to
+see some revenue contribution from these two opportunities. In the next coming month we
+Page 16 of 20
+
+Supriya Lifescience Limited
+February 15, 2023
+would be in a better position to give more concrete information and make announcement of
+these CMO opportunities.
+Tushar Bohra: Thanks and finally on the new products that are being discussed on regulatory market so we
+should expect some more of products to start getting sold in regulatory markets in this
+financial year or rather in FY2024 and what kind of margin profile are we expecting for
+these products would it be in line with higher than the 30% guidance that we are sort of
+maintaining for the near term?
+Saloni Wagh: We will start seeing the contribution from these other basket of products in regulated
+market sales from Q2 of FY2024 because most of these products we have still applied for
+the regulatory applications and we are expecting them to come very soon so from Q2 of
+FY2024 we can start seeing some good traction for these molecules. In terms of margin
+profile there would be decent margin generating products like we mentioned somewhere in
+the similar range of 32% of EBITDA.
+Tushar Bohra: Thank you so much. I will join back in the queue.
+Moderator: Thank you. The next question is from the line of Abhishek from Padmaja Investments.
+Please go ahead.
+Abhishek: The management churn around like CEO leaving and again CFO leaving this kind of a
+churn around looks very bad on retail investor side even in today’s call if you see very few
+institutional investors turned around even though you are aspiring to be a company in that
+CRAMS space, CMO space, CRL space it is turning out to be bad.
+Saloni Wagh: I have clarified and I have explained that the management churn around we are talking
+about if we really look at the CEO stepping down we have mentioned it many times in the
+past and we have still clarified again and again that the CEO has just step down from the
+responsibility of CEO due to some of his personal reasons because some of his family
+members not keeping well he is not able to give as much time to the company but if you
+look at our company structure he still continues to be very much a part of Supriya team as a
+technical lead so let us address it once and for all that he has not left the organization just
+because of some of his family members not keeping well he has stepped down from the
+CEO responsibility but he has taken the responsibility of a technical lead and he still is with
+us for a lot of CMO opportunities and for technical advises. In terms of CFO which is the
+second thing in fact I have already mentioned that with Krishna coming on board for us as a
+new listed company this would help strengthen our finance aspect because he comes with a
+lot of experience running a listed company specifically in pharmaceutical sector for over 20
+Page 17 of 20
+
+Supriya Lifescience Limited
+February 15, 2023
+years so this should be in fact construed as a very, very positive step that we are trying to
+strengthen our senior management and in the next couple of quarters also you will see that
+we are further strengthening our senior management team on our side, on technical
+capabilities because we definitely see a lot of scope of growth for the company and to
+facilitate this kind of growth we need to have the right kind of technical people on board so
+if anything I feel that going forward and even now the complete focus of the management is
+to strengthen the senior management team.
+Moderator: Thank you. The next question is from the line of Siddharth Purohit from InvesQ Investment
+Advisors. Please go ahead.
+Siddharth Purohit: Earlier when you had discussed probably you have mentioned that we work more on short
+term contract rather than a very long term management with our customer so is there a
+change in strategy for the new molecules or new geography that we are making for because
+probably that is one of the reasons we have lost some sort of business so what is the new
+arrangement that you are looking for, for a sustainable growth?
+Saloni Wagh: As you are aware the API market is very. very dynamic so most API companies and
+including ourselves when it comes to API we will continue working on short term contracts
+because the raw material pricing situation is so dynamic that if we get into a long term
+contract it might not be beneficial for the company but because the API space is more short
+term contract driven we are trying to derisk this aspect by introducing CMO opportunities
+wherein the advanced intermediate and API requirement with some of the multination
+companies would be a long term like five years, seven years time so we are trying to derisk
+on that aspect. Then going forward it would be both short term as well as long term
+contracts.
+Siddharth Purohit: Is your Chinese customer still like in touch with you or what is their feedback that whether
+they will continue business with you if things improve so what is their commentary on that?
+Saloni Wagh: Absolutely they are in touch with us. That is why we are able to share in detail the current
+market reality of China and we have been sharing that over the last couple of calls as well.
+Like I mentioned that Supriya has a very strong position in China because of the regulatory
+compliance that we have and also the quality of material that we produce. We are also an
+NMPA approved site and like our Chairman said that most of the end users in China have
+approved Supriya as a primary source. As soon as the market stabilizes we would be their
+preferred source and the entire volume would start coming back to Supriya so it is just a
+matter of when the situation stabilizes. It will take definitely a couple of more quarters. It is
+Page 18 of 20
+
+Supriya Lifescience Limited
+February 15, 2023
+not short term. This is a long term impact on the market and for it to recover we are
+anticipating at least another two to three quarters.
+Moderator: Thank you. The next question is from the line of Karan Asli from Maximal Capital. Please
+go ahead.
+Karan Asli: Thanks for the opportunity. So just want to deliver on the China issue a little bit. Any
+thoughts on the local capacity in China have any local competitors increased the capacity or
+up the compliance game if you are aware of that?
+Saloni Wagh: The local manufacturers in China historically also and even today they are non-GMP
+compliant that is why even companies like Johnson & Johnson, GSK who have their site in
+China still continue to buy from Supriya so in that aspect there is no change. They are still
+non GMP complaint so we are still their preferred source. Also in terms of capacity because
+the demand has gone down there is no further capacity enhancement also which has
+happened locally in China so this is the current situation what we understood from our
+agents in China.
+Karan Asli: Right and would be it possible for you to segregate your demand in China into local
+consumption and export formulations?
+Satish Wagh: I think when we decided to say like this because I have told you in my previous speech that
+we are supposed to cater certain quantity only if we exceed there would not be possible to
+ship one kg also because the day we do that antidumping duty will be done on us. Today
+you are seeing many of the items we are ourselves putting antidumping duties on them in
+result mainly industrial areas certain products are getting closed so we have a certain
+market, certain GMP standard, certain approvals and that is already on the website of the
+Chinese NMPA and CTA only foreign source Supriya ideal approved so that is why we are
+able to sell but not with 100% sales, limited sales that is my submission to you on China
+and I think China we have already discussed lot of things. Let us not to discuss on China
+matters again and again because the issue is same.
+Krishna Raghunathan: Having said that like what the Chairman is ascribing to see you will not have 100% capacity
+out of China it is only that some of the capacities will be granted and that is what we are
+able to cater now that there is a drop in demand because of what Dr. Saloni has already said
+in the speech earlier that is why there is a dip in China at this point in time. I think this
+should be settled once and for all at this stage. I think that is the entire submission of the
+management on China.
+Page 19 of 20
+
+Supriya Lifescience Limited
+February 15, 2023
+Karan Asli: Sure and my next question is pertaining to the margins now I think you said directionally
+we expect margins to improve but at the same time China is not going to come back till let
+us say Q2 of next year at least and the regulated products also that we are pushing into the
+market will come in Q2 of next year so in the meanwhile what would be the more granular
+levers we have to get close to that sustainable margin that we have because that would mean
+that you would have to again come back significantly in term of 40 to 50% plus
+contribution so do you see that happening?
+Saloni Wagh: Like I said before as well if you look at our revenue generation from the European it has not
+been impacted there is no sales loss as such. We are doing quite well the product portfolio
+and the basket there is very, very stable. It is just that some of the sales from Q3 has gotten
+pushed into Q4 due to the long holidays other than antihistamine range and Chinese market
+we will also have anesthetic range of products which are doing quite well and which are
+also one of the other major therapeutic categories for the company and are doing quite well
+in the regulated market space, so definitely we will see a lot of contribution from these
+therapies even antiasthmatic for that matter. You will see revenue generation from these
+therapies so that is the reason why we expect the normalized margin.
+Karan Asli: In terms of how we expect to end this year I think our target was to reach up to last year’s
+revenue levels do we think we will be able to match that?
+Krishna Raghunathan: See at this point we do not want to give any sort of guidance but it looks like we might fall
+a bit short on the revenues when it comes to last year levels. Yes of course that is what is
+going to happen.
+Karan Asli: Sure that was helpful. Thanks and good luck.
+Moderator: Thank you. Ladies and gentlemen due to time constraint that was the last question for
+today. I would now like to hand the conference over to Dr. Satish Wagh for closing
+comments.
+Satish Wagh: Thank you. I would like to thank everyone for taking time out and joining on the call. I
+hope we have been able to respond to your queries. If you have any further queries you may
+reach out to our investor relation partner Orient Capital. Thank you very much and have a
+good day.
+Moderator: Thank you. On behalf of Supriya Lifescience Limited that concludes this conference. Thank
+you for joining us. You may now disconnect your lines.
+Page 20 of 20
