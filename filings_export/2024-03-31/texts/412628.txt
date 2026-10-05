@@ -1,0 +1,148 @@
+Il\lDO TECH
+August12,2022
+DepartmentofCorporateServices ListingDepartment
+BSELimited NationalStockExchangeofIndiaLimited
+PhirozeJeejeebhoyTowers, Exchange Plaza,5thFloor,Plot No.C/1,G Block,
+DalaiStreet,Fort, BandraKurlaComplex,Bandra(E),
+Mumbai-400001 Mumbai-400051
+ScripCode:532717 Symbol:INDOTECH
+Sub:-OutcomeoftheBoardMeetingheldonAugust12,2022
+DearSir/Madam,
+Themeetingof BoardofDirectorsofIndo-TechTransformersLimitedheldtoday,i.e.Friday,August
+12,2022.TheBoardofDirectorsoftheCompanyhaveconsideredandapprovedthefollowingitems:
+1. Un-audited Financial Results along with the Limited Review Report for the quarter ended
+June30,2022.
+Please find enclosedthe Unaudited Financial Results along withtheLimited Review Report for
+the quarter ended June 30, 2022 pursuant to Regulation 33 of SEBI (Listing Obligation and
+DisclosureRequirements)Regulations,2015.
+2. Appointment of Mr. Sudheer Vennam (DIN: 09656671) as an Additional Director of the
+Company,witheffectfromAugust12,2022.
+3. The30thAnnualGeneralMeetingofIndo-TechTransformersLimitedis proposedtobeheld on
+Wednesday,September21,2022
+Pursuant toRegulation 30of theSEBI(ListingObligationandDisclosureRequirements) Regulations,
+2015readwithSEBICircular No.CIR/CFD/CMD/4/2015dated9thSeptember,2015 wewouldliketo
+informthatthemeetingoftheBoardofDirectorsoftheCompanycommencedat07:30P.M1STand
+concludedat08:55P.M.1ST.
+Werequestyoutotakethesameonrecordandacknowledge.
+Yoursfaithfully,
+ForIndoTechTransformersLimited
+%
+/*
+UJ
+ManikandanM /
+OfficeNÿ/!
+CompanySecretary&Compliance *
+INDO TECH TRANSFORMERS LIMITED
+ASubsidiaryofShirdiSaiElectricalsLimited
+Tele/Fax: +91(0) 4427281858
+CIN:L29113TN1992PLC022011
+Regd.Off.:S.No.153 - 210,llluppapattuVillage,P.0Rajakulam, Email:info@indo-tech.com
+Kancheepuram(Dist),Tamilnadu,India-631561. www.indo-tech.com
+
+×ÒÜÑ ÌÛÝØ ÌÎßÒÍÚÑÎÓÛÎÍ Ô×Ó×ÌÛÜ
+Î»¹¼ò Ñºº·½» æ Í«®ª»§ Ò±ò ïëíóîïðô ×´´«°°¿°¿¬¬« ª·´´¿¹» ²»¿® Î¿¶¿µ«´¿³ô Õ¿²½¸»»°«®¿³ øÜ·­¬ò÷ Ì¿³·´ Ò¿¼« ó êíï ëêï
+Ý×Òæ ÔîçïïíÌÒïççîÐÔÝðîîðïïå É»¾­·¬»æ ©©©ò·²¼±ó¬»½¸ò½±³å »³¿·´æ ·²º±à·²¼±ó¬»½¸ò½±³å Ì»´æ õçï ìì îéîèïèëè
+ÍÌßÌÛÓÛÒÌ ÑÚ ËÒßËÜ×ÌÛÜ Ú×ÒßÒÝ×ßÔ ÎÛÍËÔÌÍ ÚÑÎ ÌØÛ ÏËßÎÌÛÎ ÇÛßÎ ÛÒÜÛÜ íð ÖËÒÛ îðîî
+øÎ­ò ·² ´¿µ¸­÷
+Íò Ò±ò Ð¿®¬·½«´¿®­ Ï«¿®¬»® »²¼»¼ Ç»¿® »²¼»¼
+íðóÖ«²óîî íïóÓ¿®óîî íðóÖ«²óîï íïóÓ¿®óîî
+øË²¿«¼·¬»¼÷ øß«¼·¬»¼÷ øË²¿«¼·¬»¼÷ øß«¼·¬»¼÷
+ß Î»ª»²«» º®±³ ±°»®¿¬·±²­ ëôìðè çôçîç îôîêë îèôððé
+Þ Ñ¬¸»® ·²½±³» éì êì ëç ïêç
+Ý Ì±¬¿´ ·²½±³» øßõÞ÷ ëôìèî çôççí îôíîì îèôïéê
+Û¨°»²­»­
+Ý±­¬ ±º ³¿¬»®·¿´­ ½±²­«³»¼ ëôëçî êôïîë ìôîïï îïôíëé
+Ý¸¿²¹»­ ·² ·²ª»²¬±®·»­ ±º º·²·­¸»¼ ¹±±¼­ ¿²¼ ©±®µó·²ó°®±¹®»­­ øïôèèç÷ ïôðìê øîôêëð÷ øïôéìî÷
+Û³°´±§»» ¾»²»º·¬­ »¨°»²­» êïê êîì êðç îôëïï
+Ú·²¿²½» ½±­¬­ ëï èï é ïëè
+Ü»°®»½·¿¬·±² ¿²¼ ¿³±®¬·­¿¬·±² »¨°»²­» çî ïïî ïïï ìëî
+Ñ¬¸»® »¨°»²­»­ èçé ïôíéð ëèí ìôïçî
+Ü Ì±¬¿´ »¨°»²­»­ ëôíëç çôíëè îôèéï îêôçîè
+Û Ð®±º·¬ ñ øÔ±­­÷ ¾»º±®» ¬¿¨ øÝóÜ÷ ïîí êíë øëìé÷ ïôîìè
+Ú Ì¿¨ »¨°»²­»
+ó Ý«®®»²¬ ¬¿¨ ó ó ó ó
+ó Ý«®®»²¬ ¬¿¨ °»®¬¿·²·²¹ ¬± »¿®´·»® §»¿®­ ó îç ó îç
+ó Ü»º»®®»¼ ¬¿¨ ó ó ó ó
+Ù Ð®±º·¬ ñ øÔ±­­÷ ¿º¬»® ¬¿¨ øÛóÚ÷ ïîí êðê øëìé÷ ïôîïç
+Ñ¬¸»® ½±³°®»¸»²­·ª» ·²½±³»
+×¬»³­ ¬¸¿¬ ©·´´ ²±¬ ¾» ®»½´¿­­·º·»¼ ¬± °®±º·¬ ¿²¼ ´±­­
+Î»ó³»¿­«®»³»²¬ ±º ¼»º·²»¼ ¾»²»º·¬ °´¿²­ ó ïç ó øíð÷
+×²½±³» ¬¿¨ »ºº»½¬ ó ó ó ó
+Ø Ñ¬¸»® ½±³°®»¸»²­·ª» ·²½±³» ø²»¬ ±º ¬¿¨÷ ó ïç ó øíð÷
+× Ì±¬¿´ ½±³°®»¸»²­·ª» ·²½±³» º±® ¬¸» °»®·±¼ øÙõØ÷ ïîí êîë øëìé÷ ïôïèç
+Ð¿·¼ó«° »¯«·¬§ ­¸¿®» ½¿°·¬¿´ ø°¿® ª¿´«» ±º Î­òïð °»® ­¸¿®»÷ ïôðêî ïôðêî ïôðêî ïôðêî
+Ì±¬¿´ ®»­»®ª»­ ·ò»ò Ñ¬¸»® »¯«·¬§ ïíôìëð
+Û¿®²·²¹­ °»® ­¸¿®» øÛÐÍ÷
+Þ¿­·½ ¿²¼ ¼·´«¬»¼ ó °¿® ª¿´«» ±º Î­òïð °»® ­¸¿®» øÒ±¬ ¿²²«¿´·­»¼ º±® ïòïê ëòéï øëòïë÷ ïïòìè
+¯«¿®¬»®­÷ øß³±«²¬ ·² Î­ò÷
+Ò±¬»­æ
+ï Ì¸»¿¾±ª»®»­«´¬­±º¬¸»Ý±³°¿²§©»®»®»ª·»©»¼¾§¬¸»ß«¼·¬Ý±³³·¬¬»»¿²¼¿°°®±ª»¼¾§¬¸»Þ±¿®¼±ºÜ·®»½¬±®­¿¬¬¸»·®®»­°»½¬·ª»³»»¬·²¹­¸»´¼±²ïîß«¹
+îðîîò Ì¸» ­¬¿¬«¬±®§ ¿«¼·¬±®­ ¸¿ª» ½¿®®·»¼ ±«¬ ¿ ´·³·¬»¼ ®»ª·»© º±® ¬¸» ¯«¿®¬»® »²¼»¼ íð Ö«²» îðîîò ß² «²¯«¿´·º·»¼ ®»°±®¬ ¸¿­ ¾»»² ·­­«»¼ ¾§ ¬¸»³ ¬¸»®»±²ò
+î Ì¸»­»®»­«´¬­ ¸¿ª»¾»»²°®»°¿®»¼·²¿½½±®¼¿²½»©·¬¸¬¸»×²¼ ßÍ°®»­½®·¾»¼ «²¼»® ­»½¬·±²ïíí±º ¬¸» Ý±³°¿²·»­ß½¬ô îðïí®»¿¼©·¬¸¬¸» ®»´»ª¿²¬®«´»­
+¬¸»®»«²¼»®¿²¼·²¬»®³­±ºÎ»¹«´¿¬·±²íí±º¬¸»Í»½«®·¬·»­¿²¼Û¨½¸¿²¹»Þ±¿®¼±º×²¼·¿øÔ·­¬·²¹Ñ¾´·¹¿¬·±²­¿²¼Ü·­½´±­«®»Î»¯«·®»³»²¬­÷Î»¹«´¿¬·±²­ôîðïë
+øùÍÛÞ× Î»¹«´¿¬·±²­ù÷ò
+í Ì¸» Ý±³°¿²§ ¸¿­ ±²´§ ±²» ¾«­·²»­­ ­»¹³»²¬ô ©¸·½¸ ·­ ³¿²«º¿½¬«®» ¿²¼ ­¿´» ±º ¬®¿²­º±®³»®­ò Ø»²½»ô ¬¸»®» ¿®» ²± ±¬¸»® ®»°±®¬¿¾´» ­»¹³»²¬­ò
+ì Ì¸»º·¹«®»­º±®¬¸»¯«¿®¬»®»²¼»¼±²íïÓ¿®½¸îðîî¿®»¬¸»¾¿´¿²½·²¹º·¹«®»­¾»¬©»»²¿«¼·¬»¼º·¹«®»­±º¬¸»º«´´º·²¿²½·¿´§»¿®¿²¼¬¸»°«¾´·­¸»¼§»¿®¬±¼¿¬»
+º·¹«®»­ «°¬± ¬¸·®¼ ¯«¿®¬»® »²¼»¼ íï Ü»½»³¾»® îðîïò
+Í¸®·¼¸¿® Ü·¹·¬¿´´§ ­·¹²»¼ ¾§
+Í¸®·¼¸¿® Ù±µ¸¿´»
+Ù±µ¸¿´» Ü¿¬»æ îðîîòðèòïî
+îðæëëæíð õðëùíðù
+Õ¿²½¸»»°«®¿³ Í¸®·¼¸¿® Ù±µ¸¿´»
+ïî ß«¹ îðîî Ü·®»½¬±®
+Ü×Ò æ ðèíìçéíî
+
+AS\
+& ASSOCIATES
+UnitNo.709&710,7thFloor
+LLP 'BETAWing',RahejaTowers
+NewNumber177,AnnaSalai
+CHARTEREDACCOUNTANTS
+Chennai600002INDIA
+www.asaandassociates.co.in T+914449048200
+IndependentAuditor’sReviewReporton theUnauditedInterimFinancialResults
+To
+TheBoardofDirectorsofIndoTechTransformersLimited
+1. We have reviewed the accompanying Statement of Unaudited Financial Results of Indo Tech
+Transformers Limited(“the Company”) for thequarter ended30thJune,2022(“theStatement”).The
+Statementhasbeenpreparedby theCompanypursuant to therequirement ofRegulation33 of theSEBI
+(Listing Obligations and Disclosure Requirements) Regulations, 2015, as amended (the “Listing
+Regulations”),whichhasbeeninitialedbyus foridentificationpurposes only.
+2. This Statement,whichis theresponsibility oftheCompany’sManagementandapprovedby theBoardof
+Directors,hasbeenpreparedinaccordancewiththerecognitionandmeasurementprincipleslaiddownin
+Indian Accounting Standard — 34 “Interim Financial Reporting” (Ind AS - 34), as prescribed under
+Section 133 of Companies Act, 2013 as amended, read withrelevant rules issued thereunder and other
+accountingprinciples generally acceptedinIndia.Ourresponsibilityis toissue areport on the Statement
+basedon ourreview.
+3. We conducted our review of the Statement in accordance with the Standard on Review Engagement
+(SRE) 2410, “Review of Interim FinancialInformation Performed by the Independent Auditor of the
+Entity”issuedby theInstituteofCharteredAccountantsofIndia.Thisstandardrequires thatweplanand
+perform the review to obtain moderate assurance as to whether the Statement is free of material
+misstatement. A review is limited primarily to inquiries of the company personnel and analytical
+procedures applied to financial data and thus provide less assurance than an audit. We have not
+performedanauditandaccordingly,wedonotexpress anauditopinion.
+4. Basedonourreviewconductedas above,nothinghas come toour attentionthatcausesus tobelieve that
+the accompanying Statement, preparedin accordance with the recognition and measurement principles
+laiddownintheaforesaidIndianAccountingStandardandotheraccountingprinciplesgenerallyaccepted
+inIndia,hasnotdisclosedtheinformationrequiredtobedisclosedin terms ofRegulation33 of theSEBI
+(Listing Obligations and Disclosure Requirements) Regulations, 2015, as amended (“Listing
+Regulations”), including the manner in which it is to be disclosed, or that it contains any material
+misstatement.
+For ASA& AssociatesLLP
+CharteredAccountants
+FirmRegistrationNo. 500006
+&
+O
+<
+~?A-'Chennai \r
+T(FRN:009571N/)"?
+'
+GNRamaswami \Q\ N500006 £
+Partner \.
+Acetyl
+MembershipNo.:20236
+UDIN:22202363AOXUMN8198
+Place:Chennai
+Date:August12,2022
+AurobindoTower,81/1ThirdFloorAdchini,AurobindoMarg,NewDelhi110017INDIATel+911141009999
+Ahmedabad(cid:127) Bengaluru(cid:127) Chennai(cid:127) Gurgaon(cid:127) Hyderabad(cid:127) Kochi(cid:127) Mumbai(cid:127) NewDelhi

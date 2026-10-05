@@ -1,0 +1,914 @@
+(cid:3)
+(cid:49)(cid:82)(cid:89)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)(cid:20)(cid:19)(cid:15)(cid:3)(cid:21)(cid:19)(cid:21)(cid:22)(cid:3)
+(cid:55)(cid:82)(cid:15)(cid:3) (cid:55)(cid:82)(cid:15)(cid:3)
+(cid:37)(cid:54)(cid:40)(cid:3)(cid:47)(cid:76)(cid:80)(cid:76)(cid:87)(cid:72)(cid:71)(cid:3) (cid:49)(cid:68)(cid:87)(cid:76)(cid:82)(cid:81)(cid:68)(cid:79)(cid:3)(cid:54)(cid:87)(cid:82)(cid:70)(cid:78)(cid:3)(cid:40)(cid:91)(cid:70)(cid:75)(cid:68)(cid:81)(cid:74)(cid:72)(cid:3)(cid:82)(cid:73)(cid:3)(cid:44)(cid:81)(cid:71)(cid:76)(cid:68)(cid:3)(cid:47)(cid:76)(cid:80)(cid:76)(cid:87)(cid:72)(cid:71)(cid:3)
+(cid:51)(cid:75)(cid:76)(cid:85)(cid:82)(cid:93)(cid:72)(cid:45)(cid:72)(cid:72)(cid:77)(cid:72)(cid:72)(cid:69)(cid:75)(cid:82)(cid:92)(cid:3)(cid:55)(cid:82)(cid:90)(cid:72)(cid:85)(cid:86)(cid:15)(cid:3) (cid:40)(cid:91)(cid:70)(cid:75)(cid:68)(cid:81)(cid:74)(cid:72)(cid:3)(cid:51)(cid:79)(cid:68)(cid:93)(cid:68)(cid:15)(cid:3)
+(cid:39)(cid:68)(cid:79)(cid:68)(cid:79)(cid:3)(cid:54)(cid:87)(cid:85)(cid:72)(cid:72)(cid:87)(cid:15)(cid:3)(cid:48)(cid:88)(cid:80)(cid:69)(cid:68)(cid:76)(cid:16)(cid:3)(cid:23)(cid:19)(cid:19)(cid:3)(cid:19)(cid:19)(cid:20)(cid:17)(cid:3) (cid:37)(cid:68)(cid:81)(cid:71)(cid:85)(cid:68)(cid:3)(cid:46)(cid:88)(cid:85)(cid:79)(cid:68)(cid:3)(cid:38)(cid:82)(cid:80)(cid:83)(cid:79)(cid:72)(cid:91)(cid:15)(cid:3)(cid:48)(cid:88)(cid:80)(cid:69)(cid:68)(cid:76)(cid:16)(cid:3)(cid:23)(cid:19)(cid:19)(cid:3)(cid:19)(cid:24)(cid:20)(cid:17)(cid:3)
+(cid:54)(cid:70)(cid:85)(cid:76)(cid:83)(cid:3)(cid:38)(cid:82)(cid:71)(cid:72)(cid:29)(cid:3)(cid:24)(cid:21)(cid:25)(cid:26)(cid:21)(cid:28)(cid:3) (cid:54)(cid:70)(cid:85)(cid:76)(cid:83)(cid:3)(cid:38)(cid:82)(cid:71)(cid:72)(cid:29)(cid:3)(cid:42)(cid:50)(cid:47)(cid:39)(cid:44)(cid:36)(cid:48)(cid:3)(cid:40)(cid:52)(cid:3)
+(cid:3)
+(cid:39)(cid:72)(cid:68)(cid:85)(cid:3)(cid:54)(cid:76)(cid:85)(cid:18)(cid:48)(cid:68)(cid:71)(cid:68)(cid:80)(cid:15)(cid:3)
+(cid:3)
+(cid:54)(cid:88)(cid:69)(cid:29)(cid:3)(cid:50)(cid:88)(cid:87)(cid:70)(cid:82)(cid:80)(cid:72)(cid:3)(cid:82)(cid:73)(cid:3)(cid:37)(cid:82)(cid:68)(cid:85)(cid:71)(cid:3)(cid:48)(cid:72)(cid:72)(cid:87)(cid:76)(cid:81)(cid:74)(cid:3)(cid:56)(cid:81)(cid:71)(cid:72)(cid:85)(cid:3)(cid:53)(cid:72)(cid:74)(cid:88)(cid:79)(cid:68)(cid:87)(cid:76)(cid:82)(cid:81)(cid:3)(cid:22)(cid:19)(cid:11)(cid:21)(cid:12)(cid:3)(cid:68)(cid:81)(cid:71)(cid:3)(cid:22)(cid:22)(cid:3)(cid:82)(cid:73)(cid:3)(cid:54)(cid:40)(cid:37)(cid:44)(cid:3)(cid:11)(cid:47)(cid:76)(cid:86)(cid:87)(cid:76)(cid:81)(cid:74)(cid:3)(cid:50)(cid:69)(cid:79)(cid:76)(cid:74)(cid:68)(cid:87)(cid:76)(cid:82)(cid:81)(cid:86)(cid:3)
+(cid:68)(cid:81)(cid:71)(cid:3)(cid:39)(cid:76)(cid:86)(cid:70)(cid:79)(cid:82)(cid:86)(cid:88)(cid:85)(cid:72)(cid:3)(cid:53)(cid:72)(cid:84)(cid:88)(cid:76)(cid:85)(cid:72)(cid:80)(cid:72)(cid:81)(cid:87)(cid:86)(cid:12)(cid:3)(cid:53)(cid:72)(cid:74)(cid:88)(cid:79)(cid:68)(cid:87)(cid:76)(cid:82)(cid:81)(cid:86)(cid:15)(cid:3)(cid:21)(cid:19)(cid:20)(cid:24)(cid:3)
+(cid:58)(cid:76)(cid:87)(cid:75)(cid:3)(cid:85)(cid:72)(cid:74)(cid:68)(cid:85)(cid:71)(cid:3)(cid:87)(cid:82)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:70)(cid:68)(cid:83)(cid:87)(cid:76)(cid:82)(cid:81)(cid:72)(cid:71)(cid:3)(cid:80)(cid:68)(cid:87)(cid:87)(cid:72)(cid:85)(cid:3)(cid:68)(cid:81)(cid:71)(cid:3)(cid:76)(cid:81)(cid:3)(cid:70)(cid:82)(cid:80)(cid:83)(cid:79)(cid:76)(cid:68)(cid:81)(cid:70)(cid:72)(cid:3)(cid:90)(cid:76)(cid:87)(cid:75)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:54)(cid:40)(cid:37)(cid:44)(cid:3)(cid:11)(cid:47)(cid:76)(cid:86)(cid:87)(cid:76)(cid:81)(cid:74)(cid:3)(cid:50)(cid:69)(cid:79)(cid:76)(cid:74)(cid:68)(cid:87)(cid:76)(cid:82)(cid:81)(cid:86)(cid:3)(cid:68)(cid:81)(cid:71)(cid:3)
+(cid:39)(cid:76)(cid:86)(cid:70)(cid:79)(cid:82)(cid:86)(cid:88)(cid:85)(cid:72)(cid:3)(cid:53)(cid:72)(cid:84)(cid:88)(cid:76)(cid:85)(cid:72)(cid:80)(cid:72)(cid:81)(cid:87)(cid:86)(cid:12)(cid:3)(cid:53)(cid:72)(cid:74)(cid:88)(cid:79)(cid:68)(cid:87)(cid:76)(cid:82)(cid:81)(cid:15)(cid:3)(cid:21)(cid:19)(cid:20)(cid:24)(cid:15)(cid:3)(cid:87)(cid:75)(cid:76)(cid:86)(cid:3)(cid:76)(cid:86)(cid:3)(cid:87)(cid:82)(cid:3)(cid:76)(cid:81)(cid:73)(cid:82)(cid:85)(cid:80)(cid:3)(cid:92)(cid:82)(cid:88)(cid:3)(cid:87)(cid:75)(cid:68)(cid:87)(cid:3)(cid:68)(cid:87)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:80)(cid:72)(cid:72)(cid:87)(cid:76)(cid:81)(cid:74)(cid:3)(cid:82)(cid:73)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:37)(cid:82)(cid:68)(cid:85)(cid:71)(cid:3)(cid:82)(cid:73)(cid:3)
+(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:86)(cid:3)(cid:82)(cid:73)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:38)(cid:82)(cid:80)(cid:83)(cid:68)(cid:81)(cid:92)(cid:3)(cid:75)(cid:72)(cid:79)(cid:71)(cid:3)(cid:82)(cid:81)(cid:3)(cid:49)(cid:82)(cid:89)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)(cid:20)(cid:19)(cid:15)(cid:3)(cid:21)(cid:19)(cid:21)(cid:22)(cid:15)(cid:3)(cid:11)(cid:70)(cid:82)(cid:80)(cid:80)(cid:72)(cid:81)(cid:70)(cid:72)(cid:71)(cid:3)(cid:68)(cid:87)(cid:3)(cid:20)(cid:21)(cid:17)(cid:19)(cid:19)(cid:3)(cid:81)(cid:82)(cid:82)(cid:81)(cid:3)(cid:68)(cid:81)(cid:71)(cid:3)(cid:70)(cid:82)(cid:81)(cid:70)(cid:79)(cid:88)(cid:71)(cid:72)(cid:71)(cid:3)
+(cid:68)(cid:87)(cid:3)(cid:20)(cid:21)(cid:17)(cid:22)(cid:24)(cid:3)(cid:83)(cid:17)(cid:80)(cid:17)(cid:12)(cid:3)(cid:76)(cid:81)(cid:87)(cid:72)(cid:85)(cid:16)(cid:68)(cid:79)(cid:76)(cid:68)(cid:3)(cid:68)(cid:83)(cid:83)(cid:85)(cid:82)(cid:89)(cid:72)(cid:71)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:73)(cid:82)(cid:79)(cid:79)(cid:82)(cid:90)(cid:76)(cid:81)(cid:74)(cid:3)(cid:76)(cid:87)(cid:72)(cid:80)(cid:86)(cid:3)(cid:82)(cid:73)(cid:3)(cid:36)(cid:74)(cid:72)(cid:81)(cid:71)(cid:68)(cid:29)(cid:3)
+(cid:36)(cid:12)(cid:3) (cid:56)(cid:81)(cid:16)(cid:68)(cid:88)(cid:71)(cid:76)(cid:87)(cid:72)(cid:71)(cid:3)(cid:41)(cid:76)(cid:81)(cid:68)(cid:81)(cid:70)(cid:76)(cid:68)(cid:79)(cid:3)(cid:53)(cid:72)(cid:86)(cid:88)(cid:79)(cid:87)(cid:86)(cid:3)(cid:73)(cid:82)(cid:85)(cid:3)(cid:84)(cid:88)(cid:68)(cid:85)(cid:87)(cid:72)(cid:85)(cid:3)(cid:68)(cid:81)(cid:71)(cid:3)(cid:92)(cid:72)(cid:68)(cid:85)(cid:3)(cid:72)(cid:81)(cid:71)(cid:72)(cid:71)(cid:3)(cid:54)(cid:72)(cid:83)(cid:87)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)(cid:22)(cid:19)(cid:15)(cid:3)(cid:21)(cid:19)(cid:21)(cid:22)(cid:29)(cid:3)
+(cid:3)
+(cid:56)(cid:81)(cid:16)(cid:68)(cid:88)(cid:71)(cid:76)(cid:87)(cid:72)(cid:71)(cid:3)(cid:86)(cid:87)(cid:68)(cid:81)(cid:71)(cid:68)(cid:79)(cid:82)(cid:81)(cid:72)(cid:3)(cid:68)(cid:81)(cid:71)(cid:3)(cid:70)(cid:82)(cid:81)(cid:86)(cid:82)(cid:79)(cid:76)(cid:71)(cid:68)(cid:87)(cid:72)(cid:71)(cid:3)(cid:73)(cid:76)(cid:81)(cid:68)(cid:81)(cid:70)(cid:76)(cid:68)(cid:79)(cid:3)(cid:85)(cid:72)(cid:86)(cid:88)(cid:79)(cid:87)(cid:86)(cid:3)(cid:73)(cid:82)(cid:85)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:84)(cid:88)(cid:68)(cid:85)(cid:87)(cid:72)(cid:85)(cid:3)(cid:68)(cid:81)(cid:71)(cid:3)(cid:92)(cid:72)(cid:68)(cid:85)(cid:3)(cid:72)(cid:81)(cid:71)(cid:72)(cid:71)(cid:3)
+(cid:54)(cid:72)(cid:83)(cid:87)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)(cid:22)(cid:19)(cid:15)(cid:3)(cid:21)(cid:19)(cid:21)(cid:22)(cid:3)(cid:68)(cid:86)(cid:3)(cid:85)(cid:72)(cid:70)(cid:82)(cid:80)(cid:80)(cid:72)(cid:81)(cid:71)(cid:72)(cid:71)(cid:3)(cid:69)(cid:92)(cid:3)(cid:36)(cid:88)(cid:71)(cid:76)(cid:87)(cid:3)(cid:38)(cid:82)(cid:80)(cid:80)(cid:76)(cid:87)(cid:87)(cid:72)(cid:72)(cid:3)(cid:82)(cid:73)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:38)(cid:82)(cid:80)(cid:83)(cid:68)(cid:81)(cid:92)(cid:17)(cid:3)
+(cid:3)
+(cid:55)(cid:75)(cid:72)(cid:3)(cid:54)(cid:87)(cid:68)(cid:87)(cid:88)(cid:87)(cid:82)(cid:85)(cid:92)(cid:3)(cid:36)(cid:88)(cid:71)(cid:76)(cid:87)(cid:82)(cid:85)(cid:86)(cid:3)(cid:75)(cid:68)(cid:89)(cid:72)(cid:3)(cid:70)(cid:68)(cid:85)(cid:85)(cid:76)(cid:72)(cid:71)(cid:3)(cid:82)(cid:88)(cid:87)(cid:3)(cid:68)(cid:3)(cid:10)(cid:47)(cid:76)(cid:80)(cid:76)(cid:87)(cid:72)(cid:71)(cid:3)(cid:53)(cid:72)(cid:89)(cid:76)(cid:72)(cid:90)(cid:10)(cid:3)(cid:82)(cid:73)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:88)(cid:81)(cid:68)(cid:88)(cid:71)(cid:76)(cid:87)(cid:72)(cid:71)(cid:3)(cid:86)(cid:87)(cid:68)(cid:81)(cid:71)(cid:68)(cid:79)(cid:82)(cid:81)(cid:72)(cid:3)(cid:68)(cid:81)(cid:71)(cid:3)
+(cid:70)(cid:82)(cid:81)(cid:86)(cid:82)(cid:79)(cid:76)(cid:71)(cid:68)(cid:87)(cid:72)(cid:71)(cid:3)(cid:41)(cid:76)(cid:81)(cid:68)(cid:81)(cid:70)(cid:76)(cid:68)(cid:79)(cid:3)(cid:53)(cid:72)(cid:86)(cid:88)(cid:79)(cid:87)(cid:86)(cid:3)(cid:73)(cid:82)(cid:85)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:84)(cid:88)(cid:68)(cid:85)(cid:87)(cid:72)(cid:85)(cid:3)(cid:72)(cid:81)(cid:71)(cid:72)(cid:71)(cid:3)(cid:54)(cid:72)(cid:83)(cid:87)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)(cid:22)(cid:19)(cid:15)(cid:3)(cid:21)(cid:19)(cid:21)(cid:22)(cid:17)(cid:3)
+(cid:3)
+(cid:51)(cid:88)(cid:85)(cid:86)(cid:88)(cid:68)(cid:81)(cid:87)(cid:3)(cid:87)(cid:82)(cid:3)(cid:53)(cid:72)(cid:74)(cid:88)(cid:79)(cid:68)(cid:87)(cid:76)(cid:82)(cid:81)(cid:3)(cid:22)(cid:22)(cid:3)(cid:82)(cid:73)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:54)(cid:40)(cid:37)(cid:44)(cid:3)(cid:47)(cid:76)(cid:86)(cid:87)(cid:76)(cid:81)(cid:74)(cid:3)(cid:53)(cid:72)(cid:74)(cid:88)(cid:79)(cid:68)(cid:87)(cid:76)(cid:82)(cid:81)(cid:86)(cid:15)(cid:3)(cid:21)(cid:19)(cid:20)(cid:24)(cid:15)(cid:3)(cid:90)(cid:72)(cid:3)(cid:68)(cid:85)(cid:72)(cid:3)(cid:72)(cid:81)(cid:70)(cid:79)(cid:82)(cid:86)(cid:76)(cid:81)(cid:74)(cid:3)(cid:75)(cid:72)(cid:85)(cid:72)(cid:90)(cid:76)(cid:87)(cid:75)(cid:3)(cid:68)(cid:3)
+(cid:70)(cid:82)(cid:83)(cid:92)(cid:3)(cid:82)(cid:73)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:88)(cid:81)(cid:68)(cid:88)(cid:71)(cid:76)(cid:87)(cid:72)(cid:71)(cid:3)(cid:86)(cid:87)(cid:68)(cid:81)(cid:71)(cid:68)(cid:79)(cid:82)(cid:81)(cid:72)(cid:3)(cid:68)(cid:81)(cid:71)(cid:3)(cid:70)(cid:82)(cid:81)(cid:86)(cid:82)(cid:79)(cid:76)(cid:71)(cid:68)(cid:87)(cid:72)(cid:71)(cid:3)(cid:41)(cid:76)(cid:81)(cid:68)(cid:81)(cid:70)(cid:76)(cid:68)(cid:79)(cid:3)(cid:53)(cid:72)(cid:86)(cid:88)(cid:79)(cid:87)(cid:86)(cid:3)(cid:68)(cid:81)(cid:71)(cid:3)(cid:47)(cid:76)(cid:80)(cid:76)(cid:87)(cid:72)(cid:71)(cid:3)(cid:53)(cid:72)(cid:89)(cid:76)(cid:72)(cid:90)(cid:3)
+(cid:53)(cid:72)(cid:83)(cid:82)(cid:85)(cid:87)(cid:86)(cid:3)(cid:82)(cid:73)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:54)(cid:87)(cid:68)(cid:87)(cid:88)(cid:87)(cid:82)(cid:85)(cid:92)(cid:3)(cid:36)(cid:88)(cid:71)(cid:76)(cid:87)(cid:82)(cid:85)(cid:86)(cid:3)(cid:82)(cid:73)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:38)(cid:82)(cid:80)(cid:83)(cid:68)(cid:81)(cid:92)(cid:17)(cid:3)
+(cid:3)
+(cid:41)(cid:88)(cid:85)(cid:87)(cid:75)(cid:72)(cid:85)(cid:15)(cid:3)(cid:90)(cid:72)(cid:3)(cid:68)(cid:85)(cid:72)(cid:3)(cid:68)(cid:79)(cid:86)(cid:82)(cid:3)(cid:72)(cid:81)(cid:70)(cid:79)(cid:82)(cid:86)(cid:76)(cid:81)(cid:74)(cid:3)(cid:75)(cid:72)(cid:85)(cid:72)(cid:90)(cid:76)(cid:87)(cid:75)(cid:3)(cid:68)(cid:3)(cid:70)(cid:82)(cid:83)(cid:92)(cid:3)(cid:82)(cid:73)(cid:3)(cid:51)(cid:85)(cid:72)(cid:86)(cid:86)(cid:3)(cid:53)(cid:72)(cid:79)(cid:72)(cid:68)(cid:86)(cid:72)(cid:3)(cid:76)(cid:81)(cid:3)(cid:70)(cid:82)(cid:81)(cid:81)(cid:72)(cid:70)(cid:87)(cid:76)(cid:82)(cid:81)(cid:3)(cid:90)(cid:76)(cid:87)(cid:75)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)
+(cid:88)(cid:81)(cid:68)(cid:88)(cid:71)(cid:76)(cid:87)(cid:72)(cid:71)(cid:3)(cid:73)(cid:76)(cid:81)(cid:68)(cid:81)(cid:70)(cid:76)(cid:68)(cid:79)(cid:3)(cid:85)(cid:72)(cid:86)(cid:88)(cid:79)(cid:87)(cid:86)(cid:3)(cid:73)(cid:82)(cid:85)(cid:3)(cid:84)(cid:88)(cid:68)(cid:85)(cid:87)(cid:72)(cid:85)(cid:3)(cid:68)(cid:81)(cid:71)(cid:3)(cid:75)(cid:68)(cid:79)(cid:73)(cid:3)(cid:92)(cid:72)(cid:68)(cid:85)(cid:3)(cid:72)(cid:81)(cid:71)(cid:72)(cid:71)(cid:3)(cid:54)(cid:72)(cid:83)(cid:87)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)(cid:22)(cid:19)(cid:15)(cid:3)(cid:21)(cid:19)(cid:21)(cid:22)(cid:17)(cid:3)
+(cid:3)
+(cid:37)(cid:12)(cid:3) (cid:39)(cid:72)(cid:70)(cid:79)(cid:68)(cid:85)(cid:68)(cid:87)(cid:76)(cid:82)(cid:81)(cid:3)(cid:82)(cid:73)(cid:3)(cid:20)(cid:86)(cid:87)(cid:3)(cid:44)(cid:81)(cid:87)(cid:72)(cid:85)(cid:76)(cid:80)(cid:3)(cid:39)(cid:76)(cid:89)(cid:76)(cid:71)(cid:72)(cid:81)(cid:71)(cid:3)(cid:73)(cid:82)(cid:85)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:41)(cid:60)(cid:3)(cid:21)(cid:19)(cid:21)(cid:22)(cid:16)(cid:21)(cid:23)(cid:29)(cid:3)
+(cid:55)(cid:75)(cid:72)(cid:3)(cid:37)(cid:82)(cid:68)(cid:85)(cid:71)(cid:3)(cid:82)(cid:73)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:86)(cid:3)(cid:82)(cid:73)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:38)(cid:82)(cid:80)(cid:83)(cid:68)(cid:81)(cid:92)(cid:15)(cid:3)(cid:76)(cid:81)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:68)(cid:73)(cid:82)(cid:85)(cid:72)(cid:86)(cid:68)(cid:76)(cid:71)(cid:3)(cid:80)(cid:72)(cid:72)(cid:87)(cid:76)(cid:81)(cid:74)(cid:3)(cid:75)(cid:68)(cid:89)(cid:72)(cid:3)(cid:68)(cid:79)(cid:86)(cid:82)(cid:3)(cid:68)(cid:83)(cid:83)(cid:85)(cid:82)(cid:89)(cid:72)(cid:71)(cid:18)(cid:71)(cid:72)(cid:70)(cid:79)(cid:68)(cid:85)(cid:72)(cid:71)(cid:3)
+(cid:20)(cid:86)(cid:87)(cid:3)(cid:44)(cid:81)(cid:87)(cid:72)(cid:85)(cid:76)(cid:80)(cid:3)(cid:39)(cid:76)(cid:89)(cid:76)(cid:71)(cid:72)(cid:81)(cid:71)(cid:3)(cid:68)(cid:87)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:85)(cid:68)(cid:87)(cid:72)(cid:3)(cid:82)(cid:73)(cid:3)(cid:53)(cid:86)(cid:17)(cid:20)(cid:17)(cid:21)(cid:19)(cid:3)(cid:11)(cid:76)(cid:17)(cid:72)(cid:17)(cid:3)(cid:25)(cid:19)(cid:8)(cid:12)(cid:3)(cid:83)(cid:72)(cid:85)(cid:3)(cid:72)(cid:84)(cid:88)(cid:76)(cid:87)(cid:92)(cid:3)(cid:86)(cid:75)(cid:68)(cid:85)(cid:72)(cid:3)(cid:82)(cid:73)(cid:3)(cid:41)(cid:68)(cid:70)(cid:72)(cid:3)(cid:57)(cid:68)(cid:79)(cid:88)(cid:72)(cid:3)(cid:82)(cid:73)(cid:3)(cid:53)(cid:86)(cid:17)(cid:3)(cid:21)(cid:18)(cid:16)(cid:3)
+(cid:72)(cid:68)(cid:70)(cid:75)(cid:3)(cid:82)(cid:81)(cid:3)(cid:20)(cid:19)(cid:25)(cid:26)(cid:28)(cid:24)(cid:20)(cid:21)(cid:21)(cid:3)(cid:72)(cid:84)(cid:88)(cid:76)(cid:87)(cid:92)(cid:3)(cid:86)(cid:75)(cid:68)(cid:85)(cid:72)(cid:86)(cid:3)(cid:82)(cid:73)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:38)(cid:82)(cid:80)(cid:83)(cid:68)(cid:81)(cid:92)(cid:3)(cid:73)(cid:82)(cid:85)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:41)(cid:76)(cid:81)(cid:68)(cid:81)(cid:70)(cid:76)(cid:68)(cid:79)(cid:3)(cid:60)(cid:72)(cid:68)(cid:85)(cid:3)(cid:21)(cid:19)(cid:21)(cid:22)(cid:16)(cid:21)(cid:23)(cid:3)(cid:68)(cid:81)(cid:71)(cid:3)(cid:75)(cid:68)(cid:86)(cid:3)(cid:73)(cid:76)(cid:91)(cid:72)(cid:71)(cid:3)
+(cid:41)(cid:85)(cid:76)(cid:71)(cid:68)(cid:92)(cid:15)(cid:3)(cid:49)(cid:82)(cid:89)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)(cid:21)(cid:23)(cid:15)(cid:3)(cid:21)(cid:19)(cid:21)(cid:22)(cid:3)(cid:68)(cid:86)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:53)(cid:72)(cid:70)(cid:82)(cid:85)(cid:71)(cid:3)(cid:39)(cid:68)(cid:87)(cid:72)(cid:3)(cid:73)(cid:82)(cid:85)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:20)(cid:86)(cid:87)(cid:3)(cid:44)(cid:81)(cid:87)(cid:72)(cid:85)(cid:76)(cid:80)(cid:3)(cid:39)(cid:76)(cid:89)(cid:76)(cid:71)(cid:72)(cid:81)(cid:71)(cid:3)(cid:21)(cid:19)(cid:21)(cid:22)(cid:16)(cid:21)(cid:19)(cid:21)(cid:23)(cid:17)(cid:3)(cid:3)
+(cid:41)(cid:88)(cid:85)(cid:87)(cid:75)(cid:72)(cid:85)(cid:3)(cid:83)(cid:79)(cid:72)(cid:68)(cid:86)(cid:72)(cid:3)(cid:87)(cid:68)(cid:78)(cid:72)(cid:3)(cid:81)(cid:82)(cid:87)(cid:72)(cid:3)(cid:87)(cid:75)(cid:68)(cid:87)(cid:3)(cid:71)(cid:76)(cid:89)(cid:76)(cid:71)(cid:72)(cid:81)(cid:71)(cid:3)(cid:69)(cid:72)(cid:3)(cid:83)(cid:68)(cid:76)(cid:71)(cid:3)(cid:87)(cid:82)(cid:3)(cid:87)(cid:75)(cid:82)(cid:86)(cid:72)(cid:3)(cid:86)(cid:75)(cid:68)(cid:85)(cid:72)(cid:75)(cid:82)(cid:79)(cid:71)(cid:72)(cid:85)(cid:86)(cid:3)(cid:75)(cid:82)(cid:79)(cid:71)(cid:76)(cid:81)(cid:74)(cid:3)(cid:86)(cid:75)(cid:68)(cid:85)(cid:72)(cid:86)(cid:3)(cid:76)(cid:81)(cid:3)(cid:72)(cid:79)(cid:72)(cid:70)(cid:87)(cid:85)(cid:82)(cid:81)(cid:76)(cid:70)(cid:3)
+(cid:73)(cid:82)(cid:85)(cid:80)(cid:3)(cid:68)(cid:86)(cid:3)(cid:83)(cid:72)(cid:85)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:69)(cid:72)(cid:81)(cid:72)(cid:73)(cid:76)(cid:70)(cid:76)(cid:68)(cid:79)(cid:3)(cid:82)(cid:90)(cid:81)(cid:72)(cid:85)(cid:86)(cid:75)(cid:76)(cid:83)(cid:3)(cid:71)(cid:68)(cid:87)(cid:68)(cid:3)(cid:80)(cid:68)(cid:71)(cid:72)(cid:3)(cid:68)(cid:89)(cid:68)(cid:76)(cid:79)(cid:68)(cid:69)(cid:79)(cid:72)(cid:3)(cid:69)(cid:92)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:49)(cid:68)(cid:87)(cid:76)(cid:82)(cid:81)(cid:68)(cid:79)(cid:3)(cid:54)(cid:72)(cid:70)(cid:88)(cid:85)(cid:76)(cid:87)(cid:76)(cid:72)(cid:86)(cid:3)(cid:39)(cid:72)(cid:83)(cid:82)(cid:86)(cid:76)(cid:87)(cid:82)(cid:85)(cid:92)(cid:3)
+(cid:47)(cid:76)(cid:80)(cid:76)(cid:87)(cid:72)(cid:71)(cid:3)(cid:11)(cid:49)(cid:54)(cid:39)(cid:47)(cid:12)(cid:3)(cid:68)(cid:81)(cid:71)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:38)(cid:72)(cid:81)(cid:87)(cid:85)(cid:68)(cid:79)(cid:3)(cid:39)(cid:72)(cid:83)(cid:82)(cid:86)(cid:76)(cid:87)(cid:82)(cid:85)(cid:92)(cid:3)(cid:54)(cid:72)(cid:85)(cid:89)(cid:76)(cid:70)(cid:72)(cid:86)(cid:3)(cid:11)(cid:44)(cid:81)(cid:71)(cid:76)(cid:68)(cid:12)(cid:3)(cid:47)(cid:76)(cid:80)(cid:76)(cid:87)(cid:72)(cid:71)(cid:3)(cid:11)(cid:38)(cid:39)(cid:54)(cid:47)(cid:12)(cid:3)(cid:68)(cid:86)(cid:3)(cid:68)(cid:87)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:72)(cid:81)(cid:71)(cid:3)(cid:82)(cid:73)(cid:3)
+(cid:90)(cid:82)(cid:85)(cid:78)(cid:76)(cid:81)(cid:74)(cid:3)(cid:75)(cid:82)(cid:88)(cid:85)(cid:86)(cid:3)(cid:82)(cid:81)(cid:3)(cid:49)(cid:82)(cid:89)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)(cid:21)(cid:23)(cid:15)(cid:3)(cid:21)(cid:19)(cid:21)(cid:22)(cid:3)(cid:68)(cid:81)(cid:71)(cid:3)(cid:86)(cid:75)(cid:68)(cid:85)(cid:72)(cid:86)(cid:3)(cid:76)(cid:81)(cid:3)(cid:83)(cid:75)(cid:92)(cid:86)(cid:76)(cid:70)(cid:68)(cid:79)(cid:3)(cid:73)(cid:82)(cid:85)(cid:80)(cid:3)(cid:90)(cid:75)(cid:82)(cid:86)(cid:72)(cid:3)(cid:81)(cid:68)(cid:80)(cid:72)(cid:86)(cid:3)(cid:86)(cid:75)(cid:68)(cid:79)(cid:79)(cid:3)(cid:68)(cid:83)(cid:83)(cid:72)(cid:68)(cid:85)(cid:3)
+(cid:82)(cid:81)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:53)(cid:72)(cid:74)(cid:76)(cid:86)(cid:87)(cid:72)(cid:85)(cid:3)(cid:82)(cid:73)(cid:3)(cid:48)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:86)(cid:3)(cid:68)(cid:86)(cid:3)(cid:82)(cid:81)(cid:3)(cid:49)(cid:82)(cid:89)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)(cid:21)(cid:23)(cid:15)(cid:3)(cid:21)(cid:19)(cid:21)(cid:22)(cid:17)(cid:3)
+(cid:51)(cid:68)(cid:92)(cid:80)(cid:72)(cid:81)(cid:87)(cid:3)(cid:82)(cid:73)(cid:3)(cid:20)(cid:86)(cid:87)(cid:3)(cid:44)(cid:81)(cid:87)(cid:72)(cid:85)(cid:76)(cid:80)(cid:3)(cid:39)(cid:76)(cid:89)(cid:76)(cid:71)(cid:72)(cid:81)(cid:71)(cid:3)(cid:86)(cid:75)(cid:68)(cid:79)(cid:79)(cid:3)(cid:86)(cid:87)(cid:68)(cid:85)(cid:87)(cid:3)(cid:73)(cid:85)(cid:82)(cid:80)(cid:3)(cid:58)(cid:72)(cid:71)(cid:81)(cid:72)(cid:86)(cid:71)(cid:68)(cid:92)(cid:15)(cid:3)(cid:49)(cid:82)(cid:89)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)(cid:21)(cid:28)(cid:15)(cid:3)(cid:21)(cid:19)(cid:21)(cid:22)(cid:17)(cid:3)
+(cid:90)(cid:286)(cid:336)(cid:349)(cid:400)(cid:410)(cid:286)(cid:396)(cid:286)(cid:282)(cid:3)(cid:75)(cid:296)(cid:296)(cid:349)(cid:272)(cid:286)(cid:3)
+(cid:39)(cid:286)(cid:373)(cid:400)(cid:3)(cid:920)(cid:3)(cid:58)(cid:286)(cid:449)(cid:286)(cid:367)(cid:367)(cid:286)(cid:396)(cid:455)(cid:3)(cid:18)(cid:381)(cid:373)(cid:393)(cid:367)(cid:286)(cid:454)(cid:853)(cid:3)(cid:94)(cid:258)(cid:374)(cid:410)(cid:258)(cid:272)(cid:396)(cid:437)(cid:460)(cid:3)(cid:28)(cid:367)(cid:286)(cid:272)(cid:410)(cid:396)(cid:381)(cid:374)(cid:349)(cid:272)(cid:400)(cid:3)(cid:28)(cid:454)(cid:393)(cid:381)(cid:396)(cid:410)(cid:3)(cid:87)(cid:396)(cid:381)(cid:272)(cid:286)(cid:400)(cid:400)(cid:349)(cid:374)(cid:336)(cid:3)(cid:127)(cid:381)(cid:374)(cid:286)(cid:853)(cid:3)(cid:4)(cid:374)(cid:282)(cid:346)(cid:286)(cid:396)(cid:349)(cid:3)(cid:894)(cid:28)(cid:258)(cid:400)(cid:410)(cid:895)(cid:853)(cid:3)(cid:68)(cid:437)(cid:373)(cid:271)(cid:258)(cid:349)(cid:882)(cid:1008)(cid:1004)(cid:1004)(cid:1004)(cid:1013)(cid:1010)(cid:856)(cid:3)(cid:47)(cid:374)(cid:282)(cid:349)(cid:258)(cid:3)
+(cid:87)(cid:346)(cid:381)(cid:374)(cid:286)(cid:400)(cid:855)(cid:3)(cid:894)(cid:1004)(cid:1006)(cid:1006)(cid:895)(cid:3)(cid:1006)(cid:1012)(cid:1006)(cid:1013)(cid:1005)(cid:1012)(cid:1013)(cid:1007)(cid:876)(cid:1006)(cid:1012)(cid:1006)(cid:1013)(cid:1004)(cid:1007)(cid:1013)(cid:1010)(cid:876)(cid:1006)(cid:1012)(cid:1006)(cid:1013)(cid:1006)(cid:1007)(cid:1013)(cid:1011)(cid:3)(cid:38)(cid:258)(cid:454)(cid:3)(cid:855)(cid:3)(cid:894)(cid:1004)(cid:1006)(cid:1006)(cid:895)(cid:3)(cid:1006)(cid:1012)(cid:1006)(cid:1013)(cid:1006)(cid:1012)(cid:1012)(cid:1009)(cid:3)(cid:28)(cid:373)(cid:258)(cid:349)(cid:367)(cid:855)(cid:882)(cid:3)(cid:349)(cid:374)(cid:448)(cid:286)(cid:400)(cid:410)(cid:381)(cid:396)(cid:396)(cid:286)(cid:367)(cid:258)(cid:410)(cid:349)(cid:381)(cid:374)(cid:400)(cid:923)(cid:336)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:856)(cid:272)(cid:381)(cid:373)(cid:3)(cid:3)
+(cid:3)(cid:116)(cid:286)(cid:271)(cid:400)(cid:349)(cid:410)(cid:286)(cid:855)(cid:3)(cid:449)(cid:449)(cid:449)(cid:856)(cid:336)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:856)(cid:272)(cid:381)(cid:373)(cid:3)
+(cid:3)
+
+(cid:3)
+(cid:38)(cid:12)(cid:3) (cid:36)(cid:83)(cid:83)(cid:85)(cid:82)(cid:89)(cid:68)(cid:79)(cid:3)(cid:82)(cid:73)(cid:3)(cid:49)(cid:82)(cid:87)(cid:76)(cid:70)(cid:72)(cid:3)(cid:82)(cid:73)(cid:3)(cid:51)(cid:82)(cid:86)(cid:87)(cid:68)(cid:79)(cid:3)(cid:69)(cid:68)(cid:79)(cid:79)(cid:82)(cid:87)(cid:3)(cid:73)(cid:82)(cid:85)(cid:3)(cid:68)(cid:83)(cid:83)(cid:82)(cid:76)(cid:81)(cid:87)(cid:80)(cid:72)(cid:81)(cid:87)(cid:3)(cid:82)(cid:73)(cid:3)(cid:48)(cid:85)(cid:86)(cid:17)(cid:3)(cid:53)(cid:88)(cid:70)(cid:75)(cid:76)(cid:3)(cid:54)(cid:75)(cid:85)(cid:76)(cid:81)(cid:68)(cid:87)(cid:75)(cid:3)(cid:51)(cid:68)(cid:81)(cid:71)(cid:92)(cid:68)(cid:3)(cid:11)(cid:39)(cid:44)(cid:49)(cid:3)
+(cid:19)(cid:28)(cid:26)(cid:20)(cid:27)(cid:22)(cid:25)(cid:27)(cid:12)(cid:3)(cid:68)(cid:86)(cid:3)(cid:68)(cid:81)(cid:3)(cid:44)(cid:81)(cid:71)(cid:72)(cid:83)(cid:72)(cid:81)(cid:71)(cid:72)(cid:81)(cid:87)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3)(cid:82)(cid:73)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:38)(cid:82)(cid:80)(cid:83)(cid:68)(cid:81)(cid:92)(cid:3)(cid:73)(cid:82)(cid:85)(cid:3)(cid:87)(cid:75)(cid:72)(cid:3)(cid:73)(cid:76)(cid:89)(cid:72)(cid:3)(cid:92)(cid:72)(cid:68)(cid:85)(cid:86)(cid:3)(cid:90)(cid:76)(cid:87)(cid:75)(cid:3)(cid:72)(cid:73)(cid:73)(cid:72)(cid:70)(cid:87)(cid:3)(cid:73)(cid:85)(cid:82)(cid:80)(cid:3)
+(cid:54)(cid:72)(cid:83)(cid:87)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)(cid:21)(cid:27)(cid:15)(cid:3)(cid:21)(cid:19)(cid:21)(cid:22)(cid:17)(cid:3)
+(cid:3)
+(cid:39)(cid:12)(cid:3) (cid:53)(cid:72)(cid:70)(cid:82)(cid:81)(cid:86)(cid:87)(cid:76)(cid:87)(cid:88)(cid:87)(cid:76)(cid:82)(cid:81)(cid:3)(cid:82)(cid:73)(cid:3)(cid:37)(cid:82)(cid:68)(cid:85)(cid:71)(cid:3)(cid:38)(cid:82)(cid:80)(cid:80)(cid:76)(cid:87)(cid:87)(cid:72)(cid:72)(cid:3)(cid:90)(cid:17)(cid:72)(cid:17)(cid:73)(cid:17)(cid:3)(cid:49)(cid:82)(cid:89)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)(cid:20)(cid:20)(cid:15)(cid:3)(cid:21)(cid:19)(cid:21)(cid:22)(cid:29)(cid:3)
+(cid:3)
+(cid:20)(cid:17)(cid:3)(cid:36)(cid:88)(cid:71)(cid:76)(cid:87)(cid:3)(cid:38)(cid:82)(cid:80)(cid:80)(cid:76)(cid:87)(cid:87)(cid:72)(cid:72)(cid:29)(cid:3)
+(cid:54)(cid:85)(cid:17)(cid:49)(cid:82)(cid:17)(cid:3) (cid:49)(cid:68)(cid:80)(cid:72)(cid:3)(cid:82)(cid:73)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3) (cid:38)(cid:68)(cid:87)(cid:72)(cid:74)(cid:82)(cid:85)(cid:92)(cid:3) (cid:54)(cid:87)(cid:68)(cid:87)(cid:88)(cid:86)(cid:3)
+(cid:20)(cid:3) (cid:48)(cid:85)(cid:17)(cid:3)(cid:51)(cid:68)(cid:81)(cid:81)(cid:78)(cid:68)(cid:77)(cid:3)(cid:38)(cid:3)(cid:42)(cid:75)(cid:68)(cid:71)(cid:76)(cid:68)(cid:79)(cid:76)(cid:3) (cid:44)(cid:81)(cid:71)(cid:72)(cid:83)(cid:72)(cid:81)(cid:71)(cid:72)(cid:81)(cid:87)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3) (cid:38)(cid:75)(cid:68)(cid:76)(cid:85)(cid:80)(cid:68)(cid:81)(cid:3)
+(cid:21)(cid:3) (cid:48)(cid:85)(cid:86)(cid:17)(cid:3)(cid:49)(cid:76)(cid:83)(cid:68)(cid:3)(cid:56)(cid:87)(cid:83)(cid:68)(cid:79)(cid:3)(cid:54)(cid:75)(cid:72)(cid:87)(cid:75)(cid:3) (cid:44)(cid:81)(cid:71)(cid:72)(cid:83)(cid:72)(cid:81)(cid:71)(cid:72)(cid:81)(cid:87)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3) (cid:48)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)
+(cid:22)(cid:3) (cid:48)(cid:85)(cid:17)(cid:3)(cid:53)(cid:68)(cid:86)(cid:75)(cid:72)(cid:86)(cid:75)(cid:3)(cid:48)(cid:17)(cid:3)(cid:37)(cid:75)(cid:68)(cid:81)(cid:86)(cid:68)(cid:79)(cid:76)(cid:3) (cid:40)(cid:91)(cid:72)(cid:70)(cid:88)(cid:87)(cid:76)(cid:89)(cid:72)(cid:3)(cid:38)(cid:75)(cid:68)(cid:76)(cid:85)(cid:80)(cid:68)(cid:81)(cid:3) (cid:48)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)
+(cid:23)(cid:3) (cid:48)(cid:85)(cid:86)(cid:17)(cid:3)(cid:53)(cid:88)(cid:70)(cid:75)(cid:76)(cid:3)(cid:54)(cid:75)(cid:85)(cid:76)(cid:81)(cid:68)(cid:87)(cid:75)(cid:3)(cid:51)(cid:68)(cid:81)(cid:71)(cid:92)(cid:68)(cid:3) (cid:36)(cid:71)(cid:71)(cid:76)(cid:87)(cid:76)(cid:82)(cid:81)(cid:68)(cid:79)(cid:3) (cid:49)(cid:82)(cid:81)(cid:3) (cid:40)(cid:91)(cid:72)(cid:70)(cid:88)(cid:87)(cid:76)(cid:89)(cid:72)(cid:3) (cid:48)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)
+(cid:44)(cid:81)(cid:71)(cid:72)(cid:83)(cid:72)(cid:81)(cid:71)(cid:72)(cid:81)(cid:87)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3)(cid:3)
+(cid:3)
+(cid:21)(cid:17)(cid:3)(cid:49)(cid:82)(cid:80)(cid:76)(cid:81)(cid:68)(cid:87)(cid:76)(cid:82)(cid:81)(cid:3)(cid:9)(cid:3)(cid:53)(cid:72)(cid:80)(cid:88)(cid:81)(cid:72)(cid:85)(cid:68)(cid:87)(cid:76)(cid:82)(cid:81)(cid:3)(cid:38)(cid:82)(cid:80)(cid:80)(cid:76)(cid:87)(cid:87)(cid:72)(cid:72)(cid:29)(cid:3)
+(cid:54)(cid:85)(cid:17)(cid:49)(cid:82)(cid:17)(cid:3) (cid:49)(cid:68)(cid:80)(cid:72)(cid:3)(cid:82)(cid:73)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3) (cid:38)(cid:68)(cid:87)(cid:72)(cid:74)(cid:82)(cid:85)(cid:92)(cid:3) (cid:54)(cid:87)(cid:68)(cid:87)(cid:88)(cid:86)(cid:3)
+(cid:20)(cid:3) (cid:48)(cid:85)(cid:86)(cid:17)(cid:3)(cid:49)(cid:76)(cid:83)(cid:68)(cid:3)(cid:56)(cid:87)(cid:83)(cid:68)(cid:79)(cid:3)(cid:54)(cid:75)(cid:72)(cid:87)(cid:75)(cid:3) (cid:44)(cid:81)(cid:71)(cid:72)(cid:83)(cid:72)(cid:81)(cid:71)(cid:72)(cid:81)(cid:87)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3) (cid:38)(cid:75)(cid:68)(cid:76)(cid:85)(cid:80)(cid:68)(cid:81)(cid:3)
+(cid:21)(cid:3) (cid:48)(cid:85)(cid:17)(cid:3)(cid:51)(cid:68)(cid:81)(cid:81)(cid:78)(cid:68)(cid:77)(cid:3)(cid:38)(cid:3)(cid:42)(cid:75)(cid:68)(cid:71)(cid:76)(cid:68)(cid:79)(cid:76)(cid:3) (cid:44)(cid:81)(cid:71)(cid:72)(cid:83)(cid:72)(cid:81)(cid:71)(cid:72)(cid:81)(cid:87)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3) (cid:48)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)
+(cid:22)(cid:3) (cid:48)(cid:85)(cid:86)(cid:17)(cid:3)(cid:55)(cid:88)(cid:79)(cid:86)(cid:76)(cid:3)(cid:42)(cid:88)(cid:83)(cid:87)(cid:68)(cid:3) (cid:49)(cid:82)(cid:81)(cid:16)(cid:72)(cid:91)(cid:72)(cid:70)(cid:88)(cid:87)(cid:76)(cid:89)(cid:72)(cid:3) (cid:49)(cid:82)(cid:81)(cid:16) (cid:48)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)
+(cid:44)(cid:81)(cid:71)(cid:72)(cid:83)(cid:72)(cid:81)(cid:71)(cid:72)(cid:81)(cid:87)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3)
+(cid:23)(cid:3) (cid:48)(cid:85)(cid:86)(cid:17)(cid:3)(cid:53)(cid:88)(cid:70)(cid:75)(cid:76)(cid:3)(cid:54)(cid:75)(cid:85)(cid:76)(cid:81)(cid:68)(cid:87)(cid:75)(cid:3)(cid:51)(cid:68)(cid:81)(cid:71)(cid:92)(cid:68)(cid:3) (cid:36)(cid:71)(cid:71)(cid:76)(cid:87)(cid:76)(cid:82)(cid:81)(cid:68)(cid:79)(cid:3) (cid:49)(cid:82)(cid:81)(cid:3) (cid:40)(cid:91)(cid:72)(cid:70)(cid:88)(cid:87)(cid:76)(cid:89)(cid:72)(cid:3) (cid:48)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)
+(cid:44)(cid:81)(cid:71)(cid:72)(cid:83)(cid:72)(cid:81)(cid:71)(cid:72)(cid:81)(cid:87)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3)(cid:3)
+(cid:3)
+(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:22)(cid:17)(cid:3)(cid:38)(cid:82)(cid:85)(cid:83)(cid:82)(cid:85)(cid:68)(cid:87)(cid:72)(cid:3)(cid:54)(cid:82)(cid:70)(cid:76)(cid:68)(cid:79)(cid:3)(cid:53)(cid:72)(cid:86)(cid:83)(cid:82)(cid:81)(cid:86)(cid:76)(cid:69)(cid:76)(cid:79)(cid:76)(cid:87)(cid:92)(cid:3)(cid:38)(cid:82)(cid:80)(cid:80)(cid:76)(cid:87)(cid:87)(cid:72)(cid:72)(cid:3)
+(cid:54)(cid:85)(cid:17)(cid:49)(cid:82)(cid:17)(cid:3) (cid:49)(cid:68)(cid:80)(cid:72)(cid:3)(cid:82)(cid:73)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3) (cid:38)(cid:68)(cid:87)(cid:72)(cid:74)(cid:82)(cid:85)(cid:92)(cid:3) (cid:54)(cid:87)(cid:68)(cid:87)(cid:88)(cid:86)(cid:3)
+(cid:20)(cid:3) (cid:48)(cid:85)(cid:86)(cid:17)(cid:3)(cid:49)(cid:76)(cid:83)(cid:68)(cid:3)(cid:56)(cid:87)(cid:83)(cid:68)(cid:79)(cid:3)(cid:54)(cid:75)(cid:72)(cid:87)(cid:75) (cid:44)(cid:81)(cid:71)(cid:72)(cid:83)(cid:72)(cid:81)(cid:71)(cid:72)(cid:81)(cid:87)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85) (cid:38)(cid:75)(cid:68)(cid:76)(cid:85)(cid:80)(cid:68)(cid:81)(cid:3)
+(cid:21)(cid:3) (cid:48)(cid:85)(cid:17)(cid:3)(cid:51)(cid:68)(cid:81)(cid:81)(cid:78)(cid:68)(cid:77)(cid:3)(cid:38)(cid:3)(cid:42)(cid:75)(cid:68)(cid:71)(cid:76)(cid:68)(cid:79)(cid:76)(cid:3) (cid:44)(cid:81)(cid:71)(cid:72)(cid:83)(cid:72)(cid:81)(cid:71)(cid:72)(cid:81)(cid:87)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3) (cid:48)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)
+(cid:22)(cid:3) (cid:48)(cid:85)(cid:17)(cid:3)(cid:53)(cid:68)(cid:86)(cid:75)(cid:72)(cid:86)(cid:75)(cid:3)(cid:48)(cid:17)(cid:3)(cid:37)(cid:75)(cid:68)(cid:81)(cid:86)(cid:68)(cid:79)(cid:76)(cid:3) (cid:40)(cid:91)(cid:72)(cid:70)(cid:88)(cid:87)(cid:76)(cid:89)(cid:72)(cid:3)(cid:38)(cid:75)(cid:68)(cid:76)(cid:85)(cid:80)(cid:68)(cid:81)(cid:3) (cid:48)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)
+(cid:23)(cid:3) (cid:48)(cid:85)(cid:86)(cid:17)(cid:3)(cid:55)(cid:88)(cid:79)(cid:86)(cid:76)(cid:3)(cid:42)(cid:88)(cid:83)(cid:87)(cid:68)(cid:3) (cid:49)(cid:82)(cid:81)(cid:16)(cid:72)(cid:91)(cid:72)(cid:70)(cid:88)(cid:87)(cid:76)(cid:89)(cid:72)(cid:3) (cid:49)(cid:82)(cid:81)(cid:16) (cid:48)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)
+(cid:44)(cid:81)(cid:71)(cid:72)(cid:83)(cid:72)(cid:81)(cid:71)(cid:72)(cid:81)(cid:87)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3)
+(cid:24)(cid:3) (cid:48)(cid:85)(cid:86)(cid:17)(cid:3)(cid:53)(cid:88)(cid:70)(cid:75)(cid:76)(cid:3)(cid:54)(cid:75)(cid:85)(cid:76)(cid:81)(cid:68)(cid:87)(cid:75)(cid:3)(cid:51)(cid:68)(cid:81)(cid:71)(cid:92)(cid:68)(cid:3) (cid:36)(cid:71)(cid:71)(cid:76)(cid:87)(cid:76)(cid:82)(cid:81)(cid:68)(cid:79)(cid:3) (cid:49)(cid:82)(cid:81)(cid:3) (cid:40)(cid:91)(cid:72)(cid:70)(cid:88)(cid:87)(cid:76)(cid:89)(cid:72)(cid:3) (cid:48)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)
+(cid:44)(cid:81)(cid:71)(cid:72)(cid:83)(cid:72)(cid:81)(cid:71)(cid:72)(cid:81)(cid:87)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3)(cid:3)
+(cid:3)
+(cid:23)(cid:17)(cid:3)(cid:54)(cid:87)(cid:68)(cid:78)(cid:72)(cid:75)(cid:82)(cid:79)(cid:71)(cid:72)(cid:85)(cid:86)(cid:3)(cid:53)(cid:72)(cid:79)(cid:68)(cid:87)(cid:76)(cid:82)(cid:81)(cid:86)(cid:75)(cid:76)(cid:83)(cid:3)(cid:38)(cid:82)(cid:80)(cid:80)(cid:76)(cid:87)(cid:87)(cid:72)(cid:72)(cid:3)
+(cid:54)(cid:85)(cid:17)(cid:49)(cid:82)(cid:17)(cid:3) (cid:49)(cid:68)(cid:80)(cid:72)(cid:3)(cid:82)(cid:73)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3) (cid:38)(cid:68)(cid:87)(cid:72)(cid:74)(cid:82)(cid:85)(cid:92) (cid:54)(cid:87)(cid:68)(cid:87)(cid:88)(cid:86)(cid:3)
+(cid:20)(cid:3) (cid:48)(cid:85)(cid:17)(cid:3)(cid:51)(cid:68)(cid:81)(cid:81)(cid:78)(cid:68)(cid:77)(cid:3)(cid:38)(cid:3)(cid:42)(cid:75)(cid:68)(cid:71)(cid:76)(cid:68)(cid:79)(cid:76)(cid:3) (cid:44)(cid:81)(cid:71)(cid:72)(cid:83)(cid:72)(cid:81)(cid:71)(cid:72)(cid:81)(cid:87)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3) (cid:38)(cid:75)(cid:68)(cid:76)(cid:85)(cid:80)(cid:68)(cid:81)(cid:3)
+(cid:21)(cid:3) (cid:48)(cid:85)(cid:86)(cid:17)(cid:3)(cid:49)(cid:76)(cid:83)(cid:68)(cid:3)(cid:56)(cid:87)(cid:83)(cid:68)(cid:79)(cid:3)(cid:54)(cid:75)(cid:72)(cid:87)(cid:75)(cid:3) (cid:44)(cid:81)(cid:71)(cid:72)(cid:83)(cid:72)(cid:81)(cid:71)(cid:72)(cid:81)(cid:87)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3) (cid:48)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)
+(cid:22)(cid:3) (cid:48)(cid:85)(cid:17)(cid:3)(cid:53)(cid:68)(cid:86)(cid:75)(cid:72)(cid:86)(cid:75)(cid:3)(cid:48)(cid:17)(cid:3)(cid:37)(cid:75)(cid:68)(cid:81)(cid:86)(cid:68)(cid:79)(cid:76)(cid:3) (cid:40)(cid:91)(cid:72)(cid:70)(cid:88)(cid:87)(cid:76)(cid:89)(cid:72)(cid:3)(cid:38)(cid:75)(cid:68)(cid:76)(cid:85)(cid:80)(cid:68)(cid:81)(cid:3) (cid:48)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)
+(cid:23)(cid:3) (cid:48)(cid:85)(cid:86)(cid:17)(cid:3)(cid:53)(cid:88)(cid:70)(cid:75)(cid:76)(cid:3)(cid:54)(cid:75)(cid:85)(cid:76)(cid:81)(cid:68)(cid:87)(cid:75)(cid:3)(cid:51)(cid:68)(cid:81)(cid:71)(cid:92)(cid:68)(cid:3) (cid:36)(cid:71)(cid:71)(cid:76)(cid:87)(cid:76)(cid:82)(cid:81)(cid:68)(cid:79)(cid:3) (cid:49)(cid:82)(cid:81)(cid:3) (cid:40)(cid:91)(cid:72)(cid:70)(cid:88)(cid:87)(cid:76)(cid:89)(cid:72)(cid:3) (cid:48)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)
+(cid:44)(cid:81)(cid:71)(cid:72)(cid:83)(cid:72)(cid:81)(cid:71)(cid:72)(cid:81)(cid:87)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3)(cid:3)
+(cid:3)
+(cid:3)
+(cid:3)
+(cid:3)
+(cid:90)(cid:286)(cid:336)(cid:349)(cid:400)(cid:410)(cid:286)(cid:396)(cid:286)(cid:282)(cid:3)(cid:75)(cid:296)(cid:296)(cid:349)(cid:272)(cid:286)(cid:3)
+(cid:39)(cid:286)(cid:373)(cid:400)(cid:3)(cid:920)(cid:3)(cid:58)(cid:286)(cid:449)(cid:286)(cid:367)(cid:367)(cid:286)(cid:396)(cid:455)(cid:3)(cid:18)(cid:381)(cid:373)(cid:393)(cid:367)(cid:286)(cid:454)(cid:853)(cid:3)(cid:94)(cid:258)(cid:374)(cid:410)(cid:258)(cid:272)(cid:396)(cid:437)(cid:460)(cid:3)(cid:28)(cid:367)(cid:286)(cid:272)(cid:410)(cid:396)(cid:381)(cid:374)(cid:349)(cid:272)(cid:400)(cid:3)(cid:28)(cid:454)(cid:393)(cid:381)(cid:396)(cid:410)(cid:3)(cid:87)(cid:396)(cid:381)(cid:272)(cid:286)(cid:400)(cid:400)(cid:349)(cid:374)(cid:336)(cid:3)(cid:127)(cid:381)(cid:374)(cid:286)(cid:853)(cid:3)(cid:4)(cid:374)(cid:282)(cid:346)(cid:286)(cid:396)(cid:349)(cid:3)(cid:894)(cid:28)(cid:258)(cid:400)(cid:410)(cid:895)(cid:853)(cid:3)(cid:68)(cid:437)(cid:373)(cid:271)(cid:258)(cid:349)(cid:882)(cid:1008)(cid:1004)(cid:1004)(cid:1004)(cid:1013)(cid:1010)(cid:856)(cid:3)(cid:47)(cid:374)(cid:282)(cid:349)(cid:258)(cid:3)
+(cid:87)(cid:346)(cid:381)(cid:374)(cid:286)(cid:400)(cid:855)(cid:3)(cid:894)(cid:1004)(cid:1006)(cid:1006)(cid:895)(cid:3)(cid:1006)(cid:1012)(cid:1006)(cid:1013)(cid:1005)(cid:1012)(cid:1013)(cid:1007)(cid:876)(cid:1006)(cid:1012)(cid:1006)(cid:1013)(cid:1004)(cid:1007)(cid:1013)(cid:1010)(cid:876)(cid:1006)(cid:1012)(cid:1006)(cid:1013)(cid:1006)(cid:1007)(cid:1013)(cid:1011)(cid:3)(cid:38)(cid:258)(cid:454)(cid:3)(cid:855)(cid:3)(cid:894)(cid:1004)(cid:1006)(cid:1006)(cid:895)(cid:3)(cid:1006)(cid:1012)(cid:1006)(cid:1013)(cid:1006)(cid:1012)(cid:1012)(cid:1009)(cid:3)(cid:28)(cid:373)(cid:258)(cid:349)(cid:367)(cid:855)(cid:882)(cid:3)(cid:349)(cid:374)(cid:448)(cid:286)(cid:400)(cid:410)(cid:381)(cid:396)(cid:396)(cid:286)(cid:367)(cid:258)(cid:410)(cid:349)(cid:381)(cid:374)(cid:400)(cid:923)(cid:336)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:856)(cid:272)(cid:381)(cid:373)(cid:3)(cid:3)
+(cid:3)(cid:116)(cid:286)(cid:271)(cid:400)(cid:349)(cid:410)(cid:286)(cid:855)(cid:3)(cid:449)(cid:449)(cid:449)(cid:856)(cid:336)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:856)(cid:272)(cid:381)(cid:373)(cid:3)
+(cid:3)
+
+(cid:3)
+(cid:24)(cid:17)(cid:3)(cid:53)(cid:76)(cid:86)(cid:78)(cid:3)(cid:48)(cid:68)(cid:81)(cid:68)(cid:74)(cid:72)(cid:80)(cid:72)(cid:81)(cid:87)(cid:3)(cid:38)(cid:82)(cid:80)(cid:80)(cid:76)(cid:87)(cid:87)(cid:72)(cid:72)(cid:3)
+(cid:54)(cid:85)(cid:17)(cid:49)(cid:82)(cid:17)(cid:3) (cid:49)(cid:68)(cid:80)(cid:72)(cid:3)(cid:82)(cid:73)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3) (cid:38)(cid:68)(cid:87)(cid:72)(cid:74)(cid:82)(cid:85)(cid:92)(cid:3) (cid:54)(cid:87)(cid:68)(cid:87)(cid:88)(cid:86)(cid:3)
+(cid:20)(cid:3) (cid:48)(cid:85)(cid:17)(cid:3)(cid:51)(cid:68)(cid:81)(cid:81)(cid:78)(cid:68)(cid:77)(cid:3)(cid:38)(cid:3)(cid:42)(cid:75)(cid:68)(cid:71)(cid:76)(cid:68)(cid:79)(cid:76)(cid:3) (cid:44)(cid:81)(cid:71)(cid:72)(cid:83)(cid:72)(cid:81)(cid:71)(cid:72)(cid:81)(cid:87)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3) (cid:38)(cid:75)(cid:68)(cid:76)(cid:85)(cid:80)(cid:68)(cid:81)(cid:3)
+(cid:21)(cid:3) (cid:48)(cid:85)(cid:86)(cid:17)(cid:3)(cid:49)(cid:76)(cid:83)(cid:68)(cid:3)(cid:56)(cid:87)(cid:83)(cid:68)(cid:79)(cid:3)(cid:54)(cid:75)(cid:72)(cid:87)(cid:75)(cid:3) (cid:44)(cid:81)(cid:71)(cid:72)(cid:83)(cid:72)(cid:81)(cid:71)(cid:72)(cid:81)(cid:87)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3) (cid:48)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)
+(cid:22)(cid:3) (cid:48)(cid:85)(cid:17)(cid:3)(cid:53)(cid:68)(cid:86)(cid:75)(cid:72)(cid:86)(cid:75)(cid:3)(cid:48)(cid:17)(cid:3)(cid:37)(cid:75)(cid:68)(cid:81)(cid:86)(cid:68)(cid:79)(cid:76)(cid:3) (cid:40)(cid:91)(cid:72)(cid:70)(cid:88)(cid:87)(cid:76)(cid:89)(cid:72)(cid:3)(cid:38)(cid:75)(cid:68)(cid:76)(cid:85)(cid:80)(cid:68)(cid:81)(cid:3) (cid:48)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)
+(cid:23)(cid:3) (cid:48)(cid:85)(cid:17)(cid:3) (cid:36)(cid:81)(cid:80)(cid:82)(cid:79)(cid:3) (cid:53)(cid:68)(cid:86)(cid:75)(cid:72)(cid:86)(cid:75)(cid:3) (cid:58)(cid:75)(cid:82)(cid:79)(cid:72)(cid:16)(cid:87)(cid:76)(cid:80)(cid:72)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3) (cid:48)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)
+(cid:37)(cid:75)(cid:68)(cid:81)(cid:86)(cid:68)(cid:79)(cid:76)(cid:3)(cid:3)
+(cid:24)(cid:3) (cid:48)(cid:85)(cid:86)(cid:17)(cid:3)(cid:53)(cid:88)(cid:70)(cid:75)(cid:76)(cid:3)(cid:54)(cid:75)(cid:85)(cid:76)(cid:81)(cid:68)(cid:87)(cid:75)(cid:3)(cid:51)(cid:68)(cid:81)(cid:71)(cid:92)(cid:68)(cid:3) (cid:36)(cid:71)(cid:71)(cid:76)(cid:87)(cid:76)(cid:82)(cid:81)(cid:68)(cid:79)(cid:3) (cid:49)(cid:82)(cid:81)(cid:3) (cid:40)(cid:91)(cid:72)(cid:70)(cid:88)(cid:87)(cid:76)(cid:89)(cid:72)(cid:3) (cid:48)(cid:72)(cid:80)(cid:69)(cid:72)(cid:85)(cid:3)
+(cid:44)(cid:81)(cid:71)(cid:72)(cid:83)(cid:72)(cid:81)(cid:71)(cid:72)(cid:81)(cid:87)(cid:3)(cid:39)(cid:76)(cid:85)(cid:72)(cid:70)(cid:87)(cid:82)(cid:85)(cid:3)(cid:3)
+(cid:3)
+(cid:55)(cid:75)(cid:72)(cid:3)(cid:86)(cid:68)(cid:80)(cid:72)(cid:3)(cid:80)(cid:68)(cid:92)(cid:3)(cid:83)(cid:79)(cid:72)(cid:68)(cid:86)(cid:72)(cid:3)(cid:69)(cid:72)(cid:3)(cid:87)(cid:68)(cid:78)(cid:72)(cid:81)(cid:3)(cid:82)(cid:81)(cid:3)(cid:85)(cid:72)(cid:70)(cid:82)(cid:85)(cid:71)(cid:3)(cid:68)(cid:81)(cid:71)(cid:3)(cid:86)(cid:88)(cid:76)(cid:87)(cid:68)(cid:69)(cid:79)(cid:92)(cid:3)(cid:71)(cid:76)(cid:86)(cid:86)(cid:72)(cid:80)(cid:76)(cid:81)(cid:68)(cid:87)(cid:72)(cid:71)(cid:3)(cid:87)(cid:82)(cid:3)(cid:68)(cid:79)(cid:79)(cid:3)(cid:70)(cid:82)(cid:81)(cid:70)(cid:72)(cid:85)(cid:81)(cid:72)(cid:71)(cid:17)(cid:3)
+(cid:3)
+(cid:55)(cid:76)(cid:80)(cid:76)(cid:81)(cid:74)(cid:3)(cid:3)(cid:3)
+(cid:60)(cid:82)(cid:88)(cid:85)(cid:86)(cid:3)(cid:73)(cid:68)(cid:76)(cid:87)(cid:75)(cid:73)(cid:88)(cid:79)(cid:79)(cid:92)(cid:15)(cid:3)
+(cid:41)(cid:82)(cid:85)(cid:3)(cid:42)(cid:82)(cid:79)(cid:71)(cid:76)(cid:68)(cid:80)(cid:3)(cid:44)(cid:81)(cid:87)(cid:72)(cid:85)(cid:81)(cid:68)(cid:87)(cid:76)(cid:82)(cid:81)(cid:68)(cid:79)(cid:3)(cid:47)(cid:76)(cid:80)(cid:76)(cid:87)(cid:72)(cid:71)(cid:3)
+(cid:3)
+PANKAJ Digitally signed by PANKAJ PARKHIYA
+(cid:3) D ps N e : u c d = o IN n , y o m = = P 1 e 3 rs 3 o 3 n 7 a 1 l 5 , 9 ti 2 tl 4 e 0 = 8 0 2 3 7 3 5 4 8 , 84Lr75
+NicWP36845,
+P(cid:3)ARKHIY 2
+6
+.
+f
+5
+d
+.
+b
+4
+c
+.2
+7
+0
+c
+=
+6
+2
+3
+0
+5
+f
+c
+e
+5
+5
+4
+2
+f
+e
+0
+e
+7
+e
+7
+f
+b
+fb
+eb
+93
+9
+4
+8
+3
+4
+a
+9
+f
+a
+b
+6
+0
+0
+e
+a
+3
+7
+4
+f6
+0
+9
+d
+7
+5
+d
+a
+b37, postalCode=400068,
+st=Maharashtra,
+A(cid:3) s 1 e 3 r 2 ia 3 l 7 N f u e6 m 7 b 1 e e r 0 = a 6 f1 5 f 8 7 9 6 d 0 7 0 1 0 1 d b 1 0 7 f 3 c 1 6 3 c5 0 e 5 6 4 f b 4 7 6 6 4 1
+f06d7060f, cn=PANKAJ PARKHIYA
+(cid:51)(cid:68)(cid:81)(cid:78)(cid:68)(cid:77)(cid:3)(cid:51)(cid:68)(cid:85)Da(cid:78)te: 2(cid:75)023.1(cid:76)1.1(cid:92)0 12(cid:68):53:4(cid:3)2 +05'30'
+(cid:38)(cid:82)(cid:80)(cid:83)(cid:68)(cid:81)(cid:92)(cid:3)(cid:54)(cid:72)(cid:70)(cid:85)(cid:72)(cid:87)(cid:68)(cid:85)(cid:92)(cid:3)(cid:9)(cid:3)(cid:38)(cid:82)(cid:80)(cid:83)(cid:79)(cid:76)(cid:68)(cid:81)(cid:70)(cid:72)(cid:3)(cid:50)(cid:73)(cid:73)(cid:76)(cid:70)(cid:72)(cid:85)(cid:3)
+(cid:40)(cid:81)(cid:70)(cid:79)(cid:17)(cid:29)(cid:3)(cid:36)(cid:86)(cid:3)(cid:68)(cid:69)(cid:82)(cid:89)(cid:72)(cid:3)
+(cid:3)
+(cid:3)
+(cid:3)
+(cid:3)
+(cid:3)
+(cid:3)
+(cid:3)
+(cid:3)
+(cid:3)
+(cid:3)
+(cid:3)
+(cid:3)
+(cid:3)
+(cid:90)(cid:286)(cid:336)(cid:349)(cid:400)(cid:410)(cid:286)(cid:396)(cid:286)(cid:282)(cid:3)(cid:75)(cid:296)(cid:296)(cid:349)(cid:272)(cid:286)(cid:3)
+(cid:39)(cid:286)(cid:373)(cid:400)(cid:3)(cid:920)(cid:3)(cid:58)(cid:286)(cid:449)(cid:286)(cid:367)(cid:367)(cid:286)(cid:396)(cid:455)(cid:3)(cid:18)(cid:381)(cid:373)(cid:393)(cid:367)(cid:286)(cid:454)(cid:853)(cid:3)(cid:94)(cid:258)(cid:374)(cid:410)(cid:258)(cid:272)(cid:396)(cid:437)(cid:460)(cid:3)(cid:28)(cid:367)(cid:286)(cid:272)(cid:410)(cid:396)(cid:381)(cid:374)(cid:349)(cid:272)(cid:400)(cid:3)(cid:28)(cid:454)(cid:393)(cid:381)(cid:396)(cid:410)(cid:3)(cid:87)(cid:396)(cid:381)(cid:272)(cid:286)(cid:400)(cid:400)(cid:349)(cid:374)(cid:336)(cid:3)(cid:127)(cid:381)(cid:374)(cid:286)(cid:853)(cid:3)(cid:4)(cid:374)(cid:282)(cid:346)(cid:286)(cid:396)(cid:349)(cid:3)(cid:894)(cid:28)(cid:258)(cid:400)(cid:410)(cid:895)(cid:853)(cid:3)(cid:68)(cid:437)(cid:373)(cid:271)(cid:258)(cid:349)(cid:882)(cid:1008)(cid:1004)(cid:1004)(cid:1004)(cid:1013)(cid:1010)(cid:856)(cid:3)(cid:47)(cid:374)(cid:282)(cid:349)(cid:258)(cid:3)
+(cid:87)(cid:346)(cid:381)(cid:374)(cid:286)(cid:400)(cid:855)(cid:3)(cid:894)(cid:1004)(cid:1006)(cid:1006)(cid:895)(cid:3)(cid:1006)(cid:1012)(cid:1006)(cid:1013)(cid:1005)(cid:1012)(cid:1013)(cid:1007)(cid:876)(cid:1006)(cid:1012)(cid:1006)(cid:1013)(cid:1004)(cid:1007)(cid:1013)(cid:1010)(cid:876)(cid:1006)(cid:1012)(cid:1006)(cid:1013)(cid:1006)(cid:1007)(cid:1013)(cid:1011)(cid:3)(cid:38)(cid:258)(cid:454)(cid:3)(cid:855)(cid:3)(cid:894)(cid:1004)(cid:1006)(cid:1006)(cid:895)(cid:3)(cid:1006)(cid:1012)(cid:1006)(cid:1013)(cid:1006)(cid:1012)(cid:1012)(cid:1009)(cid:3)(cid:28)(cid:373)(cid:258)(cid:349)(cid:367)(cid:855)(cid:882)(cid:3)(cid:349)(cid:374)(cid:448)(cid:286)(cid:400)(cid:410)(cid:381)(cid:396)(cid:396)(cid:286)(cid:367)(cid:258)(cid:410)(cid:349)(cid:381)(cid:374)(cid:400)(cid:923)(cid:336)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:856)(cid:272)(cid:381)(cid:373)(cid:3)(cid:3)
+(cid:3)(cid:116)(cid:286)(cid:271)(cid:400)(cid:349)(cid:410)(cid:286)(cid:855)(cid:3)(cid:449)(cid:449)(cid:449)(cid:856)(cid:336)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:856)(cid:272)(cid:381)(cid:373)(cid:3)
+(cid:3)
+
+(cid:87)(cid:90)(cid:28)(cid:94)(cid:94)(cid:3)(cid:90)(cid:28)(cid:62)(cid:28)(cid:4)(cid:94)(cid:28)(cid:3)
+(cid:3)
+(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:3)(cid:47)(cid:374)(cid:410)(cid:286)(cid:396)(cid:374)(cid:258)(cid:410)(cid:349)(cid:381)(cid:374)(cid:258)(cid:367)(cid:3)(cid:396)(cid:286)(cid:393)(cid:381)(cid:396)(cid:410)(cid:400)(cid:3)(cid:89)(cid:1006)(cid:3)(cid:920)(cid:3)(cid:44)(cid:1005)(cid:3)(cid:38)(cid:122)(cid:1006)(cid:1008)(cid:3)(cid:396)(cid:286)(cid:400)(cid:437)(cid:367)(cid:410)(cid:400)(cid:856)(cid:3)
+(cid:3)
+(cid:89)(cid:1006)(cid:3)(cid:18)(cid:381)(cid:374)(cid:400)(cid:381)(cid:367)(cid:349)(cid:282)(cid:258)(cid:410)(cid:286)(cid:282)(cid:3)(cid:90)(cid:286)(cid:448)(cid:286)(cid:374)(cid:437)(cid:286)(cid:3)(cid:400)(cid:437)(cid:396)(cid:336)(cid:286)(cid:282)(cid:3)(cid:271)(cid:455)(cid:3)(cid:1009)(cid:1004)(cid:1081)(cid:3)(cid:122)(cid:882)(cid:381)(cid:882)(cid:122)(cid:854)(cid:3)(cid:87)(cid:4)(cid:100)(cid:3)(cid:349)(cid:374)(cid:272)(cid:396)(cid:286)(cid:258)(cid:400)(cid:286)(cid:282)(cid:3)(cid:271)(cid:455)(cid:3)(cid:1006)(cid:1009)(cid:1081)(cid:3)
+(cid:3)
+(cid:60)(cid:286)(cid:455)(cid:3)(cid:44)(cid:349)(cid:336)(cid:346)(cid:367)(cid:349)(cid:336)(cid:346)(cid:410)(cid:400)(cid:3) (cid:3)
+(cid:120)(cid:3) (cid:62)(cid:258)(cid:271)(cid:882)(cid:336)(cid:396)(cid:381)(cid:449)(cid:374)(cid:3)(cid:282)(cid:349)(cid:258)(cid:373)(cid:381)(cid:374)(cid:282)(cid:3)(cid:361)(cid:286)(cid:449)(cid:286)(cid:367)(cid:367)(cid:286)(cid:396)(cid:455)(cid:3)(cid:272)(cid:381)(cid:374)(cid:410)(cid:396)(cid:349)(cid:271)(cid:437)(cid:410)(cid:286)(cid:282)(cid:3)(cid:1007)(cid:1008)(cid:1081)(cid:3)(cid:410)(cid:381)(cid:3)(cid:89)(cid:1006)(cid:3)(cid:396)(cid:286)(cid:448)(cid:286)(cid:374)(cid:437)(cid:286)(cid:3)
+(cid:120)(cid:3) (cid:87)(cid:396)(cid:381)(cid:393)(cid:381)(cid:400)(cid:286)(cid:400)(cid:3)(cid:349)(cid:374)(cid:410)(cid:286)(cid:396)(cid:349)(cid:373)(cid:3)(cid:282)(cid:349)(cid:448)(cid:349)(cid:282)(cid:286)(cid:374)(cid:282)(cid:3)(cid:381)(cid:296)(cid:3)(cid:1010)(cid:1004)(cid:1081)(cid:3)(cid:894)(cid:3876)(cid:3)(cid:1005)(cid:856)(cid:1006)(cid:3)(cid:393)(cid:286)(cid:396)(cid:3)(cid:286)(cid:395)(cid:437)(cid:349)(cid:410)(cid:455)(cid:3)(cid:400)(cid:346)(cid:258)(cid:396)(cid:286)(cid:895)(cid:3)
+(cid:3) (cid:3)
+(cid:68)(cid:437)(cid:373)(cid:271)(cid:258)(cid:349)(cid:853)(cid:3)(cid:69)(cid:381)(cid:448)(cid:286)(cid:373)(cid:271)(cid:286)(cid:396)(cid:3)(cid:1005)(cid:1004)(cid:853)(cid:3)(cid:1006)(cid:1004)(cid:1006)(cid:1007)(cid:855)(cid:3)(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:3)(cid:47)(cid:374)(cid:410)(cid:286)(cid:396)(cid:374)(cid:258)(cid:410)(cid:349)(cid:381)(cid:374)(cid:258)(cid:367)(cid:3)(cid:62)(cid:410)(cid:282)(cid:856)(cid:3)(cid:894)(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:895)(cid:853)(cid:3)(cid:258)(cid:374)(cid:3)(cid:349)(cid:374)(cid:410)(cid:286)(cid:336)(cid:396)(cid:258)(cid:410)(cid:286)(cid:282)(cid:3)(cid:373)(cid:258)(cid:374)(cid:437)(cid:296)(cid:258)(cid:272)(cid:410)(cid:437)(cid:396)(cid:286)(cid:396)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)
+(cid:400)(cid:437)(cid:393)(cid:393)(cid:367)(cid:349)(cid:286)(cid:396)(cid:3)(cid:381)(cid:296)(cid:3)(cid:296)(cid:349)(cid:374)(cid:286)(cid:3)(cid:282)(cid:349)(cid:258)(cid:373)(cid:381)(cid:374)(cid:282)(cid:3)(cid:361)(cid:286)(cid:449)(cid:286)(cid:367)(cid:367)(cid:286)(cid:396)(cid:455)(cid:3)(cid:410)(cid:381)(cid:3)(cid:367)(cid:286)(cid:258)(cid:282)(cid:349)(cid:374)(cid:336)(cid:3)(cid:396)(cid:286)(cid:410)(cid:258)(cid:349)(cid:367)(cid:286)(cid:396)(cid:400)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:449)(cid:346)(cid:381)(cid:367)(cid:286)(cid:400)(cid:258)(cid:367)(cid:286)(cid:396)(cid:400)(cid:3)(cid:349)(cid:374)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:104)(cid:94)(cid:4)(cid:853)(cid:3)(cid:346)(cid:258)(cid:400)(cid:3)(cid:258)(cid:374)(cid:374)(cid:381)(cid:437)(cid:374)(cid:272)(cid:286)(cid:282)(cid:3)(cid:349)(cid:410)(cid:400)(cid:3)
+(cid:396)(cid:286)(cid:400)(cid:437)(cid:367)(cid:410)(cid:400)(cid:3)(cid:296)(cid:381)(cid:396)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:400)(cid:286)(cid:272)(cid:381)(cid:374)(cid:282)(cid:3)(cid:395)(cid:437)(cid:258)(cid:396)(cid:410)(cid:286)(cid:396)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:44)(cid:1005)(cid:3)(cid:286)(cid:374)(cid:282)(cid:286)(cid:282)(cid:3)(cid:381)(cid:374)(cid:3)(cid:94)(cid:286)(cid:393)(cid:410)(cid:286)(cid:373)(cid:271)(cid:286)(cid:396)(cid:3)(cid:1007)(cid:1004)(cid:853)(cid:3)(cid:1006)(cid:1004)(cid:1006)(cid:1007)(cid:856)(cid:3)
+(cid:3)
+(cid:89)(cid:1006)(cid:3)(cid:920)(cid:3)(cid:44)(cid:1005)(cid:3)(cid:38)(cid:122)(cid:1006)(cid:1008)(cid:3)(cid:364)(cid:286)(cid:455)(cid:3)(cid:346)(cid:349)(cid:336)(cid:346)(cid:367)(cid:349)(cid:336)(cid:346)(cid:410)(cid:400)(cid:3)
+(cid:3)
+(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:859)(cid:400)(cid:3)(cid:89)(cid:1006)(cid:3)(cid:38)(cid:122)(cid:1006)(cid:1008)(cid:3)(cid:272)(cid:381)(cid:374)(cid:400)(cid:381)(cid:367)(cid:349)(cid:282)(cid:258)(cid:410)(cid:286)(cid:282)(cid:3)(cid:396)(cid:286)(cid:448)(cid:286)(cid:374)(cid:437)(cid:286)(cid:3)(cid:258)(cid:410)(cid:3)(cid:3876)(cid:3)(cid:1005)(cid:1007)(cid:1013)(cid:1007)(cid:3)(cid:373)(cid:349)(cid:367)(cid:367)(cid:349)(cid:381)(cid:374)(cid:3)(cid:349)(cid:374)(cid:272)(cid:396)(cid:286)(cid:258)(cid:400)(cid:286)(cid:282)(cid:3)(cid:271)(cid:455)(cid:3)(cid:1009)(cid:1004)(cid:1081)(cid:3)(cid:122)(cid:882)(cid:381)(cid:882)(cid:122)(cid:3)(cid:271)(cid:258)(cid:400)(cid:349)(cid:400)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:1005)(cid:1009)(cid:1081)(cid:3)(cid:395)(cid:882)(cid:381)(cid:882)
+(cid:395)(cid:3)(cid:271)(cid:258)(cid:400)(cid:349)(cid:400)(cid:856)(cid:3)(cid:44)(cid:1005)(cid:3)(cid:396)(cid:286)(cid:448)(cid:286)(cid:374)(cid:437)(cid:286)(cid:3)(cid:258)(cid:410)(cid:3)(cid:3876)(cid:3)(cid:1006)(cid:1010)(cid:1004)(cid:1009)(cid:3)(cid:373)(cid:349)(cid:367)(cid:367)(cid:349)(cid:381)(cid:374)(cid:3)(cid:336)(cid:396)(cid:286)(cid:449)(cid:3)(cid:271)(cid:455)(cid:3)(cid:1005)(cid:1004)(cid:1081)(cid:3)(cid:122)(cid:882)(cid:381)(cid:882)(cid:122)(cid:856)(cid:3)(cid:94)(cid:373)(cid:258)(cid:396)(cid:410)(cid:3)(cid:393)(cid:396)(cid:381)(cid:282)(cid:437)(cid:272)(cid:410)(cid:3)(cid:373)(cid:349)(cid:454)(cid:853)(cid:3)(cid:271)(cid:286)(cid:410)(cid:410)(cid:286)(cid:396)(cid:3)(cid:349)(cid:374)(cid:448)(cid:286)(cid:374)(cid:410)(cid:381)(cid:396)(cid:455)(cid:3)
+(cid:373)(cid:258)(cid:374)(cid:258)(cid:336)(cid:286)(cid:373)(cid:286)(cid:374)(cid:410)(cid:853)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:437)(cid:393)(cid:272)(cid:381)(cid:373)(cid:349)(cid:374)(cid:336)(cid:3)(cid:296)(cid:286)(cid:400)(cid:410)(cid:349)(cid:448)(cid:286)(cid:3)(cid:400)(cid:286)(cid:258)(cid:400)(cid:381)(cid:374)(cid:3)(cid:272)(cid:381)(cid:374)(cid:410)(cid:396)(cid:349)(cid:271)(cid:437)(cid:410)(cid:286)(cid:282)(cid:3)(cid:410)(cid:381)(cid:3)(cid:346)(cid:349)(cid:336)(cid:346)(cid:286)(cid:396)(cid:3)(cid:396)(cid:286)(cid:448)(cid:286)(cid:374)(cid:437)(cid:286)(cid:3)(cid:296)(cid:381)(cid:396)(cid:3)(cid:89)(cid:1006)(cid:856)(cid:3)(cid:3)
+(cid:3)
+(cid:116)(cid:346)(cid:349)(cid:367)(cid:286)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:286)(cid:272)(cid:381)(cid:374)(cid:381)(cid:373)(cid:349)(cid:272)(cid:3)(cid:449)(cid:381)(cid:286)(cid:400)(cid:3)(cid:349)(cid:374)(cid:3)(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:859)(cid:400)(cid:3)(cid:367)(cid:258)(cid:396)(cid:336)(cid:286)(cid:400)(cid:410)(cid:3)(cid:373)(cid:258)(cid:396)(cid:364)(cid:286)(cid:410)(cid:853)(cid:3)(cid:104)(cid:94)(cid:4)(cid:853)(cid:3)(cid:272)(cid:381)(cid:374)(cid:410)(cid:349)(cid:374)(cid:437)(cid:286)(cid:400)(cid:853)(cid:3)(cid:258)(cid:367)(cid:381)(cid:374)(cid:336)(cid:3)(cid:449)(cid:349)(cid:410)(cid:346)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:336)(cid:367)(cid:381)(cid:271)(cid:258)(cid:367)(cid:3)(cid:336)(cid:286)(cid:381)(cid:3)
+(cid:393)(cid:381)(cid:367)(cid:349)(cid:410)(cid:349)(cid:272)(cid:258)(cid:367)(cid:3)(cid:349)(cid:400)(cid:400)(cid:437)(cid:286)(cid:400)(cid:853)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:410)(cid:258)(cid:349)(cid:367)(cid:3)(cid:449)(cid:349)(cid:374)(cid:282)(cid:400)(cid:3)(cid:258)(cid:396)(cid:286)(cid:3)(cid:393)(cid:349)(cid:272)(cid:364)(cid:349)(cid:374)(cid:336)(cid:3)(cid:437)(cid:393)(cid:856)(cid:3)(cid:100)(cid:346)(cid:286)(cid:3)(cid:437)(cid:393)(cid:272)(cid:381)(cid:373)(cid:349)(cid:374)(cid:336)(cid:3)(cid:296)(cid:286)(cid:400)(cid:410)(cid:349)(cid:448)(cid:286)(cid:3)(cid:400)(cid:286)(cid:258)(cid:400)(cid:381)(cid:374)(cid:3)(cid:349)(cid:400)(cid:3)(cid:286)(cid:454)(cid:393)(cid:286)(cid:272)(cid:410)(cid:286)(cid:282)(cid:3)(cid:410)(cid:381)(cid:3)(cid:349)(cid:373)(cid:393)(cid:396)(cid:381)(cid:448)(cid:286)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)
+(cid:282)(cid:286)(cid:373)(cid:258)(cid:374)(cid:282)(cid:856)(cid:3)(cid:3)
+(cid:3)
+(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:859)(cid:400)(cid:3)(cid:89)(cid:1006)(cid:3)(cid:38)(cid:122)(cid:1006)(cid:1008)(cid:3)(cid:28)(cid:17)(cid:47)(cid:100)(cid:24)(cid:4)(cid:3)(cid:258)(cid:410)(cid:3)(cid:3876)(cid:3)(cid:1007)(cid:1007)(cid:1006)(cid:3)(cid:373)(cid:349)(cid:367)(cid:367)(cid:349)(cid:381)(cid:374)(cid:3)(cid:349)(cid:374)(cid:272)(cid:396)(cid:286)(cid:258)(cid:400)(cid:286)(cid:282)(cid:3)(cid:271)(cid:455)(cid:3)(cid:1005)(cid:1004)(cid:1081)(cid:3)(cid:122)(cid:882)(cid:381)(cid:882)(cid:122)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:1008)(cid:1004)(cid:1081)(cid:3)(cid:89)(cid:381)(cid:89)(cid:856)(cid:3)(cid:28)(cid:17)(cid:47)(cid:24)(cid:100)(cid:4)(cid:3)(cid:3)(cid:373)(cid:258)(cid:396)(cid:336)(cid:349)(cid:374)(cid:400)(cid:3)(cid:258)(cid:410)(cid:3)
+(cid:1006)(cid:1007)(cid:856)(cid:1013)(cid:1081)(cid:3)(cid:349)(cid:373)(cid:393)(cid:396)(cid:381)(cid:448)(cid:286)(cid:282)(cid:3)(cid:271)(cid:455)(cid:3)(cid:1008)(cid:1006)(cid:1006)(cid:3)(cid:271)(cid:258)(cid:400)(cid:349)(cid:400)(cid:3)(cid:393)(cid:381)(cid:349)(cid:374)(cid:410)(cid:400)(cid:3)(cid:381)(cid:448)(cid:286)(cid:396)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:89)(cid:1005)(cid:3)(cid:38)(cid:122)(cid:1006)(cid:1008)(cid:856)(cid:3)(cid:87)(cid:396)(cid:381)(cid:296)(cid:349)(cid:410)(cid:3)(cid:258)(cid:296)(cid:410)(cid:286)(cid:396)(cid:3)(cid:100)(cid:258)(cid:454)(cid:3)(cid:296)(cid:381)(cid:396)(cid:3)(cid:89)(cid:1006)(cid:3)(cid:38)(cid:122)(cid:1006)(cid:1008)(cid:3)(cid:258)(cid:410)(cid:3)(cid:3876)(cid:3)(cid:1006)(cid:1007)(cid:1009)(cid:3)(cid:373)(cid:349)(cid:367)(cid:367)(cid:349)(cid:381)(cid:374)(cid:3)
+(cid:400)(cid:437)(cid:396)(cid:336)(cid:286)(cid:282)(cid:3)(cid:271)(cid:455)(cid:3)(cid:1006)(cid:1009)(cid:1081)(cid:3)(cid:122)(cid:882)(cid:381)(cid:882)(cid:122)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:1007)(cid:1010)(cid:1081)(cid:3)(cid:89)(cid:882)(cid:381)(cid:882)(cid:89)(cid:856)(cid:3)(cid:44)(cid:1005)(cid:3)(cid:38)(cid:122)(cid:1006)(cid:1008)(cid:3)(cid:87)(cid:4)(cid:100)(cid:3)(cid:258)(cid:410)(cid:3)(cid:3876)(cid:3)(cid:1008)(cid:1008)(cid:1004)(cid:1012)(cid:3)(cid:373)(cid:349)(cid:367)(cid:367)(cid:349)(cid:381)(cid:374)(cid:3)(cid:349)(cid:374)(cid:272)(cid:396)(cid:286)(cid:258)(cid:400)(cid:286)(cid:282)(cid:3)(cid:271)(cid:455)(cid:3)(cid:1006)(cid:1081)(cid:3)(cid:122)(cid:882)(cid:381)(cid:882)(cid:122)(cid:856)(cid:3)
+(cid:3)
+(cid:100)(cid:346)(cid:286)(cid:3)(cid:271)(cid:381)(cid:258)(cid:396)(cid:282)(cid:3)(cid:381)(cid:296)(cid:3)(cid:282)(cid:349)(cid:396)(cid:286)(cid:272)(cid:410)(cid:381)(cid:396)(cid:400)(cid:3)(cid:346)(cid:258)(cid:400)(cid:3)(cid:393)(cid:396)(cid:381)(cid:393)(cid:381)(cid:400)(cid:286)(cid:282)(cid:3)(cid:258)(cid:374)(cid:3)(cid:349)(cid:374)(cid:410)(cid:286)(cid:396)(cid:349)(cid:373)(cid:3)(cid:282)(cid:349)(cid:448)(cid:349)(cid:282)(cid:286)(cid:374)(cid:282)(cid:3)(cid:381)(cid:296)(cid:3)(cid:1010)(cid:1004)(cid:1081)(cid:3)(cid:410)(cid:346)(cid:258)(cid:410)(cid:3)(cid:349)(cid:400)(cid:3)(cid:3876)(cid:3)(cid:1005)(cid:856)(cid:1006)(cid:3)(cid:393)(cid:286)(cid:396)(cid:3)(cid:286)(cid:395)(cid:437)(cid:349)(cid:410)(cid:455)(cid:3)(cid:400)(cid:346)(cid:258)(cid:396)(cid:286)(cid:3)(cid:381)(cid:296)(cid:3)(cid:296)(cid:258)(cid:272)(cid:286)(cid:3)
+(cid:448)(cid:258)(cid:367)(cid:437)(cid:286)(cid:3)(cid:381)(cid:296)(cid:3)(cid:3876)(cid:3)(cid:1006)(cid:856)(cid:3)
+(cid:3)
+(cid:3)
+(cid:38)(cid:349)(cid:374)(cid:258)(cid:374)(cid:272)(cid:349)(cid:258)(cid:367)(cid:3)(cid:44)(cid:349)(cid:336)(cid:346)(cid:367)(cid:349)(cid:336)(cid:346)(cid:410)(cid:400)(cid:3)(cid:894)(cid:18)(cid:381)(cid:374)(cid:400)(cid:381)(cid:367)(cid:349)(cid:282)(cid:258)(cid:410)(cid:286)(cid:282)(cid:895)(cid:3)(cid:884)(cid:3)(cid:89)(cid:1006)(cid:3)(cid:920)(cid:3)(cid:44)(cid:1005)(cid:3)(cid:38)(cid:122)(cid:1006)(cid:1008)(cid:3)
+(cid:3)
+(cid:87)(cid:258)(cid:396)(cid:410)(cid:349)(cid:272)(cid:437)(cid:367)(cid:258)(cid:396)(cid:400)(cid:3)(cid:894)(cid:3876)(cid:3)(cid:68)(cid:374)(cid:895)(cid:3) (cid:89)(cid:1006)(cid:38)(cid:122)(cid:1006)(cid:1008)(cid:3) (cid:89)(cid:1006)(cid:38)(cid:122)(cid:1006)(cid:1007) (cid:122)(cid:381)(cid:122) (cid:89)(cid:1005)(cid:38)(cid:122)(cid:1006)(cid:1008) (cid:89)(cid:381)(cid:89) (cid:44)(cid:1005)(cid:38)(cid:122)(cid:1006)(cid:1008)(cid:3) (cid:44)(cid:1005)(cid:38)(cid:122)(cid:1006)(cid:1007)(cid:3) (cid:122)(cid:381)(cid:122)
+(cid:90)(cid:286)(cid:448)(cid:286)(cid:374)(cid:437)(cid:286)(cid:3) (cid:1005)(cid:1007)(cid:1013)(cid:1007)(cid:3) (cid:1013)(cid:1006)(cid:1011) (cid:1009)(cid:1004)(cid:1081) (cid:1005)(cid:1006)(cid:1005)(cid:1006) (cid:1005)(cid:1009)(cid:1081) (cid:1006)(cid:1010)(cid:1004)(cid:1009)(cid:3) (cid:1006)(cid:1007)(cid:1007)(cid:1012)(cid:3) (cid:1005)(cid:1004)(cid:1081)
+(cid:28)(cid:17)(cid:47)(cid:100)(cid:24)(cid:4)(cid:3) (cid:1007)(cid:1007)(cid:1006)(cid:3) (cid:1007)(cid:1004)(cid:1006) (cid:1005)(cid:1004)(cid:1081) (cid:1006)(cid:1007)(cid:1012) (cid:1008)(cid:1004)(cid:1081) (cid:1009)(cid:1011)(cid:1005)(cid:3) (cid:1010)(cid:1006)(cid:1006)(cid:3) (cid:882)(cid:1013)(cid:1081)
+(cid:28)(cid:17)(cid:47)(cid:100)(cid:24)(cid:4)(cid:3)(cid:373)(cid:258)(cid:396)(cid:336)(cid:349)(cid:374)(cid:3) (cid:1006)(cid:1007)(cid:856)(cid:1013)(cid:1081)(cid:3) (cid:1007)(cid:1006)(cid:856)(cid:1009)(cid:1081) (cid:894)(cid:1012)(cid:1010)(cid:1010)(cid:3)(cid:271)(cid:393)(cid:400)(cid:895) (cid:1005)(cid:1013)(cid:856)(cid:1010)(cid:1081) (cid:1008)(cid:1006)(cid:1006)(cid:3)(cid:271)(cid:393)(cid:400) (cid:1006)(cid:1005)(cid:856)(cid:1013)(cid:1081)(cid:3) (cid:1006)(cid:1010)(cid:856)(cid:1010)(cid:1081)(cid:3) (cid:894)(cid:1008)(cid:1011)(cid:1004)(cid:3)(cid:271)(cid:393)(cid:400)(cid:895)
+(cid:87)(cid:4)(cid:100)(cid:3) (cid:1006)(cid:1007)(cid:1009)(cid:3) (cid:1005)(cid:1012)(cid:1012) (cid:1006)(cid:1009)(cid:1081) (cid:1005)(cid:1011)(cid:1007) (cid:1007)(cid:1010)(cid:1081) (cid:1008)(cid:1004)(cid:1012)(cid:3) (cid:1008)(cid:1004)(cid:1005)(cid:3) (cid:1006)(cid:1081)
+(cid:3)
+(cid:47)(cid:373)(cid:393)(cid:396)(cid:381)(cid:448)(cid:349)(cid:374)(cid:336)(cid:3)(cid:396)(cid:286)(cid:448)(cid:286)(cid:374)(cid:437)(cid:286)(cid:3)(cid:272)(cid:381)(cid:374)(cid:410)(cid:396)(cid:349)(cid:271)(cid:437)(cid:410)(cid:349)(cid:381)(cid:374)(cid:3)(cid:296)(cid:396)(cid:381)(cid:373)(cid:3)(cid:62)(cid:258)(cid:271)(cid:3)(cid:39)(cid:396)(cid:381)(cid:449)(cid:374)(cid:3)(cid:24)(cid:349)(cid:258)(cid:373)(cid:381)(cid:374)(cid:282)(cid:400)(cid:3)(cid:58)(cid:286)(cid:449)(cid:286)(cid:367)(cid:367)(cid:286)(cid:396)(cid:455)(cid:3)
+(cid:3)
+(cid:24)(cid:437)(cid:396)(cid:349)(cid:374)(cid:336)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:400)(cid:286)(cid:272)(cid:381)(cid:374)(cid:282)(cid:3)(cid:395)(cid:437)(cid:258)(cid:396)(cid:410)(cid:286)(cid:396)(cid:3)(cid:381)(cid:296)(cid:3)(cid:38)(cid:122)(cid:1006)(cid:1008)(cid:853)(cid:3)(cid:62)(cid:258)(cid:271)(cid:3)(cid:39)(cid:396)(cid:381)(cid:449)(cid:374)(cid:3)(cid:24)(cid:349)(cid:258)(cid:373)(cid:381)(cid:374)(cid:282)(cid:400)(cid:3)(cid:58)(cid:286)(cid:449)(cid:286)(cid:367)(cid:367)(cid:286)(cid:396)(cid:455)(cid:859)(cid:400)(cid:3)(cid:272)(cid:381)(cid:374)(cid:410)(cid:396)(cid:349)(cid:271)(cid:437)(cid:410)(cid:349)(cid:381)(cid:374)(cid:3)(cid:410)(cid:381)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:396)(cid:286)(cid:448)(cid:286)(cid:374)(cid:437)(cid:286)(cid:3)(cid:373)(cid:349)(cid:454)(cid:3)
+(cid:349)(cid:373)(cid:393)(cid:396)(cid:381)(cid:448)(cid:286)(cid:282)(cid:3)(cid:410)(cid:381)(cid:3)(cid:1007)(cid:1008)(cid:1081)(cid:3)(cid:272)(cid:381)(cid:373)(cid:393)(cid:258)(cid:396)(cid:286)(cid:282)(cid:3)(cid:410)(cid:381)(cid:3)(cid:1005)(cid:1013)(cid:1081)(cid:3)(cid:349)(cid:374)(cid:3)(cid:89)(cid:1006)(cid:3)(cid:38)(cid:122)(cid:1006)(cid:1007)(cid:856)(cid:3)(cid:100)(cid:346)(cid:286)(cid:3)(cid:396)(cid:286)(cid:448)(cid:286)(cid:374)(cid:437)(cid:286)(cid:3)(cid:272)(cid:381)(cid:374)(cid:410)(cid:396)(cid:349)(cid:271)(cid:437)(cid:410)(cid:349)(cid:381)(cid:374)(cid:3)(cid:381)(cid:296)(cid:3)(cid:62)(cid:258)(cid:271)(cid:3)(cid:39)(cid:396)(cid:381)(cid:449)(cid:374)(cid:3)(cid:24)(cid:349)(cid:258)(cid:373)(cid:381)(cid:374)(cid:282)(cid:3)
+(cid:361)(cid:286)(cid:449)(cid:286)(cid:367)(cid:367)(cid:286)(cid:396)(cid:455)(cid:3)(cid:47)(cid:374)(cid:3)(cid:89)(cid:1005)(cid:3)(cid:38)(cid:122)(cid:1006)(cid:1008)(cid:3)(cid:449)(cid:258)(cid:400)(cid:3)(cid:1007)(cid:1007)(cid:1081)(cid:856)(cid:3)(cid:100)(cid:346)(cid:286)(cid:3)(cid:349)(cid:374)(cid:272)(cid:396)(cid:286)(cid:258)(cid:400)(cid:349)(cid:374)(cid:336)(cid:3)(cid:272)(cid:381)(cid:374)(cid:410)(cid:396)(cid:349)(cid:271)(cid:437)(cid:410)(cid:349)(cid:381)(cid:374)(cid:3)(cid:381)(cid:296)(cid:3)(cid:62)(cid:258)(cid:271)(cid:3)(cid:39)(cid:396)(cid:381)(cid:449)(cid:374)(cid:3)(cid:24)(cid:349)(cid:258)(cid:373)(cid:381)(cid:374)(cid:282)(cid:3)(cid:58)(cid:286)(cid:449)(cid:286)(cid:367)(cid:367)(cid:286)(cid:396)(cid:455)(cid:3)(cid:349)(cid:374)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)
+(cid:396)(cid:286)(cid:448)(cid:286)(cid:374)(cid:437)(cid:286)(cid:3)(cid:373)(cid:349)(cid:454)(cid:3)(cid:349)(cid:400)(cid:3)(cid:258)(cid:3)(cid:396)(cid:286)(cid:400)(cid:437)(cid:367)(cid:410)(cid:3)(cid:381)(cid:296)(cid:3)(cid:272)(cid:381)(cid:374)(cid:400)(cid:437)(cid:373)(cid:286)(cid:396)(cid:3)(cid:393)(cid:396)(cid:286)(cid:296)(cid:286)(cid:396)(cid:286)(cid:374)(cid:272)(cid:286)(cid:3)(cid:349)(cid:374)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:104)(cid:94)(cid:3)(cid:373)(cid:258)(cid:396)(cid:364)(cid:286)(cid:410)(cid:3)(cid:349)(cid:374)(cid:3)(cid:296)(cid:258)(cid:448)(cid:381)(cid:437)(cid:396)(cid:3)(cid:381)(cid:296)(cid:3)(cid:62)(cid:258)(cid:271)(cid:3)(cid:39)(cid:396)(cid:381)(cid:449)(cid:374)(cid:3)(cid:24)(cid:349)(cid:258)(cid:373)(cid:381)(cid:374)(cid:282)(cid:3)
+(cid:58)(cid:286)(cid:449)(cid:286)(cid:367)(cid:367)(cid:286)(cid:396)(cid:455)(cid:853)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:859)(cid:400)(cid:3)(cid:258)(cid:271)(cid:349)(cid:367)(cid:349)(cid:410)(cid:455)(cid:3)(cid:410)(cid:381)(cid:3)(cid:373)(cid:286)(cid:286)(cid:410)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:349)(cid:374)(cid:272)(cid:396)(cid:286)(cid:258)(cid:400)(cid:349)(cid:374)(cid:336)(cid:3)(cid:282)(cid:286)(cid:373)(cid:258)(cid:374)(cid:282)(cid:3)(cid:449)(cid:349)(cid:410)(cid:346)(cid:3)(cid:374)(cid:286)(cid:449)(cid:3)(cid:282)(cid:286)(cid:400)(cid:349)(cid:336)(cid:374)(cid:400)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:410)(cid:349)(cid:373)(cid:286)(cid:367)(cid:455)(cid:3)(cid:282)(cid:286)(cid:367)(cid:349)(cid:448)(cid:286)(cid:396)(cid:455)(cid:856)(cid:3)(cid:3)(cid:3)
+(cid:3)
+
+(cid:90)(cid:286)(cid:448)(cid:286)(cid:374)(cid:437)(cid:286)(cid:3)(cid:410)(cid:346)(cid:396)(cid:381)(cid:437)(cid:336)(cid:346)(cid:3)(cid:381)(cid:374)(cid:367)(cid:349)(cid:374)(cid:286)(cid:3)(cid:400)(cid:258)(cid:367)(cid:286)(cid:400)(cid:3)(cid:272)(cid:346)(cid:258)(cid:374)(cid:374)(cid:286)(cid:367)(cid:3)(cid:349)(cid:373)(cid:393)(cid:396)(cid:381)(cid:448)(cid:286)(cid:282)(cid:3)(cid:410)(cid:381)(cid:3)(cid:1006)(cid:1008)(cid:1081)(cid:3)(cid:282)(cid:437)(cid:396)(cid:349)(cid:374)(cid:336)(cid:3)(cid:89)(cid:1006)(cid:3)(cid:38)(cid:122)(cid:1006)(cid:1008)(cid:3)(cid:272)(cid:381)(cid:373)(cid:393)(cid:258)(cid:396)(cid:286)(cid:282)(cid:3)(cid:410)(cid:381)(cid:3)(cid:1006)(cid:1006)(cid:1081)(cid:3)(cid:282)(cid:437)(cid:396)(cid:349)(cid:374)(cid:336)(cid:3)(cid:89)(cid:1006)(cid:3)
+(cid:38)(cid:122)(cid:1006)(cid:1007)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:1005)(cid:1012)(cid:1081)(cid:3)(cid:349)(cid:374)(cid:3)(cid:89)(cid:1005)(cid:38)(cid:122)(cid:1006)(cid:1008)(cid:856)(cid:3)(cid:75)(cid:374)(cid:367)(cid:349)(cid:374)(cid:286)(cid:3)(cid:400)(cid:258)(cid:367)(cid:286)(cid:400)(cid:3)(cid:381)(cid:296)(cid:3)(cid:62)(cid:258)(cid:271)(cid:3)(cid:39)(cid:396)(cid:381)(cid:449)(cid:374)(cid:3)(cid:24)(cid:349)(cid:258)(cid:373)(cid:381)(cid:374)(cid:282)(cid:400)(cid:3)(cid:346)(cid:258)(cid:448)(cid:286)(cid:3)(cid:271)(cid:286)(cid:286)(cid:374)(cid:3)(cid:449)(cid:349)(cid:410)(cid:374)(cid:286)(cid:400)(cid:400)(cid:349)(cid:374)(cid:336)(cid:3)(cid:396)(cid:381)(cid:271)(cid:437)(cid:400)(cid:410)(cid:3)(cid:410)(cid:396)(cid:258)(cid:272)(cid:410)(cid:349)(cid:381)(cid:374)(cid:856)(cid:3)
+(cid:94)(cid:346)(cid:258)(cid:396)(cid:286)(cid:3)(cid:381)(cid:296)(cid:3)(cid:381)(cid:374)(cid:367)(cid:349)(cid:374)(cid:286)(cid:3)(cid:400)(cid:258)(cid:367)(cid:286)(cid:400)(cid:3)(cid:296)(cid:381)(cid:396)(cid:3)(cid:62)(cid:258)(cid:271)(cid:882)(cid:336)(cid:396)(cid:381)(cid:449)(cid:374)(cid:3)(cid:346)(cid:258)(cid:400)(cid:3)(cid:349)(cid:374)(cid:272)(cid:396)(cid:286)(cid:258)(cid:400)(cid:286)(cid:282)(cid:3)(cid:373)(cid:437)(cid:367)(cid:410)(cid:349)(cid:296)(cid:349)(cid:282)(cid:3)(cid:296)(cid:396)(cid:381)(cid:373)(cid:3)(cid:258)(cid:3)(cid:373)(cid:286)(cid:396)(cid:286)(cid:3)(cid:1007)(cid:856)(cid:1009)(cid:1081)(cid:3)(cid:349)(cid:374)(cid:3)(cid:89)(cid:1006)(cid:38)(cid:122)(cid:1006)(cid:1007)(cid:3)(cid:410)(cid:381)(cid:3)(cid:1005)(cid:1006)(cid:1081)(cid:3)(cid:349)(cid:374)(cid:3)
+(cid:89)(cid:1006)(cid:38)(cid:122)(cid:1006)(cid:1008)(cid:856)(cid:3)(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:3)(cid:272)(cid:381)(cid:374)(cid:410)(cid:349)(cid:374)(cid:437)(cid:286)(cid:400)(cid:3)(cid:410)(cid:381)(cid:3)(cid:296)(cid:437)(cid:367)(cid:296)(cid:349)(cid:367)(cid:3)(cid:381)(cid:374)(cid:367)(cid:349)(cid:374)(cid:286)(cid:3)(cid:381)(cid:396)(cid:282)(cid:286)(cid:396)(cid:400)(cid:3)(cid:449)(cid:349)(cid:410)(cid:346)(cid:349)(cid:374)(cid:3)(cid:1011)(cid:3)(cid:449)(cid:381)(cid:396)(cid:364)(cid:349)(cid:374)(cid:336)(cid:3)(cid:282)(cid:258)(cid:455)(cid:400)(cid:856)(cid:3)
+(cid:3)
+(cid:4)(cid:271)(cid:381)(cid:437)(cid:410)(cid:3)(cid:1011)(cid:1009)(cid:1081)(cid:3)(cid:381)(cid:296)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:349)(cid:374)(cid:448)(cid:286)(cid:374)(cid:410)(cid:381)(cid:396)(cid:455)(cid:3)(cid:894)(cid:361)(cid:286)(cid:449)(cid:286)(cid:367)(cid:367)(cid:286)(cid:396)(cid:455)(cid:895)(cid:3)(cid:258)(cid:400)(cid:3)(cid:381)(cid:374)(cid:3)(cid:94)(cid:286)(cid:393)(cid:410)(cid:286)(cid:373)(cid:271)(cid:286)(cid:396)(cid:3)(cid:1007)(cid:1004)(cid:853)(cid:3)(cid:1006)(cid:1004)(cid:1006)(cid:1007)(cid:3)(cid:349)(cid:400)(cid:3)(cid:449)(cid:349)(cid:410)(cid:346)(cid:3)(cid:272)(cid:437)(cid:400)(cid:410)(cid:381)(cid:373)(cid:286)(cid:396)(cid:400)(cid:3)(cid:258)(cid:400)(cid:3)(cid:296)(cid:349)(cid:374)(cid:349)(cid:400)(cid:346)(cid:286)(cid:282)(cid:3)(cid:400)(cid:410)(cid:381)(cid:272)(cid:364)(cid:3)
+(cid:381)(cid:296)(cid:3)(cid:361)(cid:286)(cid:449)(cid:286)(cid:367)(cid:367)(cid:286)(cid:396)(cid:455)(cid:3)(cid:410)(cid:381)(cid:3)(cid:271)(cid:286)(cid:3)(cid:400)(cid:381)(cid:367)(cid:282)(cid:3)(cid:349)(cid:374)(cid:3)(cid:400)(cid:437)(cid:271)(cid:400)(cid:286)(cid:395)(cid:437)(cid:286)(cid:374)(cid:410)(cid:3)(cid:373)(cid:381)(cid:374)(cid:410)(cid:346)(cid:400)(cid:3)(cid:410)(cid:381)(cid:3)(cid:410)(cid:346)(cid:286)(cid:349)(cid:396)(cid:3)(cid:272)(cid:437)(cid:400)(cid:410)(cid:381)(cid:373)(cid:286)(cid:396)(cid:400)(cid:856)(cid:3)(cid:3)
+(cid:3)
+(cid:100)(cid:258)(cid:393)(cid:393)(cid:349)(cid:374)(cid:336)(cid:3)(cid:374)(cid:286)(cid:449)(cid:3)(cid:336)(cid:286)(cid:381)(cid:336)(cid:396)(cid:258)(cid:393)(cid:346)(cid:349)(cid:286)(cid:400)(cid:3)
+(cid:3)
+(cid:100)(cid:346)(cid:286)(cid:3)(cid:104)(cid:94)(cid:4)(cid:3)(cid:271)(cid:286)(cid:349)(cid:374)(cid:336)(cid:3)(cid:271)(cid:455)(cid:3)(cid:296)(cid:258)(cid:396)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:367)(cid:258)(cid:396)(cid:336)(cid:286)(cid:400)(cid:410)(cid:3)(cid:272)(cid:381)(cid:374)(cid:400)(cid:437)(cid:373)(cid:286)(cid:396)(cid:3)(cid:381)(cid:296)(cid:3)(cid:282)(cid:349)(cid:258)(cid:373)(cid:381)(cid:374)(cid:282)(cid:3)(cid:361)(cid:286)(cid:449)(cid:286)(cid:367)(cid:367)(cid:286)(cid:396)(cid:455)(cid:3)(cid:336)(cid:367)(cid:381)(cid:271)(cid:258)(cid:367)(cid:367)(cid:455)(cid:853)(cid:3)(cid:349)(cid:410)(cid:3)(cid:349)(cid:400)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:449)(cid:349)(cid:367)(cid:367)(cid:3)(cid:272)(cid:381)(cid:374)(cid:410)(cid:349)(cid:374)(cid:437)(cid:286)(cid:3)(cid:410)(cid:381)(cid:3)
+(cid:396)(cid:286)(cid:373)(cid:258)(cid:349)(cid:374)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:367)(cid:258)(cid:396)(cid:336)(cid:286)(cid:400)(cid:410)(cid:3)(cid:373)(cid:258)(cid:396)(cid:364)(cid:286)(cid:410)(cid:3)(cid:296)(cid:381)(cid:396)(cid:3)(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:856)(cid:3)(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:3)(cid:349)(cid:400)(cid:3)(cid:373)(cid:258)(cid:364)(cid:349)(cid:374)(cid:336)(cid:3)(cid:272)(cid:381)(cid:374)(cid:272)(cid:396)(cid:286)(cid:410)(cid:286)(cid:3)(cid:393)(cid:396)(cid:381)(cid:336)(cid:396)(cid:286)(cid:400)(cid:400)(cid:3)(cid:349)(cid:374)(cid:3)(cid:286)(cid:454)(cid:393)(cid:367)(cid:381)(cid:396)(cid:349)(cid:374)(cid:336)(cid:3)(cid:381)(cid:410)(cid:346)(cid:286)(cid:396)(cid:3)
+(cid:336)(cid:286)(cid:381)(cid:336)(cid:396)(cid:258)(cid:393)(cid:346)(cid:349)(cid:286)(cid:400)(cid:3)(cid:400)(cid:437)(cid:272)(cid:346)(cid:3)(cid:258)(cid:400)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:68)(cid:349)(cid:282)(cid:282)(cid:367)(cid:286)(cid:3)(cid:28)(cid:258)(cid:400)(cid:410)(cid:853)(cid:3)(cid:28)(cid:437)(cid:396)(cid:381)(cid:393)(cid:286)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:4)(cid:437)(cid:400)(cid:410)(cid:396)(cid:258)(cid:367)(cid:349)(cid:258)(cid:3)(cid:296)(cid:381)(cid:396)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:286)(cid:454)(cid:393)(cid:381)(cid:396)(cid:410)(cid:3)(cid:381)(cid:296)(cid:3)(cid:271)(cid:381)(cid:410)(cid:346)(cid:3)(cid:69)(cid:258)(cid:410)(cid:437)(cid:396)(cid:258)(cid:367)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:62)(cid:258)(cid:271)(cid:3)
+(cid:39)(cid:396)(cid:381)(cid:449)(cid:374)(cid:3)(cid:24)(cid:349)(cid:258)(cid:373)(cid:381)(cid:374)(cid:282)(cid:3)(cid:361)(cid:286)(cid:449)(cid:286)(cid:367)(cid:367)(cid:286)(cid:396)(cid:455)(cid:856)(cid:3)(cid:24)(cid:437)(cid:396)(cid:349)(cid:374)(cid:336)(cid:3)(cid:89)(cid:1005)(cid:853)(cid:3)(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:3)(cid:346)(cid:258)(cid:282)(cid:3)(cid:449)(cid:381)(cid:374)(cid:3)(cid:258)(cid:374)(cid:3)(cid:381)(cid:396)(cid:282)(cid:286)(cid:396)(cid:3)(cid:449)(cid:381)(cid:396)(cid:410)(cid:346)(cid:3)(cid:3876)(cid:3)(cid:1007)(cid:1004)(cid:1004)(cid:3)(cid:373)(cid:349)(cid:367)(cid:367)(cid:349)(cid:381)(cid:374)(cid:3)(cid:296)(cid:381)(cid:396)(cid:3)(cid:258)(cid:3)(cid:396)(cid:286)(cid:410)(cid:258)(cid:349)(cid:367)(cid:286)(cid:396)(cid:3)(cid:349)(cid:374)(cid:3)
+(cid:410)(cid:346)(cid:286)(cid:3)(cid:68)(cid:349)(cid:282)(cid:282)(cid:367)(cid:286)(cid:3)(cid:28)(cid:258)(cid:400)(cid:410)(cid:856)(cid:3)(cid:17)(cid:286)(cid:400)(cid:349)(cid:282)(cid:286)(cid:400)(cid:3)(cid:286)(cid:454)(cid:393)(cid:367)(cid:381)(cid:396)(cid:349)(cid:374)(cid:336)(cid:3)(cid:374)(cid:286)(cid:449)(cid:3)(cid:349)(cid:374)(cid:410)(cid:286)(cid:396)(cid:374)(cid:258)(cid:410)(cid:349)(cid:381)(cid:374)(cid:258)(cid:367)(cid:3)(cid:336)(cid:286)(cid:381)(cid:336)(cid:396)(cid:258)(cid:393)(cid:346)(cid:349)(cid:286)(cid:400)(cid:853)(cid:3)(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:3)(cid:349)(cid:400)(cid:3)(cid:258)(cid:272)(cid:410)(cid:349)(cid:448)(cid:286)(cid:367)(cid:455)(cid:3)(cid:449)(cid:381)(cid:396)(cid:364)(cid:349)(cid:374)(cid:336)(cid:3)(cid:381)(cid:374)(cid:3)(cid:47)(cid:374)(cid:282)(cid:349)(cid:258)(cid:3)
+(cid:400)(cid:410)(cid:396)(cid:258)(cid:410)(cid:286)(cid:336)(cid:455)(cid:3)(cid:258)(cid:400)(cid:3)(cid:449)(cid:286)(cid:367)(cid:367)(cid:856)(cid:3)
+(cid:3)
+(cid:100)(cid:346)(cid:286)(cid:3)(cid:381)(cid:396)(cid:282)(cid:286)(cid:396)(cid:3)(cid:271)(cid:381)(cid:381)(cid:364)(cid:3)(cid:393)(cid:381)(cid:400)(cid:349)(cid:410)(cid:349)(cid:381)(cid:374)(cid:3)(cid:258)(cid:400)(cid:3)(cid:381)(cid:374)(cid:3)(cid:94)(cid:286)(cid:393)(cid:410)(cid:286)(cid:373)(cid:271)(cid:286)(cid:396)(cid:3)(cid:1007)(cid:1004)(cid:853)(cid:3)(cid:1006)(cid:1004)(cid:1006)(cid:1007)(cid:3)(cid:400)(cid:410)(cid:258)(cid:374)(cid:282)(cid:400)(cid:3)(cid:258)(cid:410)(cid:3)(cid:258)(cid:271)(cid:381)(cid:437)(cid:410)(cid:3)(cid:3876)(cid:3)(cid:1005)(cid:1010)(cid:1009)(cid:1004)(cid:3)(cid:373)(cid:349)(cid:367)(cid:367)(cid:349)(cid:381)(cid:374)(cid:856)(cid:3)(cid:3)
+(cid:3)
+(cid:18)(cid:381)(cid:374)(cid:400)(cid:349)(cid:400)(cid:410)(cid:286)(cid:374)(cid:410)(cid:3)(cid:410)(cid:396)(cid:258)(cid:272)(cid:364)(cid:3)(cid:396)(cid:286)(cid:272)(cid:381)(cid:396)(cid:282)(cid:3)(cid:381)(cid:296)(cid:3)(cid:396)(cid:286)(cid:449)(cid:258)(cid:396)(cid:282)(cid:349)(cid:374)(cid:336)(cid:3)(cid:400)(cid:346)(cid:258)(cid:396)(cid:286)(cid:346)(cid:381)(cid:367)(cid:282)(cid:286)(cid:396)(cid:400)(cid:3)(cid:3)
+(cid:3)
+(cid:47)(cid:374)(cid:3)(cid:4)(cid:437)(cid:336)(cid:437)(cid:400)(cid:410)(cid:3)(cid:1006)(cid:1004)(cid:1006)(cid:1007)(cid:853)(cid:3)(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:3)(cid:272)(cid:381)(cid:373)(cid:393)(cid:367)(cid:286)(cid:410)(cid:286)(cid:282)(cid:3)(cid:271)(cid:437)(cid:455)(cid:271)(cid:258)(cid:272)(cid:364)(cid:3)(cid:381)(cid:296)(cid:3)(cid:3)(cid:286)(cid:395)(cid:437)(cid:349)(cid:410)(cid:455)(cid:3)(cid:400)(cid:346)(cid:258)(cid:396)(cid:286)(cid:400)(cid:3)(cid:381)(cid:296)(cid:3)(cid:3876)(cid:3)(cid:1006)(cid:3)(cid:286)(cid:258)(cid:272)(cid:346)(cid:3)(cid:894)(cid:271)(cid:286)(cid:349)(cid:374)(cid:336)(cid:3)(cid:1006)(cid:1081)(cid:3)(cid:381)(cid:296)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:410)(cid:381)(cid:410)(cid:258)(cid:367)(cid:3)
+(cid:374)(cid:437)(cid:373)(cid:271)(cid:286)(cid:396)(cid:3)(cid:381)(cid:296)(cid:3)(cid:286)(cid:395)(cid:437)(cid:349)(cid:410)(cid:455)(cid:3)(cid:400)(cid:346)(cid:258)(cid:396)(cid:286)(cid:400)(cid:3)(cid:349)(cid:374)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:393)(cid:258)(cid:349)(cid:282)(cid:882)(cid:437)(cid:393)(cid:3)(cid:286)(cid:395)(cid:437)(cid:349)(cid:410)(cid:455)(cid:3)(cid:272)(cid:258)(cid:393)(cid:349)(cid:410)(cid:258)(cid:367)(cid:3)(cid:381)(cid:296)(cid:3)(cid:381)(cid:437)(cid:396)(cid:3)(cid:18)(cid:381)(cid:373)(cid:393)(cid:258)(cid:374)(cid:455)(cid:895)(cid:3)(cid:296)(cid:396)(cid:381)(cid:373)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:400)(cid:346)(cid:258)(cid:396)(cid:286)(cid:346)(cid:381)(cid:367)(cid:282)(cid:286)(cid:396)(cid:400)(cid:3)(cid:381)(cid:296)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)
+(cid:18)(cid:381)(cid:373)(cid:393)(cid:258)(cid:374)(cid:455)(cid:3)(cid:381)(cid:374)(cid:3)(cid:258)(cid:3)(cid:393)(cid:396)(cid:381)(cid:393)(cid:381)(cid:396)(cid:410)(cid:349)(cid:381)(cid:374)(cid:258)(cid:410)(cid:286)(cid:3)(cid:271)(cid:258)(cid:400)(cid:349)(cid:400)(cid:3)(cid:271)(cid:455)(cid:3)(cid:449)(cid:258)(cid:455)(cid:3)(cid:381)(cid:296)(cid:3)(cid:258)(cid:3)(cid:410)(cid:286)(cid:374)(cid:282)(cid:286)(cid:396)(cid:3)(cid:381)(cid:296)(cid:296)(cid:286)(cid:396)(cid:3)(cid:258)(cid:410)(cid:3)(cid:258)(cid:3)(cid:393)(cid:396)(cid:349)(cid:272)(cid:286)(cid:3)(cid:381)(cid:296)(cid:3)(cid:3876)(cid:1005)(cid:1009)(cid:1004)(cid:3)(cid:393)(cid:286)(cid:396)(cid:3)(cid:286)(cid:395)(cid:437)(cid:349)(cid:410)(cid:455)(cid:3)(cid:400)(cid:346)(cid:258)(cid:396)(cid:286)(cid:3)(cid:296)(cid:381)(cid:396)(cid:3)(cid:258)(cid:374)(cid:3)
+(cid:258)(cid:336)(cid:336)(cid:396)(cid:286)(cid:336)(cid:258)(cid:410)(cid:286)(cid:3)(cid:258)(cid:373)(cid:381)(cid:437)(cid:374)(cid:410)(cid:3)(cid:374)(cid:381)(cid:410)(cid:3)(cid:286)(cid:454)(cid:272)(cid:286)(cid:286)(cid:282)(cid:349)(cid:374)(cid:336)(cid:3)(cid:3876)(cid:1007)(cid:1006)(cid:1010)(cid:856)(cid:1013)(cid:3)(cid:373)(cid:349)(cid:367)(cid:367)(cid:349)(cid:381)(cid:374)(cid:853)(cid:3)(cid:349)(cid:374)(cid:3)(cid:258)(cid:272)(cid:272)(cid:381)(cid:396)(cid:282)(cid:258)(cid:374)(cid:272)(cid:286)(cid:3)(cid:449)(cid:349)(cid:410)(cid:346)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:393)(cid:396)(cid:381)(cid:448)(cid:349)(cid:400)(cid:349)(cid:381)(cid:374)(cid:400)(cid:3)(cid:272)(cid:381)(cid:374)(cid:410)(cid:258)(cid:349)(cid:374)(cid:286)(cid:282)(cid:3)(cid:349)(cid:374)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)
+(cid:94)(cid:286)(cid:272)(cid:437)(cid:396)(cid:349)(cid:410)(cid:349)(cid:286)(cid:400)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:28)(cid:454)(cid:272)(cid:346)(cid:258)(cid:374)(cid:336)(cid:286)(cid:3)(cid:17)(cid:381)(cid:258)(cid:396)(cid:282)(cid:3)(cid:381)(cid:296)(cid:3)(cid:47)(cid:374)(cid:282)(cid:349)(cid:258)(cid:3)(cid:894)(cid:17)(cid:437)(cid:455)(cid:882)(cid:271)(cid:258)(cid:272)(cid:364)(cid:3)(cid:381)(cid:296)(cid:3)(cid:94)(cid:286)(cid:272)(cid:437)(cid:396)(cid:349)(cid:410)(cid:349)(cid:286)(cid:400)(cid:895)(cid:3)(cid:90)(cid:286)(cid:336)(cid:437)(cid:367)(cid:258)(cid:410)(cid:349)(cid:381)(cid:374)(cid:400)(cid:853)(cid:3)(cid:1006)(cid:1004)(cid:1005)(cid:1012)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:18)(cid:381)(cid:373)(cid:393)(cid:258)(cid:374)(cid:349)(cid:286)(cid:400)(cid:3)
+(cid:4)(cid:272)(cid:410)(cid:853)(cid:3)(cid:1006)(cid:1004)(cid:1005)(cid:1007)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:396)(cid:437)(cid:367)(cid:286)(cid:400)(cid:3)(cid:373)(cid:258)(cid:282)(cid:286)(cid:3)(cid:410)(cid:346)(cid:286)(cid:396)(cid:286)(cid:437)(cid:374)(cid:282)(cid:286)(cid:396)(cid:856)(cid:3)
+(cid:3)
+(cid:116)(cid:349)(cid:410)(cid:346)(cid:3)(cid:410)(cid:346)(cid:349)(cid:400)(cid:3)(cid:361)(cid:437)(cid:400)(cid:410)(cid:3)(cid:272)(cid:381)(cid:374)(cid:272)(cid:367)(cid:437)(cid:282)(cid:286)(cid:282)(cid:3)(cid:271)(cid:437)(cid:455)(cid:271)(cid:258)(cid:272)(cid:364)(cid:853)(cid:3)(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:3)(cid:346)(cid:258)(cid:400)(cid:853)(cid:3)(cid:381)(cid:448)(cid:286)(cid:396)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:393)(cid:258)(cid:400)(cid:410)(cid:3)(cid:400)(cid:349)(cid:454)(cid:3)(cid:296)(cid:349)(cid:374)(cid:258)(cid:374)(cid:272)(cid:349)(cid:258)(cid:367)(cid:3)(cid:455)(cid:286)(cid:258)(cid:396)(cid:853)(cid:3)(cid:286)(cid:454)(cid:393)(cid:286)(cid:374)(cid:282)(cid:286)(cid:282)(cid:3)(cid:3876)(cid:3)(cid:1006)(cid:1005)(cid:1005)(cid:1011)(cid:3)
+(cid:373)(cid:349)(cid:367)(cid:367)(cid:349)(cid:381)(cid:374)(cid:3)(cid:894)(cid:3876)(cid:1006)(cid:1006)(cid:1008)(cid:1010)(cid:3)(cid:373)(cid:349)(cid:367)(cid:367)(cid:349)(cid:381)(cid:374)(cid:3)(cid:258)(cid:296)(cid:410)(cid:286)(cid:396)(cid:3)(cid:272)(cid:381)(cid:374)(cid:400)(cid:349)(cid:282)(cid:286)(cid:396)(cid:349)(cid:374)(cid:336)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:393)(cid:396)(cid:381)(cid:393)(cid:381)(cid:400)(cid:286)(cid:282)(cid:3)(cid:349)(cid:374)(cid:410)(cid:286)(cid:396)(cid:349)(cid:373)(cid:3)(cid:282)(cid:349)(cid:448)(cid:349)(cid:282)(cid:286)(cid:374)(cid:282)(cid:3)(cid:455)(cid:286)(cid:410)(cid:3)(cid:410)(cid:381)(cid:3)(cid:271)(cid:286)(cid:3)(cid:282)(cid:349)(cid:400)(cid:271)(cid:437)(cid:396)(cid:400)(cid:286)(cid:282)(cid:895)(cid:3)(cid:271)(cid:455)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:449)(cid:258)(cid:455)(cid:3)
+(cid:381)(cid:296)(cid:3)(cid:282)(cid:349)(cid:448)(cid:349)(cid:282)(cid:286)(cid:374)(cid:282)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:400)(cid:346)(cid:258)(cid:396)(cid:286)(cid:3)(cid:271)(cid:437)(cid:455)(cid:271)(cid:258)(cid:272)(cid:364)(cid:400)(cid:856)(cid:3)(cid:28)(cid:448)(cid:286)(cid:374)(cid:3)(cid:258)(cid:296)(cid:410)(cid:286)(cid:396)(cid:3)(cid:272)(cid:381)(cid:374)(cid:400)(cid:349)(cid:400)(cid:410)(cid:286)(cid:374)(cid:410)(cid:3)(cid:282)(cid:349)(cid:400)(cid:410)(cid:396)(cid:349)(cid:271)(cid:437)(cid:410)(cid:349)(cid:381)(cid:374)(cid:853)(cid:3)(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:859)(cid:400)(cid:3)(cid:272)(cid:381)(cid:374)(cid:400)(cid:381)(cid:367)(cid:349)(cid:282)(cid:258)(cid:410)(cid:286)(cid:282)(cid:3)(cid:18)(cid:258)(cid:400)(cid:346)(cid:3)(cid:920)(cid:3)
+(cid:18)(cid:258)(cid:400)(cid:346)(cid:3)(cid:28)(cid:395)(cid:437)(cid:349)(cid:448)(cid:258)(cid:367)(cid:286)(cid:374)(cid:410)(cid:3)(cid:894)(cid:349)(cid:374)(cid:272)(cid:367)(cid:437)(cid:282)(cid:349)(cid:374)(cid:336)(cid:3)(cid:349)(cid:374)(cid:448)(cid:286)(cid:400)(cid:410)(cid:373)(cid:286)(cid:374)(cid:410)(cid:400)(cid:895)(cid:3)(cid:400)(cid:410)(cid:258)(cid:374)(cid:282)(cid:400)(cid:3)(cid:258)(cid:410)(cid:3)(cid:3876)(cid:3)(cid:1006)(cid:1011)(cid:1011)(cid:1010)(cid:856)(cid:1008)(cid:3)(cid:373)(cid:349)(cid:367)(cid:367)(cid:349)(cid:381)(cid:374)(cid:3)(cid:258)(cid:400)(cid:3)(cid:381)(cid:374)(cid:3)(cid:94)(cid:286)(cid:393)(cid:410)(cid:286)(cid:373)(cid:271)(cid:286)(cid:396)(cid:3)(cid:1007)(cid:1004)(cid:853)(cid:3)(cid:1006)(cid:1004)(cid:1006)(cid:1007)(cid:856)(cid:3)
+(cid:3)
+(cid:18)(cid:381)(cid:373)(cid:373)(cid:286)(cid:374)(cid:410)(cid:349)(cid:374)(cid:336)(cid:3)(cid:381)(cid:374)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:89)(cid:1006)(cid:3)(cid:38)(cid:122)(cid:1006)(cid:1008)(cid:3)(cid:396)(cid:286)(cid:400)(cid:437)(cid:367)(cid:410)(cid:400)(cid:853)(cid:3)(cid:68)(cid:396)(cid:3)(cid:4)(cid:374)(cid:373)(cid:381)(cid:367)(cid:3)(cid:17)(cid:346)(cid:258)(cid:374)(cid:400)(cid:258)(cid:367)(cid:349)(cid:853)(cid:3)(cid:68)(cid:258)(cid:374)(cid:258)(cid:336)(cid:349)(cid:374)(cid:336)(cid:3)(cid:24)(cid:349)(cid:396)(cid:286)(cid:272)(cid:410)(cid:381)(cid:396)(cid:853)(cid:3)(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:3)(cid:47)(cid:374)(cid:410)(cid:286)(cid:396)(cid:374)(cid:258)(cid:410)(cid:349)(cid:381)(cid:374)(cid:258)(cid:367)(cid:853)(cid:3)
+(cid:400)(cid:258)(cid:349)(cid:282)(cid:853)(cid:3)(cid:862)(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:859)(cid:400)(cid:3)(cid:89)(cid:1006)(cid:3)(cid:381)(cid:393)(cid:286)(cid:396)(cid:258)(cid:410)(cid:349)(cid:381)(cid:374)(cid:258)(cid:367)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:296)(cid:349)(cid:374)(cid:258)(cid:374)(cid:272)(cid:349)(cid:258)(cid:367)(cid:3)(cid:393)(cid:286)(cid:396)(cid:296)(cid:381)(cid:396)(cid:373)(cid:258)(cid:374)(cid:272)(cid:286)(cid:3)(cid:396)(cid:286)(cid:296)(cid:367)(cid:286)(cid:272)(cid:410)(cid:400)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:272)(cid:381)(cid:373)(cid:393)(cid:258)(cid:374)(cid:455)(cid:859)(cid:400)(cid:3)(cid:396)(cid:286)(cid:400)(cid:349)(cid:367)(cid:349)(cid:286)(cid:374)(cid:272)(cid:286)(cid:3)(cid:349)(cid:374)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)
+(cid:449)(cid:258)(cid:364)(cid:286)(cid:3)(cid:381)(cid:296)(cid:3)(cid:272)(cid:346)(cid:258)(cid:367)(cid:367)(cid:286)(cid:374)(cid:336)(cid:349)(cid:374)(cid:336)(cid:3)(cid:271)(cid:437)(cid:400)(cid:349)(cid:374)(cid:286)(cid:400)(cid:400)(cid:3)(cid:286)(cid:374)(cid:448)(cid:349)(cid:396)(cid:381)(cid:374)(cid:373)(cid:286)(cid:374)(cid:410)(cid:856)(cid:3)(cid:44)(cid:286)(cid:258)(cid:367)(cid:410)(cid:346)(cid:455)(cid:3)(cid:396)(cid:286)(cid:448)(cid:286)(cid:374)(cid:437)(cid:286)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:393)(cid:396)(cid:381)(cid:296)(cid:349)(cid:410)(cid:3)(cid:336)(cid:396)(cid:381)(cid:449)(cid:410)(cid:346)(cid:3)(cid:349)(cid:374)(cid:3)(cid:89)(cid:1006)(cid:3)(cid:381)(cid:448)(cid:286)(cid:396)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)
+(cid:272)(cid:381)(cid:396)(cid:396)(cid:286)(cid:400)(cid:393)(cid:381)(cid:374)(cid:282)(cid:349)(cid:374)(cid:336)(cid:3) (cid:395)(cid:437)(cid:258)(cid:396)(cid:410)(cid:286)(cid:396)(cid:853)(cid:3) (cid:258)(cid:374)(cid:282)(cid:3) (cid:28)(cid:17)(cid:47)(cid:100)(cid:24)(cid:4)(cid:3) (cid:373)(cid:258)(cid:396)(cid:336)(cid:349)(cid:374)(cid:3) (cid:381)(cid:296)(cid:3) (cid:258)(cid:271)(cid:381)(cid:437)(cid:410)(cid:3) (cid:1006)(cid:1008)(cid:1081)(cid:3) (cid:349)(cid:400)(cid:3) (cid:395)(cid:437)(cid:349)(cid:410)(cid:286)(cid:3) (cid:400)(cid:258)(cid:410)(cid:349)(cid:400)(cid:296)(cid:258)(cid:272)(cid:410)(cid:381)(cid:396)(cid:455)(cid:856)(cid:3) (cid:100)(cid:346)(cid:286)(cid:3) (cid:349)(cid:374)(cid:272)(cid:396)(cid:286)(cid:258)(cid:400)(cid:349)(cid:374)(cid:336)(cid:3)
+(cid:393)(cid:396)(cid:286)(cid:296)(cid:286)(cid:396)(cid:286)(cid:374)(cid:272)(cid:286)(cid:3)(cid:410)(cid:381)(cid:449)(cid:258)(cid:396)(cid:282)(cid:400)(cid:3)(cid:62)(cid:258)(cid:271)(cid:3)(cid:39)(cid:396)(cid:381)(cid:449)(cid:374)(cid:3)(cid:24)(cid:349)(cid:258)(cid:373)(cid:381)(cid:374)(cid:282)(cid:3)(cid:58)(cid:286)(cid:449)(cid:286)(cid:367)(cid:367)(cid:286)(cid:396)(cid:455)(cid:3)(cid:258)(cid:373)(cid:381)(cid:374)(cid:336)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:104)(cid:94)(cid:3)(cid:272)(cid:381)(cid:374)(cid:400)(cid:437)(cid:373)(cid:286)(cid:396)(cid:400)(cid:3)(cid:349)(cid:400)(cid:3)(cid:258)(cid:3)(cid:400)(cid:410)(cid:396)(cid:381)(cid:374)(cid:336)(cid:3)(cid:349)(cid:374)(cid:282)(cid:349)(cid:272)(cid:258)(cid:410)(cid:381)(cid:396)(cid:3)(cid:381)(cid:296)(cid:3)
+(cid:346)(cid:381)(cid:449)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:336)(cid:367)(cid:381)(cid:271)(cid:258)(cid:367)(cid:3)(cid:282)(cid:286)(cid:373)(cid:258)(cid:374)(cid:282)(cid:3)(cid:449)(cid:349)(cid:367)(cid:367)(cid:3)(cid:373)(cid:381)(cid:448)(cid:286)(cid:3)(cid:349)(cid:374)(cid:3)(cid:455)(cid:286)(cid:258)(cid:396)(cid:400)(cid:3)(cid:410)(cid:381)(cid:3)(cid:272)(cid:381)(cid:373)(cid:286)(cid:856)(cid:3)(cid:116)(cid:286)(cid:3)(cid:258)(cid:396)(cid:286)(cid:3)(cid:395)(cid:437)(cid:349)(cid:410)(cid:286)(cid:3)(cid:286)(cid:454)(cid:272)(cid:349)(cid:410)(cid:286)(cid:282)(cid:3)(cid:258)(cid:271)(cid:381)(cid:437)(cid:410)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:296)(cid:437)(cid:410)(cid:437)(cid:396)(cid:286)(cid:3)(cid:393)(cid:396)(cid:381)(cid:400)(cid:393)(cid:286)(cid:272)(cid:410)(cid:400)(cid:3)
+(cid:381)(cid:296)(cid:3)(cid:62)(cid:258)(cid:271)(cid:3)(cid:39)(cid:396)(cid:381)(cid:449)(cid:374)(cid:3)(cid:24)(cid:349)(cid:258)(cid:373)(cid:381)(cid:374)(cid:282)(cid:3)(cid:58)(cid:286)(cid:449)(cid:286)(cid:367)(cid:367)(cid:286)(cid:396)(cid:455)(cid:3)(cid:349)(cid:374)(cid:282)(cid:437)(cid:400)(cid:410)(cid:396)(cid:455)(cid:856)(cid:863)(cid:3)
+(cid:3)
+(cid:68)(cid:396)(cid:856)(cid:3)(cid:90)(cid:258)(cid:400)(cid:346)(cid:286)(cid:400)(cid:346)(cid:3)(cid:17)(cid:346)(cid:258)(cid:374)(cid:400)(cid:258)(cid:367)(cid:349)(cid:853)(cid:3)(cid:28)(cid:454)(cid:286)(cid:272)(cid:437)(cid:410)(cid:349)(cid:448)(cid:286)(cid:3)(cid:18)(cid:346)(cid:258)(cid:349)(cid:396)(cid:373)(cid:258)(cid:374)(cid:3)(cid:381)(cid:296)(cid:3)(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:3)(cid:47)(cid:374)(cid:410)(cid:286)(cid:396)(cid:374)(cid:258)(cid:410)(cid:349)(cid:381)(cid:374)(cid:258)(cid:367)(cid:853)(cid:3)(cid:400)(cid:258)(cid:349)(cid:282)(cid:853)(cid:3)(cid:919)(cid:75)(cid:437)(cid:396)(cid:3)(cid:286)(cid:296)(cid:296)(cid:381)(cid:396)(cid:410)(cid:400)(cid:3)(cid:410)(cid:381)(cid:449)(cid:258)(cid:396)(cid:282)(cid:400)(cid:3)
+(cid:373)(cid:258)(cid:374)(cid:258)(cid:336)(cid:349)(cid:374)(cid:336)(cid:3)(cid:349)(cid:374)(cid:448)(cid:286)(cid:374)(cid:410)(cid:381)(cid:396)(cid:455)(cid:3)(cid:393)(cid:381)(cid:400)(cid:349)(cid:410)(cid:349)(cid:381)(cid:374)(cid:3)(cid:286)(cid:296)(cid:296)(cid:349)(cid:272)(cid:349)(cid:286)(cid:374)(cid:410)(cid:367)(cid:455)(cid:853)(cid:3)(cid:286)(cid:374)(cid:336)(cid:258)(cid:336)(cid:349)(cid:374)(cid:336)(cid:3)(cid:449)(cid:349)(cid:410)(cid:346)(cid:3)(cid:396)(cid:286)(cid:410)(cid:258)(cid:349)(cid:367)(cid:286)(cid:396)(cid:400)(cid:3)(cid:449)(cid:349)(cid:410)(cid:346)(cid:3)(cid:374)(cid:286)(cid:449)(cid:3)(cid:393)(cid:396)(cid:381)(cid:282)(cid:437)(cid:272)(cid:410)(cid:3)(cid:282)(cid:286)(cid:400)(cid:349)(cid:336)(cid:374)(cid:400)(cid:3)(cid:349)(cid:400)(cid:3)(cid:449)(cid:381)(cid:396)(cid:364)(cid:349)(cid:374)(cid:336)(cid:3)
+(cid:449)(cid:286)(cid:367)(cid:367)(cid:856)(cid:3)(cid:75)(cid:437)(cid:396)(cid:3)(cid:400)(cid:410)(cid:396)(cid:258)(cid:410)(cid:286)(cid:336)(cid:455)(cid:3)(cid:381)(cid:296)(cid:3)(cid:349)(cid:374)(cid:272)(cid:396)(cid:286)(cid:258)(cid:400)(cid:349)(cid:374)(cid:336)(cid:3)(cid:296)(cid:381)(cid:272)(cid:437)(cid:400)(cid:3)(cid:381)(cid:374)(cid:3)(cid:62)(cid:258)(cid:271)(cid:3)(cid:39)(cid:396)(cid:381)(cid:449)(cid:374)(cid:3)(cid:24)(cid:349)(cid:258)(cid:373)(cid:381)(cid:374)(cid:282)(cid:3)(cid:58)(cid:286)(cid:449)(cid:286)(cid:367)(cid:367)(cid:286)(cid:396)(cid:455)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:381)(cid:373)(cid:374)(cid:349)(cid:3)(cid:272)(cid:346)(cid:258)(cid:374)(cid:374)(cid:286)(cid:367)(cid:3)(cid:400)(cid:258)(cid:367)(cid:286)(cid:400)(cid:3)(cid:286)(cid:296)(cid:296)(cid:381)(cid:396)(cid:410)(cid:400)(cid:3)
+(cid:346)(cid:258)(cid:400)(cid:3)(cid:373)(cid:258)(cid:282)(cid:286)(cid:3)(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:3)(cid:258)(cid:3)(cid:437)(cid:374)(cid:349)(cid:395)(cid:437)(cid:286)(cid:3)(cid:361)(cid:286)(cid:449)(cid:286)(cid:367)(cid:367)(cid:286)(cid:396)(cid:455)(cid:3)(cid:393)(cid:367)(cid:258)(cid:455)(cid:3)(cid:258)(cid:373)(cid:381)(cid:374)(cid:336)(cid:400)(cid:410)(cid:3)(cid:367)(cid:349)(cid:400)(cid:410)(cid:286)(cid:282)(cid:3)(cid:58)(cid:286)(cid:449)(cid:286)(cid:367)(cid:367)(cid:286)(cid:396)(cid:455)(cid:3)(cid:272)(cid:381)(cid:373)(cid:393)(cid:258)(cid:374)(cid:349)(cid:286)(cid:400)(cid:856)(cid:3)(cid:68)(cid:381)(cid:396)(cid:286)(cid:381)(cid:448)(cid:286)(cid:396)(cid:853)(cid:3)(cid:449)(cid:286)(cid:3)(cid:258)(cid:396)(cid:286)(cid:3)
+(cid:336)(cid:286)(cid:374)(cid:286)(cid:396)(cid:258)(cid:410)(cid:349)(cid:374)(cid:336)(cid:3)(cid:286)(cid:374)(cid:381)(cid:437)(cid:336)(cid:346)(cid:3)(cid:272)(cid:258)(cid:400)(cid:346)(cid:3)(cid:410)(cid:381)(cid:3)(cid:271)(cid:286)(cid:3)(cid:258)(cid:271)(cid:367)(cid:286)(cid:3)(cid:410)(cid:381)(cid:3)(cid:396)(cid:286)(cid:410)(cid:437)(cid:396)(cid:374)(cid:3)(cid:410)(cid:381)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:400)(cid:346)(cid:258)(cid:396)(cid:286)(cid:346)(cid:381)(cid:367)(cid:282)(cid:286)(cid:396)(cid:400)(cid:3)(cid:271)(cid:455)(cid:3)(cid:449)(cid:258)(cid:455)(cid:3)(cid:381)(cid:296)(cid:3)(cid:400)(cid:346)(cid:258)(cid:396)(cid:286)(cid:3)(cid:271)(cid:437)(cid:455)(cid:271)(cid:258)(cid:272)(cid:364)(cid:400)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)
+(cid:282)(cid:349)(cid:448)(cid:349)(cid:282)(cid:286)(cid:374)(cid:282)(cid:400)(cid:856)(cid:3)(cid:75)(cid:437)(cid:396)(cid:3)(cid:272)(cid:381)(cid:374)(cid:400)(cid:381)(cid:367)(cid:349)(cid:282)(cid:258)(cid:410)(cid:286)(cid:282)(cid:3)(cid:18)(cid:258)(cid:400)(cid:346)(cid:3)(cid:920)(cid:3)(cid:18)(cid:258)(cid:400)(cid:346)(cid:3)(cid:28)(cid:395)(cid:437)(cid:349)(cid:448)(cid:258)(cid:367)(cid:286)(cid:374)(cid:410)(cid:3)(cid:894)(cid:349)(cid:374)(cid:272)(cid:367)(cid:437)(cid:282)(cid:349)(cid:374)(cid:336)(cid:3)(cid:349)(cid:374)(cid:448)(cid:286)(cid:400)(cid:410)(cid:373)(cid:286)(cid:374)(cid:410)(cid:400)(cid:895)(cid:3)(cid:258)(cid:410)(cid:3)(cid:346)(cid:286)(cid:258)(cid:367)(cid:410)(cid:346)(cid:455)(cid:3)(cid:3876)(cid:3)(cid:1006)(cid:1011)(cid:1011)(cid:1010)(cid:856)(cid:1008)(cid:3)
+(cid:373)(cid:349)(cid:367)(cid:367)(cid:349)(cid:381)(cid:374)(cid:3)(cid:336)(cid:349)(cid:448)(cid:286)(cid:400)(cid:3)(cid:400)(cid:437)(cid:296)(cid:296)(cid:349)(cid:272)(cid:349)(cid:286)(cid:374)(cid:410)(cid:3)(cid:396)(cid:381)(cid:381)(cid:373)(cid:3)(cid:410)(cid:381)(cid:3)(cid:286)(cid:454)(cid:393)(cid:367)(cid:381)(cid:396)(cid:286)(cid:3)(cid:271)(cid:437)(cid:400)(cid:349)(cid:374)(cid:286)(cid:400)(cid:400)(cid:3)(cid:381)(cid:393)(cid:393)(cid:381)(cid:396)(cid:410)(cid:437)(cid:374)(cid:349)(cid:410)(cid:349)(cid:286)(cid:400)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:410)(cid:258)(cid:393)(cid:3)(cid:374)(cid:286)(cid:449)(cid:286)(cid:396)(cid:3)(cid:336)(cid:286)(cid:381)(cid:336)(cid:396)(cid:258)(cid:393)(cid:346)(cid:349)(cid:286)(cid:400)(cid:856)(cid:863)(cid:3)
+(cid:3)(cid:3)(cid:3)
+(cid:3)
+(cid:3)
+
+(cid:3)
+(cid:4)(cid:271)(cid:381)(cid:437)(cid:410)(cid:3)(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:3)(cid:47)(cid:374)(cid:410)(cid:286)(cid:396)(cid:374)(cid:258)(cid:410)(cid:349)(cid:381)(cid:374)(cid:258)(cid:367)(cid:3)
+(cid:3)
+(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:3)(cid:47)(cid:374)(cid:410)(cid:286)(cid:396)(cid:374)(cid:258)(cid:410)(cid:349)(cid:381)(cid:374)(cid:258)(cid:367)(cid:3)(cid:62)(cid:349)(cid:373)(cid:349)(cid:410)(cid:286)(cid:282)(cid:3)(cid:894)(cid:69)(cid:94)(cid:28)(cid:855)(cid:3)(cid:39)(cid:75)(cid:62)(cid:24)(cid:47)(cid:4)(cid:68)(cid:853)(cid:3)(cid:17)(cid:94)(cid:28)(cid:855)(cid:3)(cid:1009)(cid:1006)(cid:1010)(cid:1011)(cid:1006)(cid:1013)(cid:895)(cid:3)(cid:349)(cid:400)(cid:3)(cid:258)(cid:3)(cid:1007)(cid:882)(cid:282)(cid:286)(cid:272)(cid:258)(cid:282)(cid:286)(cid:882)(cid:381)(cid:367)(cid:282)(cid:3)(cid:393)(cid:396)(cid:286)(cid:296)(cid:286)(cid:396)(cid:396)(cid:286)(cid:282)(cid:3)(cid:75)(cid:28)(cid:68)(cid:3)(cid:393)(cid:258)(cid:396)(cid:410)(cid:374)(cid:286)(cid:396)(cid:3)
+(cid:258)(cid:374)(cid:282)(cid:3) (cid:286)(cid:454)(cid:393)(cid:381)(cid:396)(cid:410)(cid:286)(cid:396)(cid:3) (cid:381)(cid:296)(cid:3) (cid:286)(cid:454)(cid:395)(cid:437)(cid:349)(cid:400)(cid:349)(cid:410)(cid:286)(cid:367)(cid:455)(cid:3) (cid:282)(cid:286)(cid:400)(cid:349)(cid:336)(cid:374)(cid:286)(cid:282)(cid:3) (cid:258)(cid:374)(cid:282)(cid:3) (cid:367)(cid:437)(cid:454)(cid:437)(cid:396)(cid:349)(cid:381)(cid:437)(cid:400)(cid:3) (cid:282)(cid:349)(cid:258)(cid:373)(cid:381)(cid:374)(cid:282)(cid:3) (cid:361)(cid:286)(cid:449)(cid:286)(cid:367)(cid:367)(cid:286)(cid:396)(cid:455)(cid:856)(cid:3)(cid:38)(cid:437)(cid:374)(cid:272)(cid:410)(cid:349)(cid:381)(cid:374)(cid:349)(cid:374)(cid:336)(cid:3) (cid:258)(cid:400)(cid:3) (cid:410)(cid:346)(cid:286)(cid:3)
+(cid:373)(cid:258)(cid:374)(cid:437)(cid:296)(cid:258)(cid:272)(cid:410)(cid:437)(cid:396)(cid:286)(cid:396)(cid:3)(cid:381)(cid:296)(cid:3)(cid:272)(cid:346)(cid:381)(cid:349)(cid:272)(cid:286)(cid:3)(cid:410)(cid:381)(cid:3)(cid:373)(cid:258)(cid:374)(cid:455)(cid:3)(cid:381)(cid:296)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:367)(cid:286)(cid:258)(cid:282)(cid:349)(cid:374)(cid:336)(cid:3)(cid:336)(cid:367)(cid:381)(cid:271)(cid:258)(cid:367)(cid:3)(cid:271)(cid:396)(cid:258)(cid:374)(cid:282)(cid:286)(cid:282)(cid:3)(cid:396)(cid:286)(cid:410)(cid:258)(cid:349)(cid:367)(cid:286)(cid:396)(cid:400)(cid:853)(cid:3)(cid:282)(cid:286)(cid:393)(cid:258)(cid:396)(cid:410)(cid:373)(cid:286)(cid:374)(cid:410)(cid:258)(cid:367)(cid:3)(cid:400)(cid:410)(cid:381)(cid:396)(cid:286)(cid:400)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)
+(cid:449)(cid:346)(cid:381)(cid:367)(cid:286)(cid:400)(cid:258)(cid:367)(cid:286)(cid:396)(cid:400)(cid:3)(cid:258)(cid:272)(cid:396)(cid:381)(cid:400)(cid:400)(cid:3)(cid:4)(cid:373)(cid:286)(cid:396)(cid:349)(cid:272)(cid:258)(cid:374)(cid:3)(cid:373)(cid:258)(cid:396)(cid:364)(cid:286)(cid:410)(cid:400)(cid:853)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:18)(cid:381)(cid:373)(cid:393)(cid:258)(cid:374)(cid:455)(cid:3)(cid:349)(cid:400)(cid:3)(cid:258)(cid:367)(cid:400)(cid:381)(cid:3)(cid:396)(cid:286)(cid:374)(cid:381)(cid:449)(cid:374)(cid:286)(cid:282)(cid:3)(cid:296)(cid:381)(cid:396)(cid:3)(cid:437)(cid:410)(cid:349)(cid:367)(cid:349)(cid:400)(cid:349)(cid:374)(cid:336)(cid:3)(cid:396)(cid:286)(cid:400)(cid:393)(cid:381)(cid:374)(cid:400)(cid:349)(cid:271)(cid:367)(cid:455)(cid:3)(cid:400)(cid:381)(cid:437)(cid:396)(cid:272)(cid:286)(cid:282)(cid:3)
+(cid:282)(cid:349)(cid:258)(cid:373)(cid:381)(cid:374)(cid:282)(cid:400)(cid:853)(cid:3)(cid:367)(cid:286)(cid:448)(cid:286)(cid:396)(cid:258)(cid:336)(cid:349)(cid:374)(cid:336)(cid:3)(cid:272)(cid:437)(cid:410)(cid:410)(cid:349)(cid:374)(cid:336)(cid:882)(cid:286)(cid:282)(cid:336)(cid:286)(cid:3)(cid:410)(cid:286)(cid:272)(cid:346)(cid:374)(cid:381)(cid:367)(cid:381)(cid:336)(cid:349)(cid:286)(cid:400)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:286)(cid:296)(cid:296)(cid:349)(cid:272)(cid:349)(cid:286)(cid:374)(cid:410)(cid:3)(cid:373)(cid:258)(cid:374)(cid:437)(cid:296)(cid:258)(cid:272)(cid:410)(cid:437)(cid:396)(cid:349)(cid:374)(cid:336)(cid:3)(cid:393)(cid:396)(cid:381)(cid:272)(cid:286)(cid:400)(cid:400)(cid:286)(cid:400)(cid:3)(cid:296)(cid:381)(cid:396)(cid:3)(cid:381)(cid:393)(cid:410)(cid:349)(cid:373)(cid:258)(cid:367)(cid:3)
+(cid:272)(cid:381)(cid:400)(cid:410)(cid:349)(cid:374)(cid:336)(cid:400)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:395)(cid:437)(cid:349)(cid:272)(cid:364)(cid:3)(cid:282)(cid:286)(cid:367)(cid:349)(cid:448)(cid:286)(cid:396)(cid:455)(cid:3)(cid:367)(cid:286)(cid:258)(cid:282)(cid:3)(cid:410)(cid:349)(cid:373)(cid:286)(cid:400)(cid:856)(cid:3)(cid:100)(cid:258)(cid:396)(cid:336)(cid:286)(cid:410)(cid:349)(cid:374)(cid:336)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:373)(cid:349)(cid:282)(cid:882)(cid:410)(cid:381)(cid:882)(cid:258)(cid:296)(cid:296)(cid:381)(cid:396)(cid:282)(cid:258)(cid:271)(cid:367)(cid:286)(cid:3)(cid:282)(cid:349)(cid:258)(cid:373)(cid:381)(cid:374)(cid:282)(cid:3)(cid:920)(cid:3)(cid:271)(cid:396)(cid:349)(cid:282)(cid:258)(cid:367)(cid:3)(cid:361)(cid:286)(cid:449)(cid:286)(cid:367)(cid:367)(cid:286)(cid:396)(cid:455)(cid:3)
+(cid:400)(cid:286)(cid:336)(cid:373)(cid:286)(cid:374)(cid:410)(cid:400)(cid:853)(cid:3)(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:3)(cid:346)(cid:258)(cid:400)(cid:3)(cid:258)(cid:3)(cid:282)(cid:286)(cid:282)(cid:349)(cid:272)(cid:258)(cid:410)(cid:286)(cid:282)(cid:3)(cid:400)(cid:258)(cid:367)(cid:286)(cid:400)(cid:3)(cid:381)(cid:296)(cid:296)(cid:349)(cid:272)(cid:286)(cid:3)(cid:349)(cid:374)(cid:3)(cid:69)(cid:286)(cid:449)(cid:3)(cid:122)(cid:381)(cid:396)(cid:364)(cid:853)(cid:3)(cid:449)(cid:349)(cid:410)(cid:346)(cid:3)(cid:282)(cid:286)(cid:400)(cid:349)(cid:336)(cid:374)(cid:3)(cid:410)(cid:286)(cid:258)(cid:373)(cid:400)(cid:3)(cid:349)(cid:374)(cid:3)(cid:271)(cid:381)(cid:410)(cid:346)(cid:3)(cid:47)(cid:374)(cid:282)(cid:349)(cid:258)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)
+(cid:104)(cid:94)(cid:4)(cid:856)(cid:3)
+(cid:3)
+(cid:38)(cid:381)(cid:396)(cid:449)(cid:258)(cid:396)(cid:282)(cid:882)(cid:62)(cid:381)(cid:381)(cid:364)(cid:349)(cid:374)(cid:336)(cid:3)(cid:94)(cid:410)(cid:258)(cid:410)(cid:286)(cid:373)(cid:286)(cid:374)(cid:410)(cid:855)(cid:3)
+(cid:3)
+(cid:18)(cid:286)(cid:396)(cid:410)(cid:258)(cid:349)(cid:374)(cid:3)(cid:400)(cid:410)(cid:258)(cid:410)(cid:286)(cid:373)(cid:286)(cid:374)(cid:410)(cid:400)(cid:3)(cid:349)(cid:374)(cid:3)(cid:410)(cid:346)(cid:349)(cid:400)(cid:3)(cid:282)(cid:381)(cid:272)(cid:437)(cid:373)(cid:286)(cid:374)(cid:410)(cid:3)(cid:373)(cid:258)(cid:455)(cid:3)(cid:271)(cid:286)(cid:3)(cid:296)(cid:381)(cid:396)(cid:449)(cid:258)(cid:396)(cid:282)(cid:882)(cid:367)(cid:381)(cid:381)(cid:364)(cid:349)(cid:374)(cid:336)(cid:3)(cid:400)(cid:410)(cid:258)(cid:410)(cid:286)(cid:373)(cid:286)(cid:374)(cid:410)(cid:400)(cid:856)(cid:3)(cid:94)(cid:437)(cid:272)(cid:346)(cid:3)(cid:296)(cid:381)(cid:396)(cid:449)(cid:258)(cid:396)(cid:282)(cid:882)(cid:367)(cid:381)(cid:381)(cid:364)(cid:349)(cid:374)(cid:336)(cid:3)(cid:400)(cid:410)(cid:258)(cid:410)(cid:286)(cid:373)(cid:286)(cid:374)(cid:410)(cid:400)(cid:3)(cid:258)(cid:396)(cid:286)(cid:3)(cid:400)(cid:437)(cid:271)(cid:361)(cid:286)(cid:272)(cid:410)(cid:3)(cid:410)(cid:381)(cid:3)
+(cid:272)(cid:286)(cid:396)(cid:410)(cid:258)(cid:349)(cid:374)(cid:3)(cid:396)(cid:349)(cid:400)(cid:364)(cid:400)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:437)(cid:374)(cid:272)(cid:286)(cid:396)(cid:410)(cid:258)(cid:349)(cid:374)(cid:410)(cid:349)(cid:286)(cid:400)(cid:3)(cid:367)(cid:349)(cid:364)(cid:286)(cid:3)(cid:396)(cid:286)(cid:336)(cid:437)(cid:367)(cid:258)(cid:410)(cid:381)(cid:396)(cid:455)(cid:3)(cid:272)(cid:346)(cid:258)(cid:374)(cid:336)(cid:286)(cid:400)(cid:853)(cid:3)(cid:367)(cid:381)(cid:272)(cid:258)(cid:367)(cid:3)(cid:393)(cid:381)(cid:367)(cid:349)(cid:410)(cid:349)(cid:272)(cid:258)(cid:367)(cid:3)(cid:381)(cid:396)(cid:3)(cid:286)(cid:272)(cid:381)(cid:374)(cid:381)(cid:373)(cid:349)(cid:272)(cid:3)(cid:282)(cid:286)(cid:448)(cid:286)(cid:367)(cid:381)(cid:393)(cid:373)(cid:286)(cid:374)(cid:410)(cid:400)(cid:853)(cid:3)(cid:410)(cid:286)(cid:272)(cid:346)(cid:374)(cid:381)(cid:367)(cid:381)(cid:336)(cid:349)(cid:272)(cid:258)(cid:367)(cid:3)(cid:396)(cid:349)(cid:400)(cid:364)(cid:400)(cid:853)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)
+(cid:373)(cid:258)(cid:374)(cid:455)(cid:3)(cid:381)(cid:410)(cid:346)(cid:286)(cid:396)(cid:3)(cid:296)(cid:258)(cid:272)(cid:410)(cid:381)(cid:396)(cid:400)(cid:3)(cid:410)(cid:346)(cid:258)(cid:410)(cid:3)(cid:272)(cid:381)(cid:437)(cid:367)(cid:282)(cid:3)(cid:272)(cid:258)(cid:437)(cid:400)(cid:286)(cid:3)(cid:381)(cid:437)(cid:396)(cid:3)(cid:258)(cid:272)(cid:410)(cid:437)(cid:258)(cid:367)(cid:3)(cid:396)(cid:286)(cid:400)(cid:437)(cid:367)(cid:410)(cid:400)(cid:3)(cid:410)(cid:381)(cid:3)(cid:282)(cid:349)(cid:296)(cid:296)(cid:286)(cid:396)(cid:3)(cid:373)(cid:258)(cid:410)(cid:286)(cid:396)(cid:349)(cid:258)(cid:367)(cid:367)(cid:455)(cid:3)(cid:296)(cid:396)(cid:381)(cid:373)(cid:3)(cid:410)(cid:346)(cid:381)(cid:400)(cid:286)(cid:3)(cid:272)(cid:381)(cid:374)(cid:410)(cid:286)(cid:373)(cid:393)(cid:367)(cid:258)(cid:410)(cid:286)(cid:282)(cid:3)(cid:271)(cid:455)(cid:3)(cid:410)(cid:346)(cid:286)(cid:3)(cid:396)(cid:286)(cid:367)(cid:286)(cid:448)(cid:258)(cid:374)(cid:410)(cid:3)(cid:296)(cid:381)(cid:396)(cid:449)(cid:258)(cid:396)(cid:282)(cid:882)
+(cid:367)(cid:381)(cid:381)(cid:364)(cid:349)(cid:374)(cid:336)(cid:3)(cid:400)(cid:410)(cid:258)(cid:410)(cid:286)(cid:373)(cid:286)(cid:374)(cid:410)(cid:400)(cid:856)(cid:3)(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:3)(cid:47)(cid:374)(cid:410)(cid:286)(cid:396)(cid:374)(cid:258)(cid:410)(cid:349)(cid:381)(cid:374)(cid:258)(cid:367)(cid:3)(cid:62)(cid:349)(cid:373)(cid:349)(cid:410)(cid:286)(cid:282)(cid:3)(cid:449)(cid:349)(cid:367)(cid:367)(cid:3)(cid:374)(cid:381)(cid:410)(cid:3)(cid:271)(cid:286)(cid:3)(cid:349)(cid:374)(cid:3)(cid:258)(cid:374)(cid:455)(cid:3)(cid:449)(cid:258)(cid:455)(cid:3)(cid:396)(cid:286)(cid:400)(cid:393)(cid:381)(cid:374)(cid:400)(cid:349)(cid:271)(cid:367)(cid:286)(cid:3)(cid:296)(cid:381)(cid:396)(cid:3)(cid:258)(cid:374)(cid:455)(cid:3)(cid:258)(cid:272)(cid:410)(cid:349)(cid:381)(cid:374)(cid:3)(cid:410)(cid:258)(cid:364)(cid:286)(cid:374)(cid:3)(cid:271)(cid:258)(cid:400)(cid:286)(cid:282)(cid:3)(cid:381)(cid:374)(cid:3)(cid:400)(cid:437)(cid:272)(cid:346)(cid:3)
+(cid:400)(cid:410)(cid:258)(cid:410)(cid:286)(cid:373)(cid:286)(cid:374)(cid:410)(cid:400)(cid:3)(cid:258)(cid:374)(cid:282)(cid:3)(cid:437)(cid:374)(cid:282)(cid:286)(cid:396)(cid:410)(cid:258)(cid:364)(cid:286)(cid:400)(cid:3)(cid:374)(cid:381)(cid:3)(cid:381)(cid:271)(cid:367)(cid:349)(cid:336)(cid:258)(cid:410)(cid:349)(cid:381)(cid:374)(cid:3)(cid:410)(cid:381)(cid:3)(cid:393)(cid:437)(cid:271)(cid:367)(cid:349)(cid:272)(cid:367)(cid:455)(cid:3)(cid:437)(cid:393)(cid:282)(cid:258)(cid:410)(cid:286)(cid:3)(cid:410)(cid:346)(cid:286)(cid:400)(cid:286)(cid:3)(cid:296)(cid:381)(cid:396)(cid:449)(cid:258)(cid:396)(cid:282)(cid:882)(cid:367)(cid:381)(cid:381)(cid:364)(cid:349)(cid:374)(cid:336)(cid:3)(cid:400)(cid:410)(cid:258)(cid:410)(cid:286)(cid:373)(cid:286)(cid:374)(cid:410)(cid:400)(cid:3)(cid:410)(cid:381)(cid:3)(cid:396)(cid:286)(cid:296)(cid:367)(cid:286)(cid:272)(cid:410)(cid:3)(cid:400)(cid:437)(cid:271)(cid:400)(cid:286)(cid:395)(cid:437)(cid:286)(cid:374)(cid:410)(cid:3)(cid:286)(cid:448)(cid:286)(cid:374)(cid:410)(cid:400)(cid:3)
+(cid:381)(cid:396)(cid:3)(cid:272)(cid:349)(cid:396)(cid:272)(cid:437)(cid:373)(cid:400)(cid:410)(cid:258)(cid:374)(cid:272)(cid:286)(cid:400)(cid:856)(cid:3)
+(cid:3)
+(cid:38)(cid:381)(cid:396)(cid:3)(cid:373)(cid:381)(cid:396)(cid:286)(cid:3)(cid:349)(cid:374)(cid:296)(cid:381)(cid:396)(cid:373)(cid:258)(cid:410)(cid:349)(cid:381)(cid:374)(cid:853)(cid:3)(cid:393)(cid:367)(cid:286)(cid:258)(cid:400)(cid:286)(cid:3)(cid:272)(cid:381)(cid:374)(cid:410)(cid:258)(cid:272)(cid:410)(cid:3)(cid:3)
+(cid:87)(cid:258)(cid:374)(cid:364)(cid:258)(cid:361)(cid:3)(cid:87)(cid:258)(cid:396)(cid:364)(cid:346)(cid:349)(cid:455)(cid:258)(cid:3) (cid:68)(cid:286)(cid:346)(cid:437)(cid:367)(cid:3)(cid:68)(cid:286)(cid:346)(cid:410)(cid:258)
+(cid:18)(cid:381)(cid:373)(cid:393)(cid:258)(cid:374)(cid:455)(cid:3)(cid:94)(cid:286)(cid:272)(cid:396)(cid:286)(cid:410)(cid:258)(cid:396)(cid:455)(cid:3)(cid:920)(cid:3)(cid:18)(cid:381)(cid:373)(cid:393)(cid:367)(cid:349)(cid:258)(cid:374)(cid:272)(cid:286)(cid:3)(cid:75)(cid:296)(cid:296)(cid:349)(cid:272)(cid:286)(cid:396)(cid:3) (cid:18)(cid:28)(cid:75)(cid:3)
+(cid:39)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:3)(cid:47)(cid:374)(cid:410)(cid:286)(cid:396)(cid:374)(cid:258)(cid:410)(cid:349)(cid:381)(cid:374)(cid:258)(cid:367)(cid:3) (cid:24)(cid:349)(cid:400)(cid:400)(cid:286)(cid:396)(cid:381)(cid:3)(cid:18)(cid:381)(cid:374)(cid:400)(cid:437)(cid:367)(cid:410)(cid:349)(cid:374)(cid:336)(cid:3)
+(cid:393)(cid:258)(cid:374)(cid:364)(cid:258)(cid:361)(cid:923)(cid:336)(cid:381)(cid:367)(cid:282)(cid:349)(cid:258)(cid:373)(cid:856)(cid:272)(cid:381)(cid:373)(cid:3) (cid:39)(cid:76)(cid:86)(cid:86)(cid:72)(cid:85)(cid:82)(cid:66)(cid:38)(cid:79)(cid:76)(cid:72)(cid:81)(cid:87)(cid:86)(cid:35)(cid:71)(cid:76)(cid:86)(cid:86)(cid:72)(cid:85)(cid:82)(cid:17)(cid:70)(cid:82)(cid:17)(cid:76)(cid:81)(cid:3)
+
+PULINDRA PATEL & CO.
+CHARTERED ACCOUNTANTS
+Office No. A-1004, Paras Business Center, Kasturba Road No.I, Near Borivali Station East, Borivali
+East, Mumbai-400 066,
+Office (Tel) +022-28069664,022-22056233,022-68844594,+91-9322268243,0fflce (M) +91-9619908533
+Email : caofflce@pulindrapatel.com, pulindra_patel@hotmail.com
+Review Report to
+The Board of Directors,
+Goldiam International Limited
+Gems & Jewellery Complex,
+SEEPZ, Andheri (East),
+Mumbai - 400 096.
+We have reviewed the quarterly unaudited standalone financial results of M/S.GOLDIAM
+INTERNATIONAL" LIMITED (the company) for the, Quarter and half yearly ended
+September 30, 2023 (the Statement") attached herewith, being submitted by the company
+pursuant to the requirement of Regulation 33 of the SEBI (Listing obligations and Disclosure
+Requirements) Regulations 2015 as amended ("Listing Regulations").
+This statement which is the responsibility of the Company's Management and has been
+approved by the Board of Directors has been prepared in accordance with the recognition and
+measurement p.rmcip}e.s }aid ooWJJ in the lndian Accovnting Standard 34 "Jnterim FinanciaJ
+Reporting" (lnd AS 34), prescribed under section 133 of the Companies Act, 2013 read with
+relevant rules issued there under and other accounting principles generally accepted in India.
+Our responsibility is to issue a report on the statement based on our review.
+We conducted our review of the Statement in accordance with the standard on Review
+Engagement (SRE) 2410 'Review of Interim Financial Infonnation perfonned by the
+Independent Auditor of the Entity' issued by the Institute of Chartered Accountants of India.
+This standard requires that we plan and perform the review to obtain moderate assurance as
+to whether the financial statement is free of material misstatements. A review is limited
+primarily to inquiries of company personnel and analytical procedures applied to financial
+data and thus provides less assurance than an audit. We have not perfonned an audit and
+accordingly, we do not express an audit opinion.
+. ...2 ...
+
+:2 :
+Based on our review conducted as stated above, nothing has come to our attention that causes
+us to believe that the accompanying statement of unaudited financial results prepared in
+accordance with the aforesaid Indian accounting standards and other accounting principles
+generally accepted in India, has not disclosed the information required to be disclosed in
+terms of Regulation 33 of the SEBI (Listing Obligations and Disclosure Requirements)
+Regulations 2015, as amended including the manner in which it is to be disclosed, or that it
+contains any material misstatement.
+FOR PULINDRA PATEL & CO.
+CHARTERED ACCOUNTANTS
+FIRM REGN. NO. 115187W
+j~l~ rv/t
+I
+Place: Mumbai PULINDRA PATEL
+Date : 1Oth November, 2023 MEMBERSHIP No. 048991
+UDIN: 23048991BGWJCE3256
+
+PULINDRA PATEL & CO.
+CHARTERED ACCOUNTANTS
+Office No. A-1004, Paras Business Center, Kasturba Road No.I, Near Borivali Station East, Borivali
+East, Mumbai-400 066,
+Office (Tel) +022-28069664,022-22056233,022-68844594,+91-9322268243,0fflce (M) +91-9619908533
+Email : caoffice@pulindrapatel.com, pulindra_patel@hotmail.com
+Review Report to
+The Board of Directors,
+Goldiam International Limited
+Gems & Jewellery Complex,
+SEEPZ, Andheri (East),
+Mumbai - 400 096
+We have reviewed the accompanying statement of unaudited Consolidated financial results of
+M/S.GOLDIAM INTERNATIONAL LIMITED (the "Parent") and its Subsidiaries and
+Associates (hereinafter referred to as the Group") for the, Quarter and half year ended
+September 30, 2023 (the Statement") attached herewith, being submitted by the company
+pursuant to the requirement of Regulation 33 ofthe SEBI (Listing obligations and Disclosure
+Requirements) Regulations 2015 as amended ("Listing Regulations").
+This statement which is the responsibility of the Company's Management and has been
+approved by the Board of Directors has been prepared in accordance with the recognition and
+measurement principles laid down in the Indian Accounting Standard 34 Interim Financial
+Reporting (Ind AS 34), prescribed under section 133 ofthe Companies Act, 2013 read with
+relevant rules issued there under and other accounting principles generally accepted in India
+and in compliance with Regulation 33 of the Listing Regulations. Our responsibility is to
+issue a report on the statement based on our review.
+We conducted our review in accordance with the Standard on Review Engagement (SRE)
+241 0, Engagements to Review of Interim Financial Information Performed by the
+Independent Auditors of the Entity issued by the Institute of Chartered Accountants of India.
+This standard requires that we plan and perform the review to obtain moderate assurance as
+to whether the financial statements are free of material misstatement. A review is limited
+primarily to inquiries of company personnel and analytical procedures applied to financial
+data and thus provides less assurance than an audit. We have not performed an audit and
+accordingly, we do not express an audit opinion.
+We also performed procedures in accordance with the circular issued by the Securities and
+Exchange Board of India under Regulation 33(8) of the Listing Regulations, to the extent
+applicable
+Statement includes the results of the following entities:
+1. Goldiam Jewellery Limited - Wholly owned subsidiary
+2. Goldiam USA Inc. - Wholly owned subsidiary
+3. Diagold Designs Limited - Subsidiary
+4. Eco-Friendly Diamond LLP -Subsidiary
+...2 ...
+
+:2:
+Based on our review conducted as above and subject to our comments as above, nothing has
+come to our attention that causes us to believe that the accompanying statement of unaudited
+Consolidated financial results prepared in accordance with applicable accounting standards
+and other recognized accounting practices and policies has not disclosed the information
+required to be disclosed in terms of Regulation 33 of the SEBI (Listing Obligation and
+Disclosure Requirements) Regulations, 2015, as amended including the manner in which it is
+to be disclosed, or that it contains any material misstatement.
+Based on our Limited Review conducted as above, we report as under:
+I. We did not review the financial results and other financial information, in respect of
+one subsidiary I) Goldiam USA Inc., whose Ind AS financial results include total
+assets of Rs. 26,825.40 lakhs and liabilities of Rs.l9,528.82 lakhs as at September,
+30, 2023, and total revenue ofRs.l7,929.70 lakhs and total profit after tax (including
+other comprehensive income) of Rs.124.12 lakhs, for the quarter ended September 30,
+2023. These Ind AS fmancial results and other financial information have been
+reviewed by other auditors, which financial results, other fmancial information and
+limited review reports have been furnished to us by the management. Our opinion, in
+so far as it relates to the affairs of such subsidiaries is based solely on the report of
+other auditors. Our opinion is not modified in respect of this matter.
+FOR PULINDRA PATEL & CO.
+CHARTERED ACCOUNTA NTS
+FIRM REGN. NO. 115187W
+'1
+~~1,_ M·~
+Place: Mumbai PULINDRA PATEL
+Date : I Qth November, 2023 MEMBERSillP No. 048991
+UDIN: 23048991BGWJCF2819
+
+OOLDLIIM 1NTEllN11TIONJIL LIMITED
+OEMS & JEWELLEKY COMPLEX,SEEPZ,ANDHERI (EAST), MI1MBA1 400 096
+CIN .L36912MH 1986PLC041203.TEL.(022) 38291893. FAX:(022l 28290418.£nwl:utVeotomolllt>onafilgoldi&m.com. Wobmte: .......g oldtam.com
+Uuu4iled Fi.a.ucial StatemeDl of StaAdalono & CouolidAiod fo.-t1>e ~&Iter &Ad Ball You u.ded Se2. 30 1 ZOI3
+In ........
+Partlao.lan Figures (or the -~St&nclalo;1';,...0• fo• tbe Fi!!VRS fo• tbe Fi!l"""foTtbe CI oiUI : O!id z A n is g d u ..rea for the -r. F l.,..,...rortbe -
+j 30 - -09 - -13 ~ 31).01- d 1 s 3 d on 3 0-09-ZI 30-09 B ·1 a 3 U Ye ., a r e11de 3 d 0 o - n 09 -U ITeu 3 e 1 n -0 d 3 s - d ZJ o n--4 J0-09·ZJJ :€r3o0f-tKd-eZdJ on 30-K-ZZ 3 Tav oftd;!;.zz- Tea 3 r 1 • -0 n 3 d -Z e J d oa
+'llnaudlted 11nau4iled 11naudited 11nauclited 11aauclited Auclitod 11aauclited aanclited I Uu uclited Uaau<liled Uaanclitod Audited
+,
+I
+Jac:cwne
+I Revenue From Oper•tionJ 10.70904 5.83191 7.55584 18,540.88 18,467.48 30,344 781 13.342.00 11.877.08 8.518.20 1 25,319.08 22,008.84 83,318 .. :1
+3 2 Other Income Totallneome II I 4 Z 1 O 1. . 1 I 2 I -rw S 8 83 9 1 4 .3 8 7 8 1 7 .2 1 1 5 0 .1 00 4 - 17 O 81 S 0 I. 8 S 8 J 17 1 _ 8Z .! Z 56 .8 3 4 8 33 a 1 7 0 8 5 0 . 8 5 1 1 13:::: - 12 ::~::'I:::~~ 26 0 7 4 2 1 7 . . 4 37 5 l3 !e 3 7 8 4 0 . . 6 4 0 4 55 3 .. 4 _ Z 11 9 0 . . 1 6 1 8 _
+4 Expenses
+a) Cost Of Materialo Consumed 7,984.33 4,338.14 5,337 18 12,319.47 11,885.26 22,814.23 8,899.28 4,810.88 10,140.33 13,210.14 23,073.00 38,431.89
+b) Pun:hue Of Stock-ln-Trode 84807 89.88 9909 807.93 218.89 842.92 1,314.71 638.38 1,883.79 1,760.07 2,009.30 4,304.38
+c) Change In Inventories Of F'inished Coocbo,
+Worlt-ln-f>ro9reas And Stock-ln-Trode 53.78 (227.88) 23808 (174.78) 166.83 64 37 (1,007.48) 3,993.73 (7,644.22) 1,988.25 ( 11,!106.87) (7,381.38)
+d) Employee Benefits El<penee 288.33 31310 33302 480.43 687.83 1,028.80 832.88 846.89 741.49 1,169.45 1,367.18 3,433.89 I
+e) F'inance Costo 0.88 0.18 618 1.04 9.18 2.75 0.93 0.38 30.o7 1.29 45.91 10.08
+f) Deprecoation And Amortuation Expense 68.48 4831 5387 104 78 108.37 313.94 145.31 130.41 218.23 278.72 364.87 738.81
+g) Other Eorponaes 454 37 343.28 368 93 78883 80815 1,688.08 1,174.60 1,060.83 1,083.78 2,225.13 2,217.44 8,215.10
+TotaiExpeuea 9,361.13 4,768.17 6,4Z4.02 14,135.40 13,771.81 26,123.07 1~,141.89 9,818.11 1,303.44 20,618.05 17,511.83 43,681.3&
+s Profit I (Lo. .) before Exceptional And Tu (31 4) 1,753.03 1,163.10 1,341.12 1,918.13 4,051.03 &,980.32 3,178.11 2,ZSO.Z4 2,717.33 5,428.40 5,818.51 11,748.75
+- - - - -
+i Exceptional Items
+7 Profit I (Lou ) before Tax (S 1 8) 1,753.03 1,163.10 2,341.12 1,111.13 4,051.03 6,980.5Z 3,178.11 2,130.14 I,U7.33 3,428.40 5,818.31 11,146.75
+8 TuEorponse
+a) Current Tu 412.35 38386 433371 89500 839.82 1,33000 882.78 882.78 1,024.88 1,448.62 1,880.18 3,398.81
+b) Deferred Tu: (18.43) (18.78) (20.58) (37.20) (34.40) (37.08) (29.71) (82.87) (138.13) (93.28) (18613) (189.01)
+8 Profit I (Loss) for U.. Period I I
+f.rom coDtinuiAG o-ioD (718) 1,359.10 898.13 1,829.81 1,258.33 3,245.61 5,687.58 2,343.11 1,730.03 1,871.60 4,073.16 4,013.46 8,518.83
+- - - - - - -
+10 Pro5ti(Lou) from doscontlnwng oponnon I
+- - - - -
+II 1'u: expenaet: of Di.seondnuing opennon
+II o P p ro u f a it l i i ( o L l o l s ( s a ) f t ! e r r o t m ax c ) l i ( a 1 c 0 o : n t t I l I n ) u ing - - - - -
+13 Profit I (Loas)forthe Perled (9 :t IZ) 1,359.10 899.23 1,919.81 1,258.33 3,215.61 5,587.58 UU.II 1,730.05 1,871.60 4,075.16 4,013.46 8,518.85
+14 Other Comprobenal. .. !...,...,.. (OCI)
+a) Items That Will Not Be Reclusofied To Profit Or Lou 16.11 183 93 108.64 20003 98.35 343.Jl4 89.86 331.83 188.77 421.08 28861 807.95
+b) Items The won Be~ To ProSt Or Lou 0.54 0.78 0.88 1.33 3.Jl7 4.08 l 118 0.40 2.14 1.88 8.26 I 10.12
+I
+IS Total CompreheDSift Income fortbo period (13114) 1,3zs.7s 1,083.94 Z,031.Z3l 2,459.191 3,341.13 1,033.to 2,445.84 Z,OSI.N 2,049.51 4,497.82 4,Z76.3Z 1,038.82
+I
+I I
+
+Quuter end.ed oD BallYe ar ended on Tear ended ou. 011A11er eAdod on _ HallYe ar eAded on Tev endecloll
+30-09-23 30-06-23 30-09-22 30-09-23 30-09-IZ 31-03-23 30-09-13 30-05-23 30-09-22 30-09.23 30-09-22 ll-0"'~
+Unaudited Unaudited UMudited Unaudited UllOadited Audited Unaudited Unaudited Unaudited Uaeudlted UMudlted Jladited
+- - - - -
+I Share of Profit I (Lou) of Associates
+- . .
+D>spoaal in the otake of Subaicliaty.
+I Non-Controlling Interest . - (6.63) (2.59) (22.43) (9.24) (37.12) (78.39)
+I Net Pnofit I (LoM) aJter Taxes, Minority
+lntereet and Share ofl'nlfit I (Lon ) of
+h oodates (15 ± 16 ± 17 :t 18) 1,375.75 1,083.94 2,03&.23 2,459.69 3,346.23 6,033.90 2,439.19 2,049.39 2,02!.08 4,488.58 4,Z39.20 8,980.53
+I Paid-up Equity Share Capital
+(Face Value o! the Share ahaU be Indicated) 2,135.90 2,179.49 2.179.49 2,135.90 2,179 49 2,17949 2,135.90 2,179.49 2,179.49 2,135.90 2,179.49 2,179.49
+.
+Other Equity 25,039.28 !16,388.41
+I Een>lnlfl per Share (Beron Extraordinary iterna)
+(olllo. 2 eaoh) (Not Jlnnoalbed):
+(a) Buic 1.27 0.83 1.77 2.11 2.88 8.aa 2.20 1.69 1.72 3.82 3.68 7.82
+(b) Diluted 1.25 0.83 1.77 2.08 2.88 s.aa 2.16 1.69 1.72 3.76 3.68 7.82
+Li Evnin!fl per Share (lifter Extreorcllnuy items)
+(ollla. Z eaoh) (Not JlnnuaUaed):
+(a) Buic 1.27 0.83 1.77 2.11 2.88 s.aa 2.20 1.69 1.72 3.82 3.68 7.82
+b\ Diluted 1.25 0.83 1.77 2.08 2.88 5.22 2.18 1.89 1.72 3.78 3.88 7.82
+The above unaudited n>IU!ts for lhe Quarter and Hoi!Yearended Sep. 30,2033 have been reviewed and recommended by lhe Audit Committee and were lhere after approved by lhe Board at im meeting held on Nov., 10,2033
+These !lnanoal reoulls oflhe Company have been prepared in accordance Wllh the Compantes (lnd1an Accounting Standards) Rules, 2018 (lnd AS) prescribed unde.r Section 133 or the Companies Act, 20 13 and other reeogntzed sccountlng practices and policiea to lhe elrlent
+applicable.
+'nle Company has completed buyback or 21,79,493 equity aharea or lace value Ra.Zf. represenllng up to 2% ollho total number o! Equity Shares of the Company at a pnce of Ro. 1601· per Equity Share payable 111 cash for an aggregate amount or up to Ro. 32,68,23,9!101-
+(ezcluding tranaaction coats 8\lCh as broker111e, Buyback tax, aocuritiea transaction tu:, gooda and servioe tax, atarnp duty etc.)("Buybaclt Si>e") on August 9, 2023 .Post buyback Paid up Share Capital o! the Company reduoed to Ro. 21,sg,90,2441· divided into 10,67,88,122
+Equity Sharea of Ro.ZI· each.
+The Board of Directon has declared Ill interim dlv>dend@ Ro. 1.20 (60%) per equity ahara of Ro. Zl· each.
+'nle Standalone and Conaolldated resulm of the Company are available on lhe Company'• webllte www.goldiam.com and also available on SSE Ltd. and Notional Stock El<change of India '"'blltes www.baelndia.com and ......... noeindlo.com respectively
+figures tor the previous quarter/ period have .been regroupedlrecluaified. wherever considered neceaa.ry.
+'nle agur.,. in Ra t.kha are rounded off to two declmola. ~,.e.,.._b,_ . .... .....,N ~
+.,
+~ ··- .
+-·r ~
+{M.t: .
+:\:::.
+P
+D
+l
+a
+a
+t
+c
+e
+e
+d :
+: M
+N
+u
+o
+m
+•.
+b
+1
+a
+0
+i
+2023
+G?
+~
+'
+-
+-
+"-..... ..--f.
+) .)
+. I.
+R.aa
+u
+h
+t
+e
+i
+a
+ve
+h B
+C
+h
+h
+a
+a
+n
+im
+a
+w
+al
+u
+i
+>
+~
+"
+
+GOLDIAM lNTERH.II.TlON.II.L LIMITED
+Segment wile Revenue, Results and Capital Employed under Regulation 33 of the SEBI (Listing Obhgatloru1 & Dltclooure Requirements) Regulation, 2018
+(R&. In l.akha)
+I ~ Sl&ndalone . 1- ~ Co - asolidatad I
+Partlculan Figures for the ~ Figures for the Figures for the Figures rorthe Figures ror the J'iqures ror the
+f-=-=-~Quan._., erendedon Hal!TeuIe Ddedon Teueudadon e.randedon llal!TIeu endedcm TaueDdedon
+30-0S-23 • 30-06-Zll 30-09-22 3().()9..23 30-09-22 31-03-23 -3().(~)9.. 30.06-23 30-011-22 30-0S-23 30-09-22 31.43-23
+Unanclitad , Unaudited I Unanclitad Unau.ditad Unaudited Audited Unaudited . Unaudited I Unau.dite4 Unaudited Unaudited .ll.nditad
+- ---r--
+S89mentRevenne: --- - -
+o) Jewellery 11,037.39 5,919 891 18,987.28~ 18,991.88 31,456.03 13,811.81 12,104.481 9,260.26 25,918 29 23,341.96 55,312.21
+T b) o t I a n l v I e n s c t o m m e e n ts ~ 11,1 8 2 2 0. - 1 H 8 . 5 ,93 1 1 1 .3 48 7 17.05 94 1 . .6 2 3 5 ·- 17,8 83 2 0 2_ . .8 9 4 6 33 1, , 6 0 2 7 3 9 . . 3 4 9 2 13,9 1 2 1 8 6. . 2 0 4 8 12.11 1 6 3 _ .9 4 2 o I 9,27 10 o .5 : 1 n 26, 1 0 3 4 0 8~ .16 23,3 3 80 8. .4 4 4 8 55,4 11 29 8 9 11 0
+!Leso : Inter legment R....,nne
+Totalln=c:oo":="'------ 11.120.1& 17,051 1_7,au:&4± 33,079.42 13 929.05 12 ua.40'l.J,27o.n 2&.04&.45 23.380.44 55,429.11
+Sejp11en1 Results : t
+·Profit/( Loss) before tax eDdlntereat
+1) jewellery I ,882.49 I, I 17.83 I ,552.29 2,860.02 3,267.38 8,478.32 3,114.18 2,303 70 2,842.63 5,937 22 11,923 34
+b) Investments ~JJ8 9 9'!.. __79 9.47 1 91.1~- 620.31 1L601.84 114.33 1184. ~9 21.56 83~
+TotalSegmantPro8tBerorelnterest4tTax 1,763.64 1,187.50 2,351.76 2,951.14 4,087.67 7,079.86 3,228.49 2,315.54 2,842.92 5,958.78 12,007.17
+Lea: l) Interest 0.88 0.16 6.18 1.04 9.18 2.76 0.93 0.38 30.07 46.91 10.08
+ll) Other un-allocable axpendlture (Net) (Income) 9.73 24.24 3.96 33.97 27.46 96.69 49.40 64.94 45.62 94.38 260.38
+Profit Before Tax 1,753.03 1,163.10 2,341.62 2,916.13 4,051.03 6,980.52 3,178.16 2,250.24 2,787.33 11,746.75
+Leu: I) Current Tax 412.35 292.68 432.37 695.00 835.82 1,330.00 862.78 882 76 1,024.85 3,396.91
+•t
+P rof!
+l
+U
+!l_
+f
+D
+to
+e
+r
+f
+T
+or
+a
+e
+x
+e d Tax
+1 3
+l
+5
+l8
+9
+.
+.
+4
+1
+2
+0
+\
+f- 8
+l
+9
+iB
+9. Z
+78
+3
+\
+1 9
+1
+Z
+2
+9
+0
+.
+.
+8
+5
+1
+6 \
+I
+l
+hl5
+@
+8
+1
+.
+.
+3
+2
+3
+0
+3 2
+(
+4
+3
+5
+4
+.
+.
+6
+4
+1
+0 )
+5,6
+.
+8
+@
+7
+1
+.5
+.
+8
+~
+2 3
+(
+4
+2
+5
+9
+.
+.7
+1
+1
+1 1
+~
+730.
+~
+05 1
+~
+,8,
+1
+'-
+3
+'77,
+5
+_
+.
+,6
+1
+. ,0!.1---"==-"+ "'-1----"-'8
+i
+5
+ll
+1
+.9
+8.
+0
+6
+1
+5_
+1, Se!Jment Assets :
+a) Jewellery 25,433.79 22,478.83 26,433.79 23,826.26 22,770.92J;i,208.1.47 39.602.12u 63.383.49 42,081.47 63,383.49 44,641.76
+b) Investments 7,146.99 9,786.71 7,146.99 6.946.66 7,043.11 18,624.67 20,603.31 13,008.11 18,524.67 13,008.11 16,096.84
+.<;)Unallocated 3 105.08 !J97.43 3~108.08 3,377.98 6,168.74 9 278.83 ...@.684.27 ~.66 WBJI3 4..._435.55 10 699 26
+~otal~t lb.- 35 885.63 3& 262.77 3~685.83_ 34 150.90 34,982.78 69,885.07 61.788.70 70.827.25 1 69,885.07+- 70.827.25 70,237 .55_
+9.683.38 7,693.91 8,920.84 7,740.88·' 12,708.a:98,92 0.641 10,38H3
+30.00 I 0.68 44.38 44.38 40.63 44.38 26.03
+360.08 60.45 I 183.29 703.21 J..1.!.9.01 l 183.29 . 818 62
+10 073.48 7 785.01 10 148.31 8 468.45 14 467.93 10 148.31 11 026.08
+The Group's operating oegmenll are Olloblished on the buia of those oomponenll of the group that are evaluated regularly by the Group u, m deciding how to allocate resourceo and m a&SeSSlRg performance (referred to miND AS 108 • 'Operatulg-
+have been tdennfied talong into account nature of actmty, na1cs and returm The Company has two p11nC1pal operating ...grnents; vu:. Jewellery Manulactunng and 1nYGStments
+~- ~
+;..-:TI .._F. or
+'f'~?', ;.-' '~·
+m
+Place : Mumba.l S....( -•.
+Dated: Nov., 10, 2023 ::..!( ..•. ••' 1>~. .
+- ( . _ ,~
+v~c~ ., .... ~
+~~h'---..1;1
+v7a9 ~
+J
+
+Go1diam International Limited
+Statement of Standalone & Consolidated Unaudited Assets and Liabilities
+(Amounts are in 1alchs unless stated otherwise)
+Standalone Consolidate
+Unaudited Audited Unaudited Audited
+Particulars I
+.ll.s at Sep., hat March, .lls at Sep., As at March,
+30,2023 31,2023 30,2023 31,2023
+1
+ASSETS
+Non-CUlTent assets
+Property, plant and equipment 2,502.28 2,268.37 4,183.73 3,976.03
+Capital work-in-progress - - - -
+Right to Use Lease Hold Property 66.51 67.93 261.08 274.06
+Investment properties - 193.57 - 193.57
+I
+Other intangible assets 8.82 11.16 71.31 84.58
+Investments in Subsidiaries and Joint venture 3,592.30 3,511.50 - -
+Financial assets
+i. Investments 451.69 684.72 1,546.67 1,891.75
+ii. Loans 112.39 74.98 465.53 152.36
+iii. Other Financial Assets 26.19 26.44 57.63 57.72
+-
+Deferred tax assets 9.00 12.84 246.17
+1
+Total non-current assets 6,769.18 _!,737.67 6,598.79 6,876.24
+1-
+Current assets
+Inventories 4,852.87 2,897.11 24,646.52 24,831.13
+Financial assets
+i. Investments 6,687.74 6,450.50 16,938.73 13,190.30
+ii. Trade receivables 14,209.44 13,667.68 12,228.17 14,732.05
+iii. Cash and cash equivalents 3,031.03 5,111.93 9,213.91 10,542.45
+iv. Bank balances other than (iii) above 65.02 56.81 65.02 56.81
+v. Loans 29.12 20.53 71.17 72.39
+Other current assets 41.44 40.56 135.62 182.37
+I
+f.--
+Total current assets 28,916.66 28,245.12 63,299.14 63,607.50
+c-
+Total assets 35,685.84 34,982.79 69,897.93 70,483.74
+EQUITY AND LIABILITIES
+I Equity
+Equity share capital 2,135.90 2,179.49 2,135.90 2,179.49
+,g_ther e~ty ___ 23,476.46 25,038.28 _ 56-'946.04 56,386.41
+Equity attributable to owners of Goldiam
+25,612.36 27,217.77 59,081.94 58,565.90
+International Limited
+Non-controlling interests - - 654.83 645.59
+Total equity 25,612.36 27,217.77 59,736.77 I 59,211.49
+I
+LIABILITIES
+Non-CUlTent liabilities
+Deferred tax liabilities 28.21 125.84 451.49
+55~72 1
+Lease Liability 56.42 229.64 220.48
+Total non-current liabilities 55.72 84.63 355.48 671.97
+Current liabilities
+a) Financial liabilities
+- -
+i. Borrowings 80.00 80.00
+ii. Trade payab1es
+Total outstanding dues of micro enterprises
+7.34 5.09 9.97 6.22
+and small enterprises
+Total outstanding dues of creditors other
+8,244.61 6,864.16 7,114.90 9,029.49
+than micro enterprises and small enterprises
+iii. Lease liabilities 1.14 1.05 24.33 47.68
+iv. Other financial liabilities 1,324.57 777.83 1,426.15 1,039.95
+b) Provisions 38.20 31.36 80.03 65.64
+c) Current Tax Liabilities 321.90 0.90 1,070.30 411.30
+Total current liabilities 10,017.76 7,680.39 9,805.68 10,600.28
+Total liabilities 10,073.48 7,765.02 10,161.16 11,272.25
+Total equity and liabilities 35,685.84 34,982.79 69,897.93 70,483.74
+For Golcliam International Limite ~
+~
+Place : Mwnhai '\ laashesh Bhansali
+Dated: Nov., 10, 2023 ' fxecutive Chairman
+)
+)
+~);~; . ... )~
+--<~
+
+Go1dia.m International Limited
+State=ent of Standalone & Consolidated Unaudited Cash now State=ent
+Amounts are in lakhs unless stated othe~
+Standalone Consolidated
+Particulars As at Sep., 30, AsatSep., As at Sep., 30,
+AsatSe . 30 20Z3 2022 30 2023 2022
+A Cash now from operating activities :
+Profit before tax 2,916.13 4,051.03 5,419.16 5,781.39
+Adjust=ents for:
+Depreciation and amortization for the year 104.79 106.37 275.72 354.97
+Adjustable towards lnd AS Impact 1.42 1.36 12.97 6.71
+(Profit)/Loss on sale of Investment (Net) (67.94) (3.07) 9.69 7.38
+Net unrealised foreiqn exchanqe (qain)/loss (193.08) (431.99) (381.01) (1,779.27)
+Net (profit)lloss on disposal of property, plant and equipment (9.61) (15.15)
+(Profit)/Loss on sale of liquidate Investment forrninq part of OCI 36.73 36.73
+Amortisation Write of Property, Plant & Equipment
+Net (profit)/loss on LLP (80.80) (279.96)
+Actuarial (gain)/loss forming part of OCI 1.33 2.27 1.58 6.25
+Dividend received (0.31) (800.26) (0.31) (0.26)
+Interest Income (18.69) (27.63) (54.60) (38.22)
+Finance cost 1.04 9.18 1.29 45.91
+Share of Minority Interest 9.24 (7.65)
+Adiustment for Chanae of Holdina & Translation Reserves 92.64 __D83.32
+(l 423.7~ (12.31) (1,587.50
+Operating profit before working capital changes 2,690.01 2,627.30 5,406.85 4,193.89
+AdjustJnents for:
+Decrease/ (Increase) in inventories (1,955.76) 602.22 184.61 (12,378.24)
+Decrease/(increase) in non-current financial assets (0.75) 0.25 0.09 (1.36)
+Decrease/(increase) in current financial assets (8.59) 75.66 1.22 285.45
+Decrease/(increase) in other current assets (0.88) 0.41 46.75 (12.59)
+Decrease/(increase) in trade receivables (330.31) (7,904.78) 2,909.32 1,742.64
+(Decrease)/increase in trade pavables 1,364.33 1,660.68 (1,935.28) 3,513.33
+(Decrease) /increase in current financial liabilities 546.82 (220.93) 9.16 (1,063.24)
+(Decrease)lincrease in Non current financial liabilities (0.70) (0.55) 362.86 (50.08}
+(Decrease)lincrease in other current laibilites 6.84 3.22 14.39 0.57
+(379.00) (5,783.83) 1,593.12 (7,963.52)
+Cash generated from operating activities 2,311.01 (3,156.53) 6,999.97 (3,769.63)
+Income Tax Paid (net) (411.41) (463.17) (1,099.70) (1,062.73)
+1 899.60 3 619.70) 5 900.27 4 832.36
+B Cash now from investing activities:
+Purchase of property, plant and equipment (367.83) (11.97) (507.48) (701.49)
+Proceeds from disposal of property, plant and equipment 234.65 246.05
+Purchase of Investments (2,599.87) (232.51) (5,792.41) (232.51)
+Proceeds from redemption of investments 2,727.90 1,480.!9 2,764.72 1,510.13
+Interest received 18.69 27.63 54.60 38.22
+Dividend received 0.31 800.26 0.31 0.26
+Buy Back Amount received from Subsidiary 45.85
+Net cash used in investing activities 13.85 2,109.45 (3,234.21) 614.61
+C Cash now from financing activities:
+(Repayment)/proceeds of short term borrowinqs, net 80.00 162.69 80.00 694.60
+Buy-Back of Equity Shares (3,269.24) (3,269.24)
+Interest paid (1.04) (9.18) (1.29) (45.91)
+Dividends paid (653.85) (653.85}
+Tax on Buy on Equity Shares (751.45) (751.46)
+Buy Back Expenses Equity Shares (44.41) (44.41)
+Net cash enerated !rom financ: activities ~!_6
+Net increase in cash and cash equivalents (A+B+C) (4,222.91)
+Cash and cash equivalents at the beginning of the year 8,668.56
+Cash and cash e~valents at the end of the ear 4 435.65
+Cashon hand 59.02
+Bank balances 2,297.22
+Investments in li id mutual funds 2,079.41
+For GoldiaJn International Limited
+~
+Place : Mumbai
+Dated: Nov., 10, 2023
