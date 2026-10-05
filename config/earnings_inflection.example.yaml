@@ -13,12 +13,50 @@ earnings_inflection:
     # read-only role.  Sessions also force default_transaction_read_only=on.
     dsn_env: EI_READONLY_DSN
     text_root: data/parsed             # where <local_path>.txt parsed text lives, if raw_text is absent
+    # Versioned, immutable text artifacts (WP1). When set, the reader prefers an artifact
+    # over raw_text, records the exact version in the run manifest, and --extract writes here.
+    # Local directory only; nothing is written to the database.
+    artifact_root: null                # e.g. data/earnings_inflection/text_artifacts
+
+  # PUBLIC_INFORMATION_RECONSTRUCTION (default): what was public at the cutoff, even if the
+  #   system ingested or extracted it later.
+  # SYSTEM_KNOWLEDGE_REPLAY: only what THIS system had stored, extracted and mapped by the
+  #   cutoff (first_seen_at, text_available_at and alias recorded_at must all be <= cutoff).
+  replay_mode: PUBLIC_INFORMATION_RECONSTRUCTION
+
+  parser: {}                           # PDFParser options used by --extract (max_pages etc.)
 
   identity:
     # Dated symbol history (renames, SME migrations). Empty = symbol assumed stable (disclosed).
     symbol_history: []
     #  - {symbol: OLDSYM, exchange: NSE, issuer_id: ISSUER1, valid_from: 2015-01-01, valid_to: 2021-06-30}
     #  - {symbol: NEWSYM, exchange: NSE, issuer_id: ISSUER1, valid_from: 2021-07-01}
+    # Effective-dated issuer registry (WP2). Same shape inline or in a JSON file.
+    registry_file: null                # e.g. data/earnings_inflection/issuer_registry.json
+    issuers: {}
+    #  ISSUER1:
+    #    name: Example Industries Limited
+    #    aliases:                      # NSE symbol, BSE scrip code, ISIN, old names
+    #      - {alias: NEWSYM, kind: nse_symbol, valid_from: 2021-07-01, recorded_at: 2021-07-02, source: NSE circular}
+    #      - {alias: "500000", kind: bse_scrip, valid_from: 2010-01-01, recorded_at: 2024-01-05}
+    #    securities:                   # dated listing board / series (never taken from present-day metadata)
+    #      - {isin: INE000X01011, exchange: NSE, symbol: NEWSYM, series: SM, board: sme, valid_from: 2021-07-01}
+    #      - {isin: INE000X01011, exchange: NSE, symbol: NEWSYM, series: EQ, board: mainboard, valid_from: 2024-04-01}
+    #    predecessors:                 # spliced into history ONLY when comparable is true
+    #      - {predecessor_issuer_id: OLDCO, effective_date: 2022-04-01, comparable: false,
+    #         decision_source: "scheme of arrangement; segments not restated"}
+    #    industry_history:
+    #      - {industry: capital goods, valid_from: 2015-01-01}
+
+  # Explicit, dated counterparty reference data (WP4). Only sources dated on/before the
+  # as-of count. This is the ONLY route to "independently_supported_unrelated"; an issuer's
+  # own "not a related party" answer stays an issuer assertion.
+  counterparties: {}
+  #  "Northern Grid Corporation Limited":
+  #    relationship: unrelated           # unrelated | related
+  #    sources: [{source: "MCA master data", as_of: 2024-01-15}]
+
+  event_lookback_days: 365             # window for order inflow / commitment evidence
 
   thresholds:                          # descriptive materiality flags, not decision rules
     revenue_yoy_pct: 25.0

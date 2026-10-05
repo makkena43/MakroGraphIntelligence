@@ -28,7 +28,7 @@ from .assessments import (
 from .budget import Budget
 from .chunking import chunk_document
 from .contracts import (
-    IST, Assessment, DocumentKind, Evidence, ListingSegment, Metric, SourceDocument, SourceRef, to_jsonable,
+    IST, Assessment, DocumentKind, Evidence, ListingSegment, Metric, SourceDocument, SourceRef, Unit, to_jsonable,
 )
 from .counterparty import apply_reference_data, build_profiles
 from .document_versions import availability, is_restatement, link_versions
@@ -520,8 +520,7 @@ class EarningsInflectionPipeline:
             raise PersistenceDisabled("persistence.enabled is false")
         dsn = os.environ.get(pcfg.get("dsn_env", "EI_TEST_DSN"), "")
         pattern = pcfg.get("allowed_dbname_pattern", r"(?:^|_)test(?:_|$)")
-        m = re.search(r"(?:dbname=|/)([A-Za-z0-9_\-]+)(?:\?|\s|$)", dsn)
-        dbname = m.group(1) if m else ""
+        dbname = _dsn_dbname(dsn)
         if not dsn or not re.search(pattern, dbname):
             raise PersistenceDisabled(f"refusing to write to database {dbname!r}: does not match {pattern!r}")
         if connect is None:
@@ -532,19 +531,75 @@ class EarningsInflectionPipeline:
         n = 0
         try:
             with conn.cursor() as cur:
-                cur.execute("INSERT INTO earnings_inflection.ei_runs (as_of, config_json) VALUES (%s, %s) RETURNING id",
-                            (result.as_of, json.dumps(to_jsonable({k: v for k, v in self.cfg.items() if k != "persistence"}))))
+                man = result.manifest or {}
+                cur.execute("INSERT INTO earnings_inflection.ei_runs (as_of, config_json, code_version, run_uuid, "
+                            "replay_mode, config_hash, run_status, manifest_json) VALUES (%s,%s,%s,%s,%s,%s,%s,%s) "
+                            "RETURNING id",
+                            (result.as_of, json.dumps(to_jsonable({k: v for k, v in self.cfg.items() if k != "persistence"})),
+                             man.get("code_version"), man.get("run_id"), man.get("replay_mode", self.replay_mode),
+                             man.get("config_hash"), man.get("status"),
+                             json.dumps(to_jsonable(man)) if man else None))
                 run_id = cur.fetchone()[0]
                 for a in result.assessments:
                     cur.execute("INSERT INTO earnings_inflection.ei_assessments (run_id, ticker, as_of, evidence_status, "
-                                "review_status, scenario_status, payload) VALUES (%s,%s,%s,%s,%s,%s,%s)",
+                                "review_status, scenario_status, payload) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id",
                                 (run_id, a.ticker, a.as_of, a.evidence_status.value, a.review_status.value,
                                  a.scenario_status.value, json.dumps(to_jsonable(a))))
+                    aid = cur.fetchone()[0]
+                    self._persist_children(cur, aid, a)
                     n += 1
             conn.commit()
         finally:
             conn.close()
         return n
+
+
+    @staticmethod
+    def _persist_children(cur, assessment_id: int, a: Assessment) -> None:
+        """Source text versions and deduplicated events (with dated states) of one assessment."""
+        import json
+        from .demand import unverified_reasons
+        for src in a.source_manifest:
+            cur.execute("INSERT INTO earnings_inflection.ei_source_versions (assessment_id, doc_id, text_source, "
+                        "extraction_version_id, extraction_status, raw_hash, text_hash, available_at, first_seen_at, "
+                        "text_available_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                        (assessment_id, src["doc_id"], src.get("text_source"), src.get("extraction_version_id"),
+                         src.get("extraction_status"), src.get("raw_hash") or None, src.get("text_hash") or None,
+                         src.get("available_at"), src.get("first_seen_at"), src.get("text_available_at")))
+        for e in a.events:
+            reasons = unverified_reasons(e)
+            crore = lambda q: q.value if (q is not None and q.unit == Unit.INR_CRORE) else None  # noqa: E731
+            cur.execute("INSERT INTO earnings_inflection.ei_events (assessment_id, event_id, current_stage, "
+                        "counterparty, customer_verification, relationship, value_basis, tax_basis, amount_crore, "
+                        "original_amount_crore, cancelled_amount_crore, duration_months, reference_id, "
+                        "first_public_at, verified, unverified_reasons, ambiguous_with, payload) "
+                        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+                        (assessment_id, e.event_id, e.current_stage.value, e.counterparty or None,
+                         e.customer_verification.value, e.relationship.value, e.value_basis.value,
+                         e.tax_basis.value, crore(e.amount), crore(e.original_amount), e.cancelled_amount or 0,
+                         e.duration_months, e.reference_id or None, e.first_public_at, not reasons,
+                         json.dumps(reasons), json.dumps(list(e.ambiguous_with)), json.dumps(to_jsonable(e))))
+            eid = cur.fetchone()[0]
+            for i, h in enumerate(e.history):
+                cur.execute("INSERT INTO earnings_inflection.ei_event_states (event_row_id, seq, stage, at, doc_id, "
+                            "amount_crore, evidence_id, note) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
+                            (eid, i, h.stage.value, h.at, h.doc_id or None, h.amount, h.evidence_id or None,
+                             h.note or None))
+
+
+def _dsn_dbname(dsn: str) -> str:
+    """Database name of a libpq keyword DSN or a postgres URI ("" when absent or ambiguous).
+
+    Only the dbname keyword or the URI path counts; a host/socket path that happens to
+    contain "test" must never make a production database look like a test one.
+    """
+    from urllib.parse import parse_qs, unquote, urlparse
+    if "://" in dsn:
+        u = urlparse(dsn)
+        q = parse_qs(u.query).get("dbname")
+        return q[-1] if q else unquote(u.path.lstrip("/"))
+    names = re.findall(r"(?:^|\s)dbname\s*=\s*('(?:[^'\\]|\\.)*'|\S+)", dsn)
+    return names[-1].strip("'") if names else ""
 
 
 def _legacy_spans_to_registry(spans: list, reg: IssuerRegistry) -> IssuerRegistry:

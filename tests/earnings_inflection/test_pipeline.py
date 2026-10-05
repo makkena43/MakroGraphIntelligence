@@ -275,3 +275,68 @@ def test_cli_diagnose():
     r = subprocess.run([sys.executable, str(ROOT / "scripts/earnings_inflection.py"), "--ticker", "GRANITEWK",
                         "--as-of", "2024-03-31", "--diagnose"], capture_output=True, text=True)
     assert r.returncode == 0 and "DIAGNOSE GRANITEWK" in r.stdout
+
+
+@pytest.mark.parametrize("dsn,name", [
+    ("postgresql://u@h:5432/ei_test", "ei_test"),
+    ("postgresql://u@h:5432/makrograph", "makrograph"),
+    ("postgresql://u@h/prod?dbname=ei_test", "ei_test"),
+    ("host=/var/run/pg_test port=5432 dbname=makrograph", "makrograph"),
+    ("host=/tmp/x_test port=5432", ""),
+    ("host=h dbname='ei_test' user=u", "ei_test"),
+])
+def test_persistence_guard_reads_only_the_database_name(dsn, name):
+    from makrograph.earnings_inflection.pipeline import _dsn_dbname
+    assert _dsn_dbname(dsn) == name
+
+
+def test_persistence_refuses_prod_db_behind_a_test_like_socket_path(repo, monkeypatch, run_oct24):
+    from makrograph.earnings_inflection.pipeline import EarningsInflectionPipeline, PersistenceDisabled, RunResult
+    res = RunResult(as_of=datetime(2024, 10, 31, tzinfo=IST), assessments=list(run_oct24.values()))
+    monkeypatch.setenv("EI_TEST_DSN", "host=/run/pg_test port=5432 dbname=makrograph")
+    with pytest.raises(PersistenceDisabled):
+        EarningsInflectionPipeline({"persistence": {"enabled": True}}, repo).persist(res, connect=lambda d: None)
+
+
+def test_persist_writes_manifest_sources_and_event_states_to_a_test_db(repo, monkeypatch):
+    from makrograph.earnings_inflection.pipeline import EarningsInflectionPipeline
+
+    class Cur:
+        def __init__(self):
+            self.calls, self.n = [], 0
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def execute(self, sql, params):
+            assert sql.count("%s") == len(params), sql
+            self.calls.append(sql.split("(")[0].split()[-1])
+
+        def fetchone(self):
+            self.n += 1
+            return (self.n,)
+
+    class Conn:
+        def __init__(self):
+            self.cur, self.committed = Cur(), False
+
+        def cursor(self):
+            return self.cur
+
+        def commit(self):
+            self.committed = True
+
+        def close(self):
+            pass
+
+    conn = Conn()
+    monkeypatch.setenv("EI_TEST_DSN", "host=localhost dbname=ei_test")
+    p = EarningsInflectionPipeline({"persistence": {"enabled": True}}, repo)
+    res = p.run(["ACMEGRID"], "2024-10-31")
+    assert p.persist(res, connect=lambda d: conn) == 1 and conn.committed
+    tables = set(conn.cur.calls)
+    assert {"earnings_inflection.ei_runs", "earnings_inflection.ei_assessments", "earnings_inflection.ei_source_versions",
+            "earnings_inflection.ei_events", "earnings_inflection.ei_event_states"} <= tables
