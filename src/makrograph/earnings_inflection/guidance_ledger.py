@@ -117,6 +117,9 @@ def build_ledger(evidence: list[Evidence], series: Optional[FinancialSeries], as
                    key=lambda e: (e.available_at, e.doc_id))
     ledger: dict[tuple[Metric, str], GuidanceRecord] = {}
     for e in items:
+        end = fy_label_end(e.target_period_label) if e.target_period_label else None
+        if end is not None and e.available_at is not None and e.available_at.date() > end:
+            continue   # said after the period had ended: a report of results, not a target
         key = (e.metric, e.target_period_label or "unspecified")
         rev = GuidanceRevision(e.available_at, e.doc_id, e.evidence_id, e.quantity, RevisionDirection.ORIGINAL, e.quote)
         rec = ledger.get(key)

@@ -66,6 +66,7 @@ earnings_inflection:
     book_to_bill: 1.2
     order_book_cover_years: 2.0
     utilization_change_pp: 10.0
+    operating_leverage_min_revenue_growth_pct: 5.0   # EBITDA/revenue growth ratio is noise below this
 
   llm:
     enabled: false                     # constrained extractor; requires an injected client AND budget.enabled

@@ -50,8 +50,11 @@ def decide_status(drivers: list[DriverChange], events: list[EconomicEvent], evid
         return EvidenceStatus.INSUFFICIENT_EVIDENCE, ["no public, dated, usable documents by as-of"]
 
     missed_latest = [g for g in guidance if g.latest_outcome == GuidanceOutcome.MISSED]
+    # Statements without a target period cannot be compared with each other (they may concern
+    # different years), so they never count as revisions of one target.
     unexplained = [(g, r) for g in guidance for r in g.revisions
-                   if r.direction in (RevisionDirection.LOWERED, RevisionDirection.WITHDRAWN) and not r.explained]
+                   if g.target_period_label != "unspecified"
+                   and r.direction in (RevisionDirection.LOWERED, RevisionDirection.WITHDRAWN) and not r.explained]
     if missed_latest or len(unexplained) >= UNEXPLAINED_REVISIONS_LIMIT:
         for g in missed_latest:
             what = "missed even the latest stated guidance" if g.revisions else "missed its guidance (never revised)"

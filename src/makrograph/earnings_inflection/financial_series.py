@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
+from dataclasses import replace
 from datetime import date, datetime
 from typing import Optional
 
@@ -75,9 +76,84 @@ class SeriesPoint:
     available_at: Optional[datetime] = None    # public availability of the version used
     system_at: Optional[datetime] = None       # when MakroGraph held it (None = unproven)
     inputs: list = field(default_factory=list) # keys of the points a derived value depends on
+    support: int = 1       # separate filings (reposts of one filing count once) stating this value
 
 
 BLOCKING_INTEGRITY = ("unresolved", "rejected")
+
+
+def _same_within_rounding(a, b) -> bool:
+    coarse = max(a.display_unit or 0.0, b.display_unit or 0.0)
+    return abs(a.value - b.value) <= coarse * 0.5 + 1e-9
+
+
+def _most_precise_consistent(vs):
+    """The latest version, unless an earlier version states the same figure more precisely."""
+    best = vs[-1]
+    for v in vs[:-1]:
+        if (v.display_unit or 0.0) < (best.display_unit or 0.0) and _same_within_rounding(v, best):
+            best = v
+    return best
+
+
+def _scope_quality(rows, scope) -> tuple:
+    """(latest quarterly/half-year revenue period, has a year-ago comparison for it)."""
+    ends = {r.period_end for r in rows if r.scope == scope and r.metric == Metric.REVENUE
+            and r.period_type in ("Q", "H")}
+    if not ends:
+        return (date.min, False)
+    last = max(ends)
+    try:
+        ya = last.replace(year=last.year - 1)
+    except ValueError:
+        ya = last.replace(year=last.year - 1, day=28)
+    return (last, ya in ends)
+
+
+def _agrees(a, b) -> bool:
+    return abs(a.value - b.value) <= max(0.005 * abs(b.value), (a.display_unit or 0) + (b.display_unit or 0))
+
+
+def _filings(vs) -> int:
+    """Separate filings among these versions: the same filing posted again (both exchanges,
+    a corrected upload) within a few days counts once."""
+    times = sorted(v.available_at for v in vs if v.available_at)
+    n, last = 0, None
+    for t in times:
+        if last is None or (t - last).days > 5:
+            n += 1
+        last = t
+    return max(n, 1 if vs else 0)
+
+
+def _best_supported(vs, series, key):
+    """The figure to use when several filings state it.
+
+    Normally the latest version (restatements win; a rounded later restatement does not
+    displace a more precise one).  When versions disagree materially, the value stated by
+    the most distinct filings wins - each quarter is repeated in later filings' comparison
+    columns, so a mis-read in one scanned filing is out-voted - and the conflict is recorded."""
+    latest = _most_precise_consistent(vs)
+    groups: list[list] = []
+    for v in vs:
+        for g in groups:
+            if _agrees(v, g[0]):
+                g.append(v)
+                break
+        else:
+            groups.append([v])
+    if len(groups) < 2:
+        return latest
+    support = _filings
+    top = max(support(g) for g in groups)
+    leaders = [g for g in groups if support(g) == top]
+    if len(leaders) > 1 or latest in leaders[0]:
+        return latest
+    chosen = _most_precise_consistent(leaders[0])
+    others = "; ".join(f"{g[0].value:g} ({', '.join(sorted({v.doc_id for v in g}))})" for g in groups if g is not leaders[0])
+    series.lineage_notes.append(f"{key[0].value} {key[1]} {key[2]}: conflicting values; used {chosen.value:g} "
+                                f"stated in {top} filings over {others}")
+    return chosen
 
 
 def _latest(times):
@@ -94,23 +170,47 @@ class FinancialSeries:
     points: dict[tuple[Metric, str, date], SeriesPoint] = field(default_factory=dict)
     lineage_notes: list[str] = field(default_factory=list)
     excluded: list[str] = field(default_factory=list)     # reported facts kept out of calculations
+    scope_note: str = ""                                   # why a non-preferred scope was used
 
     @classmethod
     def build(cls, ticker: str, rows: list[FinancialMeasurement],
               preference=(Scope.CONSOLIDATED, Scope.STANDALONE, Scope.UNKNOWN)) -> "FinancialSeries":
         rows = [r for r in rows if r.ticker == ticker]
         scope = Scope.UNKNOWN
+        scope_note = ""
+        known = {r.scope for r in rows} - {Scope.UNKNOWN}
+        unstated = sum(1 for r in rows if r.scope == Scope.UNKNOWN)
+        if len(known) == 1 and unstated:
+            # every statement that names its scope names the same one (e.g. a company without
+            # subsidiaries): statements that do not say "standalone" are that same scope
+            only = next(iter(known))
+            rows = [replace(r, scope=only) if r.scope == Scope.UNKNOWN else r for r in rows]
+            scope_note = (f"{unstated} figure(s) from statements that do not name their scope were treated as "
+                          f"{only.value} (the only scope this company's statements name)")
         for want_q in (True, False):     # prefer a scope with a quarterly series
-            hit = next((s for s in preference if any(
-                r.scope == s and r.metric == Metric.REVENUE and (r.period_type == "Q" or not want_q) for r in rows)), None)
-            if hit is not None:
-                scope = hit
+            hits = [s for s in preference if any(
+                r.scope == s and r.metric == Metric.REVENUE and (r.period_type == "Q" or not want_q) for r in rows)]
+            if hits:
+                scope = hits[0]
+                # The preferred scope is not used when another one is more recent, or is the only
+                # one with a year-ago comparison for its latest period (e.g. consolidated statements
+                # that began only recently).  Never mixed: one scope per series.
+                quality = {s: _scope_quality(rows, s) for s in hits}
+                best = max(hits, key=lambda s: (quality[s], -hits.index(s)))
+                if best != scope and quality[best] > quality[scope]:
+                    q0, q1 = quality[scope], quality[best]
+                    why = (f"latest period {q0[0]} is older than {q1[0]}" if q1[0] > q0[0] else
+                           f"latest period {q0[0]} has no year-ago comparison")
+                    scope_note = "; ".join(x for x in (scope_note, f"{best.value} series used: {scope.value} {why}")
+                                           if x)
+                    scope = best
                 break
         else:
             # no revenue rows (e.g. a balance-sheet-only filing): use the preferred scope present
             present = {r.scope for r in rows}
             scope = next((s for s in preference if s in present), Scope.UNKNOWN)
         series = cls(ticker, scope)
+        series.scope_note = scope_note
         versions = defaultdict(list)
         for r in rows:
             if r.scope == scope:
@@ -125,19 +225,46 @@ class FinancialSeries:
             if not usable:
                 continue
             vs = usable
-            latest = vs[-1]
-            distinct_vals = {round(v.value, 4) for v in vs}
+            # a results statement's figure outranks the same figure in a highlights table
+            # (press-release "Revenue" may be defined differently, e.g. include other income)
+            if any(v.source != "reported_highlight" for v in vs):
+                vs = [v for v in vs if v.source != "reported_highlight"]
+            latest = _best_supported(vs, series, key)
+            # a rounded re-statement of the same figure (press release "Rs 205 cr" after the
+            # statement's 205.03) is not a revision
+            distinct_vals = {round(v.value, 4) for v in vs if not _same_within_rounding(v, latest)} | {
+                round(latest.value, 4)}
             series.points[key] = SeriesPoint(latest.value, latest.unit, latest.source,
                                              sorted({v.doc_id for v in vs}), len(distinct_vals),
-                                             latest.integrity, latest.available_at, latest.system_available_at)
+                                             latest.integrity, latest.available_at, latest.system_available_at,
+                                             support=_filings([v for v in vs if _agrees(v, latest)]))
             if len(distinct_vals) > 1:
                 series.lineage_notes.append(
                     f"{key[0].value} {key[1]} {key[2]}: revised from {vs[0].value} ({vs[0].doc_id}) "
                     f"to {latest.value} ({latest.doc_id})")
         series._derive_missing_q4()
         series._derive_missing_h2()
+        series._exclude_single_source_outliers()     # also catches values derived from a mis-read
         series._derive_ebitda()
         return series
+
+    def _exclude_single_source_outliers(self) -> None:
+        """A period's revenue that is 10x away from the company's median period AND stated by only
+        one filing is almost always a mis-read scan (another row's figures, a lost decimal).
+        It is excluded and listed, never silently used; figures confirmed by 2+ filings stay."""
+        from statistics import median
+        for ptype in ("Q", "H"):
+            keys = [k for k in self.points if k[0] == Metric.REVENUE and k[1] == ptype]
+            vals = [self.points[k].value for k in keys if self.points[k].value > 0]
+            if len(vals) < 4:
+                continue
+            med = median(vals)
+            for k in keys:
+                p = self.points[k]
+                if p.support <= 1 and med > 0 and (p.value <= 0.1 * med or p.value >= 10 * med):
+                    self.excluded.append(f"revenue {ptype} {k[2]} from {p.doc_ids[0]}: {p.value:g} is 10x away "
+                                         f"from the median period ({med:g}) and stated by one filing only")
+                    del self.points[k]
 
     # -- derivations (always labelled) ------------------------------------
 
@@ -147,6 +274,8 @@ class FinancialSeries:
                 continue
             if (metric, "Q", end) in self.points:
                 continue
+            if end.month != 3:
+                continue          # Indian fiscal year: Q4 = FY(March) - 9M(December)
             nine = self.points.get((metric, "9M", end.replace(month=12, day=31, year=end.year - 1)))
             if nine:
                 self.points[(metric, "Q", end)] = self._derived(p.value - nine.value, p.unit, "derived:FY-9M",

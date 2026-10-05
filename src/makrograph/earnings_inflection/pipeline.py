@@ -281,8 +281,6 @@ class EarningsInflectionPipeline:
             # columns, recognised rows and a unit line.
             if d.kind.value not in ("earnings_call_transcript",):
                 rows, iss = parse_results_tables(d, chunks)
-                if d.superseded_by:
-                    rows = []   # a later version for the same period replaces these numbers
                 sys_t = (None if d.first_seen_at is None or d.text_available_at is None
                          else max(d.first_seen_at, d.text_available_at))
                 for r in rows:
@@ -295,6 +293,21 @@ class EarningsInflectionPipeline:
                 ev, rej = self.llm.extract(d, chunks)
                 evidence += ev
                 llm_rejected += rej
+
+        # A later version of a filing replaces its numbers - but only the figures that the later
+        # version actually provides (a re-filing whose text is unreadable must not erase them).
+        def _chain(doc_id):
+            seen, nxt = [], docs_by_id.get(doc_id) and docs_by_id[doc_id].superseded_by
+            while nxt and nxt not in seen:
+                seen.append(nxt)
+                nxt = docs_by_id[nxt].superseded_by if nxt in docs_by_id else None
+            return seen
+        key = lambda r: (r.metric, r.period_type, r.period_end, r.scope)  # noqa: E731
+        keys_by_doc: dict = {}
+        for r in measurements:
+            keys_by_doc.setdefault(r.doc_id, set()).add(key(r))
+        measurements = [r for r in measurements
+                        if not any(key(r) in keys_by_doc.get(later, ()) for later in _chain(r.doc_id))]
 
         # 4. validation + dedup
         evidence = validate_evidence(evidence, docs_by_id, as_of)
@@ -401,6 +414,9 @@ class EarningsInflectionPipeline:
         coverage["evidence_rejected"] = len(unusable)
         coverage["financial_rows"] = len(measurements)
         coverage["series_scope"] = series.scope.value
+        if series.scope_note:
+            coverage["series_scope_note"] = series.scope_note
+            lim.append(f"Statement scope: {series.scope_note}.")
         coverage["reporting_cadence"] = {"Q": "quarterly", "H": "half-yearly"}.get(cadence or "", "none")
         coverage["order_mentions"] = sum(1 for e in evidence if e.usable and e.metric.value == "order_win")
         coverage["economic_events_after_dedup"] = len(events)
