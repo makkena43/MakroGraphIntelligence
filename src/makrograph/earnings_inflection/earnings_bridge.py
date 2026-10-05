@@ -15,7 +15,7 @@ from .contracts import (
     BridgeScenario, EarningsBridge, GuidanceOutcome, GuidanceRecord, IssuerModel, Metric, ScenarioStatus,
 )
 from .extraction import fy_label_for
-from .financial_series import PERIOD_WORD, PERIODS_PER_YEAR, FinancialSeries
+from .financial_series import PERIOD_WORD, PERIODS_PER_YEAR, FinancialSeries, prev_period_end
 
 
 def build_bridge(series: Optional[FinancialSeries], issuer_model: IssuerModel,
@@ -56,9 +56,24 @@ def build_bridge(series: Optional[FinancialSeries], issuer_model: IssuerModel,
     tax_note = "effective TTM tax rate" if pbt and pbt > 0 else "25% statutory-style assumption (TTM PBT <= 0)"
     minority = (1 - pat_attr / pat) if (pat and pat_attr and pat > 0) else 0.0
     base_margin = ebitda / rev * 100
+    share_basis = "implied: parent PAT / diluted EPS of the latest period (labelled fallback)"
+    cap_shares = next((series.shares_from_capital(end, t) for t in (p, "I", "FY")
+                       if series.shares_from_capital(end, t)), None)
+    if cap_shares:
+        gap = shares / cap_shares - 1
+        share_basis += f"; paid-up capital / face value gives {cap_shares:.4f} crore ({gap:+.1%})"
+    ends, d = [], end
+    for _ in range(4 if p == "Q" else 2):
+        ends.append(d)
+        d = prev_period_end(d, p)
+    exc_periods = [e for e in ends if (series.exceptional(e, p)[0] or 0) != 0]
+    if exc_periods:
+        tax_note += ("; TTM PBT includes exceptional items in " + ", ".join(str(e) for e in exc_periods)
+                     + ", so the effective rate is distorted (scenario assumption, not a reported fact)")
     common = {"D&A (TTM, held flat)": round(da, 2), "finance cost (TTM, held flat)": round(fin, 2),
               "tax rate": f"{tax_rate:.1%} ({tax_note})", "minority share of PAT": f"{minority:.1%}",
-              "diluted shares (crore, implied PAT/EPS)": round(shares, 4), "other income": "excluded"}
+              "diluted shares (crore)": round(shares, 4), "share count basis": share_basis,
+              "other income": "excluded", "EBITDA definition": "revenue - operating costs (excl. other income)"}
 
     def scen(name, revenue, margin, extra_notes=()):
         e = revenue * margin / 100

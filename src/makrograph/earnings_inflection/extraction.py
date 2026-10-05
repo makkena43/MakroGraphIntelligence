@@ -181,12 +181,37 @@ _ROW_METRICS = [
      Metric.EBITDA),
     (re.compile(r"depreciation", re.I), Metric.DEPRECIATION),
     (re.compile(r"finance\s+costs?\b|interest\s+(?:and\s+finance\s+)?(?:costs?|expenses?)\b", re.I), Metric.FINANCE_COST),
+    (re.compile(rf"(?:\(\s*loss\s*\)\s*/\s*)?{_P}\s*before\s+exceptional\s+(?:items?\s+)?(?:and|&)\s+tax", re.I),
+     Metric.PBT_PRE_EXCEPTIONAL),
     (re.compile(r"exceptional\s+items?\b", re.I), Metric.EXCEPTIONAL_ITEMS),
     (re.compile(rf"(?:\(\s*loss\s*\)\s*/\s*)?{_P}\s*before\s+tax", re.I), Metric.PBT),
     (re.compile(r"(?:total\s+)?(?:income\s+)?tax\s+expenses?\b", re.I), Metric.TAX),
     (re.compile(rf"(?:net\s+)?{_P}\s*(?:after\s+tax|for\s+the\s+(?:period|year|quarter|half))", re.I), Metric.PAT),
     (re.compile(r"(?:owners|equity\s+(?:share)?holders|shareholders)\s+of\s+the\s+(?:company|parent|holding)", re.I),
      Metric.PAT_ATTRIBUTABLE),
+    (re.compile(r"non[- ]controlling\s+interests?\b", re.I), Metric.NCI_PROFIT),
+    (re.compile(r"(?:paid[- ]up\s+)?equity\s+share\s+capital\b", re.I), Metric.PAID_UP_CAPITAL),
+    # cash-flow statement
+    (re.compile(r"net\s+cash\b.{0,70}\boperating\s+activities", re.I), Metric.OPERATING_CASH_FLOW),
+    (re.compile(r"net\s+cash\b.{0,70}\binvesting\s+activities", re.I), Metric.INVESTING_CASH_FLOW),
+    (re.compile(r"net\s+cash\b.{0,70}\bfinancing\s+activities", re.I), Metric.FINANCING_CASH_FLOW),
+    (re.compile(r"net\s+(?:increase|decrease|change)\b.{0,40}\bcash\s+and\s+cash\s+equivalents", re.I),
+     Metric.NET_CHANGE_IN_CASH),
+    # balance sheet (instant "As at" columns)
+    (re.compile(r"cash\s+and\s+cash\s+equivalents\b(?!.{0,40}\b(?:beginning|opening|start)\b)", re.I), Metric.CASH),
+    (re.compile(r"trade\s+receivables\b", re.I), Metric.RECEIVABLES),
+    (re.compile(r"inventories\b", re.I), Metric.INVENTORIES),
+    (re.compile(r"total\s+equity\s+and\s+liabilities\b", re.I), Metric.TOTAL_EQUITY_AND_LIABILITIES),
+    (re.compile(r"total\s+assets\b", re.I), Metric.TOTAL_ASSETS),
+]
+_BORROWINGS = re.compile(r"(?:\(?[ivx]+\)?\s*)?(?:long[- ]term\s+|short[- ]term\s+)?borrowings\b", re.I)
+_FACE_VALUE = re.compile(r"face\s+value\s*(?:of\s*)?(?:rs\.?|₹|inr|re\.?)?\s*([\d.]+)", re.I)
+_SECTION = [
+    (re.compile(r"non[- ]current\s+liabilities", re.I), "nc_liab"),
+    (re.compile(r"\bcurrent\s+liabilities", re.I), "c_liab"),
+    (re.compile(r"non[- ]current\s+assets", re.I), "nc_assets"),
+    (re.compile(r"\bcurrent\s+assets", re.I), "c_assets"),
+    (re.compile(r"\bequity\b(?!.{0,10}share)", re.I), "equity"),
 ]
 _TAX_PARTS = re.compile(r"(?:current\s+tax|deferred\s+tax|(?:tax\s+(?:in\s+respect\s+of|relating\s+to|for)\s+)?"
                         r"(?:earlier|prior)\s+(?:years?|periods?))\b", re.I)
@@ -319,25 +344,45 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
             issues.append(f"{doc.doc_id}:p{c.page}: results table without unit line; amounts not used")
         found: dict[Metric, list] = {}
         tax_parts: list[list[Optional[float]]] = []
-        pending, after_comprehensive, misaligned = "", False, 0
+        pending, after_comprehensive, misaligned, section, face_value = "", False, 0, "", None
         for l in lines:
             label, cells = split_numeric_row(l)
             if _COMPREHENSIVE.search(label):
                 after_comprehensive = True
+            fv = _FACE_VALUE.search(label)
+            if fv:
+                try:
+                    face_value = float(fv.group(1).rstrip("."))
+                except ValueError:
+                    pass
             if not cells:
+                for pat, name in _SECTION:
+                    if pat.search(label) and len(label) < 60:
+                        section = name
+                        break
                 # a label wrapped onto the next line ("Revenue from" / "operations 1,234 ...")
                 pending = label if len(label) < 80 else ""
                 continue
+            if _BORROWINGS.match(_strip_enumerator(label)):
+                bm = {"nc_liab": Metric.BORROWINGS_NONCURRENT, "c_liab": Metric.BORROWINGS_CURRENT}.get(section)
+                if bm is None:
+                    issues.append(f"{doc.doc_id}:p{c.page}: borrowings row outside a current/non-current "
+                                  "liabilities section; not used")
+                    continue
+                label = f"__{bm.value}__ {label}"
             is_tax_part = bool(_TAX_PARTS.match(_strip_enumerator(label)))
             # Join a wrapped label only when this line has no enumerator of its own:
             # "(1) Current tax" under "VIII Tax expense" is a sub-row, not a continuation.
             continuation = pending and not is_tax_part and _strip_enumerator(label) == label.strip()
-            metrics = _match_metrics(label) or (_match_metrics(f"{pending} {label}") if continuation else [])
+            if label.startswith("__borrowings_"):
+                metrics = [Metric(label.split("__")[1])]
+            else:
+                metrics = _match_metrics(label) or (_match_metrics(f"{pending} {label}") if continuation else [])
             pending = ""
             if not metrics and not is_tax_part:
                 continue
-            if Metric.PAT_ATTRIBUTABLE in metrics and after_comprehensive:
-                continue   # "owners of the company" share of comprehensive income, not of profit
+            if (Metric.PAT_ATTRIBUTABLE in metrics or Metric.NCI_PROFIT in metrics) and after_comprehensive:
+                continue   # owners / NCI share of comprehensive income, not of profit
             if len(cells) < n:
                 continue   # blank cells dropped by the PDF text; cannot align safely
             if len(cells) > n + 1:
@@ -345,38 +390,45 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
                 continue
             cells = cells[-n:]   # one extra leading value = note reference column
             vals: list[Optional[float]] = []
+            decimals = 0
             for cell in cells:
                 try:
                     vals.append(_cell_value(cell) if _CELL.fullmatch(cell) else None)   # "-"/"nil" = blank
                 except ValueError:
                     vals.append(None)
+                if "." in cell:
+                    decimals = max(decimals, len(cell.strip("()").split(".")[-1]))
             if is_tax_part and not metrics:
                 tax_parts.append(vals)
                 continue
             for m in metrics:
                 if m not in found:            # first occurrence wins (later = sub-totals / OCI)
-                    found[m] = [l, vals]
+                    found[m] = [l, vals, decimals]
         if tax_parts and Metric.TAX not in found:
             summed = [None if all(p[i] is None for p in tax_parts) else sum(p[i] or 0.0 for p in tax_parts)
                       for i in range(n)]
-            found[Metric.TAX] = ["(sum of current/deferred/earlier-year tax rows)", summed]
+            found[Metric.TAX] = ["(sum of current/deferred/earlier-year tax rows)", summed, 2]
         if misaligned:
             issues.append(f"{doc.doc_id}:p{c.page}: {misaligned} row(s) had more values than the {n} "
                           f"identified period columns; skipped")
-        for metric, (line, vals) in found.items():
+        if face_value and Metric.PAID_UP_CAPITAL in found:
+            found[Metric.FACE_VALUE] = [f"face value Rs {face_value:g} per share", [face_value] * n, 2]
+        for metric, (line, vals, decimals) in found.items():
             for col_i, (d, v) in enumerate(zip(cols, vals)):
                 if v is None or ptypes[col_i] is None:
                     continue
-                if metric in (Metric.DILUTED_EPS, Metric.BASIC_EPS):
-                    unit, val = Unit.INR_PER_SHARE, v
+                if metric in (Metric.DILUTED_EPS, Metric.BASIC_EPS, Metric.FACE_VALUE):
+                    unit, val, du = Unit.INR_PER_SHARE, v, 10 ** -decimals
                 else:
                     if scale is None:
                         continue
-                    unit, val = Unit.INR_CRORE, round(v * scale, 4)
+                    unit, val = Unit.INR_CRORE, round(v * scale, 6)
+                    du = (10 ** -decimals) * scale
                 out.append(FinancialMeasurement(
                     ticker=doc.ticker, metric=metric, period_end=d, period_type=ptypes[col_i],
                     value=val, unit=unit, scope=scope, doc_id=doc.doc_id, available_at=doc.available_at,
                     quote=f"{c.header.splitlines()[-1] if c.header else ''} | {line.strip()}"[:400],
+                    display_unit=du,
                 ))
     return out, issues
 
@@ -406,7 +458,7 @@ _COL_TOKEN = re.compile(
 )
 _COL_GROUP_WORDS = re.compile(
     r"(?P<q>quarter ended|three months ended)|(?P<h>half[- ]year ended|six months ended)"
-    r"|(?P<n>nine months ended)|(?P<y>year ended)", re.I)
+    r"|(?P<n>nine months ended)|(?P<y>year ended)|(?P<i>\bas\s+at\b|\bas\s+on\b)", re.I)
 _TITLE_LINE = re.compile(r"statement of|results for|financial results|unaudited|audited", re.I)
 
 
@@ -493,8 +545,8 @@ def _header_candidates(header_lines: list[str]):
 def resolve_columns(header_lines: list[str]) -> tuple[list[tuple[date, Optional[str]]], str]:
     """Return [(period_end, period_type)] for the table's value columns.
 
-    period_type is "Q", "H", "9M", "FY" or None (unidentifiable column: its
-    values are not used).  The second element is an issue string or "".
+    period_type is "Q", "H", "9M", "FY", "I" (instant: balance-sheet "As at")
+    or None (unidentifiable column: its values are not used).  The second element is an issue string or "".
     """
     best_i, best = -1, []
     for i, toks in _header_candidates(header_lines):
@@ -510,8 +562,13 @@ def resolve_columns(header_lines: list[str]) -> tuple[list[tuple[date, Optional[
 
     # 2) header words giving exactly one group label per column
     above = " ".join(l for l in header_lines[max(0, best_i - 2):best_i] if not _TITLE_LINE.search(l))
-    words = [("Q" if g.group("q") else "H" if g.group("h") else "9M" if g.group("n") else "FY")
-             for g in _COL_GROUP_WORDS.finditer(above)]
+    words = [("Q" if g.group("q") else "H" if g.group("h") else "9M" if g.group("n") else
+              "I" if g.group("i") else "FY")
+             for g in _COL_GROUP_WORDS.finditer(above + " " + header_lines[best_i])]
+    # Balance sheets: "As at 30.09.2023 As at 31.03.2023" - instant columns, no durations.
+    if words and all(w == "I" for w in words):
+        return [(d, "I") for d, _ in best], ""
+    words = [w for w in words if w != "I"]
     if len(words) == n:
         return [(d, t or w) for (d, t), w in zip(best, words)], ""
 
@@ -623,6 +680,9 @@ _COUNTERPARTY_NAMED = re.compile(
 _COUNTERPARTY_UNNAMED = re.compile(
     r"\b(?:a|an|one of the)\s+(?:leading|large|major|reputed|marquee|prestigious|global|domestic|international|"
     r"fortune \d+|european|us[- ]based|government)\b[^.,;]{0,40}?\b(?:customer|client|oem|player|company|utility|psu|entity)\b", re.I)
+_FACILITY = re.compile(
+    r"\b(?:at|in|of|for)\s+(?:the|our|its)\s+((?:[A-Z][\w-]*\s+){1,3})(?:plant|unit|facility|factory|works|site)\b")
+_FACILITY_BARE = re.compile(r"\b((?:[A-Z][\w-]*\s+){1,2})(?:plant|unit|facility|factory)\b(?!\s+(?:of|for)\b)")
 _SEGMENT = re.compile(r"\b(?:in|for|from) (?:the|our) ([a-z][a-z &/-]{2,40}?) (?:segment|division|business|vertical)\b", re.I)
 
 _GUIDANCE_METRIC = {
@@ -769,6 +829,10 @@ def extract_sentence_evidence(doc: SourceDocument, chunks: list[Chunk]) -> list[
                     if mu:
                         cp = mu.group(0)
             seg = _SEGMENT.search(s_clean)
+            fac = _FACILITY.search(s_clean) or _FACILITY_BARE.search(s_clean)
+            facility = re.sub(r"\s+", " ", fac.group(1)).strip().lower() if fac else ""
+            if not facility and seg:
+                facility = f"segment:{seg.group(1).strip().lower()}"
 
             target_label = ""
             if tier == EvidenceTier.MANAGEMENT_ASSERTION and labels:
@@ -779,7 +843,7 @@ def extract_sentence_evidence(doc: SourceDocument, chunks: list[Chunk]) -> list[
                 quote=s_clean, available_at=doc.available_at, page=c.page, chunk_id=c.chunk_id,
                 quantity=qty, period_label=labels[0] if labels and not target_label else "",
                 target_period_label=target_label, scope=_scope_from(s_clean),
-                segment=seg.group(1).strip() if seg else "",
+                segment=seg.group(1).strip() if seg else "", facility=facility,
                 counterparty=cp, counterparty_named=cp_named, commitment_strength=strength,
                 distinct_marker=bool(_DISTINCT.search(s_clean)),
             )

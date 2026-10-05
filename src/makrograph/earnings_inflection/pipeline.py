@@ -38,13 +38,16 @@ from .event_resolution import resolve_events
 from .extraction import ConstrainedLLMExtractor, extract_sentence_evidence, garbled_ratio, parse_results_tables
 from .financial_series import FinancialSeries
 from .coverage import document_coverage, result_period_coverage
+from .validation import margin_conflicts
 from .guidance_ledger import build_ledger
 from .text_artifacts import text_hash
 from .identity import (
     AliasRecord, IdentityResolver, IssuerRecord, IssuerRegistry, ReplayMode, SymbolSpan, alias_for_document,
     classify_issuer_model, listing_segment_from,
 )
-from .validation import reconcile, scope_conflicts, validate_evidence, validate_measurements
+from .validation import (
+    Integrity, reconcile_structured, scope_conflicts, validate_evidence, validate_measurements,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -296,7 +299,11 @@ class EarningsInflectionPipeline:
         # 4. validation + dedup
         evidence = validate_evidence(evidence, docs_by_id, as_of)
         measurements, m_issues = validate_measurements(measurements, as_of)
-        issues += m_issues + reconcile(measurements) + scope_conflicts(measurements)
+        recon = reconcile_structured(measurements)
+        issues += m_issues + scope_conflicts(measurements)
+        coverage["reconciliation"] = {st: sum(1 for r in recon if r.status == st)
+                                      for st in (Integrity.VALIDATED, Integrity.DEFINITION_DIFFERENCE,
+                                                 Integrity.UNRESOLVED, Integrity.REJECTED)}
         events = resolve_events(evidence)
 
         # 5. series, drivers, ledger, counterparties, bridge
@@ -327,7 +334,13 @@ class EarningsInflectionPipeline:
         contradictions = [f"{g.metric.value} {g.target_period_label}: {f}" for g in guidance for f in g.flags]
         contradictions += [f"negated statement: \"{e.quote[:160]}\"" for e in evidence
                            if e.usable and e.modality.value == "negated" and e.tier.value == "management_assertion"][:5]
-        contradictions += [i for i in issues if "!=" in i or "vs computed" in i]
+        seen_recon = set()
+        for r in recon:
+            if r.status in Integrity.BLOCKING and (r.check, r.period_end, r.period_type, r.detail) not in seen_recon:
+                seen_recon.add((r.check, r.period_end, r.period_type, r.detail))
+                contradictions.append(f"{r.check} {r.status} for {r.period_type} {r.period_end} ({r.scope}): "
+                                      f"{r.detail}; affected figures excluded from calculations")
+        contradictions += margin_conflicts(evidence, series)
 
         cited_ids = set()
         for e in evidence:
@@ -360,6 +373,11 @@ class EarningsInflectionPipeline:
                        f"{dropped} document(s) excluded or text-less because ingestion/extraction time is after "
                        "the cutoff or cannot be proven.")
         lim += [f"Revised figures: {n}" for n in series.lineage_notes]
+        defs = sorted({r.detail for r in recon if r.status == Integrity.DEFINITION_DIFFERENCE})
+        lim += [f"Definition difference (labelled, not an error): {d}" for d in defs]
+        if series.excluded:
+            lim.append(f"{len(series.excluded)} reported figure(s) excluded from calculations after failed "
+                       f"reconciliation, e.g. {series.excluded[0]}")
         if stale_note:
             lim.insert(0, "Stale financial series, so no growth or margin drivers were computed: " + stale_note
                        + ". Run --diagnose to see why recent results did not parse.")
@@ -420,7 +438,7 @@ class EarningsInflectionPipeline:
             what_changed=what_changed(drivers, events, guidance, evidence, first_public, as_of,
                                       int(self.cfg.get("event_lookback_days", 365))),
             drivers=drivers, guidance=guidance, events=events, counterparties=profiles, bridge=bridge,
-            contradictions=contradictions, financing_risks=financing_risks(evidence, ttm_rev, bridge),
+            contradictions=contradictions, financing_risks=financing_risks(evidence, ttm_rev, bridge, drivers),
             customer_risks=[f"{p.name}: {f}" for p in profiles for f in p.risk_flags],
             missing_inputs=sorted(set(missing)),
             next_checks=next_checks(drivers, events, guidance, sorted(set(missing)), status),

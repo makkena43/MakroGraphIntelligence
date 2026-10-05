@@ -52,7 +52,6 @@ def _util_drivers(texts):
     return [d for d in drivers if d.driver == "capacity_utilization_change"]
 
 
-@pytest.mark.xfail(strict=True, reason="fixed in WP3")
 def test_utilisation_of_different_plants_is_not_compared():
     got = _util_drivers([
         ("Capacity utilisation at the Hosur plant was 62% in FY24.", datetime(2024, 5, 20, tzinfo=IST)),
@@ -61,7 +60,6 @@ def test_utilisation_of_different_plants_is_not_compared():
     assert got == []
 
 
-@pytest.mark.xfail(strict=True, reason="fixed in WP3")
 def test_utilisation_of_the_same_plant_is_compared():
     got = _util_drivers([
         ("Capacity utilisation at the Hosur plant was 62% in FY24.", datetime(2024, 5, 20, tzinfo=IST)),

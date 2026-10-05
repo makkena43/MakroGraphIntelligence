@@ -735,7 +735,7 @@ def test_fy_label_for_half_years():
     ("1. Income from Operations", Metric.REVENUE),
     ("(a) Revenue from operations", Metric.REVENUE),
     ("VII Profit before tax (V-VI)", Metric.PBT),
-    ("V Profit before exceptional items and tax (III-IV)", None),
+    ("V Profit before exceptional items and tax (III-IV)", Metric.PBT_PRE_EXCEPTIONAL),
     ("IX Profit/(Loss) for the period (VII-VIII)", Metric.PAT),
     ("Net Profit attributable to owners of the Company", Metric.PAT_ATTRIBUTABLE),
     ("c) Depreciation and amortisation expense", Metric.DEPRECIATION),

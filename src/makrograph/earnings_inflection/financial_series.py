@@ -71,9 +71,13 @@ class SeriesPoint:
     source: str            # reported | derived
     doc_ids: list[str]
     versions: int = 1      # >1 means a later filing revised this value
+    integrity: str = "unchecked"
     available_at: Optional[datetime] = None    # public availability of the version used
     system_at: Optional[datetime] = None       # when MakroGraph held it (None = unproven)
     inputs: list = field(default_factory=list) # keys of the points a derived value depends on
+
+
+BLOCKING_INTEGRITY = ("unresolved", "rejected")
 
 
 def _latest(times):
@@ -89,6 +93,7 @@ class FinancialSeries:
     scope: Scope
     points: dict[tuple[Metric, str, date], SeriesPoint] = field(default_factory=dict)
     lineage_notes: list[str] = field(default_factory=list)
+    excluded: list[str] = field(default_factory=list)     # reported facts kept out of calculations
 
     @classmethod
     def build(cls, ticker: str, rows: list[FinancialMeasurement],
@@ -101,6 +106,10 @@ class FinancialSeries:
             if hit is not None:
                 scope = hit
                 break
+        else:
+            # no revenue rows (e.g. a balance-sheet-only filing): use the preferred scope present
+            present = {r.scope for r in rows}
+            scope = next((s for s in preference if s in present), Scope.UNKNOWN)
         series = cls(ticker, scope)
         versions = defaultdict(list)
         for r in rows:
@@ -108,11 +117,19 @@ class FinancialSeries:
                 versions[(r.metric, r.period_type, r.period_end)].append(r)
         for key, vs in versions.items():
             vs.sort(key=lambda r: (r.available_at, r.doc_id))
+            usable = [v for v in vs if v.integrity not in BLOCKING_INTEGRITY]
+            for v in vs:
+                if v.integrity in BLOCKING_INTEGRITY:
+                    series.excluded.append(f"{key[0].value} {key[1]} {key[2]} from {v.doc_id}: {v.integrity} "
+                                           f"({'; '.join(v.integrity_notes)[:160]})")
+            if not usable:
+                continue
+            vs = usable
             latest = vs[-1]
             distinct_vals = {round(v.value, 4) for v in vs}
             series.points[key] = SeriesPoint(latest.value, latest.unit, latest.source,
                                              sorted({v.doc_id for v in vs}), len(distinct_vals),
-                                             latest.available_at, latest.system_available_at)
+                                             latest.integrity, latest.available_at, latest.system_available_at)
             if len(distinct_vals) > 1:
                 series.lineage_notes.append(
                     f"{key[0].value} {key[1]} {key[2]}: revised from {vs[0].value} ({vs[0].doc_id}) "
@@ -151,7 +168,7 @@ class FinancialSeries:
 
     @staticmethod
     def _derived(value, unit, source, parts: list["SeriesPoint"], keys: list) -> "SeriesPoint":
-        return SeriesPoint(value, unit, source, sorted({d for p in parts for d in p.doc_ids}), 1,
+        return SeriesPoint(value, unit, source, sorted({d for p in parts for d in p.doc_ids}), 1, "derived",
                            _latest(p.available_at for p in parts), _latest(p.system_at for p in parts),
                            list(keys))
 
@@ -165,8 +182,11 @@ class FinancialSeries:
 
     def _derive_ebitda(self) -> None:
         for (metric, ptype, end), rev in list(self.points.items()):
-            if metric != Metric.REVENUE or (Metric.EBITDA, ptype, end) in self.points:
+            if metric != Metric.REVENUE:
                 continue
+            reported = self.points.get((Metric.EBITDA, ptype, end))
+            if reported is not None and reported.integrity == "validated":
+                continue     # reported EBITDA proven to use the operating definition
             te = self.points.get((Metric.TOTAL_EXPENSES, ptype, end))
             da = self.points.get((Metric.DEPRECIATION, ptype, end))
             fc = self.points.get((Metric.FINANCE_COST, ptype, end))
@@ -260,23 +280,90 @@ class FinancialSeries:
             return None
         return e.value / r.value * 100.0
 
-    def recurring_pat_attributable(self, end: date, ptype: str = "Q") -> tuple[Optional[float], list[str]]:
-        notes = []
-        pat = self.get(Metric.PAT_ATTRIBUTABLE, end, ptype)
+    # -- reported vs recurring earnings (WP3) --------------------------------
+
+    def exceptional(self, end: date, ptype: str = "Q") -> tuple[Optional[float], str]:
+        """(signed effect on profit, basis).  +x = gain, -x = charge; (0, ...) when none
+        reported; (None, ...) when the sign cannot be proven from the statement."""
+        p = self.get(Metric.EXCEPTIONAL_ITEMS, end, ptype)
+        pre = self.get(Metric.PBT_PRE_EXCEPTIONAL, end, ptype)
+        pbt = self.get(Metric.PBT, end, ptype)
+        if p is None or abs(p.value) < 1e-9:
+            if pre and pbt and abs(pre.value - pbt.value) > max(0.02, 0.005 * abs(pbt.value)):
+                return pbt.value - pre.value, "difference between PBT and pre-exceptional PBT"
+            return 0.0, "no exceptional items reported"
+        if pre and pbt:
+            return pbt.value - pre.value, "sign proven by pre-exceptional PBT"
+        return None, "exceptional items reported but their sign cannot be proven (no pre-exceptional PBT row)"
+
+    def recurring_pbt(self, end: date, ptype: str = "Q") -> tuple[Optional[float], str]:
+        pre = self.get(Metric.PBT_PRE_EXCEPTIONAL, end, ptype)
+        if pre is not None:
+            return pre.value, "profit before exceptional items and tax"
+        exc, basis = self.exceptional(end, ptype)
+        pbt = self.get(Metric.PBT, end, ptype)
+        if pbt is None:
+            return None, "PBT not reported"
+        if exc == 0.0:
+            return pbt.value, "PBT (no exceptional items)"
+        return None, basis
+
+    def recurring_pat(self, end: date, ptype: str = "Q", attributable: bool = True
+                      ) -> tuple[Optional[float], str]:
+        """Recurring PAT only when no exceptional item needs a tax effect that is not disclosed."""
+        metric = Metric.PAT_ATTRIBUTABLE if attributable else Metric.PAT
+        pat = self.get(metric, end, ptype)
         if pat is None:
-            pat = self.get(Metric.PAT, end, ptype)
-            if pat is None:
-                return None, ["PAT not reported"]
-            notes.append("parent-attributable PAT not reported; total PAT used (minority interest unknown)")
-        val = pat.value
-        exc = self.get(Metric.EXCEPTIONAL_ITEMS, end, ptype)
-        if exc and exc.value:
-            pbt, tax = self.get(Metric.PBT, end, ptype), self.get(Metric.TAX, end, ptype)
-            rate = (tax.value / pbt.value) if (pbt and tax and pbt.value > 0) else 0.25
-            # statements present exceptional items as a deduction; positive = charge
-            val = val + exc.value * (1 - rate)
-            notes.append(f"exceptional items {exc.value} excluded at {rate:.0%} tax")
-        return val, notes
+            return None, f"{metric.value} not reported"
+        exc, basis = self.exceptional(end, ptype)
+        if exc == 0.0:
+            return pat.value, "reported PAT (no exceptional items)"
+        if exc is None:
+            return None, basis
+        return None, ("exceptional items present and their after-tax effect is not disclosed; "
+                      "recurring PAT/EPS unavailable (see recurring PBT)")
+
+    def recurring_pat_attributable(self, end: date, ptype: str = "Q") -> tuple[Optional[float], list[str]]:
+        """Backward-compatible wrapper (no invented tax rates)."""
+        v, basis = self.recurring_pat(end, ptype, attributable=True)
+        if v is None and self.get(Metric.PAT_ATTRIBUTABLE, end, ptype) is None:
+            v, basis = self.recurring_pat(end, ptype, attributable=False)
+            if v is not None:
+                return v, ["parent-attributable PAT not reported; total PAT used (labelled substitute)"]
+        return v, [basis]
+
+    def change_profile(self, value_now: Optional[float], value_prior: Optional[float],
+                       low_base_ratio: float = 0.1) -> dict:
+        """Percent growth only where it is meaningful.
+
+        kinds: growth | decline | loss_to_profit | profit_to_loss | loss_narrowed | loss_widened |
+        low_base (prior positive but < 10% of current: % suppressed) | unavailable
+        """
+        if value_now is None or value_prior is None:
+            return {"kind": "unavailable", "pct": None, "abs": None}
+        a = value_now - value_prior
+        if value_prior <= 0 < value_now:
+            return {"kind": "loss_to_profit", "pct": None, "abs": a}
+        if value_prior > 0 >= value_now:
+            return {"kind": "profit_to_loss", "pct": None, "abs": a}
+        if value_prior < 0 and value_now < 0:
+            return {"kind": "loss_narrowed" if value_now > value_prior else "loss_widened", "pct": None, "abs": a}
+        if value_prior == 0:
+            return {"kind": "unavailable", "pct": None, "abs": a}
+        if abs(value_prior) < low_base_ratio * abs(value_now):
+            return {"kind": "low_base", "pct": None, "abs": a}
+        pct = (value_now / value_prior - 1) * 100
+        return {"kind": "growth" if pct >= 0 else "decline", "pct": pct, "abs": a}
+
+    # -- share basis -------------------------------------------------------------
+
+    def shares_from_capital(self, end: date, ptype: str) -> Optional[float]:
+        """Shares (crore) = paid-up equity capital (crore) / face value - a labelled basis,
+        not issuance history."""
+        cap, fv = self.get(Metric.PAID_UP_CAPITAL, end, ptype), self.get(Metric.FACE_VALUE, end, ptype)
+        if not cap or not fv or fv.value <= 0:
+            return None
+        return cap.value / fv.value
 
     def shares_diluted_crore(self, end: date, ptype: str = "Q") -> Optional[float]:
         """Implied diluted shares = attributable PAT / diluted EPS (both reported).

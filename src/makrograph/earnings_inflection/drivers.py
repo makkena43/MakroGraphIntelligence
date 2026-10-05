@@ -97,12 +97,7 @@ def compute_drivers(series: FinancialSeries, events: list[EconomicEvent], eviden
             else:
                 missing.append(f"EBITDA (reported or derivable) for current and year-ago {w}")
 
-        pat_g = series.yoy(Metric.PAT_ATTRIBUTABLE, end, p) or series.yoy(Metric.PAT, end, p)
-        if pat_g is not None:
-            out.append(_dc("pat_yoy_growth", series, end, pat_g, None, "pct", f"PAT vs year-ago {w}",
-                           pat_g >= th["pat_yoy_pct"], docs, change=pat_g, notes=cadence_note,
-                           keys=_keys(Metric.PAT_ATTRIBUTABLE, p, end, _year_ago(end))
-                           + _keys(Metric.PAT, p, end, _year_ago(end))))
+        out += _profit_drivers(series, p, end, w, th, docs, cadence_note, missing)
 
         # consecutive periods of material revenue growth (persistence)
         streak, d, skeys = 0, end, _keys(Metric.REVENUE, p, end, _year_ago(end))
@@ -147,12 +142,136 @@ def compute_drivers(series: FinancialSeries, events: list[EconomicEvent], eviden
                                "latest stated order book / TTM revenue (prior uses same TTM base)",
                                cover >= th["order_book_cover_years"], [latest.doc_id]))
 
-    util = sorted((e for e in evidence if e.usable and e.metric == Metric.UTILIZATION and e.quantity
-                   and e.modality.value == "realized"), key=lambda e: e.available_at)
-    if len(util) >= 2:
+    # Stated utilisation is compared only within the same plant / product scope
+    # (never plant A vs plant B, never a plant vs the company total).
+    by_scope: dict[str, list[Evidence]] = {}
+    for e in evidence:
+        if e.usable and e.metric == Metric.UTILIZATION and e.quantity and e.modality.value == "realized":
+            by_scope.setdefault(e.facility or "", []).append(e)
+    for scope, util in sorted(by_scope.items()):
+        util.sort(key=lambda e: e.available_at)
+        if len(util) < 2:
+            continue
         a, b = util[0], util[-1]
-        out.append(DriverChange("capacity_utilization_change", series.ticker, None, b.quantity.value, a.quantity.value,
-                                b.quantity.value - a.quantity.value, "pp", "stated utilisation, earliest vs latest",
-                                abs(b.quantity.value - a.quantity.value) >= th["utilization_change_pp"],
-                                notes=["management-stated, not observed"], source_doc_ids=[a.doc_id, b.doc_id]))
+        where = f"{scope} " if scope else "company-level "
+        out.append(_dc("capacity_utilization_change", series, None, b.quantity.value, a.quantity.value, "pp",
+                       f"stated {where}utilisation, earliest vs latest (same scope only)",
+                       abs(b.quantity.value - a.quantity.value) >= th["utilization_change_pp"],
+                       notes=["management-stated, not observed; capacity denominators not verified"],
+                       extra=[(a.available_at, None, a.doc_id), (b.available_at, None, b.doc_id)]))
+    if len(by_scope) > 1:
+        missing.append("utilisation stated for different plants/products; not compared across scopes ("
+                       + ", ".join(k or "company-level" for k in sorted(by_scope)) + ")")
+    out += _balance_sheet_and_cash_drivers(series, th)
     return out, missing
+
+
+def _profit_drivers(series: FinancialSeries, p: str, end, w: str, th: dict, docs, cadence_note, missing) -> list:
+    """Profit change on a recurring, parent-attributable basis.
+
+    Basis order: recurring parent PAT -> recurring PBT (when the after-tax effect of
+    exceptional items is undisclosed) -> total PAT (only when parent-attributable PAT
+    is genuinely not reported; labelled).  A 0% parent growth never falls back to group
+    PAT.  Zero / negative / low bases give absolute changes and turnaround status, not
+    percentages."""
+    ya = _year_ago(end)
+    out: list[DriverChange] = []
+    parent_now, b1 = series.recurring_pat(end, p, attributable=True)
+    parent_ya, b2 = series.recurring_pat(ya, p, attributable=True)
+    keys = _keys(Metric.PAT_ATTRIBUTABLE, p, end, ya) + _keys(Metric.EXCEPTIONAL_ITEMS, p, end, ya)
+    basis, now, prior, notes = "", None, None, list(cadence_note)
+    if parent_now is not None and parent_ya is not None:
+        basis, now, prior = "recurring parent-attributable PAT", parent_now, parent_ya
+    elif series.get(Metric.PAT_ATTRIBUTABLE, end, p) is not None and series.get(Metric.PAT_ATTRIBUTABLE, ya, p) is not None:
+        now, _ = series.recurring_pbt(end, p)
+        prior, _ = series.recurring_pbt(ya, p)
+        basis = "recurring PBT (pre-exceptional); after-tax effect of exceptional items not disclosed"
+        keys += _keys(Metric.PBT_PRE_EXCEPTIONAL, p, end, ya) + _keys(Metric.PBT, p, end, ya)
+        notes.append("parent PAT includes exceptional items; recurring PAT/EPS incomplete")
+    elif series.get(Metric.PAT_ATTRIBUTABLE, end, p) is None and series.get(Metric.PAT_ATTRIBUTABLE, ya, p) is None:
+        now, b1 = series.recurring_pat(end, p, attributable=False)
+        prior, b2 = series.recurring_pat(ya, p, attributable=False)
+        basis = "total PAT (parent-attributable PAT not reported; labelled substitute)"
+        keys += _keys(Metric.PAT, p, end, ya)
+        notes.append("total PAT substitutes for parent-attributable PAT; minority share unknown")
+    if now is None or prior is None:
+        missing.append(f"recurring earnings for current and year-ago {w} ({b1}; {b2})")
+        return out
+    prof = series.change_profile(now, prior)
+    # Non-operating income spike: profit growth driven by other income is not recurring improvement.
+    oi_now, oi_ya = series.get(Metric.OTHER_INCOME, end, p), series.get(Metric.OTHER_INCOME, ya, p)
+    pbt_now = series.get(Metric.PBT, end, p)
+    spike = bool(oi_now and pbt_now and pbt_now.value > 0 and oi_now.value > 0.5 * pbt_now.value
+                 and (oi_ya is None or oi_now.value > 3 * max(oi_ya.value, 1e-9)))
+    if spike:
+        notes.append("other income exceeds half of PBT and more than tripled: possible non-operating gain "
+                     "(e.g. asset sale); not treated as recurring improvement")
+        keys += _keys(Metric.OTHER_INCOME, p, end, ya)
+    rev = series.get(Metric.REVENUE, end, p)
+    if prof["kind"] in ("growth", "decline"):
+        out.append(_dc("pat_yoy_growth", series, end, prof["pct"], None, "pct", f"{basis}, vs year-ago {w}",
+                       prof["pct"] >= th["pat_yoy_pct"] and not spike, docs, change=prof["pct"], notes=notes,
+                       keys=keys))
+    elif prof["kind"] in ("loss_to_profit", "low_base", "loss_narrowed"):
+        material = (prof["kind"] in ("loss_to_profit", "low_base") and not spike and rev is not None
+                    and prof["abs"] >= th.get("turnaround_abs_pct_of_revenue", 2.0) / 100 * rev.value)
+        out.append(_dc(f"pat_{prof['kind']}", series, end, now, prior, "crore",
+                       f"{basis}; absolute change vs year-ago {w} (percentage growth not meaningful on a "
+                       f"zero/negative/low base)", material, docs, change=prof["abs"], notes=notes, keys=keys))
+    else:
+        out.append(_dc(f"pat_{prof['kind']}", series, end, now, prior, "crore", f"{basis} vs year-ago {w}",
+                       False, docs, change=prof["abs"], notes=notes, keys=keys))
+    return out
+
+
+def _balance_sheet_and_cash_drivers(series: FinancialSeries, th: dict) -> list:
+    """Informational (non-qualifying) debt, cash-conversion and share-count changes."""
+    out: list[DriverChange] = []
+    inst = sorted(e for (m, t, e) in series.points if t == "I" and m in (Metric.BORROWINGS_CURRENT,
+                                                                        Metric.BORROWINGS_NONCURRENT))
+    if len(inst) >= 2:
+        def gross(d):
+            parts = [series.get(m, d, "I") for m in (Metric.BORROWINGS_NONCURRENT, Metric.BORROWINGS_CURRENT)]
+            return None if all(x is None for x in parts) else sum(x.value for x in parts if x)
+
+        def net(d):
+            g, c = gross(d), series.get(Metric.CASH, d, "I")
+            return None if g is None or c is None else g - c.value
+        a, b = inst[0], inst[-1]
+        na, nb = net(a), net(b)
+        cur, prior, label = (nb, na, "net debt (borrowings - cash)") if na is not None and nb is not None             else (gross(b), gross(a), "gross borrowings")
+        ks = [(m, "I", d) for d in (a, b) for m in (Metric.BORROWINGS_NONCURRENT, Metric.BORROWINGS_CURRENT,
+                                                    Metric.CASH)]
+        notes = []
+        sa, sb = series.shares_from_capital(a, "I"), series.shares_from_capital(b, "I")
+        if sa and sb and sb > sa * 1.005 and cur is not None and prior is not None and cur < prior:
+            notes.append("debt fell while the share count rose: deleveraging may be equity-funded")
+        out.append(_dc("debt_change", series, b, cur, prior, "crore", f"{label}, {a} to {b}", False,
+                       notes=notes, keys=ks))
+    for ptype in ("FY", "H"):
+        ends = sorted(e for (m, t, e) in series.points if m == Metric.OPERATING_CASH_FLOW and t == ptype)
+        if not ends:
+            continue
+        e = ends[-1]
+        cfo = series.get(Metric.OPERATING_CASH_FLOW, e, ptype)
+        pat = series.get(Metric.PAT_ATTRIBUTABLE, e, ptype) or series.get(Metric.PAT, e, ptype)
+        if cfo and pat and pat.value > 0:
+            ratio = cfo.value / pat.value
+            out.append(_dc("cash_conversion", series, e, ratio, None, "x CFO/PAT",
+                           f"cumulative {ptype} operating cash flow / PAT (the interval actually reported)",
+                           False, change=ratio,
+                           notes=["working-capital absorption" if ratio < 0.5 else "cash backs profit"],
+                           keys=[(Metric.OPERATING_CASH_FLOW, ptype, e), (Metric.PAT_ATTRIBUTABLE, ptype, e),
+                                 (Metric.PAT, ptype, e)]))
+        break
+    cap_ends = sorted({e for (m, t, e) in series.points if m == Metric.PAID_UP_CAPITAL})
+    shares = [(e, t, series.shares_from_capital(e, t)) for e in cap_ends
+              for t in ("Q", "H", "9M", "FY", "I") if series.shares_from_capital(e, t)]
+    if len(shares) >= 2:
+        (a, ta, sa), (b, tb, sb) = shares[0], shares[-1]
+        if abs(sb - sa) > 0.005 * sa:
+            out.append(_dc("share_count_change", series, b, sb, sa, "crore shares",
+                           "paid-up capital / face value (labelled basis, not issuance history)", False,
+                           notes=["share issuance or buyback: per-share figures need the diluted weighted count"],
+                           keys=[(Metric.PAID_UP_CAPITAL, ta, a), (Metric.PAID_UP_CAPITAL, tb, b)]))
+    return out
