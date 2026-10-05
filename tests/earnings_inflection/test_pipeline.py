@@ -115,6 +115,11 @@ def test_one_company_failure_does_not_abort_run(repo):
                 raise IOError("boom")
             return repo.documents(ticker, country, as_of)
 
+        def documents_for(self, tickers, country, as_of):
+            if "PLAINCO" in tickers:
+                raise IOError("boom")
+            return repo.documents_for(tickers, country, as_of)
+
     res = EarningsInflectionPipeline({}, Broken()).run(["PLAINCO", "ACMEGRID"], "2024-10-31")
     assert "PLAINCO" in res.errors and [a.ticker for a in res.assessments] == ["ACMEGRID"]
 

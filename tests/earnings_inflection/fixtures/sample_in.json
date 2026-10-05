@@ -300,5 +300,47 @@
    "published_at": "2024-07-20T16:00:00+05:30",
    "text": "SAMPLE COOPERATIVE BANK LIMITED\nStatement of Standalone Unaudited Financial Results for the quarter ended 30 June, 2024\n(Rs. in crore)\nInterest earned on advances to customers grew to Rs 820 crore. Gross NPA stood at 2.1%. We expect loan growth of 18% in FY25."
   }
- ]
+ ],
+ "identity": {
+  "SMEFAB": {
+   "name": "Small Fab Engineering Limited",
+   "aliases": [
+    {
+     "alias": "SMEFAB",
+     "kind": "nse_symbol",
+     "valid_from": "2021-01-01"
+    }
+   ],
+   "securities": [
+    {
+     "isin": "INE000SME001",
+     "exchange": "NSE",
+     "symbol": "SMEFAB",
+     "series": "SM",
+     "board": "sme",
+     "valid_from": "2021-01-01"
+    }
+   ]
+  },
+  "ACMEGRID": {
+   "name": "Acme Grid Equipment Limited",
+   "aliases": [
+    {
+     "alias": "ACMEGRID",
+     "kind": "nse_symbol",
+     "valid_from": "2015-01-01"
+    }
+   ],
+   "securities": [
+    {
+     "isin": "INE000ACM001",
+     "exchange": "NSE",
+     "symbol": "ACMEGRID",
+     "series": "EQ",
+     "board": "mainboard",
+     "valid_from": "2015-01-01"
+    }
+   ]
+  }
+ }
 }

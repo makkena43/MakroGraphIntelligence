@@ -25,11 +25,25 @@ DEFAULT_THRESHOLDS = {
 }
 
 
-def _dc(driver, s: FinancialSeries, end, cur, prior, unit, basis, material, docs=(), notes=None, change=None):
+def _dc(driver, s: FinancialSeries, end, cur, prior, unit, basis, material, docs=(), notes=None, change=None,
+        keys=(), extra=()):
+    """A driver with provenance: ``keys`` are the series points used, ``extra`` are
+    (public_time, system_time, doc_id) of non-series inputs (events, statements)."""
     if change is None and cur is not None and prior is not None:
         change = cur - prior
+    know, sysk, kdocs = s.provenance(keys) if keys else (None, None, [])
+    pub_times = ([know] if keys else []) + [x[0] for x in extra]
+    sys_times = ([sysk] if keys else []) + [x[1] for x in extra]
+    knowable = None if (not pub_times or any(t is None for t in pub_times)) else max(pub_times)
+    system = None if (not sys_times or any(t is None for t in sys_times)) else max(sys_times)
+    all_docs = sorted(set(docs) | set(kdocs) | {x[2] for x in extra})
     return DriverChange(driver=driver, ticker=s.ticker, period_end=end, current=cur, prior=prior, change=change,
-                        unit=unit, basis=basis, material=material, source_doc_ids=list(docs), notes=list(notes or []))
+                        unit=unit, basis=basis, material=material, source_doc_ids=all_docs,
+                        notes=list(notes or []), knowable_at=knowable, system_known_at=system)
+
+
+def _keys(metric, p, *ends):
+    return [(metric, p, e) for e in ends]
 
 
 def compute_drivers(series: FinancialSeries, events: list[EconomicEvent], evidence: list[Evidence],
@@ -56,45 +70,52 @@ def compute_drivers(series: FinancialSeries, events: list[EconomicEvent], eviden
             missing.append(f"year-ago revenue for {w} ending {end}")
         else:
             out.append(_dc("revenue_yoy_growth", series, end, g, None, "pct", f"{w} vs same {w} last year",
-                           g >= th["revenue_yoy_pct"], docs, change=g, notes=cadence_note))
+                           g >= th["revenue_yoy_pct"], docs, change=g, notes=cadence_note,
+                           keys=_keys(Metric.REVENUE, p, end, _year_ago(end))))
             if g_prev is not None:
                 out.append(_dc("revenue_growth_acceleration", series, end, g, g_prev, "pp",
                                f"YoY growth this {w} minus YoY growth previous {w}",
-                               (g - g_prev) >= th["revenue_yoy_acceleration_pp"], docs, notes=cadence_note))
+                               (g - g_prev) >= th["revenue_yoy_acceleration_pp"], docs, notes=cadence_note,
+                               keys=_keys(Metric.REVENUE, p, end, _year_ago(end), prev_p, _year_ago(prev_p))))
 
         if not issuer_model.is_financial:
             m, m_prev = series.margin(end, p), series.margin(_year_ago(end), p)
             if m is not None and m_prev is not None:
                 bps = (m - m_prev) * 100
                 ebitda_src = series.get(Metric.EBITDA, end, p).source
+                mkeys = _keys(Metric.EBITDA, p, end, _year_ago(end)) + _keys(Metric.REVENUE, p, end, _year_ago(end))
                 out.append(_dc("ebitda_margin_change", series, end, m, m_prev, "bps", f"EBITDA/revenue vs year-ago {w}",
                                abs(bps) >= th["ebitda_margin_change_bps"], docs, change=bps,
-                               notes=([f"EBITDA {ebitda_src}"] if ebitda_src != "reported" else []) + cadence_note))
+                               notes=([f"EBITDA {ebitda_src}"] if ebitda_src != "reported" else []) + cadence_note,
+                               keys=mkeys))
                 rg = series.yoy(Metric.REVENUE, end, p)
                 eg = series.yoy(Metric.EBITDA, end, p)
                 if rg and eg is not None and rg > 0:
                     out.append(_dc("operating_leverage", series, end, eg / rg, None, "x",
                                    "EBITDA YoY growth / revenue YoY growth", eg / rg >= 1.5 and bps > 0, docs,
-                                   change=eg / rg, notes=cadence_note))
+                                   change=eg / rg, notes=cadence_note, keys=mkeys))
             else:
                 missing.append(f"EBITDA (reported or derivable) for current and year-ago {w}")
 
         pat_g = series.yoy(Metric.PAT_ATTRIBUTABLE, end, p) or series.yoy(Metric.PAT, end, p)
         if pat_g is not None:
             out.append(_dc("pat_yoy_growth", series, end, pat_g, None, "pct", f"PAT vs year-ago {w}",
-                           pat_g >= th["pat_yoy_pct"], docs, change=pat_g, notes=cadence_note))
+                           pat_g >= th["pat_yoy_pct"], docs, change=pat_g, notes=cadence_note,
+                           keys=_keys(Metric.PAT_ATTRIBUTABLE, p, end, _year_ago(end))
+                           + _keys(Metric.PAT, p, end, _year_ago(end))))
 
         # consecutive periods of material revenue growth (persistence)
-        streak, d = 0, end
+        streak, d, skeys = 0, end, _keys(Metric.REVENUE, p, end, _year_ago(end))
         while True:
             gg = series.yoy(Metric.REVENUE, d, p)
             if gg is None or gg < th["revenue_yoy_pct"]:
                 break
             streak += 1
+            skeys += _keys(Metric.REVENUE, p, d, _year_ago(d))
             d = prev_period_end(d, p)
         out.append(_dc("material_growth_streak", series, end, float(streak), None, f"{w}s",
                        f"consecutive {w}s with revenue YoY >= {th['revenue_yoy_pct']}%", streak >= 2, docs,
-                       change=float(streak), notes=cadence_note))
+                       change=float(streak), notes=cadence_note, keys=skeys))
 
         ttm_rev, miss = series.ttm(Metric.REVENUE, end, p)
         if ttm_rev is None:
