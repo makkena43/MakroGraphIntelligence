@@ -268,3 +268,77 @@ The persistence guard read the database name with a regex. That regex also match
 - Not run: production migrations, network backfills, paid LLM or OCR, and notifications.
 - No action labels or position sizes are produced.
 - Thresholds were not tuned to named historical winners.
+
+## 7. Real-filing validation: 8 stocks, as of 2024-03-31
+
+The filings were exported read-only from the user's database with `scripts/export_ei_fixture.py` and committed to `filings_export/2024-03-31/`. BSE and NSE refuse requests from cloud servers, so nothing was downloaded.
+
+The 8 stocks were chosen **because they later rose**. This is a parsing and evidence check, not a performance test. No control group has been run, and no threshold was tuned to these names. The one rule change, the operating-leverage floor described below, *removed* a hit (ASALCBR).
+
+### Parsing failures found and fixed
+
+All fixes are general, and each has a regression test built from the real text (`test_real_filing_layouts.py`).
+
+| Failure | Stock | Fix |
+|---|---|---|
+| Words run together in the text layer ("Revenuefromoperations", "(Rs.inlakhs)") | INDOTECH | De-spaced label and unit matching |
+| Scanned header dates ("31-Pec-22", "Decomber3l", "203") | INDOTECH, SHAILY | SEBI Reg. 33 column layout anchored on the readable dates or the statement title, used only when its width equals the data rows. A non-note leading value is never dropped (that had shifted every column). |
+| Month-day line over a year line | SHAILY | Header joined |
+| "Dec31,2023", "Dec 31,2022" | REFEX | Tokenizer |
+| Consolidated and standalone side by side (12 columns); "Quarter" and "Ended" on separate lines; "Quamir" | PGIL | Halves split, each scope taken from the column-group line, per-column words |
+| Header cut into its own chunk by a long "(Unaudited)" line | PGIL | Lines just before the table are used, only if widths match |
+| Figures with dots for commas ("11.30.069", "2.42,845.54"), split figures ("1,1 0,377.07"), invalid grouping ("47,2563") | DEEPAKFERT, PGIL | Repaired when the result is a valid grouping; otherwise a positional unreadable cell |
+| Decimal points lost in scanning ("4733118" for 47,331.18) | SHAILY, SUPRIYA | Integer cells in a decimal-printed table are unreadable, not 100x values |
+| Segment table "Total income from operations" read as company revenue | DEEPAKFERT | Segment sections excluded |
+| Scope and unit taken from the first title or unit line in a single-page document | DEEPAKFERT, SHAILY | Nearest title and unit line above the table |
+| Press-release highlight tables ("Revenues (in Rs Cr) 140.07 105.14"; YoY/QoQ columns between periods) | SUPRIYA, GOLDIAM | Short labels, but only in company-level tables outside presentations; unit from the row label; change columns kept positional |
+| Labels and values on separate lines, values above labels | ASALCBR | Paired in the direction where revenue + other income = total income |
+| Figures on a section-heading line | ASALCBR | Labels treated as displaced; revenue and other income not used |
+| A filing "superseded" by an unreadable re-filing lost its numbers | INDOTECH | Only figures the later version provides are replaced |
+| Q4 derived for a non-March "FY" | PGIL | Derivation requires a March year end |
+
+### Series rules added
+
+- **Scope:**
+  - One scope per series. The preferred consolidated scope is not used if it is stale or has no year-ago comparison; the reason is disclosed.
+  - A company whose statements only ever name one scope gets its unlabelled statements merged into that scope, with disclosure.
+- **Repeated figures:**
+  - A statement figure outranks a highlight figure.
+  - A rounded re-statement of a figure is not a revision.
+  - When filings disagree, the value stated by more separate filings wins. Reposts within 5 days count once, and the conflict is recorded.
+  - Copies of one statement inside a filing must agree by majority, or the figure is not used.
+- **Outliers:** a single-filing value 10x away from the company's median period is excluded and listed.
+
+### Guidance fixes behind three false CONTRADICTED results
+
+- A "target" stated after its period ended is a report, not guidance. This affected DEEPAKFERT (Q3FY24 stated on results day) and SHAILY (Q3FY23).
+- Statements without a target period are not compared as revisions of one target. This affected SUPRIYA's "352 crores" / "1,000 crores" across years.
+- A growth percentage must sit next to its growth word. Run-on slide text is not a guidance sentence. This affected DEEPAKFERT, where a "67%" warehouse share was read as growth guidance.
+
+### Operating leverage
+
+The EBITDA/revenue-growth ratio is not material when revenue grew by less than 5%. That threshold is configurable. ASALCBR's "6.1x" came from +3.7% revenue.
+
+### Result at 2024-03-31 (Q3FY24 YoY, as parsed)
+
+| Stock | Before | After | Revenue | EBITDA margin | PAT |
+|---|---|---|---|---|---|
+| INDOTECH | INSUFFICIENT_EVIDENCE | EXECUTION_EMERGING | +66.8% | +485 bps | +178% |
+| SUPRIYA | CONTRADICTED | EXECUTION_EMERGING | +33.2% | +1,626 bps | +213% |
+| SHAILY | ASSERTION_ONLY | EXECUTION_EMERGING | +16.3% | +582 bps | +156% |
+| GOLDIAM | EARLY_COMMITMENT_UNVERIFIED | unchanged | +10.5% | -29 bps | +12.5% |
+| ASALCBR | ASSERTION_ONLY | unchanged | +3.7% (the old "-13.7%" was a mis-read) | +162 bps | +16% |
+| PGIL | ASSERTION_ONLY | unchanged | -1.8% | n/a | -9.6% |
+| REFEX | ASSERTION_ONLY | unchanged | -20.7% | +75 bps | n/a |
+| DEEPAKFERT | ASSERTION_ONLY | unchanged | -32.7% | n/a | -76% |
+
+The last five did not show an earnings inflection in filings public by March 2024. For those, the later price move was not visible in reported earnings at that date. That is consistent with re-rating or later-quarter earnings, and is not something this evidence detector should flag.
+
+### Remaining gaps
+
+- **Missing quarters:**
+  - SUPRIYA's older ₹-million statements are heavily scanned, so only 4 quarters parse.
+  - SHAILY Jun-2023, REFEX Jun-2023 and GOLDIAM Mar-2023 are missing, which blocks TTM and the bridge for those names.
+- **Utilisation:** the "capacity utilisation change" assertion (e.g. PGIL 95% to 34%) compares statements that may not share a scope. Mechanism-specific utilisation is WP5.
+- **Unextracted documents:** 7 documents have no text, with `local_path` = `UNSUPPORTED_FORMAT`. The ingestion stage could not handle them, and no original remains to extract.
+- **Next:** a pre-registered control group of non-winners, chosen before looking at statuses, is still needed. Without it, no claim can be made that these states separate winners from the rest.

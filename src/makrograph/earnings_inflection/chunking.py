@@ -34,7 +34,7 @@ def _split_sentences(text: str) -> list[str]:
     return out
 
 
-_CELL_TOKEN = re.compile(r"\(?-?\d[\d,]*(?:\.\d+)?\)?|-|–|—|nil", re.I)
+_CELL_TOKEN = re.compile(r"\(?-?\d[\d,]*(?:\.\d+)?\)?|\(?[-+]?\d[\d,]*(?:\.\d+)?%\)?|-|–|—|nil", re.I)
 _DATE_TOKEN = re.compile(r"\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b")
 
 
@@ -50,12 +50,58 @@ def split_numeric_row(line: str) -> tuple[str, list[str]]:
         # OCR split a decimal across two tokens: "8,476." "75" -> "8,476.75"
         if len(tokens) >= 2 and _SPLIT_DECIMAL_HEAD.fullmatch(tokens[-2]) and _SPLIT_DECIMAL_TAIL.fullmatch(tokens[-1]):
             tokens[-2:] = [tokens[-2] + tokens[-1]]
-        tok = _repair_ocr_number(tokens[-1])
-        if not _CELL_TOKEN.fullmatch(tok):
+        # OCR split a grouped figure: "1,1" "0,377.07" -> "1,10,377.07"; "3,01" ",882.96"
+        if (len(tokens) >= 2 and _NUMERICISH.fullmatch(tokens[-2]) and not _GROUPED.fullmatch(tokens[-2])
+                and _GROUPED.fullmatch(_trim(tokens[-2] + tokens[-1]))):
+            tokens[-2:] = [tokens[-2] + tokens[-1]]
+        tok = normalise_figure(_repair_ocr_number(tokens[-1]))
+        if not (_CELL_TOKEN.fullmatch(tok) or tok == UNREADABLE):
             break
         tokens.pop()
         cells.append(tok)
     return " ".join(tokens), cells[::-1]
+
+
+# A figure whose digits survived but whose separators were scanned wrongly.
+# Kept as a positional placeholder so the other columns stay aligned; its value is unknown.
+UNREADABLE = "?"
+_NUMERICISH = re.compile(r"\(?-?[\d.,]*\d[\d.,]*\)?")
+_GROUPED = re.compile(r"\(?-?(?:\d+|\d{1,3}(?:,\d{3})+|\d{1,2}(?:,\d{2})*,\d{3})(?:\.\d+)?\)?")
+
+
+def _trim(tok: str) -> str:
+    """Stray trailing separator: "1,400.95," / "15,756.86." -> "1,400.95"."""
+    return tok[:-1] if len(tok) > 1 and tok[-1] in ",." and tok[-2].isdigit() else tok
+
+
+_STRAY = re.compile(r"^[\[{|]+|[\]}|]+$")
+
+
+def normalise_figure(tok: str) -> str:
+    """Repair separators in a scanned figure, or mark it unreadable.
+
+    * valid grouping (western 1,234,567.89 or Indian 1,23,45,678.90) is kept;
+    * dots scanned in place of commas are repaired when the result is a valid
+      grouping: "11.30.069" -> "11,30,069", "2.42,845.54" -> "2,42,845.54";
+    * a figure with separators that still does not form a valid grouping
+      ("47,2563") becomes UNREADABLE instead of a wrong value.
+    Tokens without separators, words and dashes are returned unchanged.
+    """
+    if re.search(r"\d", tok):
+        tok = _STRAY.sub("", tok)          # scanned table rules: "17,111.84}", "18,589.83]"
+    tok = _trim(tok)
+    if not _NUMERICISH.fullmatch(tok) or _GROUPED.fullmatch(tok):
+        return tok
+    core = tok.strip("()-")
+    if "," not in core and core.count(".") <= 1:
+        return tok
+    m = re.fullmatch(r"(.*)\.(\d{1,2})", core)
+    head, dec = (m.group(1), "." + m.group(2)) if m else (core, "")
+    fixed = head.replace(".", ",") + dec
+    cand = tok.replace(core, fixed)
+    if _GROUPED.fullmatch(cand):
+        return cand
+    return UNREADABLE if sum(ch.isdigit() for ch in core) >= 4 else tok
 
 
 _SPLIT_DECIMAL_HEAD = re.compile(r"\(?-?[\d,]+\.")

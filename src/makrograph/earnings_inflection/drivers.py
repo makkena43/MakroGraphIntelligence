@@ -23,6 +23,9 @@ DEFAULT_THRESHOLDS = {
     "book_to_bill": 1.2,
     "order_book_cover_years": 2.0,
     "utilization_change_pp": 10.0,
+    # EBITDA growth / revenue growth is unstable when revenue barely grew (3% -> "6x");
+    # below this revenue growth the ratio is reported but never material
+    "operating_leverage_min_revenue_growth_pct": 5.0,
 }
 
 
@@ -101,7 +104,9 @@ def compute_drivers(series: FinancialSeries, events: list[EconomicEvent], eviden
                 eg = series.yoy(Metric.EBITDA, end, p)
                 if rg and eg is not None and rg > 0:
                     out.append(_dc("operating_leverage", series, end, eg / rg, None, "x",
-                                   "EBITDA YoY growth / revenue YoY growth", eg / rg >= 1.5 and bps > 0, docs,
+                                   "EBITDA YoY growth / revenue YoY growth",
+                                   eg / rg >= 1.5 and bps > 0 and rg >= th["operating_leverage_min_revenue_growth_pct"],
+                                   docs,
                                    change=eg / rg, notes=cadence_note, keys=mkeys))
             else:
                 missing.append(f"EBITDA (reported or derivable) for current and year-ago {w}")

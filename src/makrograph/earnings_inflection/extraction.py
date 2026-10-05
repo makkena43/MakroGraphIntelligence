@@ -32,7 +32,7 @@ from typing import Callable, Iterable, Optional
 
 from .chunking import sentences, split_numeric_row
 from .contracts import (
-    COMMITMENT_RANK, Chunk, CommitmentStrength, EventStage, Evidence, EvidenceTier, FinancialMeasurement, Metric,
+    COMMITMENT_RANK, Chunk, CommitmentStrength, DocumentKind, EventStage, Evidence, EvidenceTier, FinancialMeasurement, Metric,
     Modality, Quantity, RelationshipStatus, Scope, SourceDocument, TaxBasis, Unit, ValueBasis,
 )
 
@@ -204,6 +204,14 @@ _ROW_METRICS = [
     (re.compile(r"total\s+equity\s+and\s+liabilities\b", re.I), Metric.TOTAL_EQUITY_AND_LIABILITIES),
     (re.compile(r"total\s+assets\b", re.I), Metric.TOTAL_ASSETS),
 ]
+# Short labels used by results highlight tables ("Revenues (in Rs Cr)", "PAT", "Net Profit").
+# Accepted only in a company-level (consolidated / standalone) table outside investor
+# presentations, where such labels often belong to a segment or product slide.
+_HIGHLIGHT_ROWS = [
+    (re.compile(r"(?:total\s+|net\s+)?(?:revenues?|sales)\s*(?:\(|$)", re.I), Metric.REVENUE),
+    (re.compile(r"(?:pat|net\s+profit|profit\s+after\s+tax)\s*(?:\(|$)", re.I), Metric.PAT),
+    (re.compile(r"(?:pbt|profit\s+before\s+tax)\s*(?:\(|$)", re.I), Metric.PBT),
+]
 _BORROWINGS = re.compile(r"(?:\(?[ivx]+\)?\s*)?(?:long[- ]term\s+|short[- ]term\s+)?borrowings\b", re.I)
 _FACE_VALUE = re.compile(r"face\s+value\s*(?:of\s*)?(?:rs\.?|₹|inr|re\.?)?\s*([\d.]+)", re.I)
 _SECTION = [
@@ -216,8 +224,40 @@ _SECTION = [
 _TAX_PARTS = re.compile(r"(?:current\s+tax|deferred\s+tax|(?:tax\s+(?:in\s+respect\s+of|relating\s+to|for)\s+)?"
                         r"(?:earlier|prior)\s+(?:years?|periods?))\b", re.I)
 _COMPREHENSIVE = re.compile(r"comprehensive\s+income", re.I)
+# Segment reporting: rows such as "Total income from operations" there are segment
+# totals, never the company's own revenue / profit lines.
+_SEGMENT_SECTION = re.compile(r"segment\s*[-‐]?\s*(?:wise\s*)?(?:revenue|results?|information|reporting|assets|"
+                              r"liabilities)|(?:revenue|results?|information)\s*by\s*(?:business\s*)?segments?", re.I)
 
 _CELL = re.compile(r"\(?-?\d[\d,]*(?:\.\d+)?\)?")
+
+
+_NOT_AMOUNT_ROW = re.compile(r"\beps\b|earnings\s*per\s*share|\bbasic\b|\bdiluted\b|face\s*value|par\s*value|"
+                             r"margin|ratio|%|\bper\s+share|no\.?\s*of\s*shares|number\s+of\s+shares", re.I)
+
+
+def _decimal_convention(lines: list[str]) -> int:
+    """Decimals a table prints its amounts with (-1 when it has no clear convention)."""
+    from collections import Counter
+    counts: Counter = Counter()
+    for l in lines:
+        label, cells = split_numeric_row(l)
+        if _NOT_AMOUNT_ROW.search(label):
+            continue            # per-share figures, margins, ratios are printed differently
+        for cell in cells:
+            core = cell.strip("()-")
+            if _CELL.fullmatch(cell) and sum(ch.isdigit() for ch in core) >= 3:
+                counts[len(core.split(".")[1]) if "." in core else 0] += 1
+    total = sum(counts.values())
+    if total < 10:
+        return 0 if total >= 3 and counts[0] == total else -1
+    decimal = [(n, k) for k, n in counts.items() if k > 0]
+    if decimal:
+        n, k = max(decimal)
+        # amounts printed with k decimals (a scan that lost many decimal points still shows 20%+)
+        if n >= 0.2 * total:
+            return k
+    return 0 if counts[0] >= 0.7 * total else -1      # -1 = no clear convention in this table
 
 
 def _cell_value(s: str) -> float:
@@ -226,11 +266,43 @@ def _cell_value(s: str) -> float:
     return -v if neg else v
 
 
-_SCALE_WORD = r"(crores?|lakhs?|lacs?|million|mn|thousands?)"
+_SCALE_WORD = r"(crores?|cr|lakhs?|lacs?|million|mn|thousands?)"
 _SCALE_PATTERNS = [
     re.compile(rf"(?:rs\.?|inr|₹|rupees|amounts?|figures)[^\n]{{0,30}}?\b{_SCALE_WORD}\b", re.I),
     re.compile(rf"\(\s*in\s+{_SCALE_WORD}\b", re.I),
+    # text extracted without spaces between words: "(Rs.inlakhs)", "(₹incrore)"
+    re.compile(rf"\((?:rs\.?|inr|₹|amounts?)\s*in\s*{_SCALE_WORD}\b", re.I),
+    # unit in a highlights-table label: "Revenues (in Rs Cr)", "PAT (in RsCr)", "(₹ Mn)"
+    re.compile(rf"\(\s*(?:in\s*)?(?:rs\.?|inr|₹)\s*{_SCALE_WORD}\b", re.I),
 ]
+
+
+_LOOSE_UNIT = re.compile(r"(?:rs|inr|₹)\.?\s*in\s*(crores?|cr|lakhs?|lacs?|million|mn|thousands?)", re.I)
+
+
+def _nearest_scale(text: str) -> Optional[float]:
+    """Unit stated by the LAST unit line in ``text`` (the one closest to the table below it).
+    Short scanned unit lines are matched loosely ("fRs.inlakhst")."""
+    for line in reversed(text.split("\n")):
+        sc = _table_scale(line, "")
+        if sc is None and len(line.strip()) <= 40:
+            m = _LOOSE_UNIT.search(line)
+            if m:
+                sc = _table_scale(f"(in {m.group(1)})", "")
+        if sc is not None:
+            return sc
+    return None
+
+
+def _single_document_scale(page_text: str) -> Optional[float]:
+    """The unit of a document whose unit lines all agree; None when they differ or are absent."""
+    found = {sc for line in page_text.split("\n") for sc in [_nearest_scale(line)] if sc is not None}
+    return found.pop() if len(found) == 1 else None
+
+
+def _label_scale(label: str) -> Optional[float]:
+    """A unit stated in the row label itself ("Revenues (in Rs Cr)")."""
+    return _table_scale(label, "") if "(" in label else None
 
 
 def _table_scale(header: str, page_text: str) -> Optional[float]:
@@ -240,7 +312,7 @@ def _table_scale(header: str, page_text: str) -> Optional[float]:
             if not m:
                 continue
             w = m.group(1).lower()
-            if w.startswith("crore"):
+            if w.startswith("crore") or w == "cr":
                 return 1.0
             if w.startswith(("lakh", "lac")):
                 return 0.01
@@ -289,6 +361,16 @@ def _resolve_scope(c: Chunk, page_texts: list[str]) -> Scope:
     if own != Scope.UNKNOWN:
         return own
     page = page_texts[c.page - 1] if 0 < c.page <= len(page_texts) else ""
+    # the nearest statement title ABOVE this table (documents whose text has no page breaks
+    # hold the standalone and the consolidated statement on one "page")
+    first = next((l for l in c.text.split("\n") if l.strip()), "")
+    pos = page.find(first) if first else -1
+    if pos > 0:
+        for line in reversed(_SCOPE_TITLE.findall(page[max(0, pos - 4000):pos])):
+            t = line.lower()
+            has_c, has_s = "consolidated" in t, "standalone" in t
+            if has_c != has_s:
+                return Scope.CONSOLIDATED if has_c else Scope.STANDALONE
     sc = _scope_from(c.header + "\n" + page[:1500])
     if sc != Scope.UNKNOWN:
         return sc
@@ -299,6 +381,34 @@ def _resolve_scope(c: Chunk, page_texts: list[str]) -> Scope:
     # whole document: only if every statement title names the same scope
     scopes = {_scope_from(l) for pt in page_texts for l in _SCOPE_TITLE.findall(pt)} - {Scope.UNKNOWN}
     return scopes.pop() if len(scopes) == 1 else Scope.UNKNOWN
+
+
+def _despaced(pattern: re.Pattern) -> re.Pattern:
+    """The same row pattern for text extracted without spaces between words
+    ("Revenuefromoperations", "Profit/(Loss)beforetax(C-D)")."""
+    src = pattern.pattern
+    for a, b in ((r"\s+", ""), (r"\s*", ""), (r"\b", ""), (" ", "")):
+        src = src.replace(a, b)
+    return re.compile(src, pattern.flags)
+
+
+_ROW_METRICS_DESPACED = [(_despaced(p), m) for p, m in _ROW_METRICS]
+
+
+def _looks_despaced(lab: str) -> bool:
+    letters = sum(ch.isalpha() for ch in lab)
+    return letters >= 8 and lab.count(" ") * 10 <= letters
+
+
+def _match_despaced(lab: str) -> list[Metric]:
+    flat = re.sub(r"^(?:[A-Za-z]|[ivxlIVXL]{1,4}|\d{1,2})[.)]?\s+", "", lab.strip())
+    flat = re.sub(r"\s+", "", _strip_enumerator(flat))
+    if re.search(r"basic", flat, re.I) and re.search(r"diluted", flat, re.I):
+        return [Metric.BASIC_EPS, Metric.DILUTED_EPS]
+    for pat, m in _ROW_METRICS_DESPACED:
+        if pat.match(flat):
+            return [m]
+    return []
 
 
 def _match_metrics(label: str) -> list[Metric]:
@@ -312,7 +422,112 @@ def _match_metrics(label: str) -> list[Metric]:
     for pat, m in _ROW_METRICS:
         if pat.match(lab):
             return [m]
+    # words run together by the PDF text layer: "Revenuefromoperations"
+    return _match_despaced(label) if _looks_despaced(lab) else []
+
+
+def _row_widths(lines: list[str]) -> set[int]:
+    """Cell counts of the table's data rows (to check a borrowed header fits)."""
+    from collections import Counter
+    widths = Counter(len(split_numeric_row(l)[1]) for l in lines)
+    widths.pop(0, None)
+    return {w for w, k in widths.items() if k >= 2}
+
+
+_CHANGE_COL = re.compile(r"^(?:yoy|qoq|y-?o-?y|q-?o-?q|growth|change|var(?:iance)?|chg)?\s*%?$", re.I)
+
+
+def _expand_change_columns(header_lines: list[str], resolved: list) -> list:
+    """Highlights tables interleave change columns with periods:
+        "Particulars (Rs Mn) Q3FY24 Q3FY23 YoY Q2FY24 QoQ 9MFY24 9MFY23 YoY"
+    Rebuild the positional column list with an untyped (unused) column for each change column."""
+    for line in header_lines:
+        toks = list(_COL_TOKEN.finditer(line))
+        if len(toks) < 2:
+            continue
+        cols, last_end, matched = [], None, 0
+        pieces = []
+        for m in toks:
+            if last_end is not None:
+                pieces.append(("gap", line[last_end:m.start()]))
+            pieces.append(("tok", m.group(0)))
+            last_end = m.end()
+        pieces.append(("gap", line[last_end:]))
+        it = iter(resolved)
+        for kind, text in pieces:
+            if kind == "tok":
+                d = _column_tokens(text)
+                if not d:
+                    continue
+                nxt = next(it, None)
+                if nxt is None or nxt[0] != d[0][0]:
+                    break
+                cols.append(nxt)
+                matched += 1
+            else:
+                for w in text.split():
+                    if _CHANGE_COL.match(w.strip("()")) and cols:
+                        cols.append((cols[-1][0], None))
+        if matched == len(resolved) and len(cols) > len(resolved):
+            return cols
     return []
+
+
+_TOTAL_INCOME = re.compile(r"total\s*income\b", re.I)
+_SECTION_HEADING = re.compile(r"(?:income|expenses|expenditure)", re.I)
+
+
+def _reorient_split_rows(lines: list[str]) -> tuple[list[str], str]:
+    """Scanned statements sometimes put each label and its values on separate lines, with the
+    values either BELOW or ABOVE their label.  Pair them in the direction under which the
+    statement's own identity holds (revenue + other income = total income, first column);
+    if neither or both directions verify, the lines are returned unchanged (ambiguous)."""
+    parsed = [(l,) + split_numeric_row(l) for l in lines]
+    has_alpha = lambda t: bool(re.search(r"[A-Za-z]", t))  # noqa: E731
+    vals_only = [i for i, (_, lab, cells) in enumerate(parsed) if cells and not has_alpha(lab)]
+    if len(vals_only) < 3:
+        return lines, ""
+
+    def pairing(direction: int) -> dict[int, int]:
+        out = {}
+        for i in vals_only:
+            j = i + direction
+            if 0 <= j < len(parsed) and not parsed[j][2] and has_alpha(parsed[j][1]) and j not in out:
+                out[j] = i
+        return out
+
+    def first_value(i: int) -> Optional[float]:
+        try:
+            return _cell_value(parsed[i][2][0]) if _CELL.fullmatch(parsed[i][2][0]) else None
+        except ValueError:
+            return None
+
+    def verifies(mapping: dict[int, int]) -> bool:
+        idx = {}
+        for j, i in mapping.items():
+            lab = parsed[j][1]
+            if _TOTAL_INCOME.search(lab):
+                idx.setdefault("total", i)
+            elif Metric.REVENUE in _match_metrics(lab):
+                idx.setdefault("rev", i)
+            elif Metric.OTHER_INCOME in _match_metrics(lab):
+                idx.setdefault("oi", i)
+        if len(idx) < 3:
+            return False
+        r, o, t = (first_value(idx[k]) for k in ("rev", "oi", "total"))
+        return None not in (r, o, t) and abs(r + o - t) <= max(0.02, 0.005 * abs(t))
+
+    ok = [d for d in (-1, +1) if verifies(pairing(d))]
+    if len(ok) != 1:
+        return lines, ""
+    mapping = pairing(ok[0])
+    used = set(mapping.values())
+    out = []
+    for k, (l, lab, cells) in enumerate(parsed):
+        if k in used:
+            continue
+        out.append(f"{lab} {' '.join(parsed[mapping[k]][2])}" if k in mapping else l)
+    return out, ("values printed above their labels" if ok[0] == 1 else "values printed below their labels")
 
 
 def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list[FinancialMeasurement], list[str]]:
@@ -320,7 +535,15 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
     out: list[FinancialMeasurement] = []
     issues: list[str] = []
     page_texts = (doc.pages or (doc.text or "").split("\f"))
+    doc_conv = max(0, _decimal_convention([l for c in chunks if c.kind == "table" for l in c.text.split("\n")]))
+    prev_tail: list[str] = []
+    prev_page = 0
     for c in chunks:
+        # lines just before this chunk on the same page: a period-header line can be cut off
+        # into its own chunk by a long "(Unaudited) (Audited)" line in between
+        before = prev_tail if prev_page == c.page else []
+        prev_tail = ([l for l in c.header.split("\n") if l.strip()] + [l for l in c.text.split("\n") if l.strip()])[-8:]
+        prev_page = c.page
         if c.kind != "table":
             continue
         page_text = page_texts[c.page - 1] if 0 < c.page <= len(page_texts) else ""
@@ -331,6 +554,31 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
             wide, wide_issue = resolve_columns(c.header.split("\n") + lines[:12])
             if wide and not wide_issue and len(wide) >= len(resolved):
                 resolved, col_issue = wide, wide_issue
+        if (not resolved or col_issue) and before and _row_widths(lines):
+            ctx, ctx_issue = resolve_columns(before + c.header.split("\n") + lines[:4])
+            if ctx and not ctx_issue and len(ctx) in _row_widths(lines):
+                resolved, col_issue = ctx, ctx_issue
+                c = Chunk(c.chunk_id, c.doc_id, c.page, c.ordinal, c.kind, c.text,
+                          header="\n".join(before + [c.header]), char_start=c.char_start, char_end=c.char_end)
+        widths = _row_widths(lines)
+        if resolved and widths and len(resolved) not in widths:
+            expanded = _expand_change_columns(c.header.split("\n") + lines[:3], resolved)
+            if expanded and len(expanded) in widths:
+                resolved, col_issue = expanded, ""
+        if widths and (not resolved or col_issue or len(resolved) not in widths):
+            # header dates unreadable (scanned "31-Pec-22", "Decomber3l", "203"): use the fixed
+            # SEBI Regulation 33 column layout, anchored on the dates that did read or on the
+            # statement title, and only when it has exactly the width of the data rows
+            hdr = (before if prev_page == c.page else []) + c.header.split("\n") + lines[:4]
+            layout = _sebi_layout_from_date_bag(hdr)
+            basis = "period dates in the header"
+            if not layout or len(layout) not in widths:
+                layout = _sebi_layout_from_title("\n".join(hdr) + "\n" + page_text[:6000], hdr)
+                basis = "the statement title"
+            if layout and len(layout) in widths:
+                resolved, col_issue = layout, ""
+                issues.append(f"{doc.doc_id}:p{c.page}: period columns inferred from the SEBI results layout "
+                              f"and {basis} (header dates unreadable)")
         if not resolved:
             continue
         if col_issue:
@@ -338,15 +586,58 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
         cols = [d for d, _ in resolved]
         ptypes = [t for _, t in resolved]
         n = len(cols)
-        scale = _table_scale(c.header, page_text)
-        scope = _resolve_scope(c, page_texts)
+        scale = _table_scale(c.header, "")
         if scale is None:
+            # nearest unit line ABOVE this table; a document without page breaks holds several
+            # statements, possibly in different units
+            pos = page_text.find(lines[0]) if lines else -1
+            above = page_text[max(0, pos - 3000):pos] if pos > 0 else ""
+            scale = _nearest_scale(above) or _single_document_scale(page_text)
+        scope = _resolve_scope(c, page_texts)
+        col_scopes = [scope] * n
+        if n >= 6 and n % 2 == 0 and resolved[: n // 2] == resolved[n // 2:]:
+            # side-by-side statements: the column-group line names the order ("Consolidated  Standalone")
+            first_row = next((l for l in lines if split_numeric_row(l)[1] and len(split_numeric_row(l)[1]) >= n), "")
+            pos = page_text.find(first_row) if first_row else -1
+            above = page_text[max(0, pos - 1500):pos] if pos > 0 else c.header
+            group_lines = [l.lower() for l in above.split("\n")
+                           if "consolidated" in l.lower() and "standalone" in l.lower()
+                           and not _TITLE_LINE.search(l)]
+            head = group_lines[-1] if group_lines else ""
+            ci, si = head.find("consolidated"), head.find("standalone")
+            if ci >= 0 and si >= 0:
+                first, second = ((Scope.CONSOLIDATED, Scope.STANDALONE) if ci < si
+                                 else (Scope.STANDALONE, Scope.CONSOLIDATED))
+                col_scopes = [first] * (n // 2) + [second] * (n // 2)
+            else:
+                issues.append(f"{doc.doc_id}:p{c.page}: two statements side by side without scope labels; not used")
+                continue
+        highlights_ok = (doc.kind != DocumentKind.INVESTOR_PRESENTATION
+                         and len(set(col_scopes)) == 1 and col_scopes[0] != Scope.UNKNOWN)
+        if scale is None and not any(_label_scale(l) for l in lines):
             issues.append(f"{doc.doc_id}:p{c.page}: results table without unit line; amounts not used")
         found: dict[Metric, list] = {}
         tax_parts: list[list[Optional[float]]] = []
         pending, after_comprehensive, misaligned, section, face_value = "", False, 0, "", None
+        in_segment = bool(_SEGMENT_SECTION.search("\n".join(c.header.split("\n")[-3:])))
+        last_values_only = False
+        total_income = None
+        displaced = False
+        lines, reoriented = _reorient_split_rows(lines)
+        if reoriented:
+            issues.append(f"{doc.doc_id}:p{c.page}: labels and values on separate lines ({reoriented}); "
+                          "paired using revenue + other income = total income")
+        conv = _decimal_convention(lines)
+        if conv < 0:
+            conv = doc_conv if doc_conv > 0 else 0   # damaged table: use the document's convention
+        dropped_cells = 0
         for l in lines:
             label, cells = split_numeric_row(l)
+            values_only_above, last_values_only = last_values_only, bool(cells) and not re.search(r"[A-Za-z]", label)
+            if _SEGMENT_SECTION.search(label):
+                in_segment = True
+            if in_segment:
+                continue
             if _COMPREHENSIVE.search(label):
                 after_comprehensive = True
             fv = _FACE_VALUE.search(label)
@@ -360,8 +651,10 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
                     if pat.search(label) and len(label) < 60:
                         section = name
                         break
-                # a label wrapped onto the next line ("Revenue from" / "operations 1,234 ...")
-                pending = label if len(label) < 80 else ""
+                # a label wrapped onto the next line ("Revenue from" / "operations 1,234 ...").
+                # When a values-only line sits ABOVE this label, labels may follow their values
+                # (scrambled text layer): which values belong to the label is then ambiguous.
+                pending = label if len(label) < 80 and not values_only_above else ""
                 continue
             if _BORROWINGS.match(_strip_enumerator(label)):
                 bm = {"nc_liab": Metric.BORROWINGS_NONCURRENT, "c_liab": Metric.BORROWINGS_CURRENT}.get(section)
@@ -370,6 +663,11 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
                                   "liabilities section; not used")
                     continue
                 label = f"__{bm.value}__ {label}"
+            if cells and _SECTION_HEADING.fullmatch(_strip_enumerator(label).strip(" |:.-")):
+                displaced = True      # "Income 18,589.83 ...": figures pushed onto a heading line
+            if (_TOTAL_INCOME.match(_strip_enumerator(label)) and total_income is None
+                    and not _COMPREHENSIVE.search(label) and len(cells) in (n, n + 1)):
+                total_income = [(_cell_value(x) if _CELL.fullmatch(x) else None) for x in cells[-n:]]
             is_tax_part = bool(_TAX_PARTS.match(_strip_enumerator(label)))
             # Join a wrapped label only when this line has no enumerator of its own:
             # "(1) Current tax" under "VIII Tax expense" is a sub-row, not a continuation.
@@ -378,6 +676,10 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
                 metrics = [Metric(label.split("__")[1])]
             else:
                 metrics = _match_metrics(label) or (_match_metrics(f"{pending} {label}") if continuation else [])
+                highlight = False
+                if not metrics and highlights_ok:
+                    metrics = [m for pat, m in _HIGHLIGHT_ROWS if pat.match(_strip_enumerator(label))][:1]
+                    highlight = bool(metrics)
             pending = ""
             if not metrics and not is_tax_part:
                 continue
@@ -388,12 +690,21 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
             if len(cells) > n + 1:
                 misaligned += 1  # more values than identified columns: header was mis-read
                 continue
+            if len(cells) == n + 1 and not re.fullmatch(r"\(?\d{1,2}(?:\.\d{1,2})?[a-z]?\)?", cells[0]):
+                misaligned += 1  # an extra leading value that is not a note number: header mis-read
+                continue
             cells = cells[-n:]   # one extra leading value = note reference column
             vals: list[Optional[float]] = []
             decimals = 0
             for cell in cells:
+                if conv and "." not in cell and sum(ch.isdigit() for ch in cell) > conv + 1:
+                    # a figure in a table printed with `conv` decimals that lost its decimal point
+                    # (scanned "4733118" for "47,331.18"): unreadable, not 100x larger
+                    vals.append(None)
+                    dropped_cells += 1
+                    continue
                 try:
-                    vals.append(_cell_value(cell) if _CELL.fullmatch(cell) else None)   # "-"/"nil" = blank
+                    vals.append(_cell_value(cell) if _CELL.fullmatch(cell) else None)   # "-"/"nil"/"?" = blank
                 except ValueError:
                     vals.append(None)
                 if "." in cell:
@@ -403,34 +714,86 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
                 continue
             for m in metrics:
                 if m not in found:            # first occurrence wins (later = sub-totals / OCI)
-                    found[m] = [l, vals, decimals]
+                    found[m] = [l, vals, decimals, _label_scale(label) or scale,
+                                "reported_highlight" if highlight else "reported"]
+        if displaced and (Metric.REVENUE in found or Metric.OTHER_INCOME in found):
+            issues.append(f"{doc.doc_id}:p{c.page}: figures printed on a section heading line (labels displaced "
+                          "in the text layer); revenue and other income not used")
+            found.pop(Metric.REVENUE, None)
+            found.pop(Metric.OTHER_INCOME, None)
+        if total_income and Metric.REVENUE in found and Metric.OTHER_INCOME in found:
+            # the statement's own identity: revenue + other income = total income, per column
+            rv, oi = found[Metric.REVENUE][1], found[Metric.OTHER_INCOME][1]
+            checks = [abs((r or 0) + (o or 0) - t) <= max(0.02, 0.005 * abs(t))
+                      for r, o, t in zip(rv, oi, total_income) if t is not None and r is not None]
+            if checks and sum(checks) < len(checks) / 2:
+                issues.append(f"{doc.doc_id}:p{c.page}: revenue + other income != total income in "
+                              f"{len(checks) - sum(checks)} of {len(checks)} columns (rows mis-read); "
+                              "revenue and other income not used")
+                found.pop(Metric.REVENUE)
+                found.pop(Metric.OTHER_INCOME)
         if tax_parts and Metric.TAX not in found:
             summed = [None if all(p[i] is None for p in tax_parts) else sum(p[i] or 0.0 for p in tax_parts)
                       for i in range(n)]
-            found[Metric.TAX] = ["(sum of current/deferred/earlier-year tax rows)", summed, 2]
+            found[Metric.TAX] = ["(sum of current/deferred/earlier-year tax rows)", summed, 2, scale, "reported"]
+        if dropped_cells:
+            issues.append(f"{doc.doc_id}:p{c.page}: {dropped_cells} cell(s) without the table's decimal point "
+                          "(scanning damage); treated as unreadable")
         if misaligned:
             issues.append(f"{doc.doc_id}:p{c.page}: {misaligned} row(s) had more values than the {n} "
                           f"identified period columns; skipped")
         if face_value and Metric.PAID_UP_CAPITAL in found:
-            found[Metric.FACE_VALUE] = [f"face value Rs {face_value:g} per share", [face_value] * n, 2]
-        for metric, (line, vals, decimals) in found.items():
+            found[Metric.FACE_VALUE] = [f"face value Rs {face_value:g} per share", [face_value] * n, 2, scale, "reported"]
+        for metric, (line, vals, decimals, row_scale, source) in found.items():
             for col_i, (d, v) in enumerate(zip(cols, vals)):
                 if v is None or ptypes[col_i] is None:
                     continue
                 if metric in (Metric.DILUTED_EPS, Metric.BASIC_EPS, Metric.FACE_VALUE):
                     unit, val, du = Unit.INR_PER_SHARE, v, 10 ** -decimals
                 else:
-                    if scale is None:
+                    if row_scale is None:
                         continue
-                    unit, val = Unit.INR_CRORE, round(v * scale, 6)
-                    du = (10 ** -decimals) * scale
+                    unit, val = Unit.INR_CRORE, round(v * row_scale, 6)
+                    du = (10 ** -decimals) * row_scale
                 out.append(FinancialMeasurement(
                     ticker=doc.ticker, metric=metric, period_end=d, period_type=ptypes[col_i],
-                    value=val, unit=unit, scope=scope, doc_id=doc.doc_id, available_at=doc.available_at,
+                    value=val, unit=unit, scope=col_scopes[col_i], doc_id=doc.doc_id, available_at=doc.available_at,
+                    source=source,
                     quote=f"{c.header.splitlines()[-1] if c.header else ''} | {line.strip()}"[:400],
                     display_unit=du,
                 ))
-    return out, issues
+    return _reconcile_copies(out, issues, doc.doc_id), issues
+
+
+def _reconcile_copies(rows: list[FinancialMeasurement], issues: list[str], doc_id: str) -> list[FinancialMeasurement]:
+    """One filing often holds the same statement more than once (scanned copy + OCR copy, a
+    restated repeat).  Where the copies disagree on a figure, the value most copies state is
+    used; without a majority the figure is not used at all."""
+    from collections import defaultdict
+    groups = defaultdict(list)
+    for r in rows:
+        groups[(r.metric, r.period_type, r.period_end, r.scope)].append(r)
+    out = []
+    for key, rs in groups.items():
+        clusters: list[list[FinancialMeasurement]] = []
+        for r in rs:
+            for cl in clusters:
+                ref = cl[0]
+                if abs(r.value - ref.value) <= max(0.005 * abs(ref.value), (r.display_unit or 0) + (ref.display_unit or 0)):
+                    cl.append(r)
+                    break
+            else:
+                clusters.append([r])
+        if len(clusters) == 1:
+            out.append(min(rs, key=lambda r: r.display_unit or 0.0))
+            continue
+        clusters.sort(key=len, reverse=True)
+        if len(clusters[0]) > len(clusters[1]):
+            out.append(min(clusters[0], key=lambda r: r.display_unit or 0.0))
+        else:
+            issues.append(f"{doc_id}: copies of the statement disagree on {key[0].value} {key[1]} {key[2]} "
+                          f"({', '.join(f'{c[0].value:g}' for c in clusters)}); not used")
+    return out
 
 
 # --- column headers -------------------------------------------------------
@@ -451,7 +814,7 @@ _COL_TOKEN = re.compile(
     r"|(?P<fy>\bFY\s*'?(?P<fy1>\d{2}(?:\d{2})?)(?:\s*[-–/]\s*'?(?P<fy2>\d{2}(?:\d{2})?))?\b)"
     r"|(?P<num>\b(?P<nd>\d{1,2})[./-](?P<nm>\d{1,2})[./-](?P<ny>\d{4}|\d{2})\b)"
     r"|(?P<dmy>\b(?P<dd>\d{1,2})(?:st|nd|rd|th)?[\s-]*(?P<dmon>[A-Za-z]{3,9})[\s,'-]*(?P<dy>\d{4}|\d{2})\b)"
-    r"|(?P<mdy>\b(?P<mmon>[A-Za-z]{3,9})\s+(?P<md>\d{1,2}),?\s+(?P<my>\d{4})\b)"
+    r"|(?P<mdy>\b(?P<mmon>[A-Za-z]{3,9})\.?\s*(?P<md>\d{1,2})(?:st|nd|rd|th)?\s*,?\s*(?P<my>\d{4})\b)"
     # month-year only: "Jun-24", "Jun'24", "June 2024" (never "Sep 30": that is a day, not a year)
     r"|(?P<my_only>\b(?P<omon>[A-Za-z]{3,9})(?:\s*[-']\s*(?P<oy2>\d{2})|\s*[-']?\s*(?P<oy4>\d{4}))\b)",
     re.I,
@@ -459,7 +822,7 @@ _COL_TOKEN = re.compile(
 _COL_GROUP_WORDS = re.compile(
     r"(?P<q>quarter ended|three months ended)|(?P<h>half[- ]year ended|six months ended)"
     r"|(?P<n>nine months ended)|(?P<y>year ended)|(?P<i>\bas\s+at\b|\bas\s+on\b)", re.I)
-_TITLE_LINE = re.compile(r"statement of|results for|financial results|unaudited|audited", re.I)
+_TITLE_LINE = re.compile(r"statement of|results for|financial results|unaudited|audited|highlights", re.I)
 
 
 def _yr(y: str) -> int:
@@ -520,7 +883,53 @@ def _stacked_dates(lines: list[str]) -> list[tuple[date, Optional[str]]]:
         top, y = rows
         if len(top) == len(y) and all(_YEAR_TOK.match(t) for t in y):
             return _column_tokens(" ".join(f"{a} {b}" for a, b in zip(top, y)))
+        md = _month_day_over_year(lines[0], lines[1])
+        if md:
+            return md
     return []
+
+
+_MD_PART = re.compile(r"\b(?P<mon>[A-Za-z]{3,9})\.?\s*(?P<day>[0-3Il][0-9Il]?)(?:st|nd|rd|th)?\s*,?"
+                      r"(?:\s*(?P<year>(?:19|20)\d{2})\b)?", re.I)
+_OCR_DAY = str.maketrans({"l": "1", "I": "1", "O": "0"})
+
+
+def _month_day_over_year(top: str, bottom: str) -> list[tuple[date, Optional[str]]]:
+    """Month-day cells over a separate year line, where some cells already carry their year:
+        "December 31, September 30, December 31, December 31, December 31, March 31,2023"
+        "2023 2023 2022 2023 2022"
+    Years from the second line fill the cells that lack one, in order; counts must agree exactly."""
+    parts = []
+    for m in _MD_PART.finditer(top):
+        mon = _MONTHS.get(m.group("mon")[:3].lower())
+        if not mon:
+            continue
+        try:
+            day = int(m.group("day").translate(_OCR_DAY))
+        except ValueError:
+            return []
+        parts.append((mon, day, m.group("year")))
+    years = [t.strip(",.") for t in bottom.split()]
+    if len(parts) < 2 or not years or not all(re.fullmatch(r"(?:19|20)\d{2}", y) for y in years):
+        return []
+    if sum(1 for p in parts if not p[2]) != len(years):
+        return []
+    it = iter(years)
+    out = []
+    for mon, day, yr in parts:
+        try:
+            out.append((date(int(yr or next(it)), mon, day), None))
+        except ValueError:
+            return []
+    return [t for t in out if t[0].month in (3, 6, 9, 12)] if len(out) >= 2 else []
+
+
+def _mostly_period_tokens(line: str) -> bool:
+    """A header line that is (nearly) only period cells, so a wrapped continuation may be appended."""
+    rest = _COL_TOKEN.sub(" ", line)
+    rest = re.sub(r"(?i)particulars|sl\.?\s*no\.?|sr\.?\s*no\.?|quarter|half|year|nine|six|three|months?|ended|"
+                  r"period|on|as|at|[|(),.:\-–]", " ", rest)
+    return sum(ch.isalpha() for ch in rest) <= 6
 
 
 def _header_candidates(header_lines: list[str]):
@@ -531,7 +940,8 @@ def _header_candidates(header_lines: list[str]):
             continue          # a title naming one or two periods is not a column header
         yield i, toks[i]
         # period dates wrapped onto the next line: "30.09.2023 30.06.2023 30.09.2022" / "30.09.2023 ..."
-        if i + 1 < len(header_lines) and toks[i] and toks[i + 1] and not _TITLE_LINE.search(header_lines[i + 1]):
+        if (i + 1 < len(header_lines) and toks[i] and toks[i + 1] and not _TITLE_LINE.search(header_lines[i + 1])
+                and _mostly_period_tokens(line)):
             yield i + 1, toks[i] + toks[i + 1]
         for k in (2, 3):
             window = [re.sub(r"(?i)^\s*(?:particulars|sl\.?\s*no\.?|sr\.?\s*no\.?)\s*", "", l)
@@ -555,6 +965,53 @@ def resolve_columns(header_lines: list[str]) -> tuple[list[tuple[date, Optional[
     if not best:
         return [], ""
     n = len(best)
+    # Consolidated and standalone statements side by side: the same date sequence twice.
+    # (each half needs 3+ columns: a Q4 statement "Q, Q-1y, FY, FY-1y" also repeats its dates)
+    if n >= 6 and n % 2 == 0 and [d for d, _ in best[: n // 2]] == [d for d, _ in best[n // 2:]]:
+        half, issue = _type_columns(best[: n // 2], best_i, header_lines)
+        return half + half, issue
+    return _type_columns(best, best_i, header_lines)
+
+
+_COL_WORD = re.compile(r"^(quarter|qtr|period|year|nine|half|six|three|months?|ended|\d+m)$", re.I)
+
+
+def _per_column_words(header_lines: list[str], best_i: int, best: list) -> list[Optional[str]]:
+    """A line of one group word per column: "Quarter Quarter Quarter Period Period Year"
+    (with "Ended Ended ..." on the next line).  "Period" is year-to-date: its type follows
+    from the month (Sep = half year, Dec = nine months, Mar = full year)."""
+    n = len(best)
+    for line in header_lines[max(0, best_i - 3):best_i]:
+        words = [w for w in re.findall(r"[A-Za-z]+", line) if not re.fullmatch(r"ended|months?|particulars|sl|sr|no",
+                                                                                w, re.I)]
+        words = [w for w in words if not re.fullmatch(r"consolidated|standalone", w, re.I)]
+        # scanned header words: "Quamir", "Quarler" -> quarter
+        words = ["quarter" if re.match(r"qua\w{3,5}$", w, re.I) else w for w in words]
+        if not words or not all(_COL_WORD.match(w) for w in words):
+            continue
+        if len(words) == 2 * n:
+            words = words[:n]
+        if len(words) != n:
+            continue
+        out = []
+        for w, (d, _) in zip(words, best):
+            w = w.lower()
+            if w in ("quarter", "qtr", "three"):
+                out.append("Q")
+            elif w == "year":
+                out.append("FY")
+            elif w in ("half", "six"):
+                out.append("H")
+            elif w == "nine":
+                out.append("9M")
+            else:  # period / year-to-date
+                out.append({3: "FY", 9: "H", 12: "9M"}.get(d.month))
+        return out
+    return []
+
+
+def _type_columns(best: list, best_i: int, header_lines: list[str]) -> tuple[list[tuple[date, Optional[str]]], str]:
+    n = len(best)
 
     # 1) explicit labels on every column (Q3 FY25, 9M FY25, FY24 ...)
     if all(t is not None for _, t in best):
@@ -571,10 +1028,15 @@ def resolve_columns(header_lines: list[str]) -> tuple[list[tuple[date, Optional[
     words = [w for w in words if w != "I"]
     if len(words) == n:
         return [(d, t or w) for (d, t), w in zip(best, words)], ""
+    per_col = _per_column_words(header_lines, best_i, best)
+    if per_col and all(per_col):
+        return [(d, t or w) for (d, t), w in zip(best, per_col)], ""
 
     # 3) positional rule from repeated dates.  The leading block is quarters unless
     #    the first header word says otherwise (SME half-yearly or annual-only statements).
-    base = words[0] if words and words[0] in ("H", "FY") and "Q" not in words else "Q"
+    region = " ".join(l for l in header_lines[max(0, best_i - 3):best_i + 1] if not _TITLE_LINE.search(l))
+    names_quarter = bool(re.search(r"quarter|three\s*months|\bqtr\b", region, re.I))
+    base = words[0] if words and words[0] in ("H", "FY") and "Q" not in words and not names_quarter else "Q"
     seen: set[date] = set()
     cumulative = False
     out: list[tuple[date, Optional[str]]] = []
@@ -633,6 +1095,51 @@ def _sebi_layout_from_date_bag(header_lines: list[str]) -> list[tuple[date, Opti
     layout = [(top, "Q"), (prev_q, "Q"), (yago, "Q"), (top, "H" if m == 9 else "9M"),
               (yago, "H" if m == 9 else "9M"), (_month_end(y, 3), "FY")]
     return layout if {d for d, _ in layout} <= bag else []
+
+
+_TITLE_PERIOD = re.compile(
+    r"(?P<what>quarter\s*and\s*(?:nine\s*months?|half\s*[- ]?year|six\s*months|(?:financial\s*)?year)"
+    r"(?:\s*period)?|quarter|three\s*months)\s*(?:period\s*)?ended\s*(?:on\s*)?"
+    r"(?P<date>\d{1,2}(?:st|nd|rd|th)?\s*[A-Za-z]{3,9},?\s*\d{4}|[A-Za-z]{3,9}\.?\s*\d{1,2}(?:st|nd|rd|th)?\s*,?\s*\d{4}"
+    r"|\d{1,2}[./-]\d{1,2}[./-]\d{4})", re.I)
+
+
+def _sebi_layout_from_title(text: str, header_lines: list[str]) -> list[tuple[date, Optional[str]]]:
+    """Column layout implied by the statement title ("... for the quarter and nine months ended
+    31 December 2023") under the SEBI Regulation 33 format:
+      Q1:  Q(D) Q(D-3m) Q(D-1y) FY(previous March)
+      Q2/Q3: Q(D) Q(D-3m) Q(D-1y) YTD(D) YTD(D-1y) FY(previous March)
+      Q4:  Q(D) Q(D-3m) Q(D-1y) FY(D) FY(D-1y)
+    The header must still name quarter columns, and the caller requires the layout to have
+    exactly the width of the data rows."""
+    head = " ".join(header_lines)
+    if not re.search(r"quarter\s*ended|three\s*months\s*ended|quarter", head, re.I):
+        return []
+    m = _TITLE_PERIOD.search(text)
+    if not m:
+        return []
+    toks = _column_tokens(m.group("date"))
+    if not toks:
+        return []
+    d = toks[0][0]
+    # the (partly unreadable) header itself must show this period's year and month
+    flat = re.sub(r"\s+", "", head).lower()
+    month_names = {k for k, v in _MONTHS.items() if v == d.month}
+    if str(d.year) not in flat or not (any(mn in flat for mn in month_names)
+                                       or f"{d.day:02d}.{d.month:02d}" in flat or f"{d.day}/{d.month}" in flat):
+        return []
+    y, mo = d.year, d.month
+    prev_q = _month_end(y if mo > 3 else y - 1, mo - 3 if mo > 3 else 12)
+    yago = _month_end(y - 1, mo)
+    what = re.sub(r"\s+", "", m.group("what").lower())
+    if mo == 3 and "year" in what:
+        return [(d, "Q"), (prev_q, "Q"), (yago, "Q"), (d, "FY"), (yago, "FY")]
+    if mo in (9, 12) and ("nine" in what or "half" in what or "six" in what):
+        ytd = "H" if mo == 9 else "9M"
+        return [(d, "Q"), (prev_q, "Q"), (yago, "Q"), (d, ytd), (yago, ytd), (_month_end(y, 3), "FY")]
+    if mo == 6 and what in ("quarter", "threemonths"):
+        return [(d, "Q"), (prev_q, "Q"), (yago, "Q"), (_month_end(y, 3), "FY")]
+    return []
 
 
 # ---------------------------------------------------------------------------
@@ -815,6 +1322,30 @@ _GUIDANCE_METRIC = {
     Metric.EBITDA_MARGIN: Metric.MARGIN_GUIDANCE,
 }
 _GROWTH_WORDS = re.compile(r"\b(?:growth|grow|cagr|increase)\b", re.I)
+_PCT = re.compile(r"(\d+(?:\.\d+)?)\s*(?:[-–]|to)?\s*(?:\d+(?:\.\d+)?)?\s*%|\d+(?:\.\d+)?\s*per\s*cent", re.I)
+
+
+def _growth_percent(s: str) -> Optional[Quantity]:
+    """A growth percentage stated next to its growth word ("growth of 25%", "25% growth",
+    "grow by 20-25%"); a percentage elsewhere in the sentence is not taken."""
+    m = _GROWTH_PCT_AFTER.search(s) or _GROWTH_PCT_BEFORE.search(s)
+    return parse_percent(m.group(0)) if m else None
+
+
+_PCT_RANGE = r"\d+(?:\.\d+)?\s*%?\s*(?:[-–]|to)?\s*(?:\d+(?:\.\d+)?)?\s*(?:%|per\s*cent)"
+# "growth of 25%", "grow by 20-25%", "increase of around 30 per cent", "CAGR of 18%"
+_GROWTH_PCT_AFTER = re.compile(r"\b(?:growth|grow|cagr|increase)\w*\b(?:\s+(?:of|by|at|in|to|around|about|approx\w*|"
+                               r"close\s+to|nearly|over|more\s+than|upto|up\s+to|~|the|range|revenue|top\s*line|"
+                               r"sales|yoy|y-o-y)){0,4}\s*(?:" + _PCT_RANGE + ")", re.I)
+# "25% growth", "20-25% YoY growth", "18% revenue CAGR"
+_GROWTH_PCT_BEFORE = re.compile("(?:" + _PCT_RANGE + r")\s*(?:(?:yoy|y-o-y|revenue|top\s*line|sales|volume)\s*){0,2}"
+                                r"(?:growth|cagr|increase)\b", re.I)
+
+
+def _NUMBER_SOUP(s: str) -> bool:
+    """Text from slides or tables run together into one 'sentence'."""
+    nums = re.findall(r"\d[\d,.]*%?", s)
+    return len(s) > 300 and len(nums) >= 8
 _CAPITALISED_STOPWORDS = {"The", "This", "We", "Our", "It", "In", "For", "During", "Company", "Board", "Management"}
 
 
@@ -910,7 +1441,7 @@ def extract_sentence_evidence(doc: SourceDocument, chunks: list[Chunk]) -> list[
             else:
                 qty = parse_inr(s_clean) or parse_usd(s_clean)
                 if qty is None and metric == Metric.REVENUE and _GROWTH_WORDS.search(s_clean):
-                    qty = parse_percent(s_clean)
+                    qty = _growth_percent(s_clean)
             labels = find_period_labels(s_clean)
 
             tier, strength, out_metric = EvidenceTier.REALIZED_EXECUTION, CommitmentStrength.NOT_APPLICABLE, metric
@@ -939,6 +1470,8 @@ def extract_sentence_evidence(doc: SourceDocument, chunks: list[Chunk]) -> list[
                     rel, rel_basis = doc_relationship
                 order_kw = dict(event_stage=stage, relationship=rel, relationship_basis=rel_basis, **details)
             elif modality in (Modality.FORWARD, Modality.CONDITIONAL):
+                if _NUMBER_SOUP(s_clean):
+                    continue      # slide / table text run together: no reliable target in it
                 tier = EvidenceTier.MANAGEMENT_ASSERTION
                 out_metric = _GUIDANCE_METRIC.get(metric, metric)
                 if out_metric == Metric.REVENUE_GUIDANCE and qty and qty.unit == Unit.PERCENT:
