@@ -153,12 +153,57 @@ class CommitmentStrength(str, Enum):
     NOT_APPLICABLE = "not_applicable"
 
 
+class EventStage(str, Enum):
+    """Dated states of a commercial event (WP4).  Not a single linear sequence:
+    an amendment can reduce value; cancellation/expiry reverse a commitment."""
+    INQUIRY = "inquiry"                     # enquiries, discussions, pipeline, bids submitted
+    MOU_FRAMEWORK = "mou_framework"         # MoU, framework / rate contract (may be unquantified)
+    PREFERRED_BIDDER = "preferred_bidder"   # L1, LoI, selected - not yet a firm order
+    BINDING_ORDER = "binding_order"         # PO, LoA, signed contract, work order
+    EXECUTION = "execution"                 # delivered, commissioned, executed
+    AMENDED = "amended"
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+
+
+COMMITMENT_RANK = {EventStage.INQUIRY: 1, EventStage.MOU_FRAMEWORK: 2, EventStage.PREFERRED_BIDDER: 3,
+                   EventStage.BINDING_ORDER: 4, EventStage.EXECUTION: 5}
+
+
+class RelationshipStatus(str, Enum):
+    CONFIRMED_RELATED = "confirmed_related"                       # own subsidiary / group / related party
+    ISSUER_ASSERTED_UNRELATED = "issuer_asserted_unrelated"       # issuer says so; not independent
+    INDEPENDENTLY_SUPPORTED_UNRELATED = "independently_supported_unrelated"   # attributable external source
+    UNKNOWN = "unknown"
+
+
+class CustomerVerification(str, Enum):
+    ANONYMOUS = "anonymous"                 # "a leading OEM": unverified
+    ISSUER_NAMED = "issuer_named"           # named by the issuer only
+    CORROBORATED = "corroborated"           # dated, attributable external source
+
+
+class ValueBasis(str, Enum):
+    FIRM = "firm"
+    CEILING = "ceiling"                     # "up to", framework / rate-contract maximum
+    GUARANTEED_MINIMUM = "guaranteed_minimum"
+    EXECUTABLE_RELEASE = "executable_release"   # release / call-off order under a framework
+    UNQUANTIFIED = "unquantified"
+
+
+class TaxBasis(str, Enum):
+    INCLUSIVE = "inclusive"
+    EXCLUSIVE = "exclusive"
+    UNKNOWN = "unknown"
+
+
 class EvidenceStatus(str, Enum):
     """Evidence-only assessment (no action authority)."""
     INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"
     NO_MATERIAL_CHANGE = "NO_MATERIAL_CHANGE"
     ASSERTION_ONLY = "ASSERTION_ONLY"
-    COMMITMENT_BACKED = "COMMITMENT_BACKED"
+    EARLY_COMMITMENT_UNVERIFIED = "EARLY_COMMITMENT_UNVERIFIED"   # early research lane, explicit limitations
+    COMMITMENT_BACKED = "COMMITMENT_BACKED"                       # validated binding external commitments
     EXECUTION_EMERGING = "EXECUTION_EMERGING"
     EXECUTION_CONFIRMED = "EXECUTION_CONFIRMED"
     CONTRADICTED = "CONTRADICTED"
@@ -296,6 +341,18 @@ class Evidence:
     counterparty_named: bool = False
     commitment_strength: CommitmentStrength = CommitmentStrength.NOT_APPLICABLE
     distinct_marker: bool = False      # "repeat order", "fresh order", "another order"
+    # commercial-event fields (WP4); None/"" = not disclosed
+    event_stage: Optional[EventStage] = None
+    relationship: RelationshipStatus = RelationshipStatus.UNKNOWN
+    relationship_basis: str = ""
+    value_basis: Optional[ValueBasis] = None
+    tax_basis: TaxBasis = TaxBasis.UNKNOWN
+    duration_months: Optional[int] = None
+    delivery_window: str = ""
+    payment_terms: str = ""
+    termination_terms: str = ""
+    reference_id: str = ""
+    product: str = ""
     extractor: str = "deterministic"   # "deterministic" | "llm"
     validation_issues: list[str] = field(default_factory=list)
 
@@ -316,6 +373,41 @@ class EconomicEvent:
     doc_ids: list[str] = field(default_factory=list)
     commitment_strength: CommitmentStrength = CommitmentStrength.NOT_APPLICABLE
     description: str = ""
+    # WP4: dated state history; current_stage is the latest dated state, never the strongest-ever
+    current_stage: Optional[EventStage] = None
+    history: list["EventStateChange"] = field(default_factory=list)
+    original_amount: Optional[Quantity] = None
+    cancelled_amount: float = 0.0
+    relationship: RelationshipStatus = RelationshipStatus.UNKNOWN
+    relationship_basis: list[str] = field(default_factory=list)
+    customer_verification: CustomerVerification = CustomerVerification.ANONYMOUS
+    value_basis: ValueBasis = ValueBasis.UNQUANTIFIED
+    tax_basis: TaxBasis = TaxBasis.UNKNOWN
+    duration_months: Optional[int] = None
+    delivery_window: str = ""
+    payment_terms: str = ""
+    termination_terms: str = ""
+    reference_id: str = ""
+    product: str = ""
+    ambiguous_with: list[str] = field(default_factory=list)   # possible duplicates (counted once)
+    unresolved_fields: list[str] = field(default_factory=list)
+
+    @property
+    def annual_executable_estimate(self) -> Optional[float]:
+        """Amount per 12 months when a duration is disclosed; unknown otherwise (labelled estimate)."""
+        if self.amount is None or not self.duration_months:
+            return None
+        return self.amount.value * min(1.0, 12.0 / self.duration_months)
+
+
+@dataclass
+class EventStateChange:
+    stage: EventStage
+    at: Optional[datetime]
+    doc_id: str
+    evidence_id: str
+    amount: Optional[float] = None       # value after this change (crore)
+    note: str = ""
 
 
 @dataclass
@@ -399,6 +491,9 @@ class CounterpartyProfile:
     strongest_commitment: CommitmentStrength = CommitmentStrength.NOT_APPLICABLE
     share_of_ttm_revenue: Optional[float] = None
     risk_flags: list[str] = field(default_factory=list)
+    relationship: RelationshipStatus = RelationshipStatus.UNKNOWN
+    relationship_sources: list[str] = field(default_factory=list)
+    verification: CustomerVerification = CustomerVerification.ANONYMOUS
 
 
 @dataclass

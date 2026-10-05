@@ -30,7 +30,7 @@ from .chunking import chunk_document
 from .contracts import (
     IST, Assessment, DocumentKind, Evidence, ListingSegment, Metric, SourceDocument, SourceRef, to_jsonable,
 )
-from .counterparty import build_profiles
+from .counterparty import apply_reference_data, build_profiles
 from .document_versions import availability, is_restatement, link_versions
 from .drivers import compute_drivers
 from .earnings_bridge import build_bridge
@@ -305,6 +305,7 @@ class EarningsInflectionPipeline:
                                       for st in (Integrity.VALIDATED, Integrity.DEFINITION_DIFFERENCE,
                                                  Integrity.UNRESOLVED, Integrity.REJECTED)}
         events = resolve_events(evidence)
+        ref_notes = apply_reference_data(events, self.cfg.get("counterparties", {}), as_of.date())
 
         # 5. series, drivers, ledger, counterparties, bridge
         series = FinancialSeries.build(ticker, measurements)
@@ -360,7 +361,7 @@ class EarningsInflectionPipeline:
                                          d.url, e.quote if e else "", e.page if e else 0))
 
         lim = limitations_for(issuer_model, identity_basis, coverage)
-        lim += notes
+        lim += notes + ref_notes
         if mode == ReplayMode.RECONSTRUCTION:
             lim.append("Public-information reconstruction: documents are included when their public availability "
                        "by the cutoff is proven, even if MakroGraph ingested or extracted them later; this does "

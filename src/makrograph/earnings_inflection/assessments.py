@@ -28,10 +28,9 @@ import re
 from datetime import datetime
 from typing import Optional
 
+from .demand import summarise_demand
 from .contracts import (
-    ChangeFinding, CommitmentStrength, DriverChange, EarningsBridge, EconomicEvent, Evidence, EvidenceStatus,
-    EvidenceTier, GuidanceOutcome, GuidanceRecord, IssuerModel, Metric, Modality, ReviewStatus, RevisionDirection,
-    Unit,
+    ChangeFinding, CommitmentStrength, CustomerVerification, DriverChange, EarningsBridge, EconomicEvent, EventStage, Evidence, EvidenceStatus, EvidenceTier, GuidanceOutcome, GuidanceRecord, IssuerModel, Metric, Modality, RelationshipStatus, ReviewStatus, RevisionDirection, Unit, ValueBasis,
 )
 
 
@@ -86,21 +85,37 @@ def decide_status(drivers: list[DriverChange], events: list[EconomicEvent], evid
         why.append(f"single {streak.unit.rstrip('s') if streak else 'period'} so far; persistence unproven")
         return EvidenceStatus.EXECUTION_EMERGING, why
 
-    # Only orders disclosed in the look-back window count; an old order says
-    # nothing about a current inflection.  Materiality needs a revenue base.
-    recent = [e for e in events if as_of is None or (e.first_public_at is not None and
-              (as_of - e.first_public_at).days <= event_lookback_days)]
-    firm = [e for e in recent if e.commitment_strength in (CommitmentStrength.BINDING, CommitmentStrength.PROVISIONAL)]
-    firm_value = sum(e.amount.value for e in firm if e.amount and e.amount.unit == Unit.INR_CRORE)
+    # Commitments: only events whose binding state falls in the look-back window count
+    # (an old order says nothing about a current inflection).  Only validated binding
+    # EXTERNAL orders with a named customer and a firm value support a verified
+    # commitment; provisional / anonymous / ceiling / framework events stay visible
+    # in the early lane with their limitations, never upgraded or discarded.
+    as_of_d = as_of.date() if as_of is not None else max(
+        [e.first_public_at.date() for e in events if e.first_public_at] or [datetime.max.date()])
+    dem = summarise_demand(events, evidence, as_of_d, event_lookback_days)
+    verified = [e for e in events if e.event_id in dem.verified_events]
     btb = _driver(drivers, "disclosed_order_inflow_to_ttm_revenue")
     cover = _driver(drivers, "order_book_cover")
-    if (btb and btb.material) or (cover and cover.material) or (ttm_revenue and firm_value >= 0.25 * ttm_revenue):
-        why.append(f"{len(firm)} deduplicated firm/provisional order event(s) in the last "
-                   f"{event_lookback_days} days, {firm_value:.1f} cr disclosed")
+    if verified and ((btb and btb.material) or (cover and cover.material)
+                     or (ttm_revenue and dem.verified_inflow_crore >= 0.25 * ttm_revenue)):
+        why.append(f"{len(verified)} verified binding external order event(s) in the last {event_lookback_days} "
+                   f"days, {dem.verified_inflow_crore:.1f} cr current value (deduplicated)")
+        why += dem.notes()
         return EvidenceStatus.COMMITMENT_BACKED, why
-    if firm and not ttm_revenue:
-        why.append(f"{len(firm)} recent order event(s) ({firm_value:.1f} cr) but no current revenue base, "
-                   "so materiality cannot be judged")
+    if dem.unverified_events or (verified and not ttm_revenue):
+        material = (not ttm_revenue) or \
+            (dem.unverified_inflow_crore + dem.verified_inflow_crore) >= 0.25 * ttm_revenue
+        if material:
+            for eid, reasons in dem.unverified_events.items():
+                why.append(f"early-lane order {eid}: " + "; ".join(reasons))
+            if verified and not ttm_revenue:
+                why.append(f"{len(verified)} verified order(s) but no current revenue base: materiality unknown")
+            if not ttm_revenue:
+                why.append("no current revenue base, so materiality cannot be judged")
+            why.append("not a verified commitment: needs a binding order from a named external customer")
+            return EvidenceStatus.EARLY_COMMITMENT_UNVERIFIED, why
+    if dem.related_party_excluded:
+        why.append(f"{len(dem.related_party_excluded)} related-party / own-group order(s) excluded from external demand")
 
     assertions = [e for e in evidence if e.usable and e.tier == EvidenceTier.MANAGEMENT_ASSERTION
                   and e.modality in (Modality.FORWARD, Modality.CONDITIONAL)]
@@ -143,9 +158,13 @@ def what_changed(drivers, events, guidance, evidence, first_public: dict[str, da
                 else EvidenceTier.MANAGEMENT_ASSERTION))
     for e in events:
         amt = f"{e.amount.value:g} {e.amount.unit.value}" if e.amount else "unquantified"
+        if e.original_amount and e.amount and abs(e.original_amount.value - e.amount.value) > 1e-9:
+            amt += f" (originally {e.original_amount.value:g})"
+        stage = e.current_stage.value if e.current_stage else e.commitment_strength.value
         out.append(ChangeFinding(
-            what=f"order event {amt} from {e.counterparty or 'unnamed counterparty'} "
-                 f"({e.commitment_strength.value}; {len(e.doc_ids)} document(s) mention it)"
+            what=f"order event {e.event_id}: {amt} from {e.counterparty or 'unnamed counterparty'} "
+                 f"(stage {stage}; customer {e.customer_verification.value}; relationship {e.relationship.value}; "
+                 f"value {e.value_basis.value}; {len(e.doc_ids)} document(s) describe it - one event)"
                  + (f" [older than {event_lookback_days} days; not counted in status]"
                     if as_of and e.first_public_at and (as_of - e.first_public_at).days > event_lookback_days else ""),
             business=next((x.segment for x in evidence if x.evidence_id in e.evidence_ids and x.segment), "") or "unspecified",
@@ -215,10 +234,23 @@ def next_checks(drivers, events, guidance, missing, status: EvidenceStatus) -> l
             checks.append(f"Compare {g.metric.value} for {g.target_period_label} with the original statement "
                           f"({g.original.quantity.raw if g.original.quantity else ''}) when results are published")
     for e in events:
+        who = e.counterparty or "unnamed customer"
+        if e.current_stage in (EventStage.CANCELLED, EventStage.EXPIRED):
+            continue
         if e.commitment_strength == CommitmentStrength.PROVISIONAL:
-            checks.append(f"Confirm conversion of provisional order ({e.counterparty or 'unnamed'}) into a firm order")
+            checks.append(f"Confirm conversion of provisional order {e.event_id} ({who}) into a firm order")
         elif e.commitment_strength == CommitmentStrength.BINDING:
-            checks.append(f"Track execution of {e.counterparty or 'unnamed'} order in segment revenue / order book")
+            checks.append(f"Track execution of order {e.event_id} ({who}) in segment revenue / order book")
+        if e.customer_verification == CustomerVerification.ANONYMOUS:
+            checks.append(f"Identify the customer behind order {e.event_id} (identity undisclosed; unverified)")
+        if e.relationship in (RelationshipStatus.UNKNOWN, RelationshipStatus.ISSUER_ASSERTED_UNRELATED) \
+                and e.counterparty:
+            checks.append(f"Find an attributable, dated source on whether {who} is related to the issuer "
+                          f"(currently {e.relationship.value})")
+        if e.value_basis in (ValueBasis.CEILING, ValueBasis.UNQUANTIFIED):
+            checks.append(f"Look for executable releases / quantities under {e.event_id} (ceiling or unquantified)")
+        if e.ambiguous_with:
+            checks.append(f"Resolve whether {e.event_id} duplicates {', '.join(e.ambiguous_with)}")
     if status in (EvidenceStatus.EXECUTION_EMERGING, EvidenceStatus.COMMITMENT_BACKED):
         unit = next((d.unit.rstrip("s") for d in drivers if d.driver == "material_growth_streak"), "quarter")
         checks.append(f"Next {'half-yearly' if unit == 'half-year' else 'quarterly'} results: "
