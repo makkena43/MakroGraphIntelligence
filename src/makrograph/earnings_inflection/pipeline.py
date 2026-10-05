@@ -28,7 +28,7 @@ from .assessments import (
 from .budget import Budget
 from .chunking import chunk_document
 from .contracts import (
-    IST, Assessment, DocumentKind, Evidence, ListingSegment, Metric, SourceRef, to_jsonable,
+    IST, Assessment, DocumentKind, Evidence, ListingSegment, Metric, SourceDocument, SourceRef, to_jsonable,
 )
 from .counterparty import build_profiles
 from .document_versions import availability, is_restatement, link_versions
@@ -40,7 +40,10 @@ from .financial_series import FinancialSeries
 from .coverage import document_coverage, result_period_coverage
 from .guidance_ledger import build_ledger
 from .text_artifacts import text_hash
-from .identity import IdentityResolver, SymbolSpan, classify_issuer_model, listing_segment_from
+from .identity import (
+    AliasRecord, IdentityResolver, IssuerRecord, IssuerRegistry, ReplayMode, SymbolSpan, alias_for_document,
+    classify_issuer_model, listing_segment_from,
+)
 from .validation import reconcile, scope_conflicts, validate_evidence, validate_measurements
 
 logger = logging.getLogger(__name__)
@@ -88,6 +91,13 @@ class EarningsInflectionPipeline:
         spans = [SymbolSpan(**{**s, "valid_from": _d(s["valid_from"]), "valid_to": _d(s.get("valid_to"))})
                  for s in self.cfg.get("identity", {}).get("symbol_history", [])]
         self.identity = IdentityResolver(spans)
+        reg = IssuerRegistry.from_dict(getattr(self.repo, "identity_records", lambda: {})() or {})
+        reg_file = self.cfg.get("identity", {}).get("registry_file")
+        if reg_file:
+            import json as _json
+            reg = reg.merge(IssuerRegistry.from_dict(_json.loads(open(reg_file).read())))
+        reg = reg.merge(IssuerRegistry.from_dict(self.cfg.get("identity", {}).get("issuers", {})))
+        self.registry = _legacy_spans_to_registry(spans, reg)
         self.replay_mode = self.cfg.get("replay_mode", "PUBLIC_INFORMATION_RECONSTRUCTION")
         pins = self.cfg.get("pinned_extractions") or {}
         if pins and hasattr(self.repo, "text_policy"):
@@ -150,34 +160,107 @@ class EarningsInflectionPipeline:
         return {s["doc_id"]: s["extraction_version_id"]
                 for srcs in manifest.get("sources", {}).values() for s in srcs if s.get("extraction_version_id")}
 
+    def _retrieve(self, ticker: str, as_of: datetime, mode: str, coverage: dict, notes: list[str]
+                  ) -> tuple[Optional[IssuerRecord], list[SourceDocument]]:
+        """Documents of the issuer behind ``ticker`` via all eligible dated aliases."""
+        issuer, basis = self.registry.resolve(ticker, as_of, mode)
+        coverage["identity_basis"] = basis
+        if issuer is None:
+            sets = [(None, [AliasRecord(alias=ticker, kind="symbol", issuer_id=ticker.upper())], None)]
+        else:
+            sets = [(issuer, self.registry.eligible_aliases(issuer, as_of, mode), None)]
+            preds, pred_notes = self.registry.comparable_predecessors(issuer)
+            notes.extend(pred_notes)
+            for p in preds:
+                link = next(l for l in issuer.predecessors if l.predecessor_issuer_id == p.issuer_id)
+                sets.append((p, self.registry.eligible_aliases(p, as_of, mode), link.effective_date))
+        out: dict[str, SourceDocument] = {}
+        mismatched = 0
+        for iss, aliases, until in sets:
+            symbols = sorted({a.alias for a in aliases})
+            if not symbols:
+                continue
+            fetch = getattr(self.repo, "documents_for", None)
+            docs = fetch(symbols, self.country, as_of) if fetch else \
+                [d for sym in symbols for d in self.repo.documents(sym, self.country, as_of)]
+            for d in docs:
+                ts = availability(d)[0]
+                when = ts.date() if ts else d.filed_at
+                a = alias_for_document(aliases, d.ticker, when)
+                if a is None or (until is not None and when is not None and when >= until):
+                    mismatched += 1          # symbol belonged to another issuer then / after merger date
+                    continue
+                d.issuer_id = (iss.issuer_id if iss else ticker.upper())
+                d.alias_used = a.alias
+                out.setdefault(d.doc_id, d)
+        coverage["aliases_used"] = sorted({d.alias_used for d in out.values()})
+        coverage["documents_outside_alias_validity"] = mismatched
+        return issuer, list(out.values())
+
     def assess(self, ticker: str, as_of: datetime) -> Assessment:
-        issuer_id, identity_basis = self.identity.resolve(ticker, as_of.date())
+        mode = self.replay_mode
+        if mode not in ReplayMode.ALL:
+            raise ValueError(f"unknown replay mode {mode!r}")
+        notes: list[str] = []
+        coverage: dict = {"replay_mode": mode}
+        policy = getattr(self.repo, "text_policy", None)
+        prev_cut = policy.extracted_by if policy is not None else None
+        if policy is not None and mode == ReplayMode.SYSTEM:
+            policy.extracted_by = as_of          # only text extracted by the cutoff
+        try:
+            issuer, raw_docs = self._retrieve(ticker, as_of, mode, coverage, notes)
+        finally:
+            if policy is not None:
+                policy.extracted_by = prev_cut
+        # Present-day metadata (e.g. fundamentals_snapshot) is display context only.
         meta = self.repo.issuer_metadata(ticker) or {}
-        raw_docs = self.repo.documents(ticker, self.country, as_of)
+        if meta:
+            coverage["present_day_context"] = {**meta, "label": "present-day metadata; display only, "
+                                                                "not used for historical qualification"}
 
         # 1. availability first, THEN version linking (no future versions leak in)
-        coverage = {"documents_returned": len(raw_docs), "identity_basis": identity_basis}
+        coverage["documents_returned"] = len(raw_docs)
         stamped = [(d, availability(d)[0]) for d in raw_docs]
         visible = [d for d, ts in stamped if ts is not None and ts <= as_of]
         coverage["excluded_unknown_time"] = sum(1 for _, ts in stamped if ts is None)
         coverage["excluded_after_as_of"] = sum(1 for _, ts in stamped if ts is not None and ts > as_of)
+        if mode == ReplayMode.SYSTEM:
+            # MakroGraph must have held the document by the cutoff, and its text too.
+            not_held = [d for d in visible if d.first_seen_at is None or d.first_seen_at > as_of]
+            visible = [d for d in visible if d not in not_held]
+            coverage["system_replay_excluded_not_ingested"] = sum(1 for d in not_held if d.first_seen_at)
+            coverage["system_replay_excluded_unknown_ingestion"] = sum(1 for d in not_held if not d.first_seen_at)
+            unproven_text = 0
+            for d in visible:
+                if d.full_text().strip() and (d.text_available_at is None or d.text_available_at > as_of):
+                    d.text, d.pages = None, None
+                    d.extraction_status = "TEXT_NOT_PROVEN_BY_CUTOFF"
+                    d.extraction_issues.append("text existence by the cutoff cannot be proven (legacy text "
+                                               "or extracted later)")
+                    unproven_text += 1
+            coverage["system_replay_text_unproven"] = unproven_text
         docs = link_versions(visible)   # lineage built only from what was public
         coverage["no_text"] = sum(1 for d in docs if not d.full_text().strip())
         coverage["title_only_classified"] = sum(1 for d in docs if d.kind_basis.startswith("title_only"))
         coverage["garbled_text_docs"] = sum(1 for d in docs if d.full_text() and garbled_ratio(d.full_text()) > 0.3)
         coverage["superseded_or_duplicate"] = sum(1 for d in docs if d.superseded_by)
-        coverage["by_kind"] = {}
-        for d in docs:
-            coverage["by_kind"][d.kind.value] = coverage["by_kind"].get(d.kind.value, 0) + 1
         docs.sort(key=lambda d: (d.available_at, d.doc_id))   # chronological
         docs_by_id = {d.doc_id: d for d in docs}
-        company = meta.get("name") or next((d.company for d in docs if d.company), "")
+        company = (issuer.name if issuer and issuer.name else "") or next((d.company for d in docs if d.company), "") \
+            or meta.get("name", "")
+        identity_basis = coverage["identity_basis"]
 
-        # 2. classification
+        # 2. classification - dated facts only (registry history, statement layout)
         all_text = "\n".join(d.full_text()[:20000] for d in docs if d.kind.value == "financial_results")
-        issuer_model, model_basis = classify_issuer_model(company, meta.get("industry", ""), all_text)
-        coverage["issuer_model_basis"] = model_basis
-        segment = listing_segment_from(meta.get("series"), meta.get("board", ""))
+        hist_industry, ind_src = issuer.industry_at(as_of.date()) if issuer else ("", "")
+        issuer_model, model_basis = classify_issuer_model(company, hist_industry, all_text)
+        coverage["issuer_model_basis"] = model_basis + (f" ({ind_src})" if ind_src else "")
+        listing = issuer.listing_at(as_of.date()) if issuer else None
+        segment = listing_segment_from(listing.series, listing.board) if listing else ListingSegment.UNKNOWN
+        if listing:
+            coverage["security_at_as_of"] = {"isin": listing.isin, "exchange": listing.exchange,
+                                             "symbol": listing.symbol, "series": listing.series,
+                                             "board": listing.board}
 
         # 3. extraction (deterministic; LLM only if enabled)
         evidence: list[Evidence] = []
@@ -197,8 +280,11 @@ class EarningsInflectionPipeline:
                 rows, iss = parse_results_tables(d, chunks)
                 if d.superseded_by:
                     rows = []   # a later version for the same period replaces these numbers
+                sys_t = (None if d.first_seen_at is None or d.text_available_at is None
+                         else max(d.first_seen_at, d.text_available_at))
                 for r in rows:
                     r.restated = is_restatement(d)
+                    r.system_available_at = sys_t
                 measurements += rows
                 issues += iss
             evidence += extract_sentence_evidence(d, chunks)
@@ -261,6 +347,18 @@ class EarningsInflectionPipeline:
                                          d.url, e.quote if e else "", e.page if e else 0))
 
         lim = limitations_for(issuer_model, identity_basis, coverage)
+        lim += notes
+        if mode == ReplayMode.RECONSTRUCTION:
+            lim.append("Public-information reconstruction: documents are included when their public availability "
+                       "by the cutoff is proven, even if MakroGraph ingested or extracted them later; this does "
+                       "not claim the live system held them at the time.")
+        else:
+            dropped = (coverage.get("system_replay_excluded_not_ingested", 0)
+                       + coverage.get("system_replay_excluded_unknown_ingestion", 0)
+                       + coverage.get("system_replay_text_unproven", 0))
+            lim.append(f"System-knowledge replay: only documents and text MakroGraph provably held by the cutoff; "
+                       f"{dropped} document(s) excluded or text-less because ingestion/extraction time is after "
+                       "the cutoff or cannot be proven.")
         lim += [f"Revised figures: {n}" for n in series.lineage_notes]
         if stale_note:
             lim.insert(0, "Stale financial series, so no growth or margin drivers were computed: " + stale_note
@@ -327,6 +425,7 @@ class EarningsInflectionPipeline:
             missing_inputs=sorted(set(missing)),
             next_checks=next_checks(drivers, events, guidance, sorted(set(missing)), status),
             sources=sources, limitations=lim, coverage=coverage, source_manifest=source_manifest,
+            replay_mode=mode,
         )
         a.validate()
         return a
@@ -427,6 +526,18 @@ class EarningsInflectionPipeline:
         finally:
             conn.close()
         return n
+
+
+def _legacy_spans_to_registry(spans: list, reg: IssuerRegistry) -> IssuerRegistry:
+    """Old-style ``identity.symbol_history`` entries become registry aliases."""
+    if not spans:
+        return reg
+    by_issuer: dict[str, IssuerRecord] = {}
+    for sp in spans:
+        rec = by_issuer.setdefault(sp.issuer_id, IssuerRecord(issuer_id=sp.issuer_id))
+        rec.aliases.append(AliasRecord(alias=sp.symbol, kind="symbol", issuer_id=sp.issuer_id,
+                                       valid_from=sp.valid_from, valid_to=sp.valid_to, source="config"))
+    return IssuerRegistry(list(by_issuer.values())).merge(reg)
 
 
 def _d(v):

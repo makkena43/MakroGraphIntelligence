@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 
 from .contracts import FinancialMeasurement, Metric, Scope, Unit
@@ -71,6 +71,16 @@ class SeriesPoint:
     source: str            # reported | derived
     doc_ids: list[str]
     versions: int = 1      # >1 means a later filing revised this value
+    available_at: Optional[datetime] = None    # public availability of the version used
+    system_at: Optional[datetime] = None       # when MakroGraph held it (None = unproven)
+    inputs: list = field(default_factory=list) # keys of the points a derived value depends on
+
+
+def _latest(times):
+    times = list(times)
+    if not times or any(t is None for t in times):
+        return None
+    return max(times)
 
 
 @dataclass
@@ -101,7 +111,8 @@ class FinancialSeries:
             latest = vs[-1]
             distinct_vals = {round(v.value, 4) for v in vs}
             series.points[key] = SeriesPoint(latest.value, latest.unit, latest.source,
-                                             sorted({v.doc_id for v in vs}), len(distinct_vals))
+                                             sorted({v.doc_id for v in vs}), len(distinct_vals),
+                                             latest.available_at, latest.system_available_at)
             if len(distinct_vals) > 1:
                 series.lineage_notes.append(
                     f"{key[0].value} {key[1]} {key[2]}: revised from {vs[0].value} ({vs[0].doc_id}) "
@@ -121,8 +132,9 @@ class FinancialSeries:
                 continue
             nine = self.points.get((metric, "9M", end.replace(month=12, day=31, year=end.year - 1)))
             if nine:
-                self.points[(metric, "Q", end)] = SeriesPoint(p.value - nine.value, p.unit, "derived:FY-9M",
-                                                              p.doc_ids + nine.doc_ids)
+                self.points[(metric, "Q", end)] = self._derived(p.value - nine.value, p.unit, "derived:FY-9M",
+                                                                [p, nine], [(metric, "FY", end),
+                                                                            (metric, "9M", date(end.year - 1, 12, 31))])
 
     def _derive_missing_h2(self) -> None:
         """H2 = FY - H1 when a half-yearly reporter publishes only H1 and the full year."""
@@ -133,8 +145,23 @@ class FinancialSeries:
                 continue
             h1 = self.points.get((metric, "H", date(end.year - 1, 9, 30)))
             if h1:
-                self.points[(metric, "H", end)] = SeriesPoint(p.value - h1.value, p.unit, "derived:FY-H1",
-                                                              p.doc_ids + h1.doc_ids)
+                self.points[(metric, "H", end)] = self._derived(p.value - h1.value, p.unit, "derived:FY-H1",
+                                                                [p, h1], [(metric, "FY", end),
+                                                                          (metric, "H", date(end.year - 1, 9, 30))])
+
+    @staticmethod
+    def _derived(value, unit, source, parts: list["SeriesPoint"], keys: list) -> "SeriesPoint":
+        return SeriesPoint(value, unit, source, sorted({d for p in parts for d in p.doc_ids}), 1,
+                           _latest(p.available_at for p in parts), _latest(p.system_at for p in parts),
+                           list(keys))
+
+    def provenance(self, keys) -> tuple[Optional[datetime], Optional[datetime], list[str]]:
+        """(knowable_at, system_known_at, doc_ids) of the points a calculation used."""
+        pts = [self.points[k] for k in keys if k in self.points]
+        if not pts:
+            return None, None, []
+        return (_latest(p.available_at for p in pts), _latest(p.system_at for p in pts),
+                sorted({d for p in pts for d in p.doc_ids}))
 
     def _derive_ebitda(self) -> None:
         for (metric, ptype, end), rev in list(self.points.items()):
@@ -144,10 +171,11 @@ class FinancialSeries:
             da = self.points.get((Metric.DEPRECIATION, ptype, end))
             fc = self.points.get((Metric.FINANCE_COST, ptype, end))
             if te and da and fc:
-                self.points[(Metric.EBITDA, ptype, end)] = SeriesPoint(
+                self.points[(Metric.EBITDA, ptype, end)] = self._derived(
                     rev.value - (te.value - da.value - fc.value), rev.unit,
                     "derived:revenue-(expenses-D&A-finance cost), excl. other income",
-                    sorted(set(rev.doc_ids + te.doc_ids)))
+                    [rev, te, da, fc], [(m, ptype, end) for m in (Metric.REVENUE, Metric.TOTAL_EXPENSES,
+                                                                 Metric.DEPRECIATION, Metric.FINANCE_COST)])
 
     # -- access ------------------------------------------------------------
 

@@ -137,9 +137,12 @@ class FixtureRepository:
         self.text_policy = TextPolicy()
         self._docs: list[SourceDocument] = []
         self._issuers: dict[str, dict] = {}
+        self._identity: dict[str, dict] = {}
+        self._text_times: dict[str, Optional[datetime]] = {}
         for f in sorted(self.path.glob("*.json")):
             data = json.loads(f.read_text())
             self._issuers.update(data.get("issuers", {}))
+            self._identity.update(data.get("identity", {}))
             for d in data.get("documents", []):
                 text = d.get("text")
                 if text is None and d.get("text_file"):
@@ -153,6 +156,8 @@ class FixtureRepository:
                     local_path=str(self.path / d["local_path"]) if d.get("local_path") else "",
                     text=text, pages=d.get("pages"), first_seen_at=_parse_dt(d.get("first_seen_at")),
                 ))
+                # fixture-declared time the text existed in the system (system-replay tests)
+                self._text_times[str(d["doc_id"])] = _parse_dt(d.get("text_available_at"))
 
     def preflight(self) -> dict:
         return {"source": "fixtures", "path": str(self.path), "documents": len(self._docs),
@@ -162,15 +167,25 @@ class FixtureRepository:
         return sorted({d.ticker for d in self._docs if d.country == country})
 
     def documents(self, ticker: str, country: str, as_of: datetime) -> list[SourceDocument]:
+        return self.documents_for([ticker], country, as_of)
+
+    def documents_for(self, tickers: list[str], country: str, as_of: datetime) -> list[SourceDocument]:
         import copy
+        wanted = {t.upper() for t in tickers}
         out = []
         for d in self._docs:
-            if d.ticker == ticker and d.country == country and _visible(d, as_of):
+            if d.ticker.upper() in wanted and d.country == country and _visible(d, as_of):
                 d = copy.deepcopy(d)
                 legacy = "\f".join(d.pages) if d.pages else d.text
                 d.pages = None
-                out.append(attach_text(d, self.artifact_store, legacy, "fixture_text", self.text_policy))
+                d = attach_text(d, self.artifact_store, legacy, "fixture_text", self.text_policy)
+                if d.text_source == "fixture_text" and self._text_times.get(d.doc_id):
+                    d.text_available_at = self._text_times[d.doc_id]
+                out.append(d)
         return out
+
+    def identity_records(self) -> dict:
+        return dict(self._identity)
 
     def issuer_metadata(self, ticker: str) -> dict:
         return dict(self._issuers.get(ticker, {}))
@@ -321,8 +336,14 @@ class PostgresReadOnlyRepository:
         return None, "none"
 
     def documents(self, ticker: str, country: str, as_of: datetime) -> list[SourceDocument]:
+        return self.documents_for([ticker], country, as_of)
+
+    def identity_records(self) -> dict:
+        return {}            # issuer registry comes from configuration for the database source
+
+    def documents_for(self, tickers: list[str], country: str, as_of: datetime) -> list[SourceDocument]:
         out = []
-        for r in self._iter_rows([ticker], country, as_of):
+        for r in self._iter_rows(list(tickers), country, as_of):
             pub = r.get("published_at")
             if isinstance(pub, datetime) and pub.tzinfo is None:
                 pub = pub.replace(tzinfo=IST)

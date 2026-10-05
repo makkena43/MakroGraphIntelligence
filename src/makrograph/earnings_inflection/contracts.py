@@ -314,6 +314,7 @@ class FinancialMeasurement:
     available_at: Optional[datetime]
     source: str = "reported"       # "reported" | "derived"
     restated: bool = False
+    system_available_at: Optional[datetime] = None   # when MakroGraph held the document AND its text
     evidence_id: str = ""
     quote: str = ""
 
@@ -332,6 +333,11 @@ class DriverChange:
     comparable: bool = True
     notes: list[str] = field(default_factory=list)
     source_doc_ids: list[str] = field(default_factory=list)
+    # Earliest defensible detection time = latest availability of ALL required inputs
+    # (never the oldest cited document).  system_known_at adds MakroGraph's own
+    # ingestion/extraction times; None when they cannot be proven.
+    knowable_at: Optional[datetime] = None
+    system_known_at: Optional[datetime] = None
 
 
 @dataclass

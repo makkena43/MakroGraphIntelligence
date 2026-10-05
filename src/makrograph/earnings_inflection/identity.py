@@ -76,6 +76,183 @@ class IdentityResolver:
         return [s for s in self._spans if s.issuer_id == issuer_id]
 
 
+# ---------------------------------------------------------------------------
+# Issuer registry (WP2): stable issuer identity, effective-dated aliases,
+# separate security identity, explicit predecessor comparability decisions
+# ---------------------------------------------------------------------------
+
+class ReplayMode:
+    """How historical as-of runs decide what was knowable.
+
+    PUBLIC_INFORMATION_RECONSTRUCTION: anything publicly available by the cutoff,
+        even if MakroGraph ingested it later (states its reconstruction limits).
+    SYSTEM_KNOWLEDGE_REPLAY: additionally requires that MakroGraph held the
+        document, its extracted text and any identity mapping by the cutoff.
+        Legacy rows that cannot prove those times are excluded and counted.
+    """
+    RECONSTRUCTION = "PUBLIC_INFORMATION_RECONSTRUCTION"
+    SYSTEM = "SYSTEM_KNOWLEDGE_REPLAY"
+    ALL = (RECONSTRUCTION, SYSTEM)
+
+
+@dataclass
+class AliasRecord:
+    alias: str                         # NSE symbol, BSE scrip code, ISIN ...
+    kind: str                          # "nse_symbol" | "bse_scrip" | "isin" | "symbol"
+    issuer_id: str
+    valid_from: Optional[date] = None
+    valid_to: Optional[date] = None
+    recorded_at: Optional["datetime"] = None   # when the mapping became known (system replay)
+    source: str = ""
+
+    def covers(self, d: date) -> bool:
+        return (self.valid_from is None or self.valid_from <= d) and (self.valid_to is None or d <= self.valid_to)
+
+
+@dataclass
+class SecurityRecord:
+    """Tradable security identity - deliberately separate from the issuer."""
+    isin: str = ""
+    exchange: str = ""
+    symbol: str = ""
+    series: str = ""
+    board: str = ""                    # "mainboard" | "sme"
+    valid_from: Optional[date] = None
+    valid_to: Optional[date] = None
+    source: str = ""
+
+    def covers(self, d: date) -> bool:
+        return (self.valid_from is None or self.valid_from <= d) and (self.valid_to is None or d <= self.valid_to)
+
+
+@dataclass
+class PredecessorLink:
+    predecessor_issuer_id: str
+    effective_date: date
+    comparable: Optional[bool] = None   # None = no decision: never spliced into one series
+    decision_source: str = ""
+
+
+@dataclass
+class IssuerRecord:
+    issuer_id: str
+    name: str = ""
+    aliases: list[AliasRecord] = field(default_factory=list)
+    securities: list[SecurityRecord] = field(default_factory=list)
+    predecessors: list[PredecessorLink] = field(default_factory=list)
+    industry_history: list[dict] = field(default_factory=list)   # {"valid_from","industry","source"}
+
+    def listing_at(self, d: date) -> Optional[SecurityRecord]:
+        eq = [s for s in self.securities if s.covers(d) and (is_operating_equity_series(s.series) is not False)]
+        return eq[-1] if eq else None
+
+    def industry_at(self, d: date) -> tuple[str, str]:
+        hits = [h for h in self.industry_history if (h.get("valid_from") is None or h["valid_from"] <= d)]
+        if not hits:
+            return "", ""
+        h = max(hits, key=lambda x: x.get("valid_from") or date.min)
+        return h["industry"], h.get("source", "")
+
+
+def _dt(v):
+    from datetime import datetime as _datetime
+    if v in (None, ""):
+        return None
+    if isinstance(v, (date, _datetime)):
+        return v
+    return _datetime.fromisoformat(str(v)) if "T" in str(v) else date.fromisoformat(str(v))
+
+
+class IssuerRegistry:
+    """Resolves a requested symbol to a stable issuer and its eligible aliases."""
+
+    def __init__(self, issuers: Optional[list[IssuerRecord]] = None):
+        self.issuers = {i.issuer_id: i for i in (issuers or [])}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "IssuerRegistry":
+        out = []
+        for iid, rec in (data or {}).items():
+            out.append(IssuerRecord(
+                issuer_id=iid, name=rec.get("name", ""),
+                aliases=[AliasRecord(alias=a["alias"], kind=a.get("kind", "symbol"), issuer_id=iid,
+                                     valid_from=_dt(a.get("valid_from")), valid_to=_dt(a.get("valid_to")),
+                                     recorded_at=_dt(a.get("recorded_at")), source=a.get("source", ""))
+                         for a in rec.get("aliases", [])],
+                securities=[SecurityRecord(**{**sec, "valid_from": _dt(sec.get("valid_from")),
+                                              "valid_to": _dt(sec.get("valid_to"))})
+                            for sec in rec.get("securities", [])],
+                predecessors=[PredecessorLink(p["predecessor_issuer_id"], _dt(p["effective_date"]),
+                                              p.get("comparable"), p.get("decision_source", ""))
+                              for p in rec.get("predecessors", [])],
+                industry_history=[{**h, "valid_from": _dt(h.get("valid_from"))}
+                                  for h in rec.get("industry_history", [])],
+            ))
+        return cls(out)
+
+    def merge(self, other: "IssuerRegistry") -> "IssuerRegistry":
+        merged = dict(self.issuers)
+        merged.update(other.issuers)
+        return IssuerRegistry(list(merged.values()))
+
+    @staticmethod
+    def _known(a: AliasRecord, cutoff, mode: str) -> bool:
+        if mode != ReplayMode.SYSTEM:
+            return True
+        return a.recorded_at is not None and a.recorded_at <= cutoff
+
+    def resolve(self, requested: str, cutoff, mode: str = ReplayMode.RECONSTRUCTION
+                ) -> tuple[Optional[IssuerRecord], str]:
+        """Issuer for a requested symbol.  Old and new symbols both resolve; when a
+        symbol was reused, the issuer holding it most recently at/before the cutoff wins."""
+        sym = (requested or "").upper().strip()
+        cut_d = cutoff.date() if hasattr(cutoff, "date") else cutoff
+        hits = [(i, a) for i in self.issuers.values() for a in i.aliases
+                if a.alias.upper() == sym and self._known(a, cutoff, mode)]
+        if not hits:
+            unproven = [(i, a) for i in self.issuers.values() for a in i.aliases if a.alias.upper() == sym]
+            if unproven and mode == ReplayMode.SYSTEM:
+                return None, "alias_mapping_not_known_by_cutoff"
+            return None, "symbol_assumed_stable"
+        live = [(i, a) for i, a in hits if a.covers(cut_d)]
+        pool = live or [(i, a) for i, a in hits if a.valid_from is None or a.valid_from <= cut_d] or hits
+        best = max(pool, key=lambda t: t[1].valid_from or date.min)
+        ids = {i.issuer_id for i, a in pool if (a.valid_from or date.min) == (best[1].valid_from or date.min)}
+        if len(ids) > 1:
+            raise ValueError(f"ambiguous alias {sym} at {cut_d}: {sorted(ids)} (needs review)")
+        return best[0], "issuer_registry"
+
+    def eligible_aliases(self, issuer: IssuerRecord, cutoff, mode: str) -> list[AliasRecord]:
+        cut_d = cutoff.date() if hasattr(cutoff, "date") else cutoff
+        return [a for a in issuer.aliases if self._known(a, cutoff, mode)
+                and (a.valid_from is None or a.valid_from <= cut_d)]
+
+    def comparable_predecessors(self, issuer: IssuerRecord) -> tuple[list[IssuerRecord], list[str]]:
+        """Predecessors explicitly decided comparable; notes for those that are not."""
+        use, notes = [], []
+        for p in issuer.predecessors:
+            pred = self.issuers.get(p.predecessor_issuer_id)
+            if p.comparable is True and pred is not None:
+                use.append(pred)
+                notes.append(f"predecessor {p.predecessor_issuer_id} history included up to {p.effective_date} "
+                             f"(comparability decision: {p.decision_source or 'recorded'})")
+            else:
+                notes.append(f"predecessor {p.predecessor_issuer_id} history excluded "
+                             + ("(decided not comparable)" if p.comparable is False
+                                else "(no comparability decision recorded)"))
+        return use, notes
+
+
+def alias_for_document(aliases: list[AliasRecord], doc_ticker: str, doc_date: Optional[date]
+                       ) -> Optional[AliasRecord]:
+    """The alias under which a document belongs to the issuer (validity must cover its date)."""
+    t = (doc_ticker or "").upper()
+    for a in aliases:
+        if a.alias.upper() == t and (doc_date is None or a.covers(doc_date)):
+            return a
+    return None
+
+
 def is_operating_equity_series(series: Optional[str], allow_sme: bool = True) -> Optional[bool]:
     """True/False for a known series, ``None`` when the series is unknown.
 

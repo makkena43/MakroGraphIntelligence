@@ -123,7 +123,9 @@ def what_changed(drivers, events, guidance, evidence, first_public: dict[str, da
     out: list[ChangeFinding] = []
     for d in drivers:
         if d.material:
-            when = min((first_public[x] for x in d.source_doc_ids if x in first_public), default=None)
+            # earliest defensible detection = latest availability of every required input
+            when = d.knowable_at or max((first_public[x] for x in d.source_doc_ids if x in first_public),
+                                        default=None)
             prior = f"{d.prior:.2f}" if d.prior is not None else "-"
             if d.unit == "bps" and d.current is not None and d.change is not None:
                 # levels are percentages; the change is in basis points
