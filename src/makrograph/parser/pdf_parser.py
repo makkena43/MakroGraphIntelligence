@@ -25,6 +25,20 @@ def _join_pages(pages_text: list[str]) -> str:
     return PAGE_SEPARATOR.join(pages_text)
 
 
+def _failure_kind(exc: Exception) -> str:
+    msg = str(exc).lower()
+    return "encrypted" if ("password" in msg or "encrypt" in msg) else "error"
+
+
+def _set_coverage(result: "ParseResult", pages_text: list, max_pages: int) -> None:
+    result.pages = list(pages_text)
+    result.pages_expected = result.page_count
+    result.max_pages = max_pages
+    result.truncated = result.page_count > len(pages_text)
+    if not any(p.strip() for p in pages_text):
+        result.failure_kind = "no_text"
+
+
 @dataclass
 class ParseResult:
     """Result of parsing a single document."""
@@ -35,6 +49,12 @@ class ParseResult:
     metadata: dict = field(default_factory=dict)
     engine_used: str = ""
     error: Optional[str] = None
+    # Page-level coverage (additive; existing callers can ignore these fields).
+    pages: list = field(default_factory=list)        # per-page text, blank pages kept
+    pages_expected: Optional[int] = None             # pages in the file
+    truncated: bool = False                          # stopped at max_pages
+    max_pages: Optional[int] = None
+    failure_kind: str = ""                           # "" | no_text | encrypted | error | not_found | not_pdf
 
     @property
     def success(self) -> bool:
@@ -52,6 +72,17 @@ class PDFParser:
         self.output_dir = Path(config.get("output_dir", "data/parsed"))
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
+    @property
+    def parser_version(self) -> str:
+        """Identifies the extraction logic so re-extractions are versioned, not overwritten."""
+        def ver(mod):
+            try:
+                return __import__(mod).__version__
+            except Exception:
+                return "na"
+        return (f"pdfparser-mg2/{self.primary_engine}-{ver('pdfplumber')}/{self.fallback_engine}-"
+                f"{ver('pymupdf') if self.fallback_engine == 'pymupdf' else 'na'}/max{self.max_pages}")
+
     def parse(self, pdf_path: Path) -> ParseResult:
         """Parse a PDF file, trying primary engine then fallback."""
         pdf_path = Path(pdf_path)
@@ -59,10 +90,12 @@ class PDFParser:
 
         if not pdf_path.exists():
             result.error = f"File not found: {pdf_path}"
+            result.failure_kind = "not_found"
             return result
 
         if not pdf_path.suffix.lower() == ".pdf":
             result.error = f"Not a PDF file: {pdf_path}"
+            result.failure_kind = "not_pdf"
             return result
 
         # Try primary engine
@@ -132,9 +165,11 @@ class PDFParser:
 
             result.text = _join_pages(pages_text)
             result.tables = tables
+            _set_coverage(result, pages_text, self.max_pages)
 
         except Exception as e:
             result.error = f"pdfplumber error: {e}"
+            result.failure_kind = _failure_kind(e)
             logger.error(f"pdfplumber failed on {pdf_path.name}: {e}")
 
         return result
@@ -150,6 +185,11 @@ class PDFParser:
             fitz.TOOLS.mupdf_display_errors(False)
 
             doc = fitz.open(pdf_path)
+            if getattr(doc, "needs_pass", False):
+                doc.close()
+                result.error = "pymupdf: document is password-protected"
+                result.failure_kind = "encrypted"
+                return result
             result.page_count = len(doc)
             result.metadata = dict(doc.metadata) if doc.metadata else {}
 
@@ -161,10 +201,12 @@ class PDFParser:
                 pages_text.append(text or "")
 
             result.text = _join_pages(pages_text)
+            _set_coverage(result, pages_text, self.max_pages)
             doc.close()
 
         except Exception as e:
             result.error = f"pymupdf error: {e}"
+            result.failure_kind = _failure_kind(e)
             logger.error(f"PyMuPDF failed on {pdf_path.name}: {e}")
 
         return result

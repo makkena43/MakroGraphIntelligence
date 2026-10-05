@@ -385,10 +385,10 @@ class _FakeCursor:
         elif "information_schema.columns" in sql:
             self.description = [("column_name",)]
             self._rows = [(c,) for c in ("id", "ticker", "country", "filed_at", "published_at", "title")]
-        elif "FROM mg_documents WHERE ticker" in sql:
+        elif "FROM mg_documents WHERE" in sql:
             names = [c.split(" AS ")[-1].strip() for c in sql.split("SELECT ")[1].split(" FROM")[0].split(", ")]
             self.description = [(n,) for n in names]
-            last_id = params[2]
+            last_id = params[-2]
             data = [r for r in self.conn.docs if r["id"] > last_id][: params[-1]]
             self._rows = [tuple(r.get(n) for n in names) for r in data]
         else:

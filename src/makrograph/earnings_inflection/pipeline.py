@@ -19,7 +19,7 @@ import logging
 import os
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, time
+from datetime import datetime, time, timezone
 from typing import Callable, Optional
 
 from .assessments import (
@@ -37,7 +37,9 @@ from .earnings_bridge import build_bridge
 from .event_resolution import resolve_events
 from .extraction import ConstrainedLLMExtractor, extract_sentence_evidence, garbled_ratio, parse_results_tables
 from .financial_series import FinancialSeries
+from .coverage import document_coverage, result_period_coverage
 from .guidance_ledger import build_ledger
+from .text_artifacts import text_hash
 from .identity import IdentityResolver, SymbolSpan, classify_issuer_model, listing_segment_from
 from .validation import reconcile, scope_conflicts, validate_evidence, validate_measurements
 
@@ -67,6 +69,11 @@ class RunResult:
     errors: dict[str, str] = field(default_factory=dict)
     preflight: dict = field(default_factory=dict)
     budget: dict = field(default_factory=dict)
+    manifest: dict = field(default_factory=dict)
+
+    @property
+    def status(self) -> str:
+        return self.manifest.get("status", "")
 
 
 class EarningsInflectionPipeline:
@@ -81,6 +88,10 @@ class EarningsInflectionPipeline:
         spans = [SymbolSpan(**{**s, "valid_from": _d(s["valid_from"]), "valid_to": _d(s.get("valid_to"))})
                  for s in self.cfg.get("identity", {}).get("symbol_history", [])]
         self.identity = IdentityResolver(spans)
+        self.replay_mode = self.cfg.get("replay_mode", "PUBLIC_INFORMATION_RECONSTRUCTION")
+        pins = self.cfg.get("pinned_extractions") or {}
+        if pins and hasattr(self.repo, "text_policy"):
+            self.repo.text_policy.pinned.update(pins)
 
     # -- public ------------------------------------------------------------
 
@@ -96,7 +107,48 @@ class EarningsInflectionPipeline:
                 logger.exception("assessment failed for %s", t)
                 res.errors[t] = f"{type(e).__name__}: {e}"
         res.budget = self.budget.summary()
+        res.manifest = self._manifest(tickers, res)
         return res
+
+    def _manifest(self, tickers: list[str], res: "RunResult") -> dict:
+        """Run manifest: everything needed to reproduce (or audit) this run."""
+        import hashlib
+        import json
+        import subprocess
+        import uuid
+        try:
+            code = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True,
+                                  cwd=os.path.dirname(__file__), timeout=5).stdout.strip() or "unknown"
+        except Exception:
+            code = "unknown"
+        cfg = {k: v for k, v in self.cfg.items() if k not in ("persistence",)}
+        incomplete = [a.ticker for a in res.assessments
+                      if a.coverage.get("result_periods", {}).get("missing") or a.coverage.get("unreadable_documents")]
+        status = "FAILED" if (res.errors and not res.assessments) else \
+                 "PARTIAL" if (res.errors or incomplete) else "COMPLETE"
+        return {
+            "schema_version": "ei-run-manifest-1",
+            "run_id": str(uuid.uuid4()),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "code_version": code,
+            "config_hash": hashlib.sha256(json.dumps(cfg, sort_keys=True, default=str).encode()).hexdigest(),
+            "replay_mode": self.replay_mode,
+            "cutoff": res.as_of.isoformat(),
+            "universe": list(tickers),
+            "counts": {"requested": len(tickers), "completed": len(res.assessments),
+                       "failed": len(res.errors), "deferred": 0, "incomplete_coverage": len(incomplete)},
+            "failed": res.errors,
+            "incomplete_coverage": incomplete,
+            "budget": self.budget.summary(),
+            "sources": {a.ticker: a.source_manifest for a in res.assessments},
+            "status": status,
+        }
+
+    @staticmethod
+    def pins_from_manifest(manifest: dict) -> dict:
+        """doc_id -> artifact version used by an earlier run (for an exact replay)."""
+        return {s["doc_id"]: s["extraction_version_id"]
+                for srcs in manifest.get("sources", {}).values() for s in srcs if s.get("extraction_version_id")}
 
     def assess(self, ticker: str, as_of: datetime) -> Assessment:
         issuer_id, identity_basis = self.identity.resolve(ticker, as_of.date())
@@ -235,6 +287,32 @@ class EarningsInflectionPipeline:
         coverage["reporting_cadence"] = {"Q": "quarterly", "H": "half-yearly"}.get(cadence or "", "none")
         coverage["order_mentions"] = sum(1 for e in evidence if e.usable and e.metric.value == "order_win")
         coverage["economic_events_after_dedup"] = len(events)
+        coverage.update(document_coverage(docs))
+        cov_cadence = cadence or ("H" if segment == ListingSegment.SME else "Q")
+        parsed_ends = [e for (m, t, e), p in series.points.items()
+                       if m == Metric.REVENUE and t == cov_cadence]
+        coverage["result_periods"] = result_period_coverage(as_of.date(), cov_cadence, parsed_ends)
+        missing_periods = coverage["result_periods"]["missing"]
+        if missing_periods:
+            lim.insert(0, f"Results not parsed for {len(missing_periods)} of "
+                          f"{len(coverage['result_periods']['expected'])} expected "
+                          f"{coverage['result_periods']['cadence']} periods: {', '.join(missing_periods)}.")
+        unreadable = coverage["unreadable_documents"]
+        if unreadable:
+            lim.insert(0, f"{len(unreadable)} document(s) have no readable text "
+                          f"({', '.join(sorted({u['status'] for u in unreadable}))}); run the explicit "
+                          "--extract step for PDF-only rows. A downloaded PDF is not an extraction.")
+        if coverage["partial_extractions"]:
+            lim.append(f"{len(coverage['partial_extractions'])} document(s) were only partially extracted "
+                       "(page limit or pages without a text layer).")
+        source_manifest = [{
+            "doc_id": d.doc_id, "text_source": d.text_source, "extraction_version_id": d.extraction_version_id,
+            "extraction_status": d.extraction_status, "raw_hash": d.raw_hash,
+            "text_hash": text_hash(d.full_text()) if d.full_text() else "",
+            "available_at": d.available_at.isoformat() if d.available_at else None,
+            "first_seen_at": d.first_seen_at.isoformat() if d.first_seen_at else None,
+            "text_available_at": d.text_available_at.isoformat() if d.text_available_at else None,
+        } for d in docs]
 
         a = Assessment(
             ticker=ticker, company=company, country=self.country, as_of=as_of, issuer_model=issuer_model,
@@ -248,7 +326,7 @@ class EarningsInflectionPipeline:
             customer_risks=[f"{p.name}: {f}" for p in profiles for f in p.risk_flags],
             missing_inputs=sorted(set(missing)),
             next_checks=next_checks(drivers, events, guidance, sorted(set(missing)), status),
-            sources=sources, limitations=lim, coverage=coverage,
+            sources=sources, limitations=lim, coverage=coverage, source_manifest=source_manifest,
         )
         a.validate()
         return a
