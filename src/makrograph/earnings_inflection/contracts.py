@@ -114,6 +114,22 @@ class Metric(str, Enum):
     REVENUE_GROWTH_GUIDANCE = "revenue_growth_guidance"
     MARGIN_GUIDANCE = "margin_guidance"
     FUNDRAISE = "fundraise"
+    # WP3: integrity / recurring earnings / balance sheet / cash flow / share basis
+    PBT_PRE_EXCEPTIONAL = "pbt_pre_exceptional"
+    NCI_PROFIT = "nci_profit"
+    PAID_UP_CAPITAL = "paid_up_capital"
+    FACE_VALUE = "face_value"
+    SHARES_FROM_CAPITAL = "shares_from_capital"        # derived: paid-up capital / face value
+    INVESTING_CASH_FLOW = "investing_cash_flow"
+    FINANCING_CASH_FLOW = "financing_cash_flow"
+    NET_CHANGE_IN_CASH = "net_change_in_cash"
+    BORROWINGS_NONCURRENT = "borrowings_noncurrent"
+    BORROWINGS_CURRENT = "borrowings_current"
+    CASH = "cash"
+    RECEIVABLES = "receivables"
+    INVENTORIES = "inventories"
+    TOTAL_ASSETS = "total_assets"
+    TOTAL_EQUITY_AND_LIABILITIES = "total_equity_and_liabilities"
 
 
 class Unit(str, Enum):
@@ -275,6 +291,7 @@ class Evidence:
     target_period_label: str = ""
     scope: Scope = Scope.UNKNOWN
     segment: str = ""
+    facility: str = ""                  # plant / unit / product line the statement is about ("" = company-level)
     counterparty: str = ""
     counterparty_named: bool = False
     commitment_strength: CommitmentStrength = CommitmentStrength.NOT_APPLICABLE
@@ -315,6 +332,9 @@ class FinancialMeasurement:
     source: str = "reported"       # "reported" | "derived"
     restated: bool = False
     system_available_at: Optional[datetime] = None   # when MakroGraph held the document AND its text
+    display_unit: Optional[float] = None    # value of one unit in the last displayed digit (crore), for tolerances
+    integrity: str = "unchecked"            # unchecked | validated | definition_difference | unresolved | rejected
+    integrity_notes: list[str] = field(default_factory=list)
     evidence_id: str = ""
     quote: str = ""
 

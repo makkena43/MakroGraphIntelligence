@@ -72,7 +72,7 @@ def decide_status(drivers: list[DriverChange], events: list[EconomicEvent], evid
     accel = _driver(drivers, "revenue_growth_acceleration")
     material_realized = [d for d in drivers if d.material and d.driver in
                          ("revenue_yoy_growth", "revenue_growth_acceleration", "ebitda_margin_change",
-                          "pat_yoy_growth", "operating_leverage")]
+                          "pat_yoy_growth", "operating_leverage", "pat_loss_to_profit", "pat_low_base")]
     if margin and margin.material and margin.change is not None and margin.change < 0:
         material_realized = [d for d in material_realized if d.driver != "ebitda_margin_change"]
         why.append(f"EBITDA margin contracted {margin.change:.0f} bps YoY")
@@ -164,8 +164,17 @@ def what_changed(drivers, events, guidance, evidence, first_public: dict[str, da
     return out
 
 
-def financing_risks(evidence: list[Evidence], ttm_revenue: Optional[float], bridge: EarningsBridge) -> list[str]:
+def financing_risks(evidence: list[Evidence], ttm_revenue: Optional[float], bridge: EarningsBridge,
+                    drivers: Optional[list[DriverChange]] = None) -> list[str]:
     risks = []
+    for d in drivers or []:
+        if d.driver == "debt_change" and d.current is not None and d.prior is not None:
+            risks.append(f"{d.basis}: {d.prior:,.1f} -> {d.current:,.1f} cr" + (f" ({'; '.join(d.notes)})"
+                                                                               if d.notes else ""))
+        if d.driver == "cash_conversion" and d.current is not None and d.current < 0.5:
+            risks.append(f"cash conversion {d.current:.2f}x ({d.basis}): profit not yet backed by operating cash")
+        if d.driver == "share_count_change":
+            risks.append(f"share count {d.prior:.3f} -> {d.current:.3f} crore ({d.basis}); dilution or buyback")
     capex = [e for e in evidence if e.usable and e.metric == Metric.CAPEX and e.quantity and e.quantity.unit == Unit.INR_CRORE]
     funds = [e for e in evidence if e.usable and e.metric == Metric.FUNDRAISE]
     if capex:
