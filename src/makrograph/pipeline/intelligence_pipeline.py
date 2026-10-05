@@ -666,6 +666,9 @@ class IntelligencePipeline:
         window_end=None,
         store_text_to_db: bool = False,
         delete_after_parse: bool = False,
+        text_artifact_root: Optional[str] = None,
+        keep_failed_originals: bool = False,
+        granular_failure_status: bool = False,
     ) -> dict:
         """Download PDFs for high-signal-value India filing categories.
 
@@ -693,6 +696,16 @@ class IntelligencePipeline:
                                  Used by historical runner to avoid re-reading files later.
             delete_after_parse:  If True, delete the PDF from disk after extracting text.
                                  Only meaningful when store_text_to_db=True.
+            text_artifact_root:  Opt-in (default None = unchanged behaviour). When set, every
+                                 parse outcome is also recorded in a versioned, immutable text
+                                 artifact store (makrograph.parser.text_artifacts) and the
+                                 original PDF is preserved there by content hash - in BOTH live
+                                 and historical modes, so readers get identical text either way.
+            keep_failed_originals: Opt-in. Do not delete a PDF whose parse failed (default keeps
+                                 the historical behaviour of deleting it).
+            granular_failure_status: Opt-in. Record recoverable failure states
+                                 (ocr_required / encrypted / parse_failed / empty) in
+                                 processing_status instead of the permanent 'unsupported'.
         Returns:
             dict with downloaded/failed/skipped/unsupported counts.
         """
@@ -789,6 +802,10 @@ class IntelligencePipeline:
         pdf_dir.mkdir(parents=True, exist_ok=True)
 
         pdf_parser = PDFParser(self.config.get("parser", {}))
+        _artifact_store = None
+        if text_artifact_root:
+            from ..parser.text_artifacts import TextArtifactStore, record_parse_result
+            _artifact_store = TextArtifactStore(text_artifact_root)
 
         # Use curl_cffi for Akamai bypass if available
         try:
@@ -885,10 +902,13 @@ class IntelligencePipeline:
         # is set to NULL but raw_text is populated. Including local_path IS NULL would
         # cause the loop to re-query already-processed docs, emptying the batch after 1 pass.
         # Live mode: fetch docs without a local file on disk.
+        _excluded_status = ("processing_status NOT IN ('unsupported', 'ocr_required', 'encrypted', "
+                            "'parse_failed', 'empty', 'missing_original')"
+                            if granular_failure_status else "processing_status != 'unsupported'")
         _path_clause = (
-            "AND (raw_text IS NULL OR raw_text = '') AND processing_status != 'unsupported'"
+            f"AND (raw_text IS NULL OR raw_text = '') AND {_excluded_status}"
             if store_text_to_db
-            else "AND (local_path IS NULL OR local_path = '') AND processing_status != 'unsupported'"
+            else f"AND (local_path IS NULL OR local_path = '') AND {_excluded_status}"
         )
 
         # Track already-attempted doc IDs to avoid re-fetching failed docs on retry
@@ -995,6 +1015,13 @@ class IntelligencePipeline:
                     #  local_path is set and next query excludes them)
                     parse_result = pdf_parser.parse(pdf_path)
                     extracted_text = parse_result.text if parse_result.success else ""
+                    _artifact = None
+                    if _artifact_store is not None:
+                        try:
+                            _artifact = record_parse_result(_artifact_store, str(doc_id), pdf_path,
+                                                            parse_result, pdf_parser.parser_version)
+                        except Exception as _ae:
+                            logger.warning(f"[pdf_fetch_india] artifact record failed for {doc_id}: {_ae}")
                     # Strip NUL bytes — Postgres TEXT rejects \x00 characters
                     if extracted_text:
                         extracted_text = extracted_text.replace("\x00", "")
@@ -1005,17 +1032,25 @@ class IntelligencePipeline:
                     if not extracted_text:
                         with _stats_lock:
                             stats["docs_unsupported"] += 1
+                        _fail_status = "unsupported"
+                        if granular_failure_status:
+                            from ..parser.text_artifacts import INGESTION_STATUS
+                            _kind = getattr(parse_result, "failure_kind", "")
+                            _fail_status = (INGESTION_STATUS.get(_artifact.status, "parse_failed") if _artifact
+                                            else {"no_text": "ocr_required", "encrypted": "encrypted"}
+                                            .get(_kind, "parse_failed"))
+                        _fail_path = str(pdf_path) if keep_failed_originals else "UNSUPPORTED_FORMAT"
                         with self._pg_store._conn() as conn:
                             with conn.cursor() as cur:
                                 cur.execute(
                                     """UPDATE mg_documents
-                                       SET local_path = 'UNSUPPORTED_FORMAT',
-                                           processing_status = 'unsupported',
+                                       SET local_path = %s,
+                                           processing_status = %s,
                                            updated_at = NOW()
                                        WHERE id = %s""",
-                                    (doc_id,),
+                                    (_fail_path, _fail_status, doc_id),
                                 )
-                        if pdf_path.exists():
+                        if pdf_path.exists() and not keep_failed_originals:
                             try:
                                 pdf_path.unlink()
                             except Exception:

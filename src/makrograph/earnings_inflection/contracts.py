@@ -18,6 +18,7 @@ from enum import Enum
 from typing import Any, Optional
 
 IST = timezone(timedelta(hours=5, minutes=30))
+SCHEMA_VERSION = "ei-assessment-2"
 
 RESEARCH_ONLY_NOTICE = (
     "Research-only evidence assessment. Not an investment recommendation, "
@@ -219,6 +220,18 @@ class SourceDocument:
     availability_basis: str = ""
     supersedes: list[str] = field(default_factory=list)
     superseded_by: Optional[str] = None
+    # text provenance (WP1): where the text came from and how complete it is
+    text_source: str = ""                  # "artifact:<version>" | "legacy_raw_text" | "legacy_txt" | "none"
+    extraction_status: str = ""            # ExtractionStatus value
+    extraction_version_id: str = ""
+    extraction_complete: Optional[bool] = None    # None = unknown (legacy text)
+    extraction_issues: list[str] = field(default_factory=list)
+    raw_hash: str = ""
+    # system-time provenance (WP2): when MakroGraph first held the document and its text
+    first_seen_at: Optional[datetime] = None
+    text_available_at: Optional[datetime] = None  # None = not provable (legacy text)
+    issuer_id: str = ""
+    alias_used: str = ""
 
     def validate(self) -> None:
         if not self.doc_id:
@@ -430,6 +443,10 @@ class Assessment:
     limitations: list[str]
     coverage: dict[str, Any] = field(default_factory=dict)
     notice: str = RESEARCH_ONLY_NOTICE
+    # exact text versions read for this assessment (replayable via the run manifest)
+    source_manifest: list[dict[str, Any]] = field(default_factory=list)
+    replay_mode: str = "PUBLIC_INFORMATION_RECONSTRUCTION"
+    schema_version: str = SCHEMA_VERSION
 
     def validate(self) -> None:
         if not self.limitations:

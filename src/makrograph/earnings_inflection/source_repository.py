@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Iterable, Iterator, Optional, Protocol
 
 from .contracts import IST, SourceDocument
+from .text_artifacts import ExtractionStatus, TextArtifactStore
 
 
 class ReadOnlyViolation(RuntimeError):
@@ -63,6 +64,63 @@ def _visible(doc: SourceDocument, as_of: datetime) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Text attachment (WP1): artifact store first, then legacy text
+# ---------------------------------------------------------------------------
+
+class TextPolicy:
+    """Which extracted text a run may read.
+
+    ``pinned`` maps doc_id -> artifact version (replaying an earlier run's
+    manifest); ``extracted_by`` restricts artifacts to those created no later
+    than a cutoff (system-knowledge replay)."""
+
+    def __init__(self, pinned: Optional[dict] = None, extracted_by: Optional[datetime] = None):
+        self.pinned = dict(pinned or {})
+        self.extracted_by = extracted_by
+
+
+def attach_text(doc: SourceDocument, store: Optional[TextArtifactStore], legacy_text: Optional[str],
+                legacy_source: str, policy: Optional[TextPolicy] = None) -> SourceDocument:
+    """Fill ``doc.text/pages`` and the provenance fields.  Never parses or downloads."""
+    policy = policy or TextPolicy()
+    pinned = policy.pinned.get(doc.doc_id)
+    if store is not None:
+        res = store.select(doc.doc_id, pinned_version=pinned, extracted_by=policy.extracted_by)
+        if res is not None:
+            doc.pages, doc.text = store.read_pages(res), None
+            doc.text_source = f"artifact:{res.version_id}"
+            doc.extraction_status = res.status.value
+            doc.extraction_version_id = res.version_id
+            doc.extraction_complete = res.complete
+            doc.extraction_issues = list(res.quality_issues)
+            doc.raw_hash = res.raw_hash
+            doc.text_available_at = res.extracted_at
+            return doc
+        if pinned:
+            doc.extraction_issues.append(f"pinned artifact {pinned} not found in the store")
+    if legacy_text:
+        doc.text, doc.pages = legacy_text, None
+        doc.text_source = legacy_source
+        doc.extraction_status = ExtractionStatus.LEGACY_UNVERSIONED.value
+        doc.extraction_complete = None
+        doc.extraction_issues.append("legacy text without version history or page-coverage record")
+        doc.text_available_at = None           # when this text first existed cannot be proven
+        return doc
+    doc.text, doc.pages = None, None
+    doc.text_source = "none"
+    last = store.latest_status(doc.doc_id) if store is not None else None
+    if last is not None and not last.status.usable:
+        doc.extraction_status = last.status.value
+        doc.extraction_issues.append(last.failure_reason)
+    elif (doc.local_path or "").lower().endswith(".pdf") or (doc.url or "").lower().endswith(".pdf"):
+        doc.extraction_status = ExtractionStatus.NOT_EXTRACTED.value
+        doc.extraction_issues.append("PDF original never extracted; run the explicit --extract step")
+    else:
+        doc.extraction_status = ExtractionStatus.EMPTY.value
+    return doc
+
+
+# ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
@@ -73,8 +131,10 @@ class FixtureRepository:
     relative to the fixture directory.
     """
 
-    def __init__(self, path: str | Path):
+    def __init__(self, path: str | Path, artifact_store: Optional[TextArtifactStore] = None):
         self.path = Path(path)
+        self.artifact_store = artifact_store
+        self.text_policy = TextPolicy()
         self._docs: list[SourceDocument] = []
         self._issuers: dict[str, dict] = {}
         for f in sorted(self.path.glob("*.json")):
@@ -89,8 +149,9 @@ class FixtureRepository:
                     country=d.get("country", "IN"), company=d.get("company", ""), title=d.get("title", ""),
                     doc_type=d.get("doc_type", ""), filing_type=d.get("filing_type", ""), url=d.get("url", ""),
                     filed_at=_parse_d(d.get("filed_at")), published_at=_parse_dt(d.get("published_at")),
-                    content_hash=d.get("content_hash", ""), local_path=d.get("local_path", ""),
-                    text=text, pages=d.get("pages"),
+                    content_hash=d.get("content_hash", ""),
+                    local_path=str(self.path / d["local_path"]) if d.get("local_path") else "",
+                    text=text, pages=d.get("pages"), first_seen_at=_parse_dt(d.get("first_seen_at")),
                 ))
 
     def preflight(self) -> dict:
@@ -102,8 +163,14 @@ class FixtureRepository:
 
     def documents(self, ticker: str, country: str, as_of: datetime) -> list[SourceDocument]:
         import copy
-        return [copy.deepcopy(d) for d in self._docs
-                if d.ticker == ticker and d.country == country and _visible(d, as_of)]
+        out = []
+        for d in self._docs:
+            if d.ticker == ticker and d.country == country and _visible(d, as_of):
+                d = copy.deepcopy(d)
+                legacy = "\f".join(d.pages) if d.pages else d.text
+                d.pages = None
+                out.append(attach_text(d, self.artifact_store, legacy, "fixture_text", self.text_policy))
+        return out
 
     def issuer_metadata(self, ticker: str) -> dict:
         return dict(self._issuers.get(ticker, {}))
@@ -127,13 +194,16 @@ def assert_read_only_sql(sql: str) -> None:
 
 DOC_COLUMNS_WANTED = ["id", "source_name", "doc_type", "filing_type", "title", "ticker", "company", "cik",
                       "country", "url", "filed_at", "published_at", "local_path", "content_hash", "raw_text",
-                      "page_count", "processing_status"]
+                      "page_count", "processing_status", "created_at"]
 REQUIRED_DOC_COLUMNS = {"id", "ticker", "country", "filed_at"}
 
 
 class PostgresReadOnlyRepository:
     def __init__(self, dsn: Optional[str] = None, dsn_env: str = "EI_READONLY_DSN", page_size: int = 500,
-                 text_root: Optional[str] = None, connect=None):
+                 text_root: Optional[str] = None, connect=None,
+                 artifact_store: Optional[TextArtifactStore] = None):
+        self.artifact_store = artifact_store
+        self.text_policy = TextPolicy()
         dsn = dsn or os.environ.get(dsn_env)
         if not dsn:
             raise RuntimeError(f"read-only DSN not configured (set {dsn_env}); production reads are opt-in")
@@ -221,45 +291,52 @@ class PostgresReadOnlyRepository:
                            "AND ticker <> '' ORDER BY ticker", (country,))
         return [r["ticker"] for r in rows]
 
-    def _iter_rows(self, ticker: str, country: str, as_of: datetime) -> Iterator[dict]:
+    def _iter_rows(self, tickers: list[str], country: str, as_of: datetime) -> Iterator[dict]:
+        """All rows for the given ticker aliases, paged by primary key (no cross-company LIMIT)."""
         cols = self.document_columns()
         sel = ", ".join(c if c in cols else f"NULL AS {c}" for c in DOC_COLUMNS_WANTED)
         pub = "published_at" if "published_at" in cols else "NULL::timestamptz"
         last_id = 0
         while True:
             rows = self._query(
-                f"SELECT {sel} FROM mg_documents WHERE ticker = %s AND country = %s AND id > %s "
+                f"SELECT {sel} FROM mg_documents WHERE ticker = ANY(%s) AND country = %s "
                 f"AND (COALESCE({pub}, (filed_at + INTERVAL '1 day' - INTERVAL '1 second')::timestamp AT TIME ZONE 'Asia/Kolkata') <= %s "
                 f"     OR ({pub} IS NULL AND filed_at IS NULL)) "
-                f"ORDER BY id LIMIT %s", (ticker, country, last_id, as_of, self._page))
+                f"AND id > %s ORDER BY id LIMIT %s", (list(tickers), country, as_of, last_id, self._page))
             if not rows:
                 return
             yield from rows
             last_id = rows[-1]["id"]
 
-    def _text_for(self, row: dict) -> Optional[str]:
+    def _text_for(self, row: dict) -> tuple[Optional[str], str]:
+        """Legacy text: (text, source label).  PDFs are never parsed here."""
         if row.get("raw_text"):
-            return row["raw_text"]
+            return row["raw_text"], "legacy_raw_text"
         lp = row.get("local_path")
         if lp and self._text_root:
             p = (self._text_root / lp).resolve() if not os.path.isabs(lp) else Path(lp)
             for cand in (p.with_suffix(".txt"), p):
                 if cand.suffix == ".txt" and cand.exists():
-                    return cand.read_text(errors="replace")
-        return None
+                    return cand.read_text(errors="replace"), "legacy_txt"
+        return None, "none"
 
     def documents(self, ticker: str, country: str, as_of: datetime) -> list[SourceDocument]:
         out = []
-        for r in self._iter_rows(ticker, country, as_of):
+        for r in self._iter_rows([ticker], country, as_of):
             pub = r.get("published_at")
             if isinstance(pub, datetime) and pub.tzinfo is None:
                 pub = pub.replace(tzinfo=IST)
-            out.append(SourceDocument(
+            seen = r.get("created_at")
+            if isinstance(seen, datetime) and seen.tzinfo is None:
+                seen = seen.replace(tzinfo=IST)
+            doc = SourceDocument(
                 doc_id=str(r["id"]), source_name=r.get("source_name") or "", ticker=r["ticker"],
                 country=r.get("country") or country, company=r.get("company") or "", title=r.get("title") or "",
                 doc_type=r.get("doc_type") or "", filing_type=r.get("filing_type") or "", url=r.get("url") or "",
                 filed_at=r.get("filed_at"), published_at=pub, content_hash=r.get("content_hash") or "",
-                local_path=r.get("local_path") or "", text=self._text_for(r)))
+                local_path=r.get("local_path") or "", first_seen_at=seen)
+            legacy, label = self._text_for(r)
+            out.append(attach_text(doc, self.artifact_store, legacy, label, self.text_policy))
         return out
 
     def issuer_metadata(self, ticker: str) -> dict:
