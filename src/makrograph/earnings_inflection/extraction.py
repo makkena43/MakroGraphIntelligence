@@ -32,8 +32,8 @@ from typing import Callable, Iterable, Optional
 
 from .chunking import sentences, split_numeric_row
 from .contracts import (
-    Chunk, CommitmentStrength, Evidence, EvidenceTier, FinancialMeasurement, Metric,
-    Modality, Quantity, Scope, SourceDocument, Unit,
+    COMMITMENT_RANK, Chunk, CommitmentStrength, EventStage, Evidence, EvidenceTier, FinancialMeasurement, Metric,
+    Modality, Quantity, RelationshipStatus, Scope, SourceDocument, TaxBasis, Unit, ValueBasis,
 )
 
 # ---------------------------------------------------------------------------
@@ -656,7 +656,13 @@ _METRIC_CUES: list[tuple[re.Pattern, Metric]] = [
     (re.compile(r"\border (?:inflow|intake)s?\b", re.I), Metric.ORDER_INFLOW),
     (re.compile(r"\b(?:received|bagged|secured|won|awarded|receipt of|bagging)\b.{0,80}\b(?:orders?|contracts?|letter of (?:award|intent)|LoA|LoI|purchase orders?|work orders?)\b|"
                 r"\b(?:orders?|contracts?)\b.{0,40}\b(?:worth|valued at|aggregating|amounting to|of value)\b|"
-                r"\bletter of (?:award|intent)\b|\bL-?1\b(?: bidder| position)?|\bMoU\b", re.I), Metric.ORDER_WIN),
+                r"\bletter of (?:award|intent)\b|\bL-?1\b(?: bidder| position)?|\bMoU\b|\bframework agreement\b|"
+                r"\brate contract\b|"
+                r"\b(?:orders?|contracts?|LoA|purchase orders?|work orders?)\b.{0,80}\b(?:cancell?ed|terminated|"
+                r"short[- ]closed|amended|revised|reduced|expired|lapsed|executed|delivered|completed)\b|"
+                r"\b(?:cancell?ation|termination|amendment|short[- ]closure|cancell?ed|terminated|short[- ]closed)\b.{0,60}"
+                r"\b(?:orders?|contracts?|LoA)\b",
+                re.I), Metric.ORDER_WIN),
     (re.compile(r"\bebitda margins?\b|\boperating margins?\b", re.I), Metric.EBITDA_MARGIN),
     (re.compile(r"\bcapacity utili[sz]ation\b|\butili[sz]ation (?:level|rate)s?\b", re.I), Metric.UTILIZATION),
     (re.compile(r"\b(?:installed|production|manufacturing) capacity\b|\bcapacity (?:of|to)\b.{0,30}\b(?:MW|GW|TPA|MTPA|units)\b", re.I), Metric.CAPACITY),
@@ -676,7 +682,7 @@ _NON_BINDING = re.compile(r"\bMoU\b|\bmemorandum of understanding\b|\bframework 
                           r"\bpipeline\b|\benquir(?:y|ies)\b|\bbids? submitted\b", re.I)
 _DISTINCT = re.compile(r"\b(?:repeat|fresh|another|additional|second|third|new|follow[- ]on) (?:order|contract|purchase order)\b", re.I)
 _COUNTERPARTY_NAMED = re.compile(
-    r"\b(?:from|by|with)\s+(?:M/s\.?\s+)?((?:[A-Z][A-Za-z0-9&.\-]*|of|and|the)(?:\s+(?:[A-Z][A-Za-z0-9&.\-]*|of|and|the|\(India\))){0,7})")
+    r"\b(?:from|by|with|(?:tenders?|orders?|contracts?) of)\s+(?:M/s\.?\s+)?((?:[A-Z][A-Za-z0-9&.\-]*|of|and|the)(?:\s+(?:[A-Z][A-Za-z0-9&.\-]*|of|and|the|\(India\))){0,7})")
 _COUNTERPARTY_UNNAMED = re.compile(
     r"\b(?:a|an|one of the)\s+(?:leading|large|major|reputed|marquee|prestigious|global|domestic|international|"
     r"fortune \d+|european|us[- ]based|government)\b[^.,;]{0,40}?\b(?:customer|client|oem|player|company|utility|psu|entity)\b", re.I)
@@ -684,6 +690,125 @@ _FACILITY = re.compile(
     r"\b(?:at|in|of|for)\s+(?:the|our|its)\s+((?:[A-Z][\w-]*\s+){1,3})(?:plant|unit|facility|factory|works|site)\b")
 _FACILITY_BARE = re.compile(r"\b((?:[A-Z][\w-]*\s+){1,2})(?:plant|unit|facility|factory)\b(?!\s+(?:of|for)\b)")
 _SEGMENT = re.compile(r"\b(?:in|for|from) (?:the|our) ([a-z][a-z &/-]{2,40}?) (?:segment|division|business|vertical)\b", re.I)
+
+# --- commercial-event detail (WP4) ------------------------------------------
+_CANCEL = re.compile(r"\b(?:cancell?ed|cancell?ation|terminated|termination of the (?:order|contract)|short[- ]closed|"
+                     r"foreclosed|withdrawn by the (?:customer|client))\b", re.I)
+_EXPIRE = re.compile(r"\b(?:expired|lapsed)\b", re.I)
+_AMEND = re.compile(r"\b(?:amended|amendment|revised (?:order |contract )?value|(?:reduced|increased|revised) to|"
+                    r"scope (?:reduced|enhanced|revised))\b", re.I)
+_EXECUTED = re.compile(r"\b(?:executed|delivered|commissioned|completed (?:the )?(?:supply|execution|delivery|order))\b",
+                       re.I)
+_INQUIRY = re.compile(r"\bin (?:advanced )?discussions?\b|\bpipeline\b|\benquir(?:y|ies)\b|\bbids? submitted\b|"
+                      r"\bnegotiations?\b", re.I)
+_FRAMEWORK = re.compile(r"\bMoU\b|\bmemorandum of understanding\b|\bframework agreement\b|\brate contract\b|"
+                        r"\bmaster (?:supply|service) agreement\b", re.I)
+_RELATED = re.compile(r"\b(?:its|our|the company'?s|the company’s)\s+(?:wholly[- ]owned\s+|step[- ]down\s+|material\s+)?"
+                      r"subsidiar(?:y|ies)\b|\bgroup compan(?:y|ies)\b|\bpromoter group (?:entity|company)\b|"
+                      r"\bjoint venture of the company\b|\b(?:is|are|being) (?:a )?related part(?:y|ies)\b", re.I)
+_ASSERT_UNRELATED = re.compile(
+    r"awarded by (?:any )?related part(?:y|ies)[^.]{0,120}?(?:[:\-–]\s*|\?\s*)(?:no\b|not applicable)|"
+    r"\bnot (?:a )?related part(?:y|ies)\b|"
+    r"promoter(?:s)?(?:\s*/\s*|\s+or\s+)promoter group (?:have|has|do not have|does not have) (?:no|any) interest|"
+    r"\bdoes not (?:belong|fall) (?:to|within) (?:the )?promoter", re.I)
+_CEILING = re.compile(r"\b(?:up ?to|maximum|ceiling|not exceeding|estimated (?:total )?(?:value|contract value))\b", re.I)
+_MINIMUM = re.compile(r"\b(?:minimum (?:guaranteed|offtake|commitment|order)|guaranteed minimum)\b", re.I)
+_RELEASE = re.compile(r"\b(?:release|call[- ]off|drawdown) orders?\b", re.I)
+_TAX_INCL = re.compile(r"\b(?:inclusive of|including|incl\.?)\s+(?:all\s+)?(?:gst|taxes|tax|duties)\b", re.I)
+_TAX_EXCL = re.compile(r"\b(?:exclusive of|excluding|excl\.?|plus)\s+(?:applicable\s+)?(?:gst|taxes|tax)\b|\+\s*gst\b", re.I)
+_DURATION = re.compile(r"\b(?:over|within|in|for|spread over)\s+(?:a\s+)?(?:period\s+of\s+)?(\d{1,3})\s*(months?|years?)\b", re.I)
+_DURATION_COLON = re.compile(r"\b(?:execut|deliver|complet|suppl)\w*\b[^.]{0,40}?[:\-–]\s*(\d{1,3})\s*(months?|years?)\b", re.I)
+_DELIVERY = re.compile(r"\b(?:to be (?:executed|delivered|completed)|delivery|execution)\b[^.;]{0,30}\b(?:by|before|during|in)\s+"
+                       r"((?:Q[1-4]\s*)?FY\s*'?\d{2,4}|[A-Z][a-z]+ \d{4})", re.I)
+_PAYMENT = re.compile(r"\b(?:payment terms?|advance of|milestone payments?|letter of credit|payment (?:within|after))\b[^.;]{0,100}",
+                      re.I)
+_TERMINATION = re.compile(r"\b(?:termination|terminate|cancellation clause|liquidated damages)\b[^.;]{0,100}", re.I)
+_REFERENCE = re.compile(r"\b(?:PO|purchase order|LoA|LOA|letter of award|work order|contract|tender|NIT)\s*"
+                        r"(?:no\.?|number|ref\.?|reference)\s*[:#]?\s*([A-Z0-9][A-Z0-9/\-_.]{3,})", re.I)
+_PRODUCT = re.compile(r"\bfor (?:the )?(?:supply|manufacture|design|construction|installation|execution|delivery|"
+                      r"commissioning|provision) of ([^.,;]{3,70})", re.I)
+
+
+def relationship_from_text(text: str) -> tuple[RelationshipStatus, str]:
+    """Issuer-side relationship disclosure: confirmed related, issuer-asserted unrelated, or unknown.
+    Issuer statements never make a counterparty *independently* verified."""
+    m = _RELATED.search(text)
+    if m:
+        return RelationshipStatus.CONFIRMED_RELATED, text[max(0, m.start() - 60):m.end() + 60].strip()
+    m = _ASSERT_UNRELATED.search(text)
+    if m:
+        return RelationshipStatus.ISSUER_ASSERTED_UNRELATED, m.group(0)[:200]
+    return RelationshipStatus.UNKNOWN, ""
+
+
+def order_stage(sentence: str) -> EventStage:
+    """Stage described by one sentence.  Lifecycle changes first; then the weakest
+    commitment wording present wins (unclear wording is never upgraded to binding)."""
+    if _CANCEL.search(sentence):
+        return EventStage.CANCELLED
+    if _EXPIRE.search(sentence):
+        return EventStage.EXPIRED
+    if _AMEND.search(sentence):
+        return EventStage.AMENDED
+    if _RELEASE.search(sentence):
+        return EventStage.BINDING_ORDER          # executable release under a framework
+    if _INQUIRY.search(sentence):
+        return EventStage.INQUIRY
+    if _FRAMEWORK.search(sentence):
+        return EventStage.MOU_FRAMEWORK
+    if _PROVISIONAL.search(sentence):
+        return EventStage.PREFERRED_BIDDER
+    if _BINDING.search(sentence):
+        return EventStage.BINDING_ORDER          # "... to be executed over 18 months" stays binding
+    m = _EXECUTED.search(sentence)
+    if m and not re.search(r"\b(?:to be|will be|shall be|would be|being|yet to be)\s+$", sentence[:m.start()]):
+        return EventStage.EXECUTION
+    return EventStage.PREFERRED_BIDDER
+
+
+def _all_inr(text: str) -> list[Quantity]:
+    out, pos = [], 0
+    while True:
+        q = parse_inr(text[pos:])
+        if q is None:
+            return out
+        out.append(q)
+        pos += text[pos:].find(q.raw) + len(q.raw)
+
+
+def order_details(sentence: str, qty: Optional[Quantity], stage: EventStage) -> dict:
+    d: dict = {}
+    if stage == EventStage.AMENDED:
+        amts = _all_inr(sentence)
+        qty = amts[-1] if amts else qty          # "reduced from Rs 450 crore to Rs 300 crore" -> 300
+    if qty is None:
+        d["value_basis"] = ValueBasis.UNQUANTIFIED
+    elif _MINIMUM.search(sentence):
+        d["value_basis"] = ValueBasis.GUARANTEED_MINIMUM
+    elif _RELEASE.search(sentence):
+        d["value_basis"] = ValueBasis.EXECUTABLE_RELEASE
+    elif _CEILING.search(sentence) or stage == EventStage.MOU_FRAMEWORK:
+        d["value_basis"] = ValueBasis.CEILING
+    else:
+        d["value_basis"] = ValueBasis.FIRM
+    d["tax_basis"] = (TaxBasis.INCLUSIVE if _TAX_INCL.search(sentence) else
+                      TaxBasis.EXCLUSIVE if _TAX_EXCL.search(sentence) else TaxBasis.UNKNOWN)
+    m = _DURATION.search(sentence) or _DURATION_COLON.search(sentence)
+    if m:
+        n = int(m.group(1))
+        d["duration_months"] = n * 12 if m.group(2).lower().startswith("year") else n
+    m = _DELIVERY.search(sentence)
+    d["delivery_window"] = m.group(1) if m else ""
+    m = _PAYMENT.search(sentence)
+    d["payment_terms"] = m.group(0)[:120] if m else ""
+    m = _TERMINATION.search(sentence)
+    d["termination_terms"] = m.group(0)[:120] if m else ""
+    m = _REFERENCE.search(sentence)
+    d["reference_id"] = m.group(1).rstrip(".").upper() if m else ""
+    m = _PRODUCT.search(sentence)
+    d["product"] = m.group(1).strip().lower() if m else ""
+    return d, qty
+
 
 _GUIDANCE_METRIC = {
     Metric.REVENUE: Metric.REVENUE_GUIDANCE,
@@ -762,6 +887,7 @@ def extract_sentence_evidence(doc: SourceDocument, chunks: list[Chunk]) -> list[
     """Deterministic evidence from prose (tables are handled by the results parser)."""
     out: list[Evidence] = []
     seen = set()
+    doc_relationship = relationship_from_text(doc.full_text()[:200000])
     for c in chunks:
         if c.kind == "table":
             continue
@@ -788,19 +914,30 @@ def extract_sentence_evidence(doc: SourceDocument, chunks: list[Chunk]) -> list[
             labels = find_period_labels(s_clean)
 
             tier, strength, out_metric = EvidenceTier.REALIZED_EXECUTION, CommitmentStrength.NOT_APPLICABLE, metric
+            order_kw: dict = {}
             if metric == Metric.ORDER_WIN:
+                stage = order_stage(s_clean)
+                if modality == Modality.NEGATED and stage in (EventStage.CANCELLED, EventStage.EXPIRED,
+                                                               EventStage.AMENDED):
+                    continue                            # "has not been cancelled": no state change
                 tier = EvidenceTier.COMMERCIAL_COMMITMENT
-                if _NON_BINDING.search(s_clean):
-                    strength = CommitmentStrength.NON_BINDING
+                strength = {EventStage.BINDING_ORDER: CommitmentStrength.BINDING,
+                            EventStage.EXECUTION: CommitmentStrength.BINDING,
+                            EventStage.PREFERRED_BIDDER: CommitmentStrength.PROVISIONAL,
+                            EventStage.MOU_FRAMEWORK: CommitmentStrength.NON_BINDING,
+                            EventStage.INQUIRY: CommitmentStrength.NON_BINDING}.get(stage,
+                                                                                   CommitmentStrength.NOT_APPLICABLE)
+                if stage in (EventStage.INQUIRY, EventStage.MOU_FRAMEWORK):
                     tier = EvidenceTier.MANAGEMENT_ASSERTION
-                elif _PROVISIONAL.search(s_clean):
-                    strength = CommitmentStrength.PROVISIONAL
-                elif _BINDING.search(s_clean):
-                    strength = CommitmentStrength.BINDING
-                else:
-                    strength = CommitmentStrength.PROVISIONAL
-                if modality in (Modality.FORWARD, Modality.CONDITIONAL):
+                if modality in (Modality.FORWARD, Modality.CONDITIONAL) and stage in COMMITMENT_RANK:
                     tier = EvidenceTier.MANAGEMENT_ASSERTION
+                if (stage == EventStage.PREFERRED_BIDDER and qty is None and not _PROVISIONAL.search(s_clean)):
+                    continue        # e.g. "The order is to be executed over 18 months." - detail, not an order
+                details, qty = order_details(s_clean, qty, stage)
+                rel, rel_basis = relationship_from_text(s_clean)
+                if rel == RelationshipStatus.UNKNOWN:
+                    rel, rel_basis = doc_relationship
+                order_kw = dict(event_stage=stage, relationship=rel, relationship_basis=rel_basis, **details)
             elif modality in (Modality.FORWARD, Modality.CONDITIONAL):
                 tier = EvidenceTier.MANAGEMENT_ASSERTION
                 out_metric = _GUIDANCE_METRIC.get(metric, metric)
@@ -845,13 +982,45 @@ def extract_sentence_evidence(doc: SourceDocument, chunks: list[Chunk]) -> list[
                 target_period_label=target_label, scope=_scope_from(s_clean),
                 segment=seg.group(1).strip() if seg else "", facility=facility,
                 counterparty=cp, counterparty_named=cp_named, commitment_strength=strength,
-                distinct_marker=bool(_DISTINCT.search(s_clean)),
+                distinct_marker=bool(_DISTINCT.search(s_clean)), **order_kw,
             )
             if ev.evidence_id in seen:
                 continue
             seen.add(ev.evidence_id)
             out.append(ev)
+    _enrich_single_order_disclosure(doc, out)
     return out
+
+
+def _enrich_single_order_disclosure(doc: SourceDocument, evs: list[Evidence]) -> None:
+    """An order announcement usually states the order once and its terms in other
+    sentences (SEBI format: 'Time period by which the order is to be executed: 18
+    months').  When a document announces exactly one quantified order, its missing
+    terms are filled from the rest of that document."""
+    orders = [e for e in evs if e.metric == Metric.ORDER_WIN and e.quantity is not None
+              and e.event_stage in (EventStage.BINDING_ORDER, EventStage.PREFERRED_BIDDER, EventStage.MOU_FRAMEWORK)]
+    if len(orders) != 1:
+        return
+    e = orders[0]
+    text = re.sub(r"\s+", " ", doc.full_text())
+    if e.duration_months is None:
+        m = (re.search(r"\b(?:execut|deliver|complet|suppl)\w*\b[^.]{0,60}?" + _DURATION.pattern[2:], text, re.I)
+             or _DURATION_COLON.search(text))
+        if m:
+            n = int(m.group(1))
+            e.duration_months = n * 12 if m.group(2).lower().startswith("year") else n
+    for attr, pat in (("payment_terms", _PAYMENT), ("termination_terms", _TERMINATION)):
+        if not getattr(e, attr):
+            m = pat.search(text)
+            if m:
+                setattr(e, attr, m.group(0)[:120])
+    if not e.reference_id:
+        m = _REFERENCE.search(text)
+        if m:
+            e.reference_id = m.group(1).rstrip(".").upper()
+    if e.tax_basis == TaxBasis.UNKNOWN:
+        e.tax_basis = (TaxBasis.INCLUSIVE if _TAX_INCL.search(text) else
+                       TaxBasis.EXCLUSIVE if _TAX_EXCL.search(text) else TaxBasis.UNKNOWN)
 
 
 # ---------------------------------------------------------------------------

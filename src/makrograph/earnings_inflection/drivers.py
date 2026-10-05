@@ -8,10 +8,11 @@ business and is not a driver.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Optional
 
-from .contracts import DriverChange, EconomicEvent, Evidence, IssuerModel, Metric, Unit
+from .contracts import IST, DriverChange, EconomicEvent, Evidence, IssuerModel, Metric, Unit
+from .demand import summarise_demand
 from .financial_series import PERIOD_WORD, FinancialSeries, _year_ago, prev_period_end
 
 DEFAULT_THRESHOLDS = {
@@ -40,6 +41,14 @@ def _dc(driver, s: FinancialSeries, end, cur, prior, unit, basis, material, docs
     return DriverChange(driver=driver, ticker=s.ticker, period_end=end, current=cur, prior=prior, change=change,
                         unit=unit, basis=basis, material=material, source_doc_ids=all_docs,
                         notes=list(notes or []), knowable_at=knowable, system_known_at=system)
+
+
+def _ttm_ends(end, p):
+    out, d = [], end
+    for _ in range(4 if p == "Q" else 2):
+        out.append(d)
+        d = prev_period_end(d, p)
+    return out
 
 
 def _keys(metric, p, *ends):
@@ -116,31 +125,40 @@ def compute_drivers(series: FinancialSeries, events: list[EconomicEvent], eviden
         if ttm_rev is None:
             missing.extend(miss)
         else:
-            # Book-to-bill from DEDUPLICATED binding/provisional order events over the trailing 12 months
-            window_start = as_of_date - timedelta(days=365)
-            inflow = sum(e.amount.value for e in events
-                         if e.amount and e.amount.unit == Unit.INR_CRORE and e.first_public_at
-                         and e.first_public_at.date() >= window_start
-                         and e.commitment_strength.value in ("binding", "provisional"))
-            if inflow > 0:
-                btb = inflow / ttm_rev
+            # External demand from deduplicated, dated order events (see demand.py):
+            # verified inflow, backlog snapshot and cancellations are kept separate.
+            dem = summarise_demand(events, evidence, as_of_date)
+            tkeys = _keys(Metric.REVENUE, p, *_ttm_ends(end, p))
+            if dem.verified_inflow_crore > 0:
+                btb = dem.verified_inflow_crore / ttm_rev
+                ev_extra = [(e.first_public_at, None, d) for e in events if e.event_id in dem.verified_events
+                            for d in e.doc_ids[:1]]
                 out.append(_dc("disclosed_order_inflow_to_ttm_revenue", series, end, btb, None, "x",
-                               "sum of deduplicated disclosed order events (12m to as-of) / TTM revenue; "
-                               "disclosed orders are a subset of true inflow", btb >= th["book_to_bill"],
-                               change=btb, docs=sorted({d for e in events for d in e.doc_ids}), notes=[f"{inflow:.1f} cr disclosed inflow; TTM revenue {ttm_rev:.1f} cr"]))
-            ob = [e for e in evidence if e.usable and e.metric == Metric.ORDER_BOOK and e.quantity
-                  and e.quantity.unit == Unit.INR_CRORE and e.modality.value == "realized"]
-            if ob:
-                ob.sort(key=lambda e: e.available_at)
-                latest = ob[-1]
-                cover = latest.quantity.value / ttm_rev
-                prior_cover = None
-                older = [e for e in ob if e.available_at <= latest.available_at - timedelta(days=300)]
-                if older:
-                    prior_cover = older[-1].quantity.value / ttm_rev
-                out.append(_dc("order_book_cover", series, end, cover, prior_cover, "years of TTM revenue",
-                               "latest stated order book / TTM revenue (prior uses same TTM base)",
-                               cover >= th["order_book_cover_years"], [latest.doc_id]))
+                               "verified external binding order inflow (12m to as-of, deduplicated, current value "
+                               "after amendments/cancellations) / TTM revenue; disclosed orders are a subset of "
+                               "true inflow", btb >= th["book_to_bill"], change=btb,
+                               notes=[f"{dem.verified_inflow_crore:.1f} cr verified inflow; TTM revenue "
+                                      f"{ttm_rev:.1f} cr"] + dem.notes(),
+                               keys=tkeys, extra=ev_extra))
+            if dem.unverified_events:
+                out.append(_dc("unverified_order_value_to_ttm_revenue", series, end,
+                               dem.unverified_inflow_crore / ttm_rev, None, "x",
+                               "early-lane order value (provisional / anonymous / ceiling) / TTM revenue; "
+                               "headline values, not executable revenue", False,
+                               change=dem.unverified_inflow_crore / ttm_rev, keys=tkeys,
+                               notes=sorted({r for rs in dem.unverified_events.values() for r in rs})))
+            if dem.backlog_crore is not None:
+                cover = dem.backlog_crore / ttm_rev
+                out.append(_dc("order_book_cover", series, end, cover, None, "years of TTM revenue",
+                               f"company-stated order book as of {dem.backlog_as_of} / TTM revenue (dated "
+                               "snapshot; not added to inflow)", cover >= th["order_book_cover_years"],
+                               keys=tkeys, extra=[(datetime.combine(dem.backlog_as_of, datetime.min.time(),
+                                                                    tzinfo=IST), None, dem.backlog_doc)]))
+            if dem.cancellations_crore:
+                out.append(_dc("order_cancellations_to_ttm_revenue", series, end,
+                               dem.cancellations_crore / ttm_rev, None, "x",
+                               "orders cancelled in the 12 months to as-of / TTM revenue", False,
+                               change=dem.cancellations_crore / ttm_rev, keys=tkeys))
 
     # Stated utilisation is compared only within the same plant / product scope
     # (never plant A vs plant B, never a plant vs the company total).

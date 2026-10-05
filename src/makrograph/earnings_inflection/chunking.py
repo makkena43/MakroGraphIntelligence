@@ -20,6 +20,18 @@ _NUM = re.compile(r"\(?-?\d[\d,]*(?:\.\d+)?\)?")
 _UNIT_LINE = re.compile(r"\((?:rs\.?|inr|₹|amount)[^)]{0,40}(?:crore|lakh|lacs|million|mn|thousand)[^)]{0,20}\)|"
                         r"(?:rs\.?|₹|inr)\s*in\s*(?:crore|lakh|lakhs|lacs|million|mn)", re.I)
 _SENT_SPLIT = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9(\"'₹])")
+# a full stop after these is an abbreviation, not a sentence end ("purchase order No. X", "Rs. 450", "M/s. ABC")
+_ABBREV_END = re.compile(r"(?:\b(?:No|Nos|Rs|Ltd|Pvt|Co|Inc|M/s|Mr|Ms|Dr|viz|approx|Sr|Jr)|\b[A-Z])\.$")
+
+
+def _split_sentences(text: str) -> list[str]:
+    out: list[str] = []
+    for part in _SENT_SPLIT.split(text):
+        if out and _ABBREV_END.search(out[-1]):
+            out[-1] = out[-1] + " " + part
+        else:
+            out.append(part)
+    return out
 
 
 _CELL_TOKEN = re.compile(r"\(?-?\d[\d,]*(?:\.\d+)?\)?|-|–|—|nil", re.I)
@@ -136,7 +148,7 @@ def _ends_sentence(line: str) -> bool:
 
 
 def _pack_sentences(text: str, max_chars: int) -> list[str]:
-    sents = _SENT_SPLIT.split(text)
+    sents = _split_sentences(text)
     out, cur = [], ""
     for s in sents:
         while len(s) > max_chars:          # hard split; nothing is dropped
@@ -158,7 +170,7 @@ def _pack_sentences(text: str, max_chars: int) -> list[str]:
 def sentences(chunk: Chunk) -> list[str]:
     if chunk.kind == "table":
         return [l for l in chunk.text.split("\n") if l.strip()]
-    return [s for s in _SENT_SPLIT.split(chunk.text) if s.strip()]
+    return [s for s in _split_sentences(chunk.text) if s.strip()]
 
 
 @dataclass

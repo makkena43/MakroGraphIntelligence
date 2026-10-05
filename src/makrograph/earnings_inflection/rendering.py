@@ -59,6 +59,22 @@ def render_markdown(a: Assessment) -> str:
             L.append(f"| {g.metric.value} | {g.target_period_label} | {q.raw if q else '?'} ({_ts(g.original.stated_at)}) "
                      f"| {revs} | {g.outcome.value} | {g.latest_outcome.value} | {g.outcome_note} |")
     L.append("")
+    if a.events:
+        L.append("")
+        L.append("### Order events (deduplicated; latest dated state)")
+        L.append("| Event | First public | Stage now | Value now (original) cr | Customer | Relationship | "
+                 "Value basis | Tax | Execution period | Mentions | Open questions |")
+        L.append("|---|---|---|---|---|---|---|---|---|---|---|")
+        for e in a.events:
+            now = f"{e.amount.value:,.1f}" if e.amount else "—"
+            orig = f" ({e.original_amount.value:,.1f})" if e.original_amount and e.amount and \
+                abs(e.original_amount.value - e.amount.value) > 1e-9 else ""
+            L.append(f"| {e.event_id} | {_ts(e.first_public_at)} | {e.current_stage.value if e.current_stage else '—'} "
+                     f"| {now}{orig} | {e.counterparty or '(unnamed)'} [{e.customer_verification.value}] "
+                     f"| {e.relationship.value} | {e.value_basis.value} | {e.tax_basis.value} "
+                     f"| {str(e.duration_months) + ' months' if e.duration_months else 'not disclosed'} "
+                     f"| {len(e.doc_ids)} doc(s) | {'; '.join(e.unresolved_fields) or '—'} |")
+        L.append("")
     L.append("## 3. Effect on recurring parent-attributable diluted EPS and cash")
     b = a.bridge
     if b.status == ScenarioStatus.COMPUTED_ASSUMPTION_BASED:

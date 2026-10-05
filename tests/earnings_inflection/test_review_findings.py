@@ -18,7 +18,6 @@ from makrograph.earnings_inflection.contracts import (
 
 # 1 ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(strict=True, reason="fixed in WP4")
 def test_provisional_orders_do_not_make_a_verified_commitment():
     from makrograph.earnings_inflection.assessments import decide_status
     l1 = EconomicEvent("e1", "T", Metric.ORDER_WIN, Quantity(900.0, Unit.INR_CRORE), "State Power Utility Limited",
