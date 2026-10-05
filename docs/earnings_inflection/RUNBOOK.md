@@ -6,7 +6,7 @@ Research-only and evidence-only. The detector reads documents and writes JSON/Ma
 
 ```bash
 pip install pyyaml pytest
-python -m pytest tests/earnings_inflection tests/test_ingestion_pdf_text.py -q   # 64 tests
+python -m pytest tests/earnings_inflection tests/test_ingestion_pdf_text.py tests/test_pipeline.py -q   # 201 tests
 python scripts/earnings_inflection.py --ticker ACMEGRID --as-of 2024-10-31          # prints the report
 python scripts/earnings_inflection.py --ticker ACMEGRID --ticker CONTRACO \
     --as-of 2024-10-31 --out data/earnings_inflection                             # writes .md + .json
@@ -41,7 +41,7 @@ The detector also forces read-only mode on its own connection and refuses non-SE
 
 The detector reads `mg_documents.raw_text` only. Exchange announcements are stored as titles until the PDF-fetch stage downloads and parses them.
 
-- **From the UI:** Pipeline tab → enable **PDF fetch (India)** → run. This sets `do_pdf_fetch_india` on `/api/pipeline/run`. In this mode the PDFs stay on disk and only `local_path` is set. The detector doesn't read those files yet (pending item 3), so use the script mode below for the detector.
+- **From the UI:** Pipeline tab → enable **PDF fetch (India)** → run. This sets `do_pdf_fetch_india` on `/api/pipeline/run`. In this mode the PDFs stay on disk and only `local_path` is set. A downloaded PDF is **not** readable text: run the explicit extraction step (B.2b) for those rows.
 - **From a script** (stores text in `raw_text`, which is what the detector reads):
 
 ```python
@@ -58,6 +58,23 @@ p.run_pdf_fetch_india(store_text_to_db=True, delete_after_parse=False,
 ```
 
 BSE documents and page markers apply **only to documents fetched after the latest ingestion changes**. To re-parse older documents with page markers, clear `raw_text` for the rows you want and run the fetch again. That's a deliberate backfill, so do it on a copy or a date window first.
+
+### 2b. Extract text for PDF-only rows (explicit, bounded, local)
+
+Rows that have a `local_path` but no `raw_text` are reported as unreadable until an explicit extraction step turns them into **versioned text artifacts**. The step only reads local files and writes to a local directory. It never downloads, never writes to the database and never runs network OCR.
+
+```bash
+python scripts/earnings_inflection.py --source postgres --ticker TICKER1 --as-of 2026-09-30 \
+    --artifact-root data/earnings_inflection/text_artifacts --extract --max-docs 50
+# add --ocr ocrmypdf only if the ocrmypdf binary is installed locally (no paid/network OCR)
+```
+
+- Each artifact is immutable and keyed by document, raw-file hash, method and parser version. Re-extracting with a newer parser adds a version and never overwrites one.
+- Failures are recorded states, not gaps: `OCR_REQUIRED`, `PARSE_FAILED_RETRYABLE` (retried up to 2 times), `ENCRYPTED`, `EMPTY`, `UNSUPPORTED_FORMAT`, `MISSING_ORIGINAL`. Partial extractions (page limit, pages without a text layer) are labelled `PARTIAL` with page counts.
+- Anything beyond `--max-docs` is listed as deferred. Run again to continue.
+- Later assessments pass the same `--artifact-root` to read the artifacts.
+
+Optional, off by default: `run_pdf_fetch_india(text_artifact_root=..., keep_failed_originals=True, granular_failure_status=True)` records artifacts during ingestion itself. Leave these off in production until that is separately authorised.
 
 ### 3. Check what the database actually holds
 
@@ -100,7 +117,19 @@ python scripts/earnings_inflection.py --source postgres \
 
 - `--as-of` is point-in-time. Only documents public by the end of that day (IST) are used, so you can replay any historical date.
 - Pass tickers explicitly. There's intentionally no "whole market" mode.
-- Optional config: copy `config/earnings_inflection.example.yaml` and pass `--config`. That's where thresholds, symbol history, and the LLM and persistence switches live. All switches are off by default.
+- Optional config: copy `config/earnings_inflection.example.yaml` and pass `--config`. That's where thresholds, the issuer registry, counterparty reference data, replay mode, and the LLM and persistence switches live. All switches are off by default.
+- With `--out`, a `manifest.json` is written next to the reports: code version, config hash, replay mode, cutoff, and the exact text version of every source used. Run status is `COMPLETE`, `PARTIAL` (failures or missing expected result periods) or `FAILED`.
+
+### 4b. Replays
+
+- **Exact replay of an earlier run:** `--replay-manifest data/earnings_inflection/manifest.json` reads exactly the text versions that run used, even if newer extractions exist.
+- **Two replay modes** (config `replay_mode`):
+  - `PUBLIC_INFORMATION_RECONSTRUCTION` (default) asks what was public at the cutoff, even if this system ingested or extracted it later.
+  - `SYSTEM_KNOWLEDGE_REPLAY` asks what this system actually held: a document counts only if it was first seen, its text existed and its alias mapping was recorded by the cutoff. Legacy `raw_text` has no provable text time, so on today's data this mode excludes it and says so in coverage.
+
+### 4c. Identity: link NSE symbols, BSE scrip codes and renames
+
+BSE rows store the numeric scrip code as `ticker`. Supply an issuer registry (config `identity.issuers` or `identity.registry_file`) with effective-dated aliases. The detector then retrieves every alias valid at the cutoff and records which alias each document used. Listing board and series (SME vs main board) come from the dated `securities` entries, never from present-day metadata. A predecessor company is spliced into history only when `comparable: true` is recorded with a decision source.
 
 ### 5. Read the output
 
@@ -119,7 +148,8 @@ The `.json` file has the same content in machine-readable form.
 | INSUFFICIENT_EVIDENCE | not enough dated, text-bearing filings; often a data gap, not a company verdict |
 | NO_MATERIAL_CHANGE | data present, nothing crossed the descriptive thresholds |
 | ASSERTION_ONLY | only management's forward statements |
-| COMMITMENT_BACKED | firm or provisional orders material relative to revenue, not yet in results (the "early" route) |
+| EARLY_COMMITMENT_UNVERIFIED | material order activity that cannot be verified: L1/LoI/framework, anonymous customer, ceiling/unquantified value. Kept visible with the reasons; never upgraded |
+| COMMITMENT_BACKED | **validated binding external** orders (named customer, firm value, not related party, not cancelled) material relative to revenue, not yet in results |
 | EXECUTION_EMERGING | one quarter of material realized change |
 | EXECUTION_CONFIRMED | at least 2 consecutive periods of material realized change (quarters; half-years for half-yearly SME reporters) |
 | CONTRADICTED | missed even the latest guidance, or 2+ downward revisions without a stated reason |
@@ -129,7 +159,9 @@ The `.json` file has the same content in machine-readable form.
 - Read the quoted sources.
 - Judge any revision reason the report quotes ("Judge whether the stated reason … is credible").
 - Check flagged disappearing targets.
-- Confirm that named counterparties are real.
+- Confirm that named counterparties are real. To record an independent check, add a dated entry under `counterparties` in the config. The issuer's own "not a related party" answer stays an issuer assertion.
+- Read the **Order events** table: stage now (with dated history), value now vs original (after amendments and cancellations), value and tax basis, and execution period. A headline order value is not annual revenue.
+- Read the reconciliation lines. A period whose PAT = PBT − tax or balance-sheet identity fails is excluded from calculations and listed, not silently used.
 
 `review_status` stays `UNREVIEWED` until a human changes it. The `ei_reviews` table in `schema/earnings_inflection_schema.sql` is meant for that, once a test database is authorised.
 
@@ -144,26 +176,22 @@ The `.json` file has the same content in machine-readable form.
 ### Must do before trusting results on real data
 
 1. **Run the preflight** (B.3) and share the output. Until then, coverage is unknown.
-2. **Link NSE and BSE identities.** BSE rows store the **numeric scrip code** as `ticker`, NSE rows store the symbol, and the detector queries one ticker string. So a company's BSE filings are invisible when you run it by NSE symbol. This needs an alias map (symbol ↔ scrip code ↔ ISIN) that the repository queries together. It's small, and it's the main thing that makes the BSE ingestion fix useful.
-3. **Backfill text:**
-   - Re-fetch BSE high-value documents.
-   - Optionally re-parse older PDFs to get page markers.
-   - Read `local_path` `.txt`/PDF files where `raw_text` is empty (UI live mode).
+2. **Fill the issuer registry** (B.4c) for tracked companies: NSE symbol ↔ BSE scrip code ↔ ISIN, renames, SME migrations with dates. The mechanism exists; the data doesn't. Without it, BSE filings stay invisible when you run by NSE symbol.
+3. **Run the explicit extraction** (B.2b) for tracked companies and check the `unreadable_documents` and `result_periods.missing` coverage lines.
 4. **Fetch annual reports** for tracked companies (not the whole market).
-5. **Check the results parser on about 20 real statements.** Cover nine-month columns, multi-line headers, and standalone and consolidated statements on the same page. Add them as test fixtures.
+5. **Check the results parser on about 20 real statements.** Cover nine-month columns, multi-line headers, standalone and consolidated statements on the same page, and balance-sheet / cash-flow pages. Add them as test fixtures.
 
-### Tracker gaps (from `TRACKER_RECOMMENDATION_GAP_ANALYSIS.md`)
+### Tracker gaps still open
 
 6. EBIT margin and **incremental depreciation for new capacity** in the bridge, plus a real downside scenario.
-7. Order economics:
-   - annual executable revenue vs multi-year headline value;
-   - order value including GST vs accounting revenue;
-   - incremental vs replacement business;
-   - materiality against **earnings**, not only revenue.
+7. Order economics still open: incremental vs replacement business, and materiality against **earnings** (WP4 covers value basis, tax basis, execution period, cancellations and backlog).
 8. Promise ledger beyond revenue and margin: capacity commissioning, customer qualification, capex vs budget, debt and working-capital targets, dilution.
-9. Segment tables (mix, turnaround) and cash-flow statements (operating cash flow, debt) from results and annual reports.
-10. Claim-level records: link each claim to its starting point and supporting evidence; keep a persistent rolling evidence file per company (about 8 quarters, latest 2 annual reports).
-11. A one-page summary view and review dates per company.
+9. Segment tables (mix, turnaround).
+10. A persistent rolling evidence file per company (about 8 quarters, latest 2 annual reports) and a one-page summary view.
+
+### Not received
+
+11. The amendment's **WP4 acceptance criteria and any WP5+ (universe discovery / research shortlist)** were cut off in the pasted text. Nothing was built for them. There is still no whole-market mode.
 
 ### Validation before freezing thresholds
 
@@ -172,5 +200,6 @@ The `.json` file has the same content in machine-readable form.
 ### Optional, needs your approval
 
 13. Turn on the LLM extractor with a Claude client and a hard budget. It would improve recall on paraphrased guidance.
-14. OCR for scanned filings.
-15. Apply `schema/earnings_inflection_schema.sql` to a **test** database to store runs and reviews.
+14. Paid or network OCR (refused by the code today; only local `ocrmypdf` is wired).
+15. Apply `schema/earnings_inflection_schema.sql` to a **test** database to store runs, source versions, events and reviews. It was checked only against a throwaway local Postgres 16 instance, which has been deleted.
+16. Turn on the opt-in ingestion options (`text_artifact_root`, `keep_failed_originals`, `granular_failure_status`) in production.

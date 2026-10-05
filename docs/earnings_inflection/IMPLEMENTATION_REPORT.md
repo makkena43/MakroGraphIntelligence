@@ -1,6 +1,7 @@
 # Earnings Inflection Detector: implementation, coverage and limitations report
 
 Spec: "Earnings Inflection Detector — implementation specification", v1.0 draft, 2026-10-04
+Amendment: "root-to-shortlist change specification", 2026-10-05, WP1–WP4 (see §6)
 Status: **Research-only, opt-in, NOT activated.** Nothing is wired into the guidance radar, stock selector, report pipeline, ingestion schedules, backend, notifications or production database.
 
 ## 1. Discrepancies between the specification and this repository
@@ -84,10 +85,10 @@ Fixture outcomes at as-of 2024-10-31. These show the mechanics only and are not 
 | Fictional issuer | Scenario exercised | Status |
 |---|---|---|
 | ACMEGRID | order announced, then repeated in a call (deduplicated); repeat order; LoI from an unnamed buyer; guidance reiterated; 2 quarters of material growth | EXECUTION_CONFIRMED |
-| SMEFAB | SME issuer reporting half-yearly; 2 consecutive half-years of material growth; one disclosed order | EXECUTION_CONFIRMED (EXECUTION_EMERGING before the H1FY25 results) |
+| SMEFAB | SME issuer reporting half-yearly; 2 consecutive half-years of material growth; one disclosed order | EXECUTION_EMERGING at 2024-10-31 (H1FY25 results are public only on 2024-11-12); EXECUTION_CONFIRMED at 2024-12-31 |
 | PLAINCO | flat business; latest results have a date-only `filed_at` | NO_MATERIAL_CHANGE |
 | CONTRACO | FY24 guidance of 30% growth, actual 5% | CONTRADICTED (bridge not computed: missing quarter) |
-| SAMPLEBANK | bank | UNSUPPORTED_FINANCIAL_MODEL |
+| SAMPLEBANK | bank | INSUFFICIENT_EVIDENCE (scenarios: UNSUPPORTED_FINANCIAL_MODEL) |
 
 ## 4. Coverage and known limitations
 
@@ -125,3 +126,145 @@ Fixture outcomes at as-of 2024-10-31. These show the mechanics only and are not 
 - Applying `schema/earnings_inflection_schema.sql` to a test database (it hasn't been executed anywhere), and later to production.
 - Enabling the LLM extractor or any paid run, which means setting budget limits above 0.
 - Any integration with the existing radar, selector, report pipeline, schedules, UI or notifications.
+
+## 6. Root-to-shortlist amendment (2026-10-05): WP1–WP4
+
+Each work package was finished, tested and pushed before the next one started:
+
+| Commit | Work package |
+|---|---|
+| `05a5e6a` | WP1 |
+| `b3fa38e` | WP2 |
+| `20a8a9f` | WP3 |
+| `8e7063f` | WP4 |
+| this commit | docs, config and schema |
+
+All tests are offline. 201 pass across `tests/earnings_inflection`, `tests/test_ingestion_pdf_text.py` and `tests/test_pipeline.py`. Elsewhere in the repository, 9 test files couldn't be collected in this container because `psycopg2` wasn't installed (the same before and after these changes), and a full-repository run didn't finish within 10 minutes. **The full repository suite was not run to completion here.**
+
+### What was **not received**
+
+The pasted amendment stops at **WP4 item 7** ("Only validated binding external commitments may support a verified commitment classification…"). Not received, and not built:
+
+- the WP4 acceptance criteria;
+- WP5 onward, presumably universe discovery and the research shortlist.
+
+There is still no whole-market or shortlist mode, and nothing ranks companies. Please send the remaining sections.
+
+### WP1: ingestion-to-reader gap
+
+**Delivered:**
+
+- **Text artifacts.** `parser/text_artifacts.py` stores versioned, immutable, content-addressed text artifacts, keyed by document, raw hash, method and parser version.
+  - It keeps page coverage: extracted vs expected pages, truncation, and the page limit.
+  - Failure states are recoverable, with a retry limit. Originals are preserved.
+  - A `FakeOcrProvider` covers tests. Network OCR providers are refused in code.
+- **Extraction step.** `earnings_inflection/backfill.py` (`--extract`) is explicit and bounded: local originals only, `--max-docs`, and deferred documents are reported.
+- **Reader.** It prefers artifacts and labels the text source (`artifact`, `raw_text`, `text_file`, `none`).
+- **Coverage report:**
+  - expected result periods by cadence, with filing deadlines of 45 days, or 60 for March year ends;
+  - parsed vs missing periods;
+  - unreadable documents by status.
+- **Replay.** The run manifest records exact text versions. `--replay-manifest` pins them, so live and historical runs over the same artifacts give the same result.
+- **Ingestion options.** `run_pdf_fetch_india` gains three options: `text_artifact_root`, `keep_failed_originals` and `granular_failure_status`. All default to the old behaviour, have regression tests and are **not activated**.
+
+**Limitations:**
+
+- Coverage of the real database is still unmeasured. The preflight and extraction have not been run against it.
+- OCR quality is untested. Only local `ocrmypdf` is wired, and it was not run here.
+- Truncation follows the parser's page limit. Very long annual reports will be `PARTIAL` by design.
+
+### WP2: identity, provenance and point-in-time replay
+
+**Delivered:**
+
+- **Issuer registry.** `IssuerRegistry` holds effective-dated aliases (symbol, scrip code, ISIN, name), each with a `recorded_at`.
+  - Dated securities give board and series.
+  - Predecessor links are spliced only when `comparable` is true and a decision source is recorded.
+  - Dated industry history is supported.
+- **Replay modes.** `PUBLIC_INFORMATION_RECONSTRUCTION` and `SYSTEM_KNOWLEDGE_REPLAY`.
+- **Present-day context.** Present-day metadata appears only as labelled context. It is never used for calculations or the listing segment.
+- **Derived signals.** Every derived signal carries `knowable_at`, the latest public input, and `system_known_at`, the latest time the system held that input. A signal is never dated before its newest input.
+
+**Limitations:**
+
+- The registry is empty for real companies; it needs curated data.
+- `SYSTEM_KNOWLEDGE_REPLAY` treats `mg_documents.created_at` as first-seen time. Legacy `raw_text` has no provable text time, so today's data mostly falls out of that mode, and the coverage block says so.
+- Corporate-action share adjustments are not modelled.
+
+### WP3: financial integrity before qualification
+
+**Delivered:**
+
+- **Reconciliation.** `reconcile_structured` gives each check a status: `validated`, `definition_difference`, `unresolved` or `rejected`.
+  - Checks: PAT = PBT − tax, owners + NCI, exceptional-item sign, EBITDA definition, cash-flow identity, balance-sheet identity, and negative revenue.
+  - Tolerance is the larger of 2 display units and 0.5%.
+  - Blocking rows are removed from the series and listed. They never feed growth or margin calculations.
+- **Zero-PAT fallback fixed.** A zero or missing parent-attributable PAT no longer silently falls back.
+- **Reported vs recurring earnings:**
+  - The exceptional-item sign is proven from "profit before exceptional items".
+  - Recurring PAT is not invented when the after-tax effect is undisclosed; recurring PBT is used and labelled instead.
+- **Changes from a loss.** Loss to profit, loss narrowed and low base are labelled instead of reported as huge percentage growth.
+- **Balance-sheet columns.** "As at" columns are read as instants, with current and non-current borrowings kept separate.
+- **Cash flow and share basis:**
+  - cash-flow rows are parsed;
+  - share count is derived from paid-up capital and face value and cross-checked in the bridge;
+  - debt, cash-conversion and share-count drivers are informational only.
+
+**Limitations:**
+
+- Validated only on synthetic fixtures and the earlier PANACEABIO/POKARNA layouts. Multi-page balance sheets and Ind-AS 116 lease lines are not specifically handled.
+- Segment tables are still not parsed.
+
+### WP4: external demand (items 1–7 as received)
+
+**Delivered:**
+
+- **Dated order states.** Each order event keeps a dated stage history: enquiry, MoU/framework, preferred bidder, binding order, execution, amended, cancelled, expired.
+  - A later retelling never downgrades a stage.
+  - A partial cancellation reduces the current value and keeps the original.
+  - A lifecycle note that matches no known order is kept as an orphan with no value.
+- **Relationships.** Each status has a source.
+  - "Independently supported unrelated" comes only from config reference data dated on or before the cutoff.
+  - The SEBI "not a related party" answer stays an issuer assertion.
+  - Customer verification is anonymous, issuer-named or corroborated.
+- **Contract economics.** Each order records:
+  - value basis: firm, ceiling, guaranteed minimum or executable release;
+  - tax-inclusive or tax-exclusive value;
+  - execution period, delivery, payment terms, termination terms, order reference and product.
+  - An annual executable estimate is computed only when an execution period is disclosed.
+- **Deduplication by identity:**
+  - Orders merge on the same reference, or on the same named customer, amount and compatible product.
+  - Different references stay different orders.
+  - Unnamed same-amount mentions are linked as ambiguous and counted once.
+  - The sentence splitter no longer breaks after "No.", "Rs." or "Ltd.".
+- **Demand kept separate.** `demand.py` reports verified inflow, unverified (early-lane) inflow, related-party exclusions, cancellations and a fresh backlog snapshot (at most 200 days old) separately. Backlog is never added to inflow.
+- **Classification.** Only validated binding external orders support `COMMITMENT_BACKED`. Everything else that is material appears as `EARLY_COMMITMENT_UNVERIFIED` with per-event reasons. Nothing is discarded or upgraded.
+
+**Limitations:**
+
+- Extraction is lexical, so stage and economics wording outside the tested phrasings will be missed and the field marked unresolved. Hindi and regional-language text, and orders that appear only in tables or slides, are not read.
+- Customer verification beyond "named by the issuer" needs reference data supplied by you. There is no registry lookup (MCA or similar), because that would need network access.
+- Whether an order is incremental or replacement business, and its margin, are not inferred.
+
+### Test database schema (not executed against any shared database)
+
+`schema/earnings_inflection_schema.sql` gains:
+
+- run-manifest columns on `ei_runs`;
+- `EARLY_COMMITMENT_UNVERIFIED` in the status check, with an in-place upgrade for an existing test database;
+- new tables `ei_source_versions`, `ei_extraction_results`, `ei_events` and `ei_event_states`.
+
+`persist()` writes the manifest, source versions, events and event states. It still refuses any database whose name doesn't match the test pattern.
+
+The schema was applied twice, fresh and as an upgrade from the previous version, to a **throwaway local Postgres 16 instance** created and deleted in this container. A 5-company fixture run was persisted there.
+
+### Safety fix found along the way
+
+The persistence guard read the database name with a regex. That regex also matched socket paths: `host=/run/x_test dbname=makrograph` was treated as a test database. It now reads only the `dbname` keyword or the URI path, with regression tests.
+
+### Boundaries kept
+
+- Not touched: stock selector, guidance radar, constraint logic, schedules, portfolio actions and production data.
+- Not run: production migrations, network backfills, paid LLM or OCR, and notifications.
+- No action labels or position sizes are produced.
+- Thresholds were not tuned to named historical winners.
