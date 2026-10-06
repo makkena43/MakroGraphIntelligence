@@ -65,6 +65,7 @@ DEFAULT_CATALYST_THRESHOLDS = {
     "confirm_periods": 2,                    # relevant periods that must support the mechanism
     "commissioning_grace_days": 90,
     "window_grace_days": 120,                # after the execution window: delayed if still unconfirmed
+    "current_after_window_months": 12,       # a catalyst older than its window + this is history, not news
     "results_deadline_days": 45,
     "results_deadline_days_year_end": 60,
 }
@@ -77,6 +78,12 @@ _ABANDONED = re.compile(r"\b(?:cancel\w*|abandon\w*|shelved|put on hold|dropped|
 _APPROVAL = re.compile(r"\b(?:received|obtained|secured|got|cleared|successfully completed)\b[^.]{0,40}\b(?:approval|"
                        r"qualification|vendor registration|type[- ]test\w*|homologation|PPAP|empanel\w*|"
                        r"registration as (?:an? )?(?:approved )?(?:vendor|supplier))\b", re.I)
+# the company's own prices / realisations (or input costs) moved by a stated percentage
+_PRICE_CHANGE = re.compile(r"(?:(?:price|prices|pricing|realis\w*|realiz\w*|ASPs?|NSRs?|NSPs?|tariffs?|"
+                           r"raw material (?:cost|price)s?|input costs?)\b[^.%]{0,60}?(?:increas|ris|rose|up|hike|"
+                           r"improv|grew|higher|declin|fell|lower|soften|reduc|eas)\w*[^.%]{0,30}?\d+(?:\.\d+)?\s*%"
+                           r"|(?:increas|hike|rais|cut|reduc)\w*\s+(?:in\s+|of\s+)?(?:\w+\s+){0,2}(?:price|prices|"
+                           r"realis\w*|realiz\w*)\s+(?:by\s+)?(?:about\s+|around\s+|~)?\d+(?:\.\d+)?\s*%)", re.I)
 _BOTTLENECK = re.compile(r"\b(?:testing (?:facility|capacity|bay|lab\w*)|test bay|bottleneck|debottleneck\w*)\b", re.I)
 
 
@@ -272,6 +279,8 @@ def _other_seeds(series, evidence, mechanisms, rationales, as_of, th) -> list[Se
         out.append(Seed(CatalystKind.PRODUCT_MIX, at, text, f"mix:{_d(at)}", docs, ev, facts=[text]))
     for at, text, docs, ev in (_leading_statements(evidence, Metric.PRICING, +1)
                                + _leading_statements(evidence, Metric.INPUT_COST, -1)):
+        if not _PRICE_CHANGE.search(text):
+            continue            # a percentage near a price word is not yet a stated price / cost change
         pct = re.search(r"(\d+(?:\.\d+)?)\s*%", text)
         out.append(Seed(CatalystKind.CONTRACT_PRICING, at, text, f"price:{_d(at)}", docs, ev, facts=[text],
                         q={"pct": float(pct.group(1)) if pct else None}))
@@ -410,6 +419,7 @@ def _judge_series(ms: CatalystMilestone, periods, as_of, value_fn, met, consiste
         return
     ms.observed = f"{label} over {', '.join(str(e) for e in published)}: {v:+.1f}"
     ms.periods_judged = len(published)
+    ms.value = v
     ms.observed_at = max(at for _, at, _ in periods if at is not None)
     done = len(published) >= n_required
     if met(v):
@@ -600,7 +610,21 @@ def build_catalyst(ticker: str, s: Seed, series: FinancialSeries, evidence: list
 
     # --- milestones fixed at detection, judged on relevant periods ---
     c.milestones, c.invalidators = _milestones(s, c, series, p, evidence, events, as_of, th)
+    if c.contribution.status != "estimated" and s.kind in (CatalystKind.PRODUCT_MIX, CatalystKind.CONTRACT_PRICING):
+        mm = next((m for m in c.milestones if m.status == MilestoneStatus.MET and m.value is not None), None)
+        rev_now = series.ttm(Metric.REVENUE, series.latest_period(Metric.REVENUE, p), p)[0] \
+            if series.latest_period(Metric.REVENUE, p) else None
+        if mm and rev_now and ttm_ebitda:
+            realised = mm.value / 10000 * rev_now
+            k = c.contribution
+            k.status = "estimated" if realised / ttm_ebitda >= th["materiality_share_of_ttm_ebitda"] else "immaterial"
+            k.downside_crore, k.base_crore, k.upside_crore = round(realised * 0.5, 2), round(realised, 2), round(realised, 2)
+            k.share_of_ttm_ebitda = round(realised / ttm_ebitda, 3)
+            k.basis = (f"measured: {mm.value:+.0f} bps margin change over the relevant periods x current TTM revenue "
+                       f"{rev_now:,.0f} cr (realised, not forecast); downside assumes half of it reverses")
     _stage(c, as_of, th)
+    c.quantities["current"] = (c.window_end is None or as_of <= _add_months(c.window_end,
+                                                                             th["current_after_window_months"]))
     return c
 
 
@@ -867,6 +891,7 @@ def _stage(c: Catalyst, as_of: date, th: dict) -> None:
         m = next(m for m in c.milestones if m.status == MilestoneStatus.CONTRADICTED)
         c.stage, why = ResearchStage.CONTRADICTED, [f"contradicted: {m.question} {m.observed}"]
     elif fin and all(m.status == MilestoneStatus.MET for m in fin) and demand and demand.status != "unsupported" \
+            and c.contribution.status == "estimated" \
             and not any(s in (MilestoneStatus.MISSED, MilestoneStatus.DATA_UNAVAILABLE) for s in st) \
             and all(m.periods_judged >= th["confirm_periods"] or m.question.startswith("Do first orders")
                     for m in fin):
@@ -883,6 +908,9 @@ def _stage(c: Catalyst, as_of: date, th: dict) -> None:
                if m.status == MilestoneStatus.MET and not _is_guard(m)]
         why += [f"{m.question} consistent so far ({m.observed})" for m in c.milestones
                 if m.status == MilestoneStatus.CONSISTENT_MUTED]
+        if fin and all(m.status == MilestoneStatus.MET for m in fin) and c.contribution.status != "estimated":
+            why.append(f"mechanism verified, but materiality is not established ({c.contribution.status.replace('_', ' ')}"
+                       "): not confirmed for investment review")
     else:
         supported = (demand is not None and demand.status in ("supported", "not_applicable")
                      and not any(x.status == "contradicted" for x in c.chain)
@@ -939,7 +967,9 @@ def research_summary(catalysts: list[Catalyst], evidence_status: str, current: l
     rank = {ResearchStage.CONFIRMED: 6, ResearchStage.VALIDATING: 5, ResearchStage.SUPPORTED: 4,
             ResearchStage.DELAYED: 3, ResearchStage.DATA_UNAVAILABLE: 2, ResearchStage.POTENTIAL: 1,
             ResearchStage.CONTRADICTED: 0}
-    live = sorted(catalysts, key=lambda c: (-rank[c.stage], c.first_public_at or datetime.max.replace(tzinfo=IST)))
+    history = [c for c in catalysts if not c.quantities.get("current", True)]
+    live = sorted((c for c in catalysts if c.quantities.get("current", True)),
+                  key=lambda c: (-rank[c.stage], c.first_public_at or datetime.max.replace(tzinfo=IST)))
     active = [c for c in live if c.stage in _ACTIVE]
     if active:
         detected = "credible prospective earnings change"
@@ -973,6 +1003,7 @@ def research_summary(catalysts: list[Catalyst], evidence_status: str, current: l
         "waiting_for": waiting[:8],
         "investment_review": ("open: inputs assembled below (not an instruction to invest)" if confirmed else
                               "not started: only after a catalyst is confirmed, with valuation and downside assessed"),
+        "history": [f"{c.kind.value} {_d(c.first_public_at)}: {c.stage.value}" for c in history][-6:],
         "current_performance": {"evidence_status": evidence_status, "basis": current[:4],
                                 "note": "reported results so far; recorded separately from the forward setup"},
         "rules_version": RULES_VERSION,

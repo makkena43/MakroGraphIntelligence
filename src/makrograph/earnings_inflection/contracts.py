@@ -344,6 +344,7 @@ class CatalystMilestone:
     observed_at: Optional[datetime] = None
     source_doc_ids: list[str] = field(default_factory=list)
     periods_judged: int = 0               # relevant reporting periods the verdict rests on
+    value: Optional[float] = None         # the measured value the verdict rests on
 
 
 @dataclass
