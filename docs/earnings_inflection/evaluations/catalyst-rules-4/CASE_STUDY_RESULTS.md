@@ -61,10 +61,9 @@ The seven rules-3 cohort issuers exposed D1 and D3, so this re-run only checks t
 | Delayed or contradicted ("false alerts") | 6 | **0** |
 | Executed but not confirmable (new D3 verdict) | — | 10 |
 | Open / data unavailable | 6 / 2 | 6 / 2 |
-| Owners' PAT quarters parsed: TARIL / GENUSPOWER / OLECTRA / BORORENEW / GMMPFAUDLR / HBLENGINE | 0 / 0 / 9 / 0 / 0 / 0 | 7 / 1 / 17 / 13 / 4 / 0 |
+| Owners' PAT quarters parsed: TARIL / GENUSPOWER / OLECTRA / BORORENEW / GMMPFAUDLR / HBLENGINE / SWSOLAR | 0 / 0 / 9 / 0 / 0 / 0 / 0 | 7 / 1 / 17 / 13 / 4 / 0 / 18 |
 | Vanished catalysts | 0 | 1 (BORORENEW, D9) |
 
-SWSOLAR's rules-4 parse coverage was still being computed when this report was written.
 
 The six rules-3 "false alerts" were all executed catalysts that could not be confirmed. Under rules-4 they move to `executed_unconfirmable`, as intended, and no catalyst was hidden from the "delayed" verdict: Shakti's 2025 inflow, whose execution test was missed, is still "delayed". D4 (a missing quarter masking a contradiction) is still visible at BORORENEW (2 data-unavailable verdicts).
 
