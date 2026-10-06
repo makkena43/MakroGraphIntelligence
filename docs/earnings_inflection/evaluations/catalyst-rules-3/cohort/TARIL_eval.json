@@ -1,0 +1,187 @@
+{
+ "symbol": "TARIL",
+ "rules_version": "catalyst-rules-3",
+ "fingerprint": "1b744b3fe6944180",
+ "coverage": {
+  "symbol": "TARIL",
+  "announcements": 362,
+  "kept": 237,
+  "downloaded": 237,
+  "with_text": 241,
+  "skipped_no_text": 2,
+  "annual_reports": 6,
+  "annual_report_date_from_filename": 4,
+  "by_year": {
+   "2021": 24,
+   "2022": 28,
+   "2023": 57,
+   "2024": 71,
+   "2025": 61
+  },
+  "cadence": "Q",
+  "scope": "consolidated",
+  "periods_parsed": 10,
+  "first_period": "2023-03-31",
+  "last_period": "2025-06-30",
+  "credit_rating_filings": 5,
+  "snapshot_errors": []
+ },
+ "catalysts_total": 10,
+ "catalysts_by_kind": {
+  "executable_orders": 10
+ },
+ "alerts": [
+  {
+   "catalyst_id": "52992efa5b0f",
+   "kind": "executable_orders",
+   "change": "issuer-disclosed binding orders 2,050.0 cr in 12 months = 1.58x TTM revenue known then",
+   "first_public": "2024-04-08",
+   "supported_at": "2024-07-19",
+   "verdict": "delayed",
+   "final_stage": "delayed",
+   "stages": [
+    [
+     "2024-05-31",
+     "potential_catalyst"
+    ],
+    [
+     "2024-08-31",
+     "execution_validating"
+    ],
+    [
+     "2025-08-31",
+     "delayed"
+    ]
+   ],
+   "flagged_snapshots": 4,
+   "delivery": {
+    "from": "2024-06-30",
+    "to": "2025-06-30",
+    "ttm_revenue": [
+     1461.1100000000001,
+     2226.71
+    ],
+    "ttm_parent_pat": [
+     null,
+     null
+    ],
+    "delivered": false,
+    "measurable": false
+   }
+  },
+  {
+   "catalyst_id": "3da57f159dc5",
+   "kind": "executable_orders",
+   "change": "stated order book 2,600.0 -> 3,500.0 cr (+35%; disclosed 2024-04-15 -> 2024-10-08)",
+   "first_public": "2024-10-08",
+   "supported_at": "2025-01-08",
+   "verdict": "open",
+   "final_stage": "execution_validating",
+   "stages": [
+    [
+     "2024-11-30",
+     "potential_catalyst"
+    ],
+    [
+     "2025-02-28",
+     "execution_validating"
+    ]
+   ],
+   "flagged_snapshots": 5,
+   "delivery": null
+  },
+  {
+   "catalyst_id": "457ed33876f8",
+   "kind": "executable_orders",
+   "change": "stated order book 3,500.0 -> 5,132.0 cr (+47%; disclosed 2024-10-10 -> 2025-04-15)",
+   "first_public": "2025-04-15",
+   "supported_at": "2025-08-01",
+   "verdict": "open",
+   "final_stage": "execution_validating",
+   "stages": [
+    [
+     "2025-05-31",
+     "potential_catalyst"
+    ],
+    [
+     "2025-08-31",
+     "execution_validating"
+    ]
+   ],
+   "flagged_snapshots": 3,
+   "delivery": null
+  },
+  {
+   "catalyst_id": "0c7c20ee9dec",
+   "kind": "executable_orders",
+   "change": "issuer-disclosed binding orders 801.6 cr in 12 months = 0.40x TTM revenue known then",
+   "first_public": "2025-04-21",
+   "supported_at": "2025-08-01",
+   "verdict": "open",
+   "final_stage": "execution_validating",
+   "stages": [
+    [
+     "2025-05-31",
+     "potential_catalyst"
+    ],
+    [
+     "2025-08-31",
+     "execution_validating"
+    ]
+   ],
+   "flagged_snapshots": 3,
+   "delivery": null
+  },
+  {
+   "catalyst_id": "3a30e9b31583",
+   "kind": "executable_orders",
+   "change": "issuer-disclosed binding orders 726.0 cr in 12 months = 0.36x TTM revenue known then",
+   "first_public": "2025-04-23",
+   "supported_at": "2025-08-01",
+   "verdict": "open",
+   "final_stage": "execution_validating",
+   "stages": [
+    [
+     "2025-05-31",
+     "potential_catalyst"
+    ],
+    [
+     "2025-08-31",
+     "execution_validating"
+    ]
+   ],
+   "flagged_snapshots": 3,
+   "delivery": null
+  }
+ ],
+ "false_alerts": [
+  "52992efa5b0f"
+ ],
+ "unresolved_alerts": [
+  "3da57f159dc5",
+  "457ed33876f8",
+  "0c7c20ee9dec",
+  "3a30e9b31583"
+ ],
+ "prefix_defects": [],
+ "vanished_catalysts": [],
+ "inflections": [],
+ "workload": {
+  "alerts_per_year": 1.05,
+  "snapshots_in_flag_lane": 7,
+  "snapshots": 20,
+  "documents": 241
+ },
+ "timeline": {
+  "first_defensible_catalyst": "2024-07-19",
+  "first_any_catalyst": "2022-06-10",
+  "supported": 5,
+  "confirmed": 0,
+  "false_positives": 0,
+  "delayed": 1,
+  "data_unavailable": 4,
+  "potential_only": 5,
+  "days_to_confirmed": [],
+  "rules_version": "catalyst-rules-3"
+ }
+}

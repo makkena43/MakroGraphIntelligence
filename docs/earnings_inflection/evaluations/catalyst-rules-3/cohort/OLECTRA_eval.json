@@ -1,0 +1,57 @@
+{
+ "symbol": "OLECTRA",
+ "rules_version": "catalyst-rules-3",
+ "fingerprint": "1b744b3fe6944180",
+ "coverage": {
+  "symbol": "OLECTRA",
+  "announcements": 370,
+  "kept": 250,
+  "downloaded": 250,
+  "with_text": 252,
+  "skipped_no_text": 3,
+  "annual_reports": 5,
+  "annual_report_date_from_filename": 3,
+  "by_year": {
+   "2021": 59,
+   "2022": 65,
+   "2023": 41,
+   "2024": 40,
+   "2025": 47
+  },
+  "cadence": "Q",
+  "scope": "consolidated",
+  "periods_parsed": 21,
+  "first_period": "2019-12-31",
+  "last_period": "2025-09-30",
+  "credit_rating_filings": 6,
+  "snapshot_errors": []
+ },
+ "catalysts_total": 1,
+ "catalysts_by_kind": {
+  "customer_approval": 1
+ },
+ "alerts": [],
+ "false_alerts": [],
+ "unresolved_alerts": [],
+ "prefix_defects": [],
+ "vanished_catalysts": [],
+ "inflections": [],
+ "workload": {
+  "alerts_per_year": 0.0,
+  "snapshots_in_flag_lane": 0,
+  "snapshots": 20,
+  "documents": 252
+ },
+ "timeline": {
+  "first_defensible_catalyst": null,
+  "first_any_catalyst": "2023-09-04",
+  "supported": 0,
+  "confirmed": 0,
+  "false_positives": 0,
+  "delayed": 0,
+  "data_unavailable": 0,
+  "potential_only": 1,
+  "days_to_confirmed": [],
+  "rules_version": "catalyst-rules-3"
+ }
+}
