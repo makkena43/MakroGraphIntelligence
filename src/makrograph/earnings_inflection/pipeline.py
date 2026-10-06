@@ -34,6 +34,7 @@ from .counterparty import apply_reference_data, build_profiles
 from .document_versions import availability, is_restatement, link_versions
 from .drivers import compute_drivers
 from .mechanisms import detect_mechanisms
+from .thesis import build_thesis
 from .valuation import Security, valuation_context
 from .earnings_bridge import build_bridge
 from .event_resolution import resolve_events
@@ -354,6 +355,7 @@ class EarningsInflectionPipeline:
 
         # 5. series, drivers, ledger, counterparties, bridge
         series = FinancialSeries.build(ticker, measurements)
+        self.last_series = series        # for callers that evaluate a replay (never fed back into detection)
         cadence, end, stale_note = series.current_period(as_of.date())
         ttm_rev = series.ttm(Metric.REVENUE, end, cadence)[0] if end else None
         # Revenue guidance given as an amount must be plausible against the
@@ -381,7 +383,8 @@ class EarningsInflectionPipeline:
         first_public = {d.doc_id: d.available_at for d in docs}
 
         contradictions = [f"{g.metric.value} {g.target_period_label}: {f}" for g in guidance for f in g.flags]
-        contradictions += [f"adverse mechanism {m.mechanism.value}: {m.magnitude_basis or m.attribution}"
+        contradictions += [f"adverse mechanism {m.mechanism.value}{' (stale reading)' if m.stale else ''}: "
+                           f"{m.magnitude_basis or m.attribution}"
                            for m in mechanisms if m.state.value in ("adverse", "contradicted")]
         contradictions += [f"negated statement: \"{e.quote[:160]}\"" for e in evidence
                            if e.usable and e.modality.value == "negated" and e.tier.value == "management_assertion"][:5]
@@ -505,7 +508,11 @@ class EarningsInflectionPipeline:
             next_checks=next_checks(drivers, events, guidance, sorted(set(missing)), status),
             sources=sources, limitations=lim, coverage=coverage, source_manifest=source_manifest,
             replay_mode=mode, mechanisms=mechanisms,
+            thesis=build_thesis(mechanisms, series, evidence, events, as_of.date(),
+                                self.cfg.get("thesis_thresholds"), stale_note),
         )
+        if stale_note and cadence:
+            self._last_known_reading(a, series, evidence, events, guidance, usable_docs, issuer_model, cadence)
         # Optional valuation context, computed AFTER the evidence status and never fed back into it.
         vcfg = self.cfg.get("valuation", {}) or {}
         if vcfg.get("enabled"):
@@ -521,6 +528,27 @@ class EarningsInflectionPipeline:
         return a
 
     # -- diagnostics -----------------------------------------------------------
+
+    def _last_known_reading(self, a, series, evidence, events, guidance, usable_docs, issuer_model, cadence):
+        """The status as of the day the latest parsed results were first public, from what was
+        public by then.  Shown next to the (stale) current assessment; never replaces it."""
+        end = series.latest_period(Metric.REVENUE, cadence)
+        pt = series.get(Metric.REVENUE, end, cadence) if end else None
+        at = pt and (pt.first_public_at or pt.available_at)
+        if not at:
+            return
+        ev = [e for e in evidence if e.available_at and e.available_at <= at]
+        evs = [e for e in events if e.first_public_at and e.first_public_at <= at]
+        drv, _ = compute_drivers(series, evs, ev, issuer_model, at.date(), self.cfg.get("thresholds"))
+        mech = detect_mechanisms(series, ev, evs, drv, at.date(), self.cfg.get("mechanism_thresholds"))
+        ttm = series.ttm(Metric.REVENUE, end, cadence)[0]
+        st, why = decide_status(drv, evs, ev, [g for g in guidance if g.original.stated_at
+                                               and g.original.stated_at <= at],
+                                usable_docs, ttm, at, int(self.cfg.get("event_lookback_days", 365)), mech)
+        a.thesis.last_known_status, a.thesis.last_known_as_of = st.value, at.date()
+        a.thesis.last_known_rationale = why[:6]
+        a.thesis.notes.append(f"last known evidence status {st.value} as of {at.date()} (latest parsed results, "
+                              f"{cadence} {end}); stale - later results are not parsed")
 
     def diagnose(self, ticker: str, as_of) -> str:
         """Plain-text report of how each visible document was read (for debugging parsing)."""

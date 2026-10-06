@@ -446,3 +446,23 @@ Example research shortlist (synthetic): `docs/earnings_inflection/examples/resea
 - [ ] Shadow pilot approved and started.
 
 Do not treat passing tests, or attractive backtests, as investment readiness.
+
+## 9. Forward-looking thesis layer (after the INDOTECH replay review)
+
+The evidence-status ladder is backward-looking: it needs reported results and two periods to confirm.
+Shortening that to one period would only make the same classifier noisier.  Instead a separate
+thesis layer was added next to it (the ladder is unchanged).
+
+| Recommendation | Implementation | Tests |
+|---|---|---|
+| Surface leading candidates when source-backed economics change | `thesis.leading_signals`: verified binding orders material to TTM revenue known at the time; stated order book +30% vs a snapshot 5-15 months earlier (amount must follow "order book"; a high flat book is not a change); completed capacity expansion (+20%, "from X to Y" or two dated statements); sized issuer statements of realised price / input cost / mix / volume. Bare forward statements are not leading. | `test_thesis.py` (leading before results, flat book, amount guard, unsized pricing) |
+| First results as a separate validation milestone | `ThesisMilestone` on the first results published after the signal, measured on the mechanism's own metric; `pending` until the SEBI deadline, then `overdue` (data gap, not a verdict) | validated / not validated / adverse / overdue cases |
+| Two-period confirmation upgrades confidence, not admission | low -> medium -> high; admission happens at the leading signal | confirmation case; evidence status unchanged while leading |
+| Track each mechanism with positive and negative evidence | `MechanismThesis.positive_evidence / negative_evidence`, dated; reported outcomes listed once in `outcome_history`, attributed to no mechanism | attribution test |
+| Preserve the prior thesis when data become unavailable | stale series: mechanisms computed on the last parsed period with `stale=True` (never `qualifies_positive`, never in the bridge); `last_known_status` recomputed from what was public when the latest parsed results came out | stale test |
+| Measure earliest detection, false alarms, lead time, earnings delivery | `replay.py` (detection side, snapshots) + `evaluation.thesis_timeline / earnings_delivery / timeline_report` (outcome sandbox; detection never imports it); CLI `--replay-from/--replay-to` | timeline, delivery and CLI tests |
+
+Series points now carry `first_public_at` (first filing stating the value), so a figure repeated later
+as a comparative column does not move its date.
+
+Schema version `ei-assessment-4` (adds `Assessment.thesis`, `MechanismResult.stale`).

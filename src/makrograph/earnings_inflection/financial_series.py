@@ -77,6 +77,9 @@ class SeriesPoint:
     system_at: Optional[datetime] = None       # when MakroGraph held it (None = unproven)
     inputs: list = field(default_factory=list) # keys of the points a derived value depends on
     support: int = 1       # separate filings (reposts of one filing count once) stating this value
+    # first time a filing stating this value (or one agreeing with it) was public; a later
+    # comparative-column repeat does not move it.  Derived points: latest of their inputs.
+    first_public_at: Optional[datetime] = None
 
 
 BLOCKING_INTEGRITY = ("unresolved", "rejected")
@@ -240,7 +243,10 @@ class FinancialSeries:
             series.points[key] = SeriesPoint(latest.value, latest.unit, latest.source,
                                              sorted({v.doc_id for v in vs}), len(distinct_vals),
                                              latest.integrity, latest.available_at, latest.system_available_at,
-                                             support=_filings([v for v in vs if _agrees(v, latest)]))
+                                             support=_filings([v for v in vs if _agrees(v, latest)]),
+                                             first_public_at=min((v.available_at for v in vs
+                                                                  if _agrees(v, latest) and v.available_at),
+                                                                 default=latest.available_at))
             if len(distinct_vals) > 1:
                 series.lineage_notes.append(
                     f"{key[0].value} {key[1]} {key[2]}: revised from {vs[0].value} ({vs[0].doc_id}) "
@@ -339,7 +345,8 @@ class FinancialSeries:
     def _derived(value, unit, source, parts: list["SeriesPoint"], keys: list) -> "SeriesPoint":
         return SeriesPoint(value, unit, source, sorted({d for p in parts for d in p.doc_ids}), 1, "derived",
                            _latest(p.available_at for p in parts), _latest(p.system_at for p in parts),
-                           list(keys))
+                           list(keys),
+                           first_public_at=_latest((p.first_public_at or p.available_at) for p in parts))
 
     def provenance(self, keys) -> tuple[Optional[datetime], Optional[datetime], list[str]]:
         """(knowable_at, system_known_at, doc_ids) of the points a calculation used."""

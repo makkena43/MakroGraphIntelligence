@@ -192,6 +192,43 @@ Each report has an **Earnings mechanisms** table covering utilisation, product/c
 - **Research questions:** shown wherever a magnitude cannot be quantified.
 - **Thresholds:** `mechanism_thresholds` in the config.
 
+### D.1b Forward-looking thesis and replay timelines
+
+Each report also has a **Forward-looking thesis** section, next to (never replacing) the evidence status.
+
+- **Leading candidate:** a source-backed change in economics not yet in reported results, per mechanism:
+  - verified binding external orders >= 25% of TTM revenue in 12 months (order quality);
+  - a stated order book up >= 30% on a snapshot 5-15 months earlier (a high but flat book is context, not a change);
+  - completed capacity expansion >= 20% (utilisation);
+  - issuer-stated realised price / input-cost / mix / volume changes **with their size** (wording alone is not enough).
+  Bare forward-looking statements stay ASSERTION_ONLY.
+- **First-results check:** the first results published after the signal, on the mechanism's own metric
+  (revenue growth for orders / capacity / volume; gross, else EBITDA, margin for pricing / mix):
+  `validated`, `not_validated`, `adverse`; `pending` until the SEBI deadline, then `overdue` (a data gap, not a verdict).
+- **Confidence:** low (leading) -> medium (first results validated) -> high (a second period repeats it).
+  Two-period confirmation upgrades confidence; it is not an admission gate.
+- **Evidence per mechanism:** dated positive and negative items; reported revenue / margin outcomes are listed
+  once, attributed to no mechanism.
+- **Stale series:** mechanisms keep their last reading, labelled stale, and never upgrade the status. The report also
+  shows the **last known evidence status**, recomputed from what was public when the latest parsed results came out.
+- **Thresholds:** `thesis_thresholds` in the config.
+
+Replay one issuer month by month (each month sees only documents public by then) and score it:
+
+```bash
+python scripts/earnings_inflection.py --fixtures DIR --ticker T --replay-from 2020-06-01 --replay-to 2025-12-31 --out OUT
+```
+
+Writes `T_replay.json` (snapshots) and `T_timeline.md`. The timeline is scored in the outcome sandbox:
+- earliest defensible signal;
+- first EMERGING / CONFIRMED status;
+- per episode: first-results verdict, confirmation date and lead time;
+- false alarms and unresolved signals;
+- earnings delivery: TTM revenue / PAT four periods after the last results public before the signal. It uses later
+  data, so it is evaluation only. Missing figures make it censored, never zero.
+
+One issuer is an example, not a validation sample.
+
 ### D.2 LLM extraction (off by default)
 
 ```yaml

@@ -373,3 +373,176 @@ def evaluation_report(frozen: FrozenConfig, manifest: dict, classification: dict
     L += ["", "No claim of multibagger detection follows from this report; sample sizes and censoring bound "
               "every statement above."]
     return "\n".join(L)
+
+
+# --- replay timelines: earliest detection, lead time, false alarms, earnings delivery -------------
+
+_POSITIVE_STAGES = ("leading", "first_results_validated", "realized_emerging", "confirmed")
+
+
+def _pd(x):
+    from datetime import datetime as _dt
+    if x is None:
+        return None
+    return _dt.fromisoformat(x).date() if "T" in x or "+" in x else date.fromisoformat(x[:10])
+
+
+@dataclass
+class ThesisEpisode:
+    mechanism: str
+    origin: str                          # "leading" | "realized"
+    signal_at: Optional[date]            # earliest defensible time of the signal
+    signal: str
+    first_seen_as_of: Optional[date]     # first replay date that showed it (replay granularity)
+    last_seen_as_of: Optional[date] = None
+    validation_outcome: str = "pending"
+    validated_at: Optional[date] = None  # first results after the signal were public
+    validation_observed: str = ""
+    confirmed_as_of: Optional[date] = None
+    final_stage: str = ""
+    verdict: str = "unresolved"          # validated | false_alarm | unresolved
+    delivery: dict = field(default_factory=dict)
+
+    @property
+    def lead_time_days(self) -> Optional[int]:
+        """Signal to first validating results."""
+        if self.signal_at and self.validated_at:
+            return (self.validated_at - self.signal_at).days
+        return None
+
+
+def thesis_timeline(snapshots: list[dict]) -> dict:
+    """Episodes per mechanism from successive replay snapshots (see ``replay.snapshot``).
+
+    A leading episode is keyed by its signal time; a realized-first episode by its earliest
+    defensible time.  Verdict: validated when the first results after the signal showed the
+    change; false_alarm when they did not (or moved against it); unresolved when results are
+    still pending / overdue at the end of the replay or the signal expired unchecked."""
+    eps: dict[tuple, ThesisEpisode] = {}
+    statuses: list[tuple[date, str]] = []
+    for s in sorted((x for x in snapshots if "error" not in x), key=lambda x: x["as_of"]):
+        d = date.fromisoformat(s["as_of"])
+        statuses.append((d, s["evidence_status"]))
+        for m in s["mechanisms"]:
+            if m["stage"] not in _POSITIVE_STAGES + ("first_results_not_validated", "adverse") \
+                    and not m["leading_signal_at"]:
+                continue
+            if m["leading_signal_at"]:
+                key = (m["mechanism"], "leading", m["leading_signal_at"])
+                origin, sig, at = "leading", m["leading_signal"], _pd(m["leading_signal_at"])
+            elif m["stage"] in ("realized_emerging", "confirmed"):
+                key = (m["mechanism"], "realized", m["earliest_defensible_at"])
+                origin, sig, at = "realized", m.get("confirmation") or "first seen in reported results", \
+                    _pd(m["earliest_defensible_at"])
+            else:
+                continue
+            ep = eps.get(key) or ThesisEpisode(m["mechanism"], origin, at, sig, d)
+            eps[key] = ep
+            ep.last_seen_as_of, ep.final_stage = d, m["stage"]
+            v = m.get("validation")
+            if v:
+                ep.validation_outcome = v["outcome"]
+                if v["outcome"] in ("validated", "not_validated", "adverse"):
+                    ep.validated_at = _pd(v["observed_at"]) if v["observed_at"] else ep.validated_at
+                    ep.validation_observed = f"{v['period_end']}: {v['observed']}"
+            if m["stage"] == "confirmed" and ep.confirmed_as_of is None:
+                ep.confirmed_as_of = d
+    for ep in eps.values():
+        if ep.origin == "realized":
+            ep.verdict = "validated"           # seen in results by construction
+        elif ep.validation_outcome == "validated":
+            ep.verdict = "validated"
+        elif ep.validation_outcome in ("not_validated", "adverse"):
+            ep.verdict = "false_alarm"
+    first = lambda st: next((d for d, x in statuses if x == st), None)  # noqa: E731
+    leading = sorted((e for e in eps.values() if e.origin == "leading"), key=lambda e: e.signal_at or date.max)
+    confirmed_status = first("EXECUTION_CONFIRMED")
+    earliest = min((e.signal_at for e in eps.values() if e.signal_at and e.verdict != "false_alarm"), default=None)
+    return {
+        "episodes": sorted(eps.values(), key=lambda e: (e.signal_at or date.max, e.mechanism)),
+        "first_status": {st: first(st) for st in ("EXECUTION_EMERGING", "EXECUTION_CONFIRMED",
+                                                  "COMMITMENT_BACKED", "EARLY_COMMITMENT_UNVERIFIED")},
+        "earliest_defensible_signal": earliest,
+        "days_before_first_confirmed_status": ((confirmed_status - earliest).days
+                                               if confirmed_status and earliest else None),
+        "leading_episodes": len(leading),
+        "false_alarms": sum(1 for e in leading if e.verdict == "false_alarm"),
+        "validated": sum(1 for e in leading if e.verdict == "validated"),
+        "unresolved": sum(1 for e in leading if e.verdict == "unresolved"),
+        # signal -> first results that validated it (validated episodes only)
+        "lead_times_days": [e.lead_time_days for e in leading if e.verdict == "validated"
+                            and e.lead_time_days is not None],
+    }
+
+
+def earnings_delivery(episode: ThesisEpisode, series, horizon_periods: int = 4,
+                      data_until: Optional[date] = None) -> dict:
+    """Did earnings follow?  TTM revenue and PAT at the last period public before the signal vs
+    ``horizon_periods`` later, from the full (later) series.  Evaluation only: uses data the
+    detector could not see.  Missing figures leave the outcome censored, never zero."""
+    from .contracts import Metric
+    from .financial_series import prev_period_end
+    p = series.cadence(Metric.REVENUE)
+    if p is None or episode.signal_at is None:
+        return {"censored": True, "reason": "no series"}
+    base = None
+    for e in series.period_ends(Metric.REVENUE, p):
+        pt = series.get(Metric.REVENUE, e, p)
+        at = pt and (pt.first_public_at or pt.available_at)
+        if at and at.date() <= episode.signal_at:
+            base = e
+    if base is None:
+        return {"censored": True, "reason": "no results public before the signal"}
+    later = base
+    for _ in range(horizon_periods):
+        nxt = [e for e in series.period_ends(Metric.REVENUE, p) if e > later]
+        later = nxt[0] if nxt else None
+        if later is None:
+            break
+    out = {"base_period": base.isoformat(), "horizon_period": later.isoformat() if later else None,
+           "censored": later is None or (data_until is not None and later > data_until)}
+    if out["censored"]:
+        out["reason"] = f"{horizon_periods} later periods not available"
+        return out
+    for metric, name in ((Metric.REVENUE, "revenue"), (Metric.PAT, "pat")):
+        a, _ = series.ttm(metric, base, p)
+        b, _ = series.ttm(metric, later, p)
+        out[f"ttm_{name}_base"], out[f"ttm_{name}_later"] = a, b
+        out[f"ttm_{name}_change_pct"] = ((b / a - 1) * 100 if a and b is not None and a > 0 else None)
+    if out.get("ttm_pat_change_pct") is None and out.get("ttm_revenue_change_pct") is None:
+        out["censored"], out["reason"] = True, "TTM figures incomplete"
+    return out
+
+
+def timeline_report(ticker: str, timeline: dict, note: str = "") -> str:
+    L = [f"# Replay timeline — {ticker}", "",
+         "> Research evaluation of a point-in-time replay. One issuer is an example, not a validation "
+         "sample; no return or performance claim follows from it.", ""]
+    if note:
+        L += [note, ""]
+    fs = timeline["first_status"]
+    L.append(f"- Earliest defensible signal still standing: **{timeline['earliest_defensible_signal'] or '—'}**")
+    L.append(f"- First EXECUTION_EMERGING: {fs['EXECUTION_EMERGING'] or '—'} · first EXECUTION_CONFIRMED: "
+             f"{fs['EXECUTION_CONFIRMED'] or '—'}"
+             + (f" · signal led the confirmed status by {timeline['days_before_first_confirmed_status']} days"
+                if timeline["days_before_first_confirmed_status"] is not None else ""))
+    L.append(f"- Leading episodes: {timeline['leading_episodes']} · validated {timeline['validated']} · "
+             f"false alarms {timeline['false_alarms']} · unresolved {timeline['unresolved']}")
+    if timeline["lead_times_days"]:
+        L.append(f"- Signal -> validating results (days): {timeline['lead_times_days']}")
+    L += ["", "| Mechanism | Origin | Signal (public) | First seen in replay | First-results check | "
+          "Confirmed | Verdict | Earnings delivery (TTM, +4 periods) |", "|---|---|---|---|---|---|---|---|"]
+    for e in timeline["episodes"]:
+        d = e.delivery or {}
+        if not d:
+            dl = "—"
+        elif d.get("censored"):
+            dl = f"censored ({d.get('reason', '')})"
+        else:
+            parts = [f"{k.split('_')[1]} {d[k]:+.0f}%" for k in ("ttm_revenue_change_pct", "ttm_pat_change_pct")
+                     if d.get(k) is not None]
+            dl = f"{d['base_period']} -> {d['horizon_period']}: " + ", ".join(parts)
+        L.append(f"| {e.mechanism} | {e.origin} | {e.signal_at or '—'}: {e.signal[:110]} | {e.first_seen_as_of} | "
+                 f"{e.validation_outcome}" + (f" ({e.validated_at}; {e.validation_observed})" if e.validated_at else "")
+                 + f" | {e.confirmed_as_of or '—'} | {e.verdict} | {dl} |")
+    return "\n".join(L) + "\n"

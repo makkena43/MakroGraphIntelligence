@@ -41,6 +41,30 @@ def load_config(path):
     return data.get("earnings_inflection", data)
 
 
+def _replay(args, cfg, repo) -> int:
+    """Monthly point-in-time replay, then a timeline scored in the outcome sandbox."""
+    from datetime import date
+    from makrograph.earnings_inflection.evaluation import earnings_delivery, thesis_timeline, timeline_report
+    from makrograph.earnings_inflection.replay import month_ends, replay
+    pipe = EarningsInflectionPipeline(cfg, repo)
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    start, end = date.fromisoformat(args.replay_from), date.fromisoformat(args.replay_to)
+    for t in args.ticker:
+        snaps = replay(pipe, t, month_ends(start, end))
+        (out / f"{t}_replay.json").write_text(json.dumps(snaps, indent=1, default=str))
+        tl = thesis_timeline(snaps)
+        pipe.run([t], end.isoformat())               # series as known at the end of the replay window
+        for ep in tl["episodes"]:
+            ep.delivery = earnings_delivery(ep, pipe.last_series, data_until=end)
+        (out / f"{t}_timeline.md").write_text(timeline_report(
+            t, tl, f"Replay {start} -> {end}, month-ends; outcomes use data public by {end} only."))
+        print(f"{t}: {len(snaps)} snapshots; earliest defensible signal {tl['earliest_defensible_signal']}; "
+              f"leading episodes {tl['leading_episodes']} (validated {tl['validated']}, false alarms "
+              f"{tl['false_alarms']}) -> {out / (t + '_timeline.md')}")
+    return 0
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--config", help="YAML config (see config/earnings_inflection.example.yaml)")
@@ -67,6 +91,8 @@ def main(argv=None):
     ap.add_argument("--previous", help="universe: earlier run directory; reassess only issuers with new documents")
     ap.add_argument("--max-issuers", type=int, help="universe: hard cap on issuers assessed (others deferred)")
     ap.add_argument("--page-size", type=int, help="universe: issuers per checkpointed page")
+    ap.add_argument("--replay-from", help="point-in-time replay: first as-of date (month-ends to --replay-to)")
+    ap.add_argument("--replay-to", help="point-in-time replay: last as-of date; also the outcome data cut-off")
     ap.add_argument("--replay-manifest",
                     help="manifest.json of an earlier run: read exactly the text versions that run used")
     args = ap.parse_args(argv)
@@ -90,6 +116,10 @@ def main(argv=None):
     if args.preflight_only:
         print(json.dumps(to_jsonable(repo.preflight()), indent=2, default=str))
         return 0
+    if args.replay_from or args.replay_to:
+        if not (args.replay_from and args.replay_to and args.ticker and args.out):
+            ap.error("--replay-from, --replay-to, --ticker and --out are required together")
+        return _replay(args, cfg, repo)
     if not args.as_of or (not args.ticker and not args.universe):
         ap.error("--as-of and either --ticker or --universe <snapshot> are required (no implicit whole-market runs)")
 

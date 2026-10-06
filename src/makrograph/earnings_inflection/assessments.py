@@ -90,7 +90,8 @@ def decide_status(drivers: list[DriverChange], events: list[EconomicEvent], evid
     mech_confirmed = [m for m in mech_pos if m.state == MechanismState.CONFIRMED]
     for m in (mechanisms or []):
         if m.state == MechanismState.ADVERSE:
-            why.append(f"adverse mechanism {m.mechanism.value}: {m.magnitude_basis or m.attribution}")
+            why.append(f"adverse mechanism {m.mechanism.value}{' (stale reading)' if m.stale else ''}: "
+                       f"{m.magnitude_basis or m.attribution}")
     if mech_confirmed:
         why += [f"mechanism {m.mechanism.value} confirmed ({m.durability}): {m.magnitude_basis}" for m in mech_confirmed]
         why += [f"{d.driver}: {d.change:.1f} {d.unit}" for d in material_realized if d.change is not None]
