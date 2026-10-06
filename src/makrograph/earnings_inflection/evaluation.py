@@ -152,7 +152,8 @@ def wilson(k: int, n: int, z: float = 1.96) -> tuple[Optional[float], Optional[f
     return round(c - h, 3), round(c + h, 3)
 
 
-FLAG_LANES = ("EXECUTION_RESEARCH", "COMMITMENT_RESEARCH")
+# flagged = a credible forward setup (supported or better); potential catalysts are a watch state
+FLAG_LANES = ("CONFIRMED_FOR_REVIEW", "EXECUTION_VALIDATING", "PROSPECTIVE_SUPPORTED")
 
 
 def classification_report(predictions: dict[tuple, dict], labels: list[dict]) -> dict:

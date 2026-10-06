@@ -28,7 +28,18 @@ from typing import Optional
 
 from .contracts import Assessment, EvidenceStatus, MechanismState, ReviewStatus, assert_no_action_language
 
-LANES = ("EXECUTION_RESEARCH", "COMMITMENT_RESEARCH", "ASSERTION_WATCH", "DATA_REPAIR", "CONTRADICTED_OR_STALE")
+# Lanes follow the CURRENT FORWARD CATALYST stage first; reported performance is a separate
+# dimension on every record (and a lower lane only when no current catalyst exists).
+LANES = ("CONFIRMED_FOR_REVIEW", "EXECUTION_VALIDATING", "PROSPECTIVE_SUPPORTED", "POTENTIAL_CATALYST",
+         "REPORTED_PERFORMANCE_ONLY", "DATA_REPAIR", "CONTRADICTED_OR_STALE")
+_STAGE_LANE = {"confirmed_for_investment_review": "CONFIRMED_FOR_REVIEW",
+               "execution_validating": "EXECUTION_VALIDATING",
+               "supported_prospective_inflection": "PROSPECTIVE_SUPPORTED",
+               "potential_catalyst": "POTENTIAL_CATALYST"}
+_STAGE_RANK = {"confirmed_for_investment_review": 4, "execution_validating": 3,
+               "supported_prospective_inflection": 2, "potential_catalyst": 1}
+_STAGE_QUALITY = {"confirmed_for_investment_review": 1.0, "execution_validating": 0.75,
+                  "supported_prospective_inflection": 0.6, "potential_catalyst": 0.3}
 
 DEFAULT_DISCOVERY = {
     "max_issuers": 50,
@@ -39,9 +50,11 @@ DEFAULT_DISCOVERY = {
     "weights": {"evidence_quality": 0.35, "materiality": 0.30, "timing": 0.15, "persistence": 0.20,
                 "risk_penalty": 0.30},
     "critical_checks": {
-        "EXECUTION_RESEARCH": ["identity_resolved", "current_financial_series", "latest_period_reconciled"],
-        "COMMITMENT_RESEARCH": ["identity_resolved", "dated_order_events"],
-        "ASSERTION_WATCH": ["identity_resolved"],
+        "CONFIRMED_FOR_REVIEW": ["identity_resolved", "dated_catalyst", "latest_period_reconciled"],
+        "EXECUTION_VALIDATING": ["identity_resolved", "dated_catalyst"],
+        "PROSPECTIVE_SUPPORTED": ["identity_resolved", "dated_catalyst"],
+        "POTENTIAL_CATALYST": ["identity_resolved", "dated_catalyst"],
+        "REPORTED_PERFORMANCE_ONLY": ["identity_resolved", "current_financial_series", "latest_period_reconciled"],
     },
 }
 
@@ -96,30 +109,72 @@ def critical_checks(a: Assessment) -> dict[str, bool]:
         "current_financial_series": not stale and cov.get("reporting_cadence", "none") != "none",
         "latest_period_reconciled": not latest_bad,
         "dated_order_events": all(e.first_public_at is not None for e in a.events),
+        "dated_catalyst": all(c.first_public_at is not None for c in a.catalysts),
     }
 
 
-def lane_for(a: Assessment, checks: dict[str, bool], cfg: dict) -> tuple[str, list[str]]:
+def current_catalysts(a: Assessment) -> list:
+    return [c for c in a.catalysts if c.quantities.get("current", True)]
+
+
+def lead_catalyst(a: Assessment):
+    live = [c for c in current_catalysts(a) if c.stage.value in _STAGE_RANK]
+    if not live:
+        return None
+    return max(live, key=lambda c: (_STAGE_RANK[c.stage.value], c.contribution.share_of_ttm_ebitda or 0.0,
+                                    -(c.first_public_at.timestamp() if c.first_public_at else 0)))
+
+
+def reported_performance(a: Assessment) -> dict:
+    """The backward-looking dimension, kept apart from the forward setup."""
     s = a.evidence_status
-    adverse = [m for m in a.mechanisms if m.state == MechanismState.ADVERSE]
-    if s == EvidenceStatus.CONTRADICTED:
+    lane = ("EXECUTION" if s in (EvidenceStatus.EXECUTION_EMERGING, EvidenceStatus.EXECUTION_CONFIRMED)
+            else "COMMITMENT" if s in (EvidenceStatus.COMMITMENT_BACKED, EvidenceStatus.EARLY_COMMITMENT_UNVERIFIED)
+            else "ASSERTION" if s == EvidenceStatus.ASSERTION_ONLY else s.value)
+    return {"evidence_status": s.value, "category": lane, "basis": a.status_rationale[:3],
+            "material_drivers": [f"{d.driver}: {d.change:.1f} {d.unit}" for d in a.drivers
+                                 if d.material and d.change is not None][:4]}
+
+
+def lane_for(a: Assessment, checks: dict[str, bool], cfg: dict) -> tuple[str, list[str]]:
+    """Primary input: the most advanced CURRENT forward catalyst.  Muted reported results do
+    not demote a supported forward setup; strong reported results without a catalyst sit in
+    REPORTED_PERFORMANCE_ONLY."""
+    s = a.evidence_status
+    lead = lead_catalyst(a)
+    cur = current_catalysts(a)
+    if lead is not None:
+        lane = _STAGE_LANE[lead.stage.value]
+        reasons = [f"{lead.kind.value} since {lead.first_public_at.date() if lead.first_public_at else '?'}: "
+                   f"{lead.operating_change}"] + lead.stage_reasons[:2]
+        others = [c for c in cur if c is not lead and c.stage.value in ("contradicted", "delayed")]
+        if others:
+            reasons.append("MIXED: also " + ", ".join(f"{c.kind.value} {c.stage.value}" for c in others[:3]))
+        if s == EvidenceStatus.CONTRADICTED:
+            reasons.append("MIXED: management guidance contradicted (see contradictions)")
+    elif any(c.stage.value == "data_unavailable" for c in cur):
+        return "DATA_REPAIR", ["catalyst milestones due but results not available"] + a.missing_inputs[:2]
+    elif any(c.stage.value in ("contradicted", "delayed") for c in cur):
+        bad = [c for c in cur if c.stage.value in ("contradicted", "delayed")]
+        return "CONTRADICTED_OR_STALE", [f"{c.kind.value} {c.stage.value}: {(c.stage_reasons or [''])[0]}"
+                                         for c in bad[:3]]
+    elif s == EvidenceStatus.CONTRADICTED:
         return "CONTRADICTED_OR_STALE", ["management guidance contradicted (see contradictions)"]
-    if s == EvidenceStatus.INSUFFICIENT_EVIDENCE:
+    elif s == EvidenceStatus.INSUFFICIENT_EVIDENCE:
         return "DATA_REPAIR", ["insufficient usable evidence"] + a.missing_inputs[:2]
-    lane = ("EXECUTION_RESEARCH" if s in (EvidenceStatus.EXECUTION_EMERGING, EvidenceStatus.EXECUTION_CONFIRMED)
-            else "COMMITMENT_RESEARCH" if s in (EvidenceStatus.COMMITMENT_BACKED,
-                                               EvidenceStatus.EARLY_COMMITMENT_UNVERIFIED)
-            else "ASSERTION_WATCH" if s == EvidenceStatus.ASSERTION_ONLY else None)
-    if lane is None:
-        return "", ["assessed: no qualifying evidence"]
+    elif s in (EvidenceStatus.EXECUTION_EMERGING, EvidenceStatus.EXECUTION_CONFIRMED):
+        lane, reasons = "REPORTED_PERFORMANCE_ONLY", ["reported results improved; no current forward catalyst"] + \
+            list(a.status_rationale[:2])
+    else:
+        return "", ["assessed: no current forward catalyst and no qualifying reported change"]
     failed = [c for c in cfg["critical_checks"].get(lane, []) if not checks.get(c, True)]
     if failed:
         # a failed critical check blocks only the qualification that depends on it
-        if "current_financial_series" in failed and lane == "EXECUTION_RESEARCH":
+        if "current_financial_series" in failed and lane == "REPORTED_PERFORMANCE_ONLY":
             return "CONTRADICTED_OR_STALE", [f"failed critical check: {c}" for c in failed]
         return "DATA_REPAIR", [f"failed critical check: {c}" for c in failed]
-    reasons = list(a.status_rationale[:3])
-    if adverse and lane == "EXECUTION_RESEARCH":
+    adverse = [m for m in a.mechanisms if m.state == MechanismState.ADVERSE and not m.stale]
+    if adverse:
         reasons.append("MIXED: adverse mechanism(s) " + ", ".join(m.mechanism.value for m in adverse))
     return lane, reasons
 
@@ -129,15 +184,33 @@ def _clip(x):
 
 
 def score_components(a: Assessment, as_of: date) -> dict[str, float]:
-    """Visible heuristics in [0, 1]; NOT probabilities and not return forecasts."""
+    """Visible heuristics in [0, 1] from the lead forward catalyst; NOT probabilities and not
+    return forecasts.  Without a current catalyst, reported performance is scored instead."""
+    lead = lead_catalyst(a)
+    if lead is not None:
+        q = _STAGE_QUALITY[lead.stage.value]
+        if lead.facts and all("rating-agency" in f or "ICRA" in f or "CARE" in f or "CRISIL" in f for f in lead.facts):
+            q -= 0.05                                      # agency restatement only: corroboration, lower weight
+        if a.coverage.get("result_periods", {}).get("missing"):
+            q -= 0.1
+        share = lead.contribution.share_of_ttm_ebitda
+        materiality = _clip((share or 0.0) / 0.5) if lead.contribution.status == "estimated" else \
+            (0.2 if lead.contribution.status == "potentially_material_unresolved" else 0.0)
+        anchor = getattr(lead, "supported_at", None) or lead.first_public_at
+        timing = _clip(1 - (as_of - anchor.date()).days / 365) if anchor else 0.0
+        primary = [m for m in lead.milestones if m.status.value in ("met", "consistent_muted", "pending",
+                                                                     "not_yet_relevant", "missed", "contradicted")]
+        met = sum(1 for m in primary if m.status.value == "met")
+        persistence = _clip(met / max(1, len(lead.milestones)))
+        cur = current_catalysts(a)
+        risk = _clip(0.15 * sum(1 for c in cur if c.stage.value in ("contradicted", "delayed"))
+                     + 0.05 * len(a.contradictions) + 0.05 * len(a.financing_risks)
+                     + 0.05 * sum(1 for c in a.counterparties if c.relationship.value == "confirmed_related")
+                     + 0.1 * sum(1 for m in lead.milestones if m.status.value == "missed"))
+        return {"evidence_quality": round(_clip(q), 3), "materiality": round(materiality, 3),
+                "timing": round(timing, 3), "persistence": round(persistence, 3), "risk_penalty": round(risk, 3)}
     s = a.evidence_status
-    q = {EvidenceStatus.EXECUTION_CONFIRMED: 1.0, EvidenceStatus.EXECUTION_EMERGING: 0.6,
-         EvidenceStatus.COMMITMENT_BACKED: 0.6, EvidenceStatus.EARLY_COMMITMENT_UNVERIFIED: 0.3,
-         EvidenceStatus.ASSERTION_ONLY: 0.2}.get(s, 0.0)
-    if a.review_status == ReviewStatus.NEEDS_SOURCE_CHECK:
-        q -= 0.1
-    if a.coverage.get("result_periods", {}).get("missing"):
-        q -= 0.1
+    q = {EvidenceStatus.EXECUTION_CONFIRMED: 0.5, EvidenceStatus.EXECUTION_EMERGING: 0.3}.get(s, 0.0)
     mats = []
     for d in a.drivers:
         if not d.material or d.change is None:
@@ -148,21 +221,21 @@ def score_components(a: Assessment, as_of: date) -> dict[str, float]:
             mats.append(d.change / 200)
         elif d.driver == "ebitda_margin_change":
             mats.append(d.change / 1000)
-        elif d.driver in ("disclosed_order_inflow_to_ttm_revenue", "order_book_cover"):
-            mats.append(d.change / 2)
     first = first_signal(a)
     timing = _clip(1 - (as_of - first.date()).days / 365) if first else 0.0
     streak = next((d.current for d in a.drivers if d.driver == "material_growth_streak"), 0) or 0
-    confirmed = sum(1 for m in a.mechanisms if m.state == MechanismState.CONFIRMED and m.direction == "positive")
-    persistence = _clip(streak / 4 + 0.25 * confirmed)
-    adverse = sum(1 for m in a.mechanisms if m.state == MechanismState.ADVERSE)
-    risk = _clip(0.15 * adverse + 0.05 * len(a.contradictions) + 0.05 * len(a.financing_risks)
-                 + 0.05 * sum(1 for c in a.counterparties if c.relationship.value == "confirmed_related"))
+    adverse = sum(1 for m in a.mechanisms if m.state == MechanismState.ADVERSE and not m.stale)
+    risk = _clip(0.15 * adverse + 0.05 * len(a.contradictions) + 0.05 * len(a.financing_risks))
     return {"evidence_quality": round(_clip(q), 3), "materiality": round(_clip(max(mats, default=0.0)), 3),
-            "timing": round(timing, 3), "persistence": round(persistence, 3), "risk_penalty": round(risk, 3)}
+            "timing": round(timing, 3), "persistence": round(_clip(streak / 4), 3), "risk_penalty": round(risk, 3)}
 
 
 def first_signal(a: Assessment) -> Optional[datetime]:
+    """Earliest defensible signal: for a catalyst, the date its materiality AND execution became
+    supportable (not merely its first mention); otherwise the earliest material reported change."""
+    lead = lead_catalyst(a)
+    if lead is not None:
+        return getattr(lead, "supported_at", None) or lead.first_public_at
     times = [d.knowable_at for d in a.drivers if d.material and d.knowable_at]
     times += [m.first_signal_at for m in a.mechanisms if m.qualifies_positive and m.first_signal_at]
     times += [e.first_public_at for e in a.events if e.first_public_at]
@@ -185,6 +258,8 @@ def summarise(a: Assessment, as_of: date, cfg: dict) -> dict:
     return {
         "ticker": a.ticker, "company": a.company, "security": a.coverage.get("security_at_as_of", {}),
         "as_of": a.as_of.isoformat(), "evidence_status": a.evidence_status.value,
+        "reported_performance": reported_performance(a),
+        "forward_setup": _forward(a),
         "review_status": a.review_status.value, "lane": lane, "lane_reasons": reasons, "critical_checks": checks,
         "mechanisms": [{"mechanism": m.mechanism.value, "state": m.state.value, "direction": m.direction,
                         "magnitude": m.magnitude, "unit": m.magnitude_unit, "hypothesis": m.hypothesis}
@@ -193,10 +268,27 @@ def summarise(a: Assessment, as_of: date, cfg: dict) -> dict:
         "score_components": comps, "score": score,
         "strongest_citations": cites, "contradictions": a.contradictions[:5],
         "scenarios_available": a.bridge.status.value, "valuation_available": a.valuation.get("status", "NOT_REQUESTED"),
-        "next_milestones": nxt, "latest_expected_period": exp[-1] if exp else None,
+        "next_milestones": ((a.research_summary or {}).get("waiting_for") or [])[:3] or nxt,
+        "latest_expected_period": exp[-1] if exp else None,
         "review_effort": {"documents_cited": len(a.sources), "open_checks": len(a.next_checks)},
         "fingerprint": _fingerprint(a),
     }
+
+
+def _forward(a: Assessment) -> dict:
+    lead = lead_catalyst(a)
+    rs = a.research_summary or {}
+    out = {"detected": rs.get("detected", ""), "investment_review": rs.get("investment_review", ""),
+           "catalysts": [{"catalyst_id": c.catalyst_id, "kind": c.kind.value, "stage": c.stage.value,
+                          "first_public": c.first_public_at.isoformat() if c.first_public_at else None,
+                          "supported_at": (getattr(c, "supported_at", None).isoformat()
+                                           if getattr(c, "supported_at", None) else None),
+                          "operating_change": c.operating_change[:200], "contribution": c.contribution.status,
+                          "base_ebitda_crore": c.contribution.base_crore}
+                         for c in current_catalysts(a)]}
+    out["lead"] = out["catalysts"][[c.catalyst_id for c in current_catalysts(a)].index(lead.catalyst_id)] \
+        if lead is not None else None
+    return out
 
 
 # --- run ---------------------------------------------------------------------------------------
@@ -340,8 +432,12 @@ def _delta(prev: Optional[dict], cur: dict) -> str:
     if prev.get("outcome") != "assessed":
         return f"previously {prev.get('outcome')}"
     parts = []
+    pl, cl = (prev.get("forward_setup") or {}).get("lead") or {}, (cur.get("forward_setup") or {}).get("lead") or {}
+    if (pl.get("catalyst_id"), pl.get("stage")) != (cl.get("catalyst_id"), cl.get("stage")):
+        parts.append(f"lead catalyst {pl.get('kind', 'none')} {pl.get('stage', '')} -> "
+                     f"{cl.get('kind', 'none')} {cl.get('stage', '')}".replace("  ", " "))
     if prev.get("evidence_status") != cur["evidence_status"]:
-        parts.append(f"status {prev.get('evidence_status')} -> {cur['evidence_status']}")
+        parts.append(f"reported status {prev.get('evidence_status')} -> {cur['evidence_status']}")
     if prev.get("lane") != cur["lane"]:
         parts.append(f"lane {prev.get('lane') or 'none'} -> {cur['lane'] or 'none'}")
     pm = {m["mechanism"]: m["state"] for m in prev.get("mechanisms", [])}
@@ -371,8 +467,17 @@ def render_shortlist(s: dict) -> str:
                 L.append(f"- **{r['ticker']}**: not assessed - {r['reason']}")
                 continue
             mech = ", ".join(f"{m['mechanism']}={m['state']}" for m in r["mechanisms"]) or "none"
-            L.append(f"- **{r['ticker']}** ({r['evidence_status']}; score {r['score']} = {r['score_components']}); "
-                     f"first defensible signal {r['first_defensible_signal']}; mechanisms: {mech}")
+            lead = (r.get("forward_setup") or {}).get("lead")
+            L.append(f"- **{r['ticker']}** (score {r['score']} = {r['score_components']}); first defensible signal "
+                     f"{r['first_defensible_signal']}")
+            if lead:
+                L.append(f"  - forward catalyst: {lead['kind']} [{lead['stage']}] first public {lead['first_public']}"
+                         f"; {lead['operating_change']}; contribution {lead['contribution']}"
+                         + (f" (base {lead['base_ebitda_crore']} cr EBITDA/yr)" if lead.get('base_ebitda_crore')
+                            is not None else ""))
+            rp = r.get("reported_performance") or {}
+            L.append(f"  - reported performance (separate): {rp.get('evidence_status', r['evidence_status'])}"
+                     f"; mechanisms: {mech}")
             L.append(f"  - change since previous: {r.get('change_since_previous')}")
             for x in r["strongest_citations"][:3]:
                 L.append(f"  - cite: {x['what']} (public {x['first_public']})")

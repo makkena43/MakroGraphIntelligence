@@ -64,11 +64,12 @@ def prices(ticker, start=date(2024, 11, 1), days=500, daily=0.001, end=None):
 def test_offline_labelled_evaluation_runs_end_to_end(run):
     r, preds, _ = run
     cls = classification_report(preds, LABELS)
-    assert (cls["tp"], cls["fp"], cls["fn"], cls["tn"]) == (2, 0, 1, 2)
-    assert [m["ticker"] for m in cls["missed_cases"]] == ["GRANITEWK"]            # negative / missed cases shown
+    # flagged = supported-or-better forward catalyst; SMEFAB's small orders leave it a potential catalyst
+    assert (cls["tp"], cls["fp"], cls["fn"], cls["tn"]) == (1, 0, 2, 2)
+    assert [m["ticker"] for m in cls["missed_cases"]] == ["SMEFAB", "GRANITEWK"]   # negative / missed cases shown
     assert [m["ticker"] for m in cls["data_coverage_failures"]] == ["GHOSTCO"]     # coverage != detector miss
-    assert cls["precision_ci95"][0] is not None and cls["detection_delay_days"]["n"] == 2
-    entries = [x for lane in ("EXECUTION_RESEARCH",) for x in r.shortlist["lanes"][lane]]
+    assert cls["precision_ci95"][0] is not None and cls["detection_delay_days"]["n"] == 1
+    entries = [x for lane in ("EXECUTION_VALIDATING", "POTENTIAL_CATALYST") for x in r.shortlist["lanes"][lane]]
     px = {"ACMEGRID": prices("ACMEGRID"), "SMEFAB": prices("SMEFAB", end=date(2025, 3, 31))}   # SMEFAB delisted
     outs = lane_outcomes(entries, px, {"broad": prices("BROAD", daily=0.0005)}, horizons=(182, 365, 1095),
                          data_until=date(2026, 3, 31))
@@ -81,7 +82,7 @@ def test_offline_labelled_evaluation_runs_end_to_end(run):
 
 def test_unavailable_outcomes_remain_censored(run):
     r, _, _ = run
-    entries = r.shortlist["lanes"]["EXECUTION_RESEARCH"]
+    entries = r.shortlist["lanes"]["EXECUTION_VALIDATING"] + r.shortlist["lanes"]["POTENTIAL_CATALYST"]
     outs = lane_outcomes(entries, {"ACMEGRID": prices("ACMEGRID")}, {}, horizons=(182, 1095),
                          data_until=date(2025, 12, 31))
     long = [o for o in outs if o.ticker == "ACMEGRID" and o.horizon_days == 1095][0]
