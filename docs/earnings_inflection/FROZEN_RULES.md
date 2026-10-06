@@ -1,6 +1,6 @@
 # Frozen catalyst rules
 
-Current rules version **catalyst-rules-3** · fingerprint `1b744b3fe6944180` (`evaluation.rules_fingerprint(DEFAULT_CATALYST_THRESHOLDS, RULES_VERSION)`).
+Current rules version **catalyst-rules-4** · fingerprint `8d896bb571e58393` (`evaluation.rules_fingerprint(DEFAULT_CATALYST_THRESHOLDS, RULES_VERSION)`).
 
 Frozen before any further historical evaluation.
 - **Any change** to a threshold, test or stage rule needs a new rules version and a new fingerprint.
@@ -15,6 +15,7 @@ Frozen before any further historical evaluation.
 | catalyst-rules-1 | `f6fe4d677e763c50` | first frozen catalyst rules | `evaluations/catalyst-rules-1/` (INDOTECH replay 2020-06 to 2025-12) |
 | catalyst-rules-2 | `59c9ec2217ec6c4d` | review round 2: catalyst-driven lanes, project identity, knowability dates, linked cancellations, continuous monitoring, three earnings tiers, full ledger fingerprint | `evaluations/catalyst-rules-2/` (eight exported issuers, 2024-03-31) |
 | catalyst-rules-3 | `1b744b3fe6944180` | review round 3, with **no threshold changed** (only rule logic). See the list below. | `evaluations/catalyst-rules-3/` |
+| catalyst-rules-4 | `8d896bb571e58393` | defects D1 and D3 from the rules-3 cohort, with **no threshold changed**. See the list below. | none yet; needs a new pre-registered cohort |
 
 **catalyst-rules-3 changes:**
 - **Historical state:** every input is rebuilt at each historical timestamp: event state, mechanisms, and figures as filed. Later failures are kept, and appending future disclosures does not change earlier assessments (prefix invariance).
@@ -23,7 +24,20 @@ Frozen before any further historical evaluation.
 - **Capex:** rating-rationale capex counts only when it names the project.
 - **Demand:** issuer-disclosed binding demand is separated from independently supported external demand, with different confidence and verification requirements.
 
-The thresholds are identical in versions 2 and 3:
+**catalyst-rules-4 changes:**
+- **D1 (parsing):** consolidated profit attributable to owners of the parent is now read.
+  - The Ind AS profit-attribution block is recognised even when it comes after the OCI lines.
+  - Owners' rows under the OCI and total-comprehensive-income headings are never taken as profit.
+  - Tables that continue across chunk or page breaks keep their columns.
+  - Scanned "Profil" and loss-makers' "Loss for the period" labels are recognised.
+- **D3 (stage):** when the execution window ends, a catalyst becomes "delayed" only if its execution test was not met.
+  - An executed catalyst that cannot be confirmed from the disclosures stays "execution validating" and records `confirmation_blocked`. The typical case is an order inflow without a disclosed backlog.
+  - Its evaluation verdict is `executed_unconfirmable`, counted neither as confirmed nor as a false alert.
+  - The confirmation test is unchanged.
+
+Results under rules-3 are not re-scored. The seven rules-3 cohort issuers exposed D1 and D3, so re-running rules-4 on them is a development check, not an evaluation.
+
+The thresholds are identical in versions 2, 3 and 4:
 
 | Threshold | Value |
 |---|---|
