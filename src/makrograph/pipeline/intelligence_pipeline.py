@@ -161,6 +161,76 @@ def _compute_doc_sentiment_summary(
     return sentiment_score, summary
 
 
+
+_DEFAULT_HIGH_VALUE_PDF_CATEGORIES = [
+        # ── Financial performance ─────────────────────────────────────
+        "Outcome of Board Meeting",
+        "Financial Result Updates",
+        "Financial Results Updates",          # alternate spelling
+        "Reply to Clarification- Financial results",
+        "Reply to Clarification Sought- Financial Results",
+        "Integrated Filing- Financial",
+        # ── Management commentary ─────────────────────────────────────
+        "Analysts/Institutional Investor Meet/Con. Call Updates",
+        "Transcript of Analysts/Institutional Investor Meet/Con. Call",
+        "Recording of Analysts/Institutional Investor Meet/Con. Call",
+        "Schedule of Analysts/Institutional Investor Meet/Con. Call",
+        "Investor Presentation",
+        "Press Release",
+        "Press Release (Revised)",
+        # ── M&A / restructuring ───────────────────────────────────────
+        "Acquisition",
+        "Amalgamation/Merger",
+        "Scheme of Arrangement",
+        "Demerger",
+        "Open Offer",
+        "Public Announcement-Open Offer",
+        # ── Capital market events ─────────────────────────────────────
+        "Buyback",
+        "Rights Issue",
+        "Qualified Institutional Placement",
+        "Stock split",
+        "Offer for sale",
+        # ── Order wins / capacity ─────────────────────────────────────
+        "Bagging/Receiving of orders/contracts",
+        "Bagging orders/contract",
+        "Awarding of order(s)/contract(s)",
+        "Awarding orders/contract",
+        "Capacity addition",
+        "Capacity addition/product launch",
+        "Commencement of commercial production/operations",
+        # ── Agreements ───────────────────────────────────────────────
+        "Memorandum of Understanding/Agreements",
+        "Agreements",
+        # ── Distress / risk signals ───────────────────────────────────
+        "Corporate Insolvency Resolution Process",
+        "Defaults on Payment of Interest/Principal",
+        "Strikes/Lockouts/Disturbances",
+        "Disruption of Operations",
+        "Disruption of operations",
+    ]
+
+# NSE categories under which companies file credit-rating letters and agency rationales (Reg. 30)
+CREDIT_RATING_CATEGORIES = [
+    "Credit Rating",
+    "Credit Rating- Revision",
+    "Credit Rating- Others",
+    "Credit Rating- New",
+    "Revision in Credit Rating",
+]
+
+
+def high_value_pdf_categories(filing_types=None, include_credit_rating_rationales: bool = False) -> list:
+    """Filing categories whose PDFs are downloaded.  An explicit ``filing_types`` override wins;
+    credit-rating rationales are added only when explicitly requested (default unchanged)."""
+    if filing_types:
+        return list(filing_types)
+    cats = list(_DEFAULT_HIGH_VALUE_PDF_CATEGORIES)
+    if include_credit_rating_rationales:
+        cats += [c for c in CREDIT_RATING_CATEGORIES if c not in cats]
+    return cats
+
+
 class IntelligencePipeline:
     """Full end-to-end intelligence pipeline for theme detection.
 
@@ -669,6 +739,7 @@ class IntelligencePipeline:
         text_artifact_root: Optional[str] = None,
         keep_failed_originals: bool = False,
         granular_failure_status: bool = False,
+        include_credit_rating_rationales: bool = False,
     ) -> dict:
         """Download PDFs for high-signal-value India filing categories.
 
@@ -703,6 +774,9 @@ class IntelligencePipeline:
                                  and historical modes, so readers get identical text either way.
             keep_failed_originals: Opt-in. Do not delete a PDF whose parse failed (default keeps
                                  the historical behaviour of deleting it).
+            include_credit_rating_rationales: Opt-in (default False = unchanged). Also download the
+                                 company-filed credit-rating letters / rationales (NSE "Credit Rating"
+                                 categories); the earnings-inflection detector reads them in full.
             granular_failure_status: Opt-in. Record recoverable failure states
                                  (ocr_required / encrypted / parse_failed / empty) in
                                  processing_status instead of the permanent 'unsupported'.
@@ -715,53 +789,7 @@ class IntelligencePipeline:
         from pathlib import Path
         from ..parser.pdf_parser import PDFParser
 
-        _HIGH_VALUE_CATEGORIES = filing_types or [
-            # ── Financial performance ─────────────────────────────────────
-            "Outcome of Board Meeting",
-            "Financial Result Updates",
-            "Financial Results Updates",          # alternate spelling
-            "Reply to Clarification- Financial results",
-            "Reply to Clarification Sought- Financial Results",
-            "Integrated Filing- Financial",
-            # ── Management commentary ─────────────────────────────────────
-            "Analysts/Institutional Investor Meet/Con. Call Updates",
-            "Transcript of Analysts/Institutional Investor Meet/Con. Call",
-            "Recording of Analysts/Institutional Investor Meet/Con. Call",
-            "Schedule of Analysts/Institutional Investor Meet/Con. Call",
-            "Investor Presentation",
-            "Press Release",
-            "Press Release (Revised)",
-            # ── M&A / restructuring ───────────────────────────────────────
-            "Acquisition",
-            "Amalgamation/Merger",
-            "Scheme of Arrangement",
-            "Demerger",
-            "Open Offer",
-            "Public Announcement-Open Offer",
-            # ── Capital market events ─────────────────────────────────────
-            "Buyback",
-            "Rights Issue",
-            "Qualified Institutional Placement",
-            "Stock split",
-            "Offer for sale",
-            # ── Order wins / capacity ─────────────────────────────────────
-            "Bagging/Receiving of orders/contracts",
-            "Bagging orders/contract",
-            "Awarding of order(s)/contract(s)",
-            "Awarding orders/contract",
-            "Capacity addition",
-            "Capacity addition/product launch",
-            "Commencement of commercial production/operations",
-            # ── Agreements ───────────────────────────────────────────────
-            "Memorandum of Understanding/Agreements",
-            "Agreements",
-            # ── Distress / risk signals ───────────────────────────────────
-            "Corporate Insolvency Resolution Process",
-            "Defaults on Payment of Interest/Principal",
-            "Strikes/Lockouts/Disturbances",
-            "Disruption of Operations",
-            "Disruption of operations",
-        ]
+        _HIGH_VALUE_CATEGORIES = high_value_pdf_categories(filing_types, include_credit_rating_rationales)
         # BSE rows do not carry the exchange category in filing_type: the BSE
         # fetcher stores a coarse label from _classify_bse_subject(), none of
         # which matches the NSE category names above, so BSE PDFs were never
