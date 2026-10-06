@@ -1,0 +1,59 @@
+{
+ "symbol": "GENUSPOWER",
+ "rules_version": "catalyst-rules-3",
+ "fingerprint": "1b744b3fe6944180",
+ "coverage": {
+  "symbol": "GENUSPOWER",
+  "announcements": 463,
+  "kept": 304,
+  "downloaded": 304,
+  "with_text": 307,
+  "skipped_no_text": 1,
+  "not_pdf_or_unreadable": 1,
+  "annual_reports": 5,
+  "annual_report_date_from_filename": 3,
+  "by_year": {
+   "2021": 41,
+   "2022": 61,
+   "2023": 84,
+   "2024": 72,
+   "2025": 49
+  },
+  "cadence": "Q",
+  "scope": "consolidated",
+  "periods_parsed": 7,
+  "first_period": "2024-03-31",
+  "last_period": "2025-09-30",
+  "credit_rating_filings": 6,
+  "snapshot_errors": []
+ },
+ "catalysts_total": 21,
+ "catalysts_by_kind": {
+  "executable_orders": 20,
+  "utilization": 1
+ },
+ "alerts": [],
+ "false_alerts": [],
+ "unresolved_alerts": [],
+ "prefix_defects": [],
+ "vanished_catalysts": [],
+ "inflections": [],
+ "workload": {
+  "alerts_per_year": 0.0,
+  "snapshots_in_flag_lane": 0,
+  "snapshots": 20,
+  "documents": 307
+ },
+ "timeline": {
+  "first_defensible_catalyst": null,
+  "first_any_catalyst": "2021-11-08",
+  "supported": 0,
+  "confirmed": 0,
+  "false_positives": 0,
+  "delayed": 0,
+  "data_unavailable": 21,
+  "potential_only": 21,
+  "days_to_confirmed": [],
+  "rules_version": "catalyst-rules-3"
+ }
+}

@@ -1,0 +1,105 @@
+{
+ "symbol": "BORORENEW",
+ "rules_version": "catalyst-rules-3",
+ "fingerprint": "1b744b3fe6944180",
+ "coverage": {
+  "symbol": "BORORENEW",
+  "announcements": 670,
+  "kept": 342,
+  "downloaded": 341,
+  "with_text": 344,
+  "skipped_no_text": 2,
+  "download_failed": 1,
+  "annual_reports": 5,
+  "annual_report_date_from_filename": 3,
+  "by_year": {
+   "2021": 42,
+   "2022": 101,
+   "2023": 47,
+   "2024": 60,
+   "2025": 94
+  },
+  "cadence": "Q",
+  "scope": "consolidated",
+  "periods_parsed": 12,
+  "first_period": "2022-06-30",
+  "last_period": "2025-09-30",
+  "credit_rating_filings": 7,
+  "snapshot_errors": []
+ },
+ "catalysts_total": 5,
+ "catalysts_by_kind": {
+  "capacity_or_bottleneck": 1,
+  "contract_pricing": 4
+ },
+ "alerts": [
+  {
+   "catalyst_id": "5ac4cb5d8126",
+   "kind": "contract_pricing",
+   "change": "issuer states (2022-08-12): \"The turnover is down 5%, wherein you\u2019re seeing a realization increase of around 5%.\"",
+   "first_public": "2022-08-12",
+   "supported_at": "2022-11-09",
+   "verdict": "data_unavailable",
+   "final_stage": "data_unavailable",
+   "stages": [
+    [
+     "2022-08-31",
+     "potential_catalyst"
+    ],
+    [
+     "2022-11-30",
+     "execution_validating"
+    ],
+    [
+     "2023-02-28",
+     "contradicted"
+    ],
+    [
+     "2023-08-31",
+     "data_unavailable"
+    ],
+    [
+     "2023-11-30",
+     "contradicted"
+    ],
+    [
+     "2024-08-31",
+     "data_unavailable"
+    ],
+    [
+     "2025-08-31",
+     "contradicted"
+    ],
+    [
+     "2025-11-30",
+     "data_unavailable"
+    ]
+   ],
+   "flagged_snapshots": 1,
+   "delivery": null
+  }
+ ],
+ "false_alerts": [],
+ "unresolved_alerts": [],
+ "prefix_defects": [],
+ "vanished_catalysts": [],
+ "inflections": [],
+ "workload": {
+  "alerts_per_year": 0.21,
+  "snapshots_in_flag_lane": 1,
+  "snapshots": 20,
+  "documents": 344
+ },
+ "timeline": {
+  "first_defensible_catalyst": "2022-11-09",
+  "first_any_catalyst": "2022-08-12",
+  "supported": 1,
+  "confirmed": 0,
+  "false_positives": 0,
+  "delayed": 0,
+  "data_unavailable": 4,
+  "potential_only": 4,
+  "days_to_confirmed": [],
+  "rules_version": "catalyst-rules-3"
+ }
+}
