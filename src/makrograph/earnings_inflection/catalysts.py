@@ -65,6 +65,7 @@ DEFAULT_CATALYST_THRESHOLDS = {
     "cancellation_note_share": 0.05,
     "financing_min_share_of_ebitda": 0.10,   # finance cost / EBITDA below this: financing is not a material lever
     "confirm_periods": 2,                    # relevant periods that must support the mechanism
+    "monitor_periods": 8,                    # later periods monitored after the original window
     "commissioning_grace_days": 90,
     "window_grace_days": 120,                # after the execution window: delayed if still unconfirmed
     "current_after_window_months": 12,       # a catalyst older than its window + this is history, not news
@@ -478,7 +479,53 @@ def relevant_periods(series: FinancialSeries, p: str, start: date, as_of: date, 
 
 
 def _judge_series(ms: CatalystMilestone, periods, as_of, value_fn, met, consistent, label, n_required) -> None:
-    """Common logic: judged on the published relevant periods; muted periods stay consistent
+    """Original-timetable verdict on the first ``n_required`` relevant periods, then continuous
+    monitoring of later consecutive windows of the same length.  The original verdict is kept
+    (``original_status``); recovery after a miss is labelled "recovered_late", a later failure after
+    meeting the test "deteriorated" - never merged into "on schedule"."""
+    _judge_window(ms, periods[:n_required], as_of, value_fn, met, consistent, label, n_required)
+    ms.original_status, ms.original_observed = ms.status, ms.observed
+    if ms.status not in (MilestoneStatus.MET, MilestoneStatus.MISSED, MilestoneStatus.CONTRADICTED) or \
+            ms.periods_judged < n_required:
+        ms.timetable = "pending" if ms.status in (MilestoneStatus.PENDING, MilestoneStatus.CONSISTENT_MUTED) else \
+            ("on_schedule" if ms.status == MilestoneStatus.MET else ms.timetable)
+        return
+    later = []
+    for i in range(1, len(periods) - n_required + 1):
+        win = periods[i:i + n_required]
+        if all(at is not None for _, at, _ in win):
+            v = value_fn([e for e, _, _ in win])
+            if v is not None:
+                later.append((win, v))
+    if ms.status == MilestoneStatus.MET:
+        ms.timetable = "on_schedule"
+        if later:
+            win, v = later[-1]
+            ms.latest_observed = f"{label} over {', '.join(str(e) for e, _, _ in win)}: {v:+.1f}"
+            if not met(v):
+                ms.timetable = "deteriorated"
+                ms.status = MilestoneStatus.MISSED if consistent(v) else MilestoneStatus.CONTRADICTED
+                ms.observed = f"met on schedule ({ms.original_observed}); since then {ms.latest_observed}"
+        return
+    # missed on the original timetable: did a later window recover?
+    rec = next(((win, v) for win, v in later if met(v)), None)
+    if rec:
+        win, v = rec
+        ms.timetable = "recovered_late"
+        ms.status, ms.value = MilestoneStatus.MET, v
+        ms.observed_at = max(at for _, at, _ in win)
+        ms.latest_observed = f"{label} over {', '.join(str(e) for e, _, _ in win)}: {v:+.1f}"
+        ms.observed = f"missed the original timetable ({ms.original_observed}); later recovered: {ms.latest_observed}"
+        ms.periods_judged = n_required
+    else:
+        ms.timetable = "missed"
+        if later:
+            win, v = later[-1]
+            ms.latest_observed = f"{label} over {', '.join(str(e) for e, _, _ in win)}: {v:+.1f}"
+
+
+def _judge_window(ms: CatalystMilestone, periods, as_of, value_fn, met, consistent, label, n_required) -> None:
+    """One window: judged on the published relevant periods; muted periods stay consistent
     until all required periods are in."""
     published = [e for e, at, _ in periods if at is not None]
     overdue = [e for e, at, dl in periods if at is None and as_of > dl]
@@ -812,7 +859,7 @@ def _milestones(s, c, series, p, evidence, events, as_of, th):
                 and _d(e.available_at) <= as_of]
 
     def periods(start):
-        return relevant_periods(series, p, start, as_of, n, th) if start else []
+        return relevant_periods(series, p, start, as_of, n + th["monitor_periods"], th) if start else []
 
     if s.kind == CatalystKind.ORDERS:
         start = c.window_start
@@ -897,16 +944,31 @@ def _milestones(s, c, series, p, evidence, events, as_of, th):
             if unmatched:
                 c.uncertainties.append(f"{len(unmatched)} later commissioning / delay statement(s) not attributable "
                                        "to this project (other facility, unidentified, forecast or risk): unresolved")
+            if slipped:
+                new_date = parse_when(slipped[-1].quote, _d(slipped[-1].available_at))
+                if new_date and (due is None or new_date > due):
+                    com.revised_due_by = new_date + timedelta(days=th["commissioning_grace_days"])
+                    com.revised_basis = f"delay stated {_d(slipped[-1].available_at)}: \"{slipped[-1].quote[:120]}\""
             if dropped:
                 com.status, com.observed = MilestoneStatus.CONTRADICTED, f"\"{dropped[0].quote[:160]}\""
             elif done:
                 com.status, com.observed, com.observed_at = (MilestoneStatus.MET, f"\"{done[0].quote[:160]}\"",
                                                              done[0].available_at)
+                late = com.due_by is not None and _d(done[0].available_at) > com.due_by
+                com.timetable = "recovered_late" if late else "on_schedule"
+                com.original_status = MilestoneStatus.MISSED if late else MilestoneStatus.MET
+                if late:
+                    com.observed = (f"missed the original timetable (due {com.due_by}); commissioned later: "
+                                    + com.observed)
                 c.window_start = _d(done[0].available_at)
             elif slipped:
                 com.status, com.observed = MilestoneStatus.MISSED, f"delay stated: \"{slipped[0].quote[:160]}\""
+                com.timetable = "missed"
+                if com.revised_due_by and as_of > com.revised_due_by:
+                    com.observed += f"; revised deadline {com.revised_due_by} also passed"
             elif com.due_by and as_of > com.due_by:
                 com.status, com.observed = MilestoneStatus.MISSED, f"no commissioning statement by {com.due_by}"
+                com.timetable = "missed"
         ms.append(com)
         out_ms = CatalystMilestone("Is the new output reaching revenue?",
                                    f"revenue growth >= {th['revenue_test_growth_pct']:.0f}% YoY over the first {n} "
@@ -1040,6 +1102,10 @@ def _stage(c: Catalyst, as_of: date, th: dict) -> None:
             and all(m.periods_judged >= th["confirm_periods"] or m.question.startswith("Do first orders")
                     for m in fin):
         c.stage, why = ResearchStage.CONFIRMED, [f"{m.question} {m.observed}" for m in fin]
+        if any(m.timetable == "recovered_late" for m in c.milestones):
+            why.insert(0, "missed the original timetable; later recovered (not confirmed on schedule)")
+        else:
+            why.insert(0, "confirmed on schedule")
     elif fin and fin[0].status == MilestoneStatus.DATA_UNAVAILABLE and MilestoneStatus.MISSED not in st:
         c.stage, why = ResearchStage.DATA_UNAVAILABLE, [f"{fin[0].question} {fin[0].observed}"]
     elif MilestoneStatus.MISSED in st:

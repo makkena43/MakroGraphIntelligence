@@ -367,3 +367,47 @@ def test_timeline_uses_point_in_time_support_and_confirmation_dates():
     assert tl["first_defensible_catalyst"] == date(2023, 10, 5)            # support date, not first mention
     assert r["days_to_supported"] == 46 and r["days_to_confirmed"] == (date(2024, 2, 14) - date(2023, 8, 20)).days
     assert review_entries(tl, "T")[0]["as_of"] == "2024-02-14"
+
+
+# --- continuous monitoring after the original window --------------------------------------------
+
+def orders_at(rev, as_of):
+    cats, _ = run(rows(rev), BOOKS, as_of)
+    return kind(cats, CatalystKind.ORDERS)[0]
+
+
+def test_missed_original_timetable_then_recovered_is_labelled_as_such():
+    rev = [100] * 6 + [102, 103, 130, 130, 130, 130]       # Sep/Dec-23 muted; Mar/Jun-24 +30%
+    o = orders_at(rev, date(2024, 3, 1))
+    conv = o.milestones[0]
+    assert conv.status == MilestoneStatus.MISSED and conv.timetable == "missed" and o.stage == ResearchStage.DELAYED
+    o = orders_at(rev, date(2024, 6, 1))                    # Dec + Mar window: +16.5%
+    conv = o.milestones[0]
+    assert conv.original_status == MilestoneStatus.MISSED      # the original verdict is kept
+    assert conv.timetable == "recovered_late" and conv.status == MilestoneStatus.MET
+    assert o.stage == ResearchStage.CONFIRMED and o.stage_reasons[0].startswith("missed the original timetable")
+    assert o.confirmed_at.date() == date(2024, 5, 15)        # Mar-24 results, not the original schedule
+
+
+def test_confirmed_on_schedule_then_deterioration_is_tracked():
+    rev = [100] * 6 + [140, 140, 90, 90, 90, 90]
+    o = orders_at(rev, date(2024, 3, 1))
+    assert o.stage == ResearchStage.CONFIRMED and o.stage_reasons[0] == "confirmed on schedule"
+    o = orders_at(rev, date(2024, 9, 1))                    # Mar/Jun-24 -10%
+    conv = o.milestones[0]
+    assert conv.original_status == MilestoneStatus.MET and conv.timetable == "deteriorated"
+    assert o.stage == ResearchStage.CONTRADICTED
+    assert o.confirmed_at.date() == date(2024, 2, 14)        # the earlier confirmation stays on record
+
+
+def test_a_stated_delay_sets_an_explicit_revised_deadline():
+    late = stmt(Metric.CAPEX, "Commissioning of Plant A has been delayed to June 2024.", date(2024, 2, 1), doc="dl")
+    c = cap_after(late, as_of=date(2024, 4, 15))
+    com = c.milestones[0]
+    assert com.status == MilestoneStatus.MISSED and com.revised_due_by == date(2024, 6, 30) + timedelta(days=90)
+    assert com.due_by == date(2024, 3, 31) + timedelta(days=90)        # the original deadline is not moved
+    done = stmt(Metric.CAPACITY, "Plant A commenced commercial production in July 2024.", date(2024, 7, 20), doc="ok")
+    c = cap_after(late, done, as_of=date(2024, 8, 1))
+    com = c.milestones[0]
+    assert com.status == MilestoneStatus.MET and com.timetable == "recovered_late"
+    assert com.original_status == MilestoneStatus.MISSED

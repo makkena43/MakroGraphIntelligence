@@ -236,7 +236,11 @@ def _render_catalysts(a) -> list[str]:
                 L.append(f"- Milestone [{m.status.value}]: {m.question} — {m.test}"
                          + (f"; relevant from {m.relevant_from}" if m.relevant_from else "")
                          + (f"; due by {m.due_by}" if m.due_by else "")
-                         + (f"; observed: {m.observed}" if m.observed else ""))
+                         + (f"; observed: {m.observed}" if m.observed else "")
+                         + (f"; timetable: {m.timetable.replace('_', ' ')}" if m.timetable else "")
+                         + (f" (original verdict: {m.original_status.value})" if m.original_status
+                            and m.original_status != m.status else "")
+                         + (f"; revised deadline {m.revised_due_by} ({m.revised_basis})" if m.revised_due_by else ""))
             if c.invalidators:
                 L.append("- Invalidators: " + "; ".join(c.invalidators))
             L += [f"- Stage basis: {x}" for x in c.stage_reasons]

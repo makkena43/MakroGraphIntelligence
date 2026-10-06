@@ -345,6 +345,14 @@ class CatalystMilestone:
     source_doc_ids: list[str] = field(default_factory=list)
     periods_judged: int = 0               # relevant reporting periods the verdict rests on
     value: Optional[float] = None         # the measured value the verdict rests on
+    # continuous monitoring: the ORIGINAL-timetable verdict is kept; later periods can show recovery or
+    # deterioration, labelled separately (deadlines are never moved silently)
+    original_status: Optional["MilestoneStatus"] = None
+    original_observed: str = ""
+    timetable: str = ""                   # on_schedule | recovered_late | missed | deteriorated | pending
+    latest_observed: str = ""
+    revised_due_by: Optional[date] = None
+    revised_basis: str = ""
 
 
 @dataclass
