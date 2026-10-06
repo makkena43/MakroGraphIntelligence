@@ -268,7 +268,7 @@ Catalysts older than their window plus 12 months are history: they are listed, b
 
 `evaluation.review_entries` dates returns from the confirmation date, never from the earlier watch-list date. `missed_candidates` separates data-coverage misses from detector misses.
 
-#### Catalyst rules (catalyst-rules-3; `FROZEN_RULES.md`, which also keeps the earlier versions)
+#### Catalyst rules (catalyst-rules-4; `FROZEN_RULES.md`, which also keeps the earlier versions)
 
 - **Knowability:**
   - Each catalyst records its first disclosure plus the dates materiality, execution, support, validation and confirmation became supportable.
@@ -277,6 +277,9 @@ Catalysts older than their window plus 12 months are history: they are listed, b
 - **Project identity:** commissioning, delay and abandonment count only when they name the same facility or target capacity, and only as realised statements (no forecasts, negations or mere risks). Unattributable statements stay unresolved.
 - **Cancellations:** linked to the orders behind each catalyst and weighed against its demand (20% or more contradicts; 5% or more is noted). Unrelated cancellations are company-level risks.
 - **Monitoring:** the original-timetable verdict is kept, and later windows keep being monitored. "Recovered late", "deteriorated" and "confirmed on schedule" are distinct labels. The current status is always the latest complete window, so a recovery that later fails again is "deteriorated", not still met. Stated delays set explicit revised deadlines; original deadlines never move.
+- **Execution window (rules-4):** when the window ends without confirmation, the catalyst becomes "delayed" only if its execution test was missed.
+  - If execution was verified but confirmation is impossible from the disclosures (for example, an order inflow without a backlog cannot be sized), it stays "execution validating".
+  - `confirmation_blocked` names the reason, and the catalyst ages into history after the usual 12 months.
 - **Demand basis:**
   - *Issuer-disclosed binding demand:* firm, binding, customer named by the issuer, not related. This includes an order book a rating agency repeats. It gets lower confidence, and confirmation carries the review condition "confirm the customer and its independence from an attributable external source".
   - *Independently supported external demand:* an attributable external source confirms both the customer and that it is unrelated.

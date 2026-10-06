@@ -411,6 +411,9 @@ class Catalyst:
     # agency repeating it) | "" (no demand link / not applicable)
     demand_basis: str = ""
     confidence: str = "low"                        # low | medium | high (evidence quality, not probability)
+    # execution verified but confirmation impossible from the disclosures (e.g. an unsizable order inflow):
+    # why. Set only after the execution window; such a catalyst stays "execution validating", not "delayed"
+    confirmation_blocked: str = ""
     initial_assessment: dict[str, Any] = field(default_factory=dict)
     materiality_supported_at: Optional[datetime] = None
     execution_supported_at: Optional[datetime] = None

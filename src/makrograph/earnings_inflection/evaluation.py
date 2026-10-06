@@ -583,6 +583,7 @@ def catalyst_timeline(snapshots: list[dict]) -> dict:
             if not r["stages"] or r["stages"][-1][1] != c["stage"]:
                 r["stages"].append((d, c["stage"]))
             r["final_stage"], r["last_seen_as_of"] = c["stage"], d
+            r["confirmation_blocked"] = c.get("confirmation_blocked", "")
             r["contribution"], r["base_crore"] = c["contribution"], c["base_crore"]
             r["initial_stage"] = r.get("initial_stage") or c.get("initial_stage")
             for k in ("supported_at", "validating_at", "confirmed_at", "materiality_supported_at",
@@ -602,7 +603,10 @@ def catalyst_timeline(snapshots: list[dict]) -> dict:
                                                      "confirmed_for_investment_review"))
         fs = r["final_stage"]
         r["verdict"] = ("confirmed" if "confirmed_for_investment_review" in f and fs != "contradicted" else
-                        fs if fs in ("contradicted", "delayed", "data_unavailable") else "open")
+                        fs if fs in ("contradicted", "delayed", "data_unavailable") else
+                        # execution verified, confirmation impossible from the disclosures (rules-4 D3)
+                        "executed_unconfirmable" if fs == "execution_validating" and r.get("confirmation_blocked")
+                        else "open")
     rows = sorted(cats.values(), key=lambda r: (r["first_public"] or date.max, r["kind"]))
     supported = [r for r in rows if r["ever_supported"]]
     return {
@@ -615,6 +619,7 @@ def catalyst_timeline(snapshots: list[dict]) -> dict:
         "confirmed": sum(1 for r in supported if r["verdict"] == "confirmed"),
         "false_positives": sum(1 for r in supported if r["verdict"] == "contradicted"),
         "delayed": sum(1 for r in supported if r["verdict"] == "delayed"),
+        "executed_unconfirmable": sum(1 for r in supported if r["verdict"] == "executed_unconfirmable"),
         "data_unavailable": sum(1 for r in rows if r["verdict"] == "data_unavailable"),
         "potential_only": sum(1 for r in rows if not r["ever_supported"]),
         "days_to_confirmed": [r["days_to_confirmed"] for r in supported if r["days_to_confirmed"] is not None],
@@ -665,7 +670,8 @@ def catalyst_report(ticker: str, tl: dict, note: str = "", fingerprint: str = ""
     L.append(f"- First defensible (supported) catalyst: **{tl['first_defensible_catalyst'] or '—'}** · first catalyst "
              f"of any stage: {tl['first_any_catalyst'] or '—'}")
     L.append(f"- Supported catalysts {tl['supported']}: confirmed {tl['confirmed']}, contradicted (false positives) "
-             f"{tl['false_positives']}, delayed {tl['delayed']}; potential only {tl['potential_only']}; "
+             f"{tl['false_positives']}, delayed {tl['delayed']}, executed but not confirmable "
+             f"{tl.get('executed_unconfirmable', 0)}; potential only {tl['potential_only']}; "
              f"data unavailable {tl['data_unavailable']}")
     if tl["days_to_confirmed"]:
         L.append(f"- Days from first disclosure to confirmation: {tl['days_to_confirmed']}")

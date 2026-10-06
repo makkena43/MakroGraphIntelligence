@@ -44,7 +44,7 @@ from .thesis import (
     next_period_end_on_or_after, order_book_snapshots,
 )
 
-RULES_VERSION = "catalyst-rules-3"
+RULES_VERSION = "catalyst-rules-4"
 
 DEFAULT_CATALYST_THRESHOLDS = {
     "order_inflow_to_ttm_revenue": 0.25,     # binding, named, unrelated orders in 12 months / TTM revenue
@@ -1280,6 +1280,24 @@ def _is_guard(m: CatalystMilestone) -> bool:
     return any(g in m.question.lower() for g in _GUARDS)
 
 
+def _confirmation_blockers(c: Catalyst) -> str:
+    """Why an executed catalyst cannot reach confirmation (for the record; never relaxes the test)."""
+    out = []
+    k = c.contribution
+    if k.status != "estimated":
+        out.append("magnitude cannot be sized from the disclosures"
+                   + (" (order inflow without a disclosed backlog)" if c.quantities.get("inflow") is not None
+                      and c.quantities.get("book") is None else f" ({k.status.replace('_', ' ')})"))
+    for m in c.milestones:
+        if m.status == MilestoneStatus.DATA_UNAVAILABLE:
+            out.append(f"{m.question.rstrip('?')}: data unavailable")
+        elif m.status in (MilestoneStatus.PENDING, MilestoneStatus.CONSISTENT_MUTED) and not _is_guard(m):
+            out.append(f"{m.question.rstrip('?')}: not yet judged over the required periods")
+    if k.status == "estimated" and k.earnings_materiality == "not_material":
+        out.append("recurring parent-earnings effect not material")
+    return "; ".join(out) or "confirmation requirements not met"
+
+
 def _stage(c: Catalyst, as_of: date, th: dict) -> None:
     why: list[str] = []
     demand = next((x for x in c.chain if x.link == "demand"), None)
@@ -1341,8 +1359,16 @@ def _stage(c: Catalyst, as_of: date, th: dict) -> None:
         why += [f"waiting: {m.question} ({m.observed})" if m.observed else f"waiting: {m.question}" for m in pending][:2]
     if c.stage not in (ResearchStage.CONFIRMED, ResearchStage.CONTRADICTED) and c.window_end and \
             as_of > c.window_end + timedelta(days=th["window_grace_days"]) and c.stage != ResearchStage.DATA_UNAVAILABLE:
-        c.stage = ResearchStage.DELAYED
-        why.insert(0, f"execution window ended {c.window_end} without confirmation")
+        executed = bool(fin) and all(m.status == MilestoneStatus.MET for m in fin)
+        if executed and c.stage == ResearchStage.VALIDATING:
+            # the execution test was met: a window that ends without confirmation is not a delay when
+            # what blocks confirmation is something the timetable cannot fix
+            c.confirmation_blocked = _confirmation_blockers(c)
+            why.insert(0, f"execution verified; cannot be confirmed: {c.confirmation_blocked} "
+                          f"(window ended {c.window_end}; not a delay)")
+        else:
+            c.stage = ResearchStage.DELAYED
+            why.insert(0, f"execution window ended {c.window_end} without confirmation")
     # issuer-disclosed demand is weaker evidence than independently supported demand: lower
     # confidence, and before investment review its customer and independence must be confirmed
     issuer = c.demand_basis == ISSUER_DISCLOSED
