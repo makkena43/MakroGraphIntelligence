@@ -497,16 +497,15 @@ def earnings_delivery(episode: ThesisEpisode, series, horizon_periods: int = 4,
             base = e
     if base is None:
         return {"censored": True, "reason": "no results public before the signal"}
+    from .thesis import next_period_end_on_or_after
     later = base
-    for _ in range(horizon_periods):
-        nxt = [e for e in series.period_ends(Metric.REVENUE, p) if e > later]
-        later = nxt[0] if nxt else None
-        if later is None:
-            break
-    out = {"base_period": base.isoformat(), "horizon_period": later.isoformat() if later else None,
-           "censored": later is None or (data_until is not None and later > data_until)}
+    for _ in range(horizon_periods):                 # calendar periods, not available ones
+        later = next_period_end_on_or_after(later + timedelta(days=1), p)
+    out = {"base_period": base.isoformat(), "horizon_period": later.isoformat(),
+           "censored": series.get(Metric.REVENUE, later, p) is None
+           or (data_until is not None and later > data_until)}
     if out["censored"]:
-        out["reason"] = f"{horizon_periods} later periods not available"
+        out["reason"] = f"period {later} ({horizon_periods} {p} periods later) not available"
         return out
     for metric, name in ((Metric.REVENUE, "revenue"), (Metric.PAT, "pat")):
         a, _ = series.ttm(metric, base, p)

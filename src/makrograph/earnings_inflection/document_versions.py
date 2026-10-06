@@ -76,6 +76,11 @@ def classify_document(doc: SourceDocument) -> tuple[DocumentKind, str]:
         # which a title-only classifier mistakes for a transcript.
         if transcript_hits >= 1 and speaker_turns >= 4:
             return DocumentKind.EARNINGS_CALL_TRANSCRIPT, f"content:dialogue(turns={speaker_turns})"
+        # credit-rating rationale (often filed by the company under Reg. 30): before results,
+        # because its "key financial indicators" table is the agency's summary, not a statement
+        from .rating_rationale import agency_of, is_rating_rationale
+        if is_rating_rationale(text):
+            return DocumentKind.CREDIT_RATING_RATIONALE, f"content:rating-rationale({agency_of(head)})"
         # Results before invitations: board-meeting outcome letters that carry the
         # results statement often also announce the earnings call.
         if _RESULTS_TABLE.search(text[:200000]) and _RESULTS_MARKERS.search(text[:200000]):
@@ -104,6 +109,8 @@ def classify_document(doc: SourceDocument) -> tuple[DocumentKind, str]:
         return DocumentKind.ANNUAL_REPORT, "title_only"
     if "presentation" in t:
         return DocumentKind.INVESTOR_PRESENTATION, "title_only"
+    if re.search(r"credit rating|rating rationale", t):
+        return DocumentKind.CREDIT_RATING_RATIONALE, "title_only"
     if re.search(r"\border\b|contract|letter of award", t):
         return DocumentKind.ORDER_ANNOUNCEMENT, "title_only"
     return DocumentKind.UNKNOWN, "title_only:unclassified"
