@@ -34,12 +34,15 @@ def fm(metric, end, value):
                                 pub(end), display_unit=0.01)
 
 
-def rows(revenue, margin=0.15, skip=()):
+def rows(revenue, margin=0.15, skip=(), pat=None):
     out = []
     for d, v in zip(QE, revenue):
         if d in skip:
             continue
         out += [fm(Metric.REVENUE, d, v), fm(Metric.EBITDA, d, round(v * margin, 2))]
+        if pat is not None:
+            out += [fm(Metric.PAT, d, pat), fm(Metric.PBT, d, round(pat / 0.75, 2)),
+                    fm(Metric.TAX, d, round(pat / 0.75 - pat, 2))]
     return out
 
 
@@ -165,13 +168,65 @@ def test_capacity_without_demand_stays_potential_and_magnitude_unresolved():
     assert c.window_start == date(2024, 3, 31)
 
 
-def test_capacity_contribution_is_bounded_by_demand_not_by_capacity():
-    ev = [CAP_PLAN, book(500, date(2023, 6, 20), "bk")]       # book 500 vs TTM 400: demand supported
+def test_capacity_needs_horizon_and_a_constraint_before_its_increment_is_supported():
+    ev = [CAP_PLAN, book(500, date(2023, 6, 20), "bk")]       # book 500 vs TTM 400: demand present
     cats, _ = run(rows([100] * 12), ev, date(2023, 7, 1))
-    c = kind(cats, CatalystKind.CAPACITY)[0]
-    assert c.chain[0].status == "supported"
-    # capacity +100% would imply +400 cr; demand above run-rate is only 100 cr
-    assert c.contribution.base_crore == pytest.approx(15.0) and "bounded by demand" in c.contribution.basis
+    k = kind(cats, CatalystKind.CAPACITY)[0].contribution
+    assert k.status == "potentially_material_unresolved" and k.base_crore is None
+    assert "execution period of the order book" in k.basis and "constrains deliveries" in k.basis
+    assert k.illustrative_crore == pytest.approx(60.0) and "never counted" in k.illustrative_basis
+
+
+def capacity_rationale(day, util, horizon=12, capex=None, funding=None):
+    facts = [RationaleFact("execution_horizon", None, "", f"next {horizon} months", True, "to be executed"),
+             RationaleFact("utilization", util, "%", f"{util}%", False, f"capacity utilisation stood at {util}%")]
+    if capex:
+        facts.append(RationaleFact("capex", capex, "crore", f"Rs {capex} crore", True, f"capex of Rs {capex} crore"))
+    if funding:
+        facts.append(RationaleFact("capex_funding", None, "", funding, True, f"funded through {funding}"))
+    return RatingRationale(f"cr{day}", "CARE", at(day), day, facts=facts)
+
+
+def test_capacity_increment_is_bounded_by_executable_demand_and_bridged_to_parent_earnings():
+    r = capacity_rationale(date(2023, 6, 20), 88, capex=60, funding="a term loan")
+    ev = [CAP_PLAN, book(500, date(2023, 6, 20), "bk")]
+    cats, _ = run(rows([100] * 12), ev, date(2023, 7, 1), rationales=[r])
+    k = kind(cats, CatalystKind.CAPACITY)[0].contribution
+    # tight capacity: executable 500/yr less what existing capacity delivers (400) = 100, capacity-implied 400
+    assert k.base_crore == pytest.approx(15.0) and "bounded by executable demand" in k.basis
+    # parent bridge: D&A 60/15 = 4, debt-funded interest 60 x 9% = 5.4, tax fallback 25.17%
+    assert k.bridge_status == "computed"
+    assert k.pat_base_crore == pytest.approx(round((15 - 4 - 5.4) * (1 - 0.2517), 2))
+    assert any("D&A" in a for a in k.bridge_assumptions) and any("term loan" in a for a in k.bridge_assumptions)
+
+
+def test_confirmation_needs_material_recurring_parent_earnings():
+    rev = [100] * 6 + [140] * 6
+    ok, _ = run(rows(rev, pat=10.0), BOOKS, date(2024, 3, 1))            # TTM parent PAT 40: 15 x 0.75 = 28%
+    o = kind(ok, CatalystKind.ORDERS)[0]
+    assert o.stage == ResearchStage.CONFIRMED and o.contribution.earnings_materiality == "established"
+    big, _ = run(rows(rev, pat=30.0), BOOKS, date(2024, 3, 1))           # TTM parent PAT 120: 9%
+    o = kind(big, CatalystKind.ORDERS)[0]
+    assert o.stage == ResearchStage.VALIDATING and o.contribution.earnings_materiality == "not_material"
+    assert "not material" in o.stage_reasons[0]
+    nobridge, s = run(rows(rev), BOOKS, date(2024, 3, 1))               # no PAT rows: materiality on sign only
+    o = kind(nobridge, CatalystKind.ORDERS)[0]
+    assert o.contribution.bridge_status == "computed"
+
+
+def test_unresolved_parent_earnings_is_an_explicit_review_condition():
+    from makrograph.earnings_inflection.catalysts import _stage
+    from makrograph.earnings_inflection.contracts import Catalyst, CatalystMilestone, ChainLink, EarningsContribution
+    c = Catalyst("x", "T", CatalystKind.CAPACITY, at(date(2023, 6, 1)), [], "cap", chain=[ChainLink("demand",
+                 "supported")], contribution=EarningsContribution(status="estimated", base_crore=20.0,
+                                                                  bridge_status="unresolved",
+                                                                  bridge_missing=["capex of the expansion"],
+                                                                  earnings_materiality="unresolved"),
+                 milestones=[CatalystMilestone("Is the new output reaching revenue?", "", status=MilestoneStatus.MET,
+                                               periods_judged=2)])
+    _stage(c, date(2024, 6, 1), DEFAULT_CATALYST_THRESHOLDS)
+    assert c.stage == ResearchStage.CONFIRMED
+    assert c.review_conditions and "open investment-review condition" in c.review_conditions[0]
 
 
 def test_missed_commissioning_is_delayed_and_a_shelved_project_is_contradicted():

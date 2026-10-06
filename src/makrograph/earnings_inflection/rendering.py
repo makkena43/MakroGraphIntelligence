@@ -223,12 +223,24 @@ def _render_catalysts(a) -> list[str]:
             L.append("- Mechanism chain: " + " → ".join(f"{x.link} [{x.status}]" for x in c.chain))
             L += [f"  - {x.link}: {x.basis}" for x in c.chain if x.basis]
             k = c.contribution
+            if k.illustrative_crore is not None:
+                L.append(f"- Illustrative operating upside (not counted): {k.illustrative_crore} cr EBITDA/yr — "
+                         f"{k.illustrative_basis}")
             if k.status == "estimated" or k.base_crore is not None:
                 L.append(f"- Potential earnings contribution ({k.status}): EBITDA/yr downside {k.downside_crore} / base "
                          f"{k.base_crore} / upside {k.upside_crore} cr"
                          + (f" ({k.share_of_ttm_ebitda:.0%} of TTM EBITDA, base)" if k.share_of_ttm_ebitda is not None
                             else "") + f"; {k.basis}")
                 L += [f"  - assumption: {x}" for x in k.assumptions]
+                if k.bridge_status == "computed":
+                    L.append(f"- Recurring parent earnings (after D&A, interest, tax, minority share): PAT/yr downside "
+                             f"{k.pat_downside_crore} / base {k.pat_base_crore} / upside {k.pat_upside_crore} cr"
+                             + (f"; EPS base {k.eps_base}" if k.eps_base is not None else "")
+                             + (f"; {k.share_of_ttm_parent_pat:.0%} of TTM parent PAT" if k.share_of_ttm_parent_pat
+                                is not None else "") + f" — earnings materiality {k.earnings_materiality}")
+                else:
+                    L.append(f"- Recurring parent earnings: unresolved — missing {', '.join(k.bridge_missing)}")
+                L += [f"  - bridge: {x}" for x in k.bridge_assumptions]
             else:
                 L.append(f"- Potential earnings contribution: {k.status.replace('_', ' ')} — {k.basis}")
             L.append(f"- Expected execution window: {c.window_start or '?'} → {c.window_end or '?'} ({c.window_basis})")
@@ -244,6 +256,7 @@ def _render_catalysts(a) -> list[str]:
             if c.invalidators:
                 L.append("- Invalidators: " + "; ".join(c.invalidators))
             L += [f"- Stage basis: {x}" for x in c.stage_reasons]
+            L += [f"- Investment-review condition: {x}" for x in c.review_conditions]
         L.append("")
     rv = a.investment_review
     if rv is not None and rv.status != "not_started":
@@ -254,6 +267,7 @@ def _render_catalysts(a) -> list[str]:
                              ("Cash conversion, financing, dilution", rv.cash_and_financing),
                              ("Governance", rv.governance), ("Liquidity and downside", rv.liquidity_and_downside)):
             L += [f"- {title}: {x}" for x in items]
+        L += [f"- Open condition: {x}" for x in rv.conditions]
         L.append(f"- Valuation (conservative, context only): {rv.valuation.get('status')} "
                  f"{rv.valuation.get('reason', '')}")
         if rv.missing:

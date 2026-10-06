@@ -71,6 +71,11 @@ DEFAULT_CATALYST_THRESHOLDS = {
     "current_after_window_months": 12,       # a catalyst older than its window + this is history, not news
     "results_deadline_days": 45,
     "results_deadline_days_year_end": 60,
+    # recurring-earnings bridge (visible analyst assumptions; overridden by bridge_assumptions)
+    "capex_useful_life_years": 15.0,
+    "capex_debt_share_if_unstated": 0.5,
+    "incremental_debt_rate_pct": 9.0,
+    "fallback_tax_rate_pct": 25.17,
 }
 
 _COMMISSIONED = re.compile(r"\b(?:commissioned|commercial (?:production|operations?)|started (?:commercial )?production|"
@@ -670,6 +675,12 @@ def _build(ticker: str, s: Seed, series: FinancialSeries, evidence: list[Evidenc
         if cover is not None and cover >= th["demand_cover_min"]:
             basis.append(f"order book {book.quantity.value:,.0f} cr = {cover:.2f}x TTM revenue ({_d(book.available_at)})")
             c.quantities["demand_order_book"] = book.quantity.value
+            hm, hb = _horizon_months(rationales, book.available_at, _d(book.available_at))
+            c.quantities["demand_book_horizon_months"] = hm
+            if hm:
+                basis.append(f"executable over {hm} months ({hb})")
+        if util and util[-1].value is not None:
+            c.quantities["utilization_before"] = util[-1].value
         if util and util[-1].value is not None and util[-1].value >= th["utilization_tight_pct"]:
             basis.append(f"stated utilisation {util[-1].value:g}% before the expansion")
         if other_orders:
@@ -741,6 +752,7 @@ def _build(ticker: str, s: Seed, series: FinancialSeries, evidence: list[Evidenc
 
     # --- potential earnings contribution (only where inputs support it) ---
     c.contribution = _contribution(s, c, s_det, p, ttm_rev, ttm_ebitda, m_base, margins, chain, th)
+    _parent_bridge(c, s, s_det, p, evidence, rationales, th)
 
     # --- milestones fixed at detection, judged on relevant periods ---
     c.milestones, c.invalidators = _milestones(s, c, series, p, evidence, events, as_of, th)
@@ -756,6 +768,7 @@ def _build(ticker: str, s: Seed, series: FinancialSeries, evidence: list[Evidenc
             k.share_of_ttm_ebitda = round(realised / ttm_ebitda, 3)
             k.basis = (f"measured: {mm.value:+.0f} bps margin change over the relevant periods x current TTM revenue "
                        f"{rev_now:,.0f} cr (realised, not forecast); downside assumes half of it reverses")
+            _parent_bridge(c, s, series, p, evidence, rationales, th)
     _stage(c, as_of, th)
     c.quantities["current"] = (c.window_end is None or as_of <= _add_months(c.window_end,
                                                                              th["current_after_window_months"]))
@@ -808,15 +821,37 @@ def _contribution(s, c, series, p, ttm_rev, ttm_ebitda, m_base, margins, chain, 
             return out
         frac = (s.q["to"] / s.q["from"] - 1) if s.q.get("from") else None
         by_capacity = frac * ttm_rev if (frac and ttm_rev) else None
+        if by_capacity is not None and m_base is not None:
+            out.illustrative_crore = round(by_capacity * m_base / 100, 2)
+            out.illustrative_basis = (f"illustrative only: capacity +{frac:.0%} x TTM revenue {ttm_rev:,.0f} cr x "
+                                      f"TTM margin {m_base:.1f}% - assumes the new capacity sells at today's "
+                                      "economics; never counted toward materiality")
         book = c.quantities.get("demand_order_book")
-        by_demand = max(0.0, book - ttm_rev) if (book is not None and ttm_rev) else None
-        if by_capacity is None or by_demand is None:
+        horizon = c.quantities.get("demand_book_horizon_months")
+        util = c.quantities.get("utilization_before")
+        missing = []
+        if book is None:
+            missing.append("order book")
+        if not horizon:
+            missing.append("execution period of the order book")
+        annual = book * 12 / horizon if (book is not None and horizon) else None
+        constrained = (util is not None and util >= th["utilization_tight_pct"]) or bool(
+            annual is not None and ttm_rev and annual > th["deliverable_run_rate_multiple"] * ttm_rev)
+        if not constrained:
+            missing.append("evidence that existing capacity constrains deliveries (utilisation, or executable "
+                           "orders beyond the current run-rate)")
+        if missing:
             out.status = "potentially_material_unresolved"
-            out.basis = "demand supported but its size relative to the new capacity is not quantified"
+            out.basis = "supported increment not established: missing " + "; ".join(missing)
             return out
+        tight = util is not None and util >= th["utilization_tight_pct"]
+        existing = ttm_rev if tight else ttm_rev * th["deliverable_run_rate_multiple"]
+        by_demand = max(0.0, annual - existing)
         return finish(min(by_capacity, by_demand),
-                      f"bounded by demand: min(capacity-implied {by_capacity:,.0f} cr, order book above run-rate "
-                      f"{by_demand:,.0f} cr) - capacity growth is never assumed to be earnings growth")
+                      f"bounded by executable demand: min(capacity-implied {by_capacity:,.0f} cr, order book "
+                      f"{book:,.0f} cr over {horizon} months = {annual:,.0f} cr/yr less what existing capacity "
+                      f"delivers ({existing:,.0f} cr) = {by_demand:,.0f} cr) - capacity growth is never assumed "
+                      "to be earnings growth")
     if s.kind in (CatalystKind.PRODUCT_MIX, CatalystKind.SEGMENT_TURNAROUND) and s.q.get("magnitude") is not None \
             and "crore" in (s.q.get("unit") or ""):
         n = PERIODS_PER_YEAR.get(p, 4)
@@ -849,6 +884,104 @@ def _contribution(s, c, series, p, ttm_rev, ttm_ebitda, m_base, margins, chain, 
                  CatalystKind.FINANCING_COST: "rating upgrade: the change in borrowing cost is not disclosed"}.get(
         s.kind, "inputs for a magnitude are not disclosed")
     return out
+
+
+def _capex_for(c: Catalyst, s: Seed, evidence, rationales) -> tuple[Optional[float], str, Optional[float], str]:
+    """(capex crore, source, debt share, funding basis) attributable to a capacity catalyst."""
+    best = None
+    for r in rationales:
+        if r.published_at and abs((r.published_at - s.at).days) <= 200:
+            for f in r.get("capex"):
+                if f.value and best is None:
+                    best = (f.value, f"{r.agency} {r.rationale_date}: {f.text}", r)
+    for e in evidence:
+        if best is None and e.usable and e.metric == Metric.CAPEX and e.quantity and e.quantity.unit == Unit.INR_CRORE \
+                and e.available_at and abs((e.available_at - s.at).days) <= 200 \
+                and _quote_matches_project(e.quote, s.q.get("project") or {}):
+            best = (e.quantity.value, f"issuer {_d(e.available_at)}: \"{e.quote[:100]}\"", None)
+    if best is None:
+        return None, "", None, ""
+    capex, src, r = best
+    funding = " ".join(f.text for f in r.get("capex_funding")) if r else ""
+    fl = funding.lower()
+    if "internal accrual" in fl and not re.search(r"debt|loan|borrow", fl):
+        return capex, src, 0.0, f"funding stated: {funding}"
+    if re.search(r"debt|loan|borrow", fl) and "internal accrual" not in fl:
+        return capex, src, 1.0, f"funding stated: {funding}"
+    if fl:
+        return capex, src, 0.5, f"funding stated as a mix: {funding} (half debt assumed)"
+    return capex, src, None, ""
+
+
+def _parent_bridge(c: Catalyst, s: Seed, ser: FinancialSeries, p: str, evidence, rationales, th) -> None:
+    """Supported incremental EBITDA -> recurring parent earnings: minus incremental D&A and interest,
+    after tax, times the parent's share, per diluted share.  Missing inputs leave it unresolved."""
+    k = c.contribution
+    if k.base_crore is None:
+        k.bridge_status, k.bridge_missing = "unresolved", ["no supported incremental EBITDA"]
+        k.earnings_materiality = "unresolved"
+        return
+    missing, assume = [], []
+    da = interest = 0.0
+    if s.kind == CatalystKind.CAPACITY:
+        capex, src, debt_share, fbasis = _capex_for(c, s, evidence, rationales)
+        if capex is None:
+            missing.append("capex of the expansion (incremental depreciation and financing unknown)")
+        else:
+            da = capex / th["capex_useful_life_years"]
+            if debt_share is None:
+                debt_share = th["capex_debt_share_if_unstated"]
+                fbasis = f"funding not stated: {debt_share:.0%} debt assumed (analyst assumption)"
+            interest = capex * debt_share * th["incremental_debt_rate_pct"] / 100
+            assume += [f"capex {capex:,.1f} cr ({src}); D&A over {th['capex_useful_life_years']:g} years = "
+                       f"{da:,.1f} cr/yr", f"{fbasis}; interest at {th['incremental_debt_rate_pct']:g}% = "
+                       f"{interest:,.1f} cr/yr"]
+    else:
+        assume.append("no capex attributed to this catalyst: no incremental D&A or interest")
+    known = [e for e, at in _results_published(ser, p) if at <= s.at]
+    end = known[-1] if known else ser.latest_period(Metric.REVENUE, p)
+    tax_rate = None
+    if end:
+        tx, pbt = ser.ttm(Metric.TAX, end, p)[0], ser.ttm(Metric.PBT, end, p)[0]
+        if tx is not None and pbt and pbt > 0 and 0.05 <= tx / pbt <= 0.40:
+            tax_rate = tx / pbt
+    if tax_rate is None:
+        tax_rate = th["fallback_tax_rate_pct"] / 100
+        assume.append(f"tax at {th['fallback_tax_rate_pct']:g}% (effective rate not available; analyst assumption)")
+    else:
+        assume.append(f"tax at the TTM effective rate {tax_rate:.1%}")
+    share = 1.0
+    if end:
+        pa, pt = ser.ttm(Metric.PAT_ATTRIBUTABLE, end, p)[0], ser.ttm(Metric.PAT, end, p)[0]
+        if pa is not None and pt and pt > 0:
+            share = max(0.0, min(1.0, pa / pt))
+            assume.append(f"parent share of profit {share:.0%} (TTM)")
+        else:
+            assume.append("no minority interest reported: parent share 100%")
+    k.bridge_assumptions = assume
+    if missing:
+        k.bridge_status, k.bridge_missing, k.earnings_materiality = "unresolved", missing, "unresolved"
+        return
+
+    def conv(ebitda):
+        return None if ebitda is None else round((ebitda - da - interest) * (1 - tax_rate) * share, 2)
+    k.pat_downside_crore, k.pat_base_crore, k.pat_upside_crore = (conv(k.downside_crore), conv(k.base_crore),
+                                                                  conv(k.upside_crore))
+    shares = ser.shares_diluted_crore(end, p) if end else None
+    if shares:
+        k.eps_base = round(k.pat_base_crore / shares, 2)
+        assume.append(f"per diluted share on {shares:,.3f} crore shares at detection (later dilution reduces it)")
+    ttm_pat = None
+    if end:
+        ttm_pat = ser.ttm(Metric.PAT_ATTRIBUTABLE, end, p)[0] or ser.ttm(Metric.PAT, end, p)[0]
+    k.bridge_status = "computed"
+    if ttm_pat and ttm_pat > 0:
+        k.share_of_ttm_parent_pat = round(k.pat_base_crore / ttm_pat, 3)
+        k.earnings_materiality = ("established" if k.share_of_ttm_parent_pat >= th["materiality_share_of_ttm_ebitda"]
+                                  else "not_material")
+    else:
+        k.earnings_materiality = "established" if k.pat_base_crore > 0 else "not_material"
+        assume.append("TTM parent PAT not positive: materiality judged on sign only")
 
 
 def _milestones(s, c, series, p, evidence, events, as_of, th):
@@ -1102,10 +1235,19 @@ def _stage(c: Catalyst, as_of: date, th: dict) -> None:
             and all(m.periods_judged >= th["confirm_periods"] or m.question.startswith("Do first orders")
                     for m in fin):
         c.stage, why = ResearchStage.CONFIRMED, [f"{m.question} {m.observed}" for m in fin]
-        if any(m.timetable == "recovered_late" for m in c.milestones):
-            why.insert(0, "missed the original timetable; later recovered (not confirmed on schedule)")
-        else:
-            why.insert(0, "confirmed on schedule")
+        k = c.contribution
+        if k.earnings_materiality == "not_material":
+            c.stage = ResearchStage.VALIDATING
+            why = [f"execution verified, but the recurring parent-earnings effect is not material "
+                   f"({k.share_of_ttm_parent_pat:.0%} of TTM parent PAT after D&A, interest and tax)"] + why
+        elif k.earnings_materiality == "unresolved":
+            cond = ("recurring parent earnings not established (" + "; ".join(k.bridge_missing or ["bridge inputs"])
+                    + "): earnings materiality is an open investment-review condition")
+            c.review_conditions.append(cond)
+            why.append(cond)
+        if c.stage == ResearchStage.CONFIRMED:
+            why.insert(0, "missed the original timetable; later recovered (not confirmed on schedule)"
+                       if any(m.timetable == "recovered_late" for m in c.milestones) else "confirmed on schedule")
     elif fin and fin[0].status == MilestoneStatus.DATA_UNAVAILABLE and MilestoneStatus.MISSED not in st:
         c.stage, why = ResearchStage.DATA_UNAVAILABLE, [f"{fin[0].question} {fin[0].observed}"]
     elif MilestoneStatus.MISSED in st:
@@ -1257,9 +1399,12 @@ def research_summary(catalysts: list[Catalyst], evidence_status: str, current: l
         detected = "no forward catalyst in the disclosures"
     why = []
     for c in (active or live)[:3]:
-        contrib = (f"base ~{c.contribution.base_crore:,.1f} cr EBITDA/yr ({c.contribution.share_of_ttm_ebitda:.0%} of "
-                   f"TTM)" if c.contribution.status == "estimated" else "potentially material; magnitude unresolved"
-                   if c.contribution.status == "potentially_material_unresolved" else c.contribution.status)
+        k = c.contribution
+        contrib = (f"supported EBITDA ~{k.base_crore:,.1f} cr/yr ({k.share_of_ttm_ebitda:.0%} of TTM)"
+                   + (f"; recurring parent PAT ~{k.pat_base_crore:,.1f} cr/yr ({k.earnings_materiality})"
+                      if k.bridge_status == "computed" else "; recurring parent earnings unresolved")
+                   if k.status == "estimated" else "potentially material; magnitude unresolved"
+                   if k.status == "potentially_material_unresolved" else k.status)
         links = ", ".join(f"{x.link} {x.status}" for x in c.chain)
         why.append(f"[{c.stage.value}] {c.kind.value} since {_d(c.first_public_at)}: {c.operating_change} | {links} | "
                    f"{contrib}")
@@ -1294,6 +1439,16 @@ def investment_review(catalysts: list[Catalyst], series: FinancialSeries, driver
     if not confirmed:
         return rv
     rv.opened_by = [f"{c.kind.value} {_d(c.first_public_at)} ({c.catalyst_id})" for c in confirmed]
+    rv.conditions = [f"{c.kind.value} {_d(c.first_public_at)}: {x}" for c in confirmed for x in c.review_conditions]
+    for c in confirmed:
+        k = c.contribution
+        if k.bridge_status == "computed":
+            rv.remaining_upside.append(
+                f"{c.kind.value}: recurring parent PAT downside / base / upside {k.pat_downside_crore} / "
+                f"{k.pat_base_crore} / {k.pat_upside_crore} cr/yr"
+                + (f" (EPS base {k.eps_base})" if k.eps_base is not None else "")
+                + (f"; {k.share_of_ttm_parent_pat:.0%} of TTM parent PAT" if k.share_of_ttm_parent_pat is not None
+                   else ""))
     p = series.cadence(Metric.REVENUE) or "Q"
     end = series.latest_period(Metric.REVENUE, p)
     ttm_now = series.ttm(Metric.EBITDA, end, p)[0] if end else None
@@ -1347,5 +1502,5 @@ def investment_review(catalysts: list[Catalyst], series: FinancialSeries, driver
                                   ("market liquidity (traded value)", False),
                                   ("cash-flow statement", any(d.driver == "cash_conversion" for d in drivers)))
                   if not ok]
-    rv.status = "inputs_incomplete" if rv.missing else "inputs_assembled"
+    rv.status = "inputs_incomplete" if (rv.missing or rv.conditions) else "inputs_assembled"
     return rv

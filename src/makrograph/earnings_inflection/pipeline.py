@@ -523,7 +523,8 @@ class EarningsInflectionPipeline:
         )
         # forward setup: catalysts first, current performance (the evidence status) kept apart
         a.catalysts = detect_catalysts(ticker, series, evidence, events, mechanisms, a.rating_rationales,
-                                       as_of.date(), self.cfg.get("catalyst_thresholds"), measurements)
+                                       as_of.date(), {**(self.cfg.get("bridge_assumptions") or {}),
+                                                      **(self.cfg.get("catalyst_thresholds") or {})}, measurements)
         a.research_summary = research_summary(a.catalysts, status.value, why)
         if self.cfg.get("catalyst_ledger"):                   # explicit opt-in: append-only local ledger
             from .catalyst_ledger import CatalystLedger
