@@ -377,6 +377,7 @@ class EarningsContribution:
     bridge_missing: list[str] = field(default_factory=list)
     bridge_assumptions: list[str] = field(default_factory=list)
     earnings_materiality: str = "unresolved"  # established | not_material | unresolved
+    materiality_basis: str = ""               # what the increment was measured against (facts only)
 
 
 @dataclass

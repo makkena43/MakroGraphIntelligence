@@ -209,9 +209,10 @@ def test_confirmation_needs_material_recurring_parent_earnings():
     o = kind(big, CatalystKind.ORDERS)[0]
     assert o.stage == ResearchStage.VALIDATING and o.contribution.earnings_materiality == "not_material"
     assert "not material" in o.stage_reasons[0]
-    nobridge, s = run(rows(rev), BOOKS, date(2024, 3, 1))               # no PAT rows: materiality on sign only
+    nobridge, s = run(rows(rev), BOOKS, date(2024, 3, 1))               # no PAT rows: no earnings base
     o = kind(nobridge, CatalystKind.ORDERS)[0]
-    assert o.contribution.bridge_status == "computed"
+    assert o.contribution.bridge_status == "computed"                   # standalone: parent share is a fact
+    assert o.contribution.earnings_materiality == "unresolved"          # (rules-3: was judged on sign only)
 
 
 def test_unresolved_parent_earnings_is_an_explicit_review_condition():
