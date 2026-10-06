@@ -38,12 +38,20 @@ _CELL_TOKEN = re.compile(r"\(?-?\d[\d,]*(?:\.\d+)?\)?|\(?[-+]?\d[\d,]*(?:\.\d+)?
 _DATE_TOKEN = re.compile(r"\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b")
 
 
+_COLUMN_GAP = re.compile(r"\d\)?\s{2,}\(?-?\d")
+_SPACED_GROUP = re.compile(r"(?:(?<=\s\s)|(?<=^))(\(?-?\d{1,3}) ,?(\d{3}(?:\.\d{1,2})?\)?)(?=\s{2,}|\s*$)")
+
+
 def split_numeric_row(line: str) -> tuple[str, list[str]]:
     """Split "label  c1 c2 c3" into (label, trailing numeric cells).
 
     Works for both column-aligned text and pdfplumber's default output, which
     separates columns with a SINGLE space.  Dashes / "nil" count as empty cells.
     """
+    if _COLUMN_GAP.search(line):
+        # column-aligned text (cells apart by 2+ spaces): a SINGLE space inside a cell is a
+        # scanned thousands separator - "50 321" is 50,321 and "1 ,917" is 1,917, not two cells
+        line = _SPACED_GROUP.sub(r"\1,\2", line)
     tokens = line.strip().replace("|", " ").split()
     cells: list[str] = []
     while tokens:

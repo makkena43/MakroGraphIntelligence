@@ -37,7 +37,7 @@ from .mechanisms import detect_mechanisms
 from .valuation import Security, valuation_context
 from .earnings_bridge import build_bridge
 from .event_resolution import resolve_events
-from .extraction import extract_sentence_evidence, garbled_ratio, parse_results_tables
+from .extraction import extract_sentence_evidence, garbled_ratio, infer_unstated_scales, parse_results_tables
 from .llm import CallableClient, LLMEvidenceExtractor, build_client
 from .llm import PROMPT_VERSION as LLM_PROMPT_VERSION
 from .llm import SCHEMA_VERSION as LLM_SCHEMA_VERSION
@@ -290,6 +290,7 @@ class EarningsInflectionPipeline:
         # 3. extraction (deterministic; LLM only if enabled)
         evidence: list[Evidence] = []
         measurements, issues = [], []
+        unscaled: list = []
         llm_rejected: list[str] = []
         for d in docs:
             exact_dup = (d.superseded_by and d.superseded_by in docs_by_id
@@ -302,10 +303,11 @@ class EarningsInflectionPipeline:
             # hide its results statement.  The parser itself requires period
             # columns, recognised rows and a unit line.
             if d.kind.value not in ("earnings_call_transcript",):
-                rows, iss = parse_results_tables(d, chunks)
+                n_unscaled = len(unscaled)
+                rows, iss = parse_results_tables(d, chunks, unscaled=unscaled)
                 sys_t = (None if d.first_seen_at is None or d.text_available_at is None
                          else max(d.first_seen_at, d.text_available_at))
-                for r in rows:
+                for r in rows + unscaled[n_unscaled:]:
                     r.restated = is_restatement(d)
                     r.system_available_at = sys_t
                 measurements += rows
@@ -316,6 +318,13 @@ class EarningsInflectionPipeline:
                 ev, rej = self.llm.extract(d, chunks, det)
                 evidence += ev
                 llm_rejected += rej
+
+        # tables whose unit line is unreadable: unit taken from the issuer's earlier filings
+        # when their comparative figures establish it unambiguously, otherwise not used
+        if unscaled:
+            inferred, iss = infer_unstated_scales(unscaled, measurements)
+            measurements += inferred
+            issues += iss
 
         # A later version of a filing replaces its numbers - but only the figures that the later
         # version actually provides (a re-filing whose text is unreadable must not erase them).
