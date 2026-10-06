@@ -266,7 +266,7 @@ def _mechanism_contributions(mechs, rev, fin, series, n) -> list[dict]:
     mechanisms describe the same change."""
     out = []
     for m in mechs:
-        if not m.qualifies_positive and m.state.value != "commitment":
+        if m.stale or (not m.qualifies_positive and m.state.value != "commitment"):
             continue
         eff, basis = None, "not quantified"
         if m.mechanism.value == "pricing_input_costs" and m.magnitude is not None:

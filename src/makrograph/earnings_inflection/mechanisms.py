@@ -77,7 +77,9 @@ def detect_mechanisms(series: FinancialSeries, evidence: list[Evidence], events:
     th = {**DEFAULT_MECHANISM_THRESHOLDS, **(thresholds or {})}
     p, end, stale = series.current_period(as_of_date)
     if stale:
-        p, end = p, None
+        # later results should be public but did not parse: keep the last known reading,
+        # clearly marked, instead of dropping the thesis (it never upgrades the status)
+        end = series.latest_period(Metric.REVENUE, p) if p else None
     out = [
         utilization(series, evidence, p, end, as_of_date, th),
         product_mix(series, evidence, p, end, as_of_date, th),
@@ -87,6 +89,11 @@ def detect_mechanisms(series: FinancialSeries, evidence: list[Evidence], events:
         segment_turnaround(series, evidence, p, end, th),
         organic_volume(series, evidence, drivers, p, end, as_of_date, th),
     ]
+    if stale:
+        for r in out:
+            if r.mechanism != Mechanism.DEBT_REDUCTION:      # judged on balance-sheet dates, own staleness rule
+                r.stale = True
+                r.notes.append(f"stale: {stale}")
     _mark_overlaps(out, drivers)
     return out
 

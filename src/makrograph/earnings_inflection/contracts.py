@@ -18,7 +18,7 @@ from enum import Enum
 from typing import Any, Optional
 
 IST = timezone(timedelta(hours=5, minutes=30))
-SCHEMA_VERSION = "ei-assessment-3"
+SCHEMA_VERSION = "ei-assessment-4"
 
 RESEARCH_ONLY_NOTICE = (
     "Research-only evidence assessment. Not an investment recommendation, "
@@ -251,10 +251,82 @@ class MechanismResult:
     source_doc_ids: list[str] = field(default_factory=list)
     hypothesis: str = ""                        # research question when magnitude cannot be quantified
     notes: list[str] = field(default_factory=list)
+    # computed on the latest parsed period although later results should already be public:
+    # kept as the last known reading, never used to upgrade the evidence status
+    stale: bool = False
 
     @property
     def qualifies_positive(self) -> bool:
-        return self.direction == "positive" and self.state in (MechanismState.EMERGING, MechanismState.CONFIRMED)
+        return (not self.stale and self.direction == "positive"
+                and self.state in (MechanismState.EMERGING, MechanismState.CONFIRMED))
+
+
+class ThesisStage(str, Enum):
+    """Where a mechanism's earnings thesis stands.  Admission does not wait for results:
+    a source-backed change in economics is a LEADING candidate; the first results after it
+    are a separate validation milestone; persistence raises confidence (not admission)."""
+    NONE = "none"
+    LEADING = "leading"                                   # economics changed; first results pending
+    FIRST_RESULTS_VALIDATED = "first_results_validated"   # first results after the signal show it
+    FIRST_RESULTS_NOT_VALIDATED = "first_results_not_validated"
+    REALIZED_EMERGING = "realized_emerging"               # first seen in results (no prior leading signal)
+    CONFIRMED = "confirmed"                               # mechanism-specific persistence
+    ADVERSE = "adverse"                                   # moving against earnings
+
+
+class MilestoneOutcome(str, Enum):
+    PENDING = "pending"
+    OVERDUE = "overdue"                  # results should be public but are not parsed: data, not a verdict
+    VALIDATED = "validated"
+    NOT_VALIDATED = "not_validated"
+    ADVERSE = "adverse"
+
+
+@dataclass
+class ThesisMilestone:
+    name: str
+    metric_basis: str                    # what is measured, with its threshold
+    expected_by: Optional[date] = None   # results deadline for the first period after the signal
+    period_end: Optional[date] = None
+    outcome: "MilestoneOutcome" = MilestoneOutcome.PENDING
+    observed: str = ""
+    observed_at: Optional[datetime] = None
+
+
+@dataclass
+class MechanismThesis:
+    mechanism: "Mechanism"
+    stage: "ThesisStage"
+    confidence: str = "low"              # low | medium | high - evidence quality, not probability
+    leading_signal: str = ""
+    leading_signal_at: Optional[datetime] = None
+    validation: Optional[ThesisMilestone] = None
+    confirmation: str = ""
+    positive_evidence: list[str] = field(default_factory=list)   # dated, per reported period / filing
+    negative_evidence: list[str] = field(default_factory=list)
+    earliest_defensible_at: Optional[datetime] = None
+    stale: bool = False
+    stale_note: str = ""
+    research_question: str = ""
+    source_doc_ids: list[str] = field(default_factory=list)
+
+
+@dataclass
+class InflectionThesis:
+    stage: "ThesisStage" = ThesisStage.NONE           # most advanced positive mechanism
+    confidence: str = "low"
+    earliest_defensible_at: Optional[datetime] = None  # earliest positive signal still standing
+    mechanisms: list[MechanismThesis] = field(default_factory=list)
+    stale: bool = False
+    stale_note: str = ""
+    next_milestone: str = ""
+    notes: list[str] = field(default_factory=list)
+    outcome_history: list[str] = field(default_factory=list)   # reported outcomes, attributed to no mechanism
+    # when the series is stale: the evidence status as of the day the latest parsed results were
+    # first public, recomputed from what was public then (kept visible, never the current status)
+    last_known_status: str = ""
+    last_known_as_of: Optional[date] = None
+    last_known_rationale: list[str] = field(default_factory=list)
 
 
 class EvidenceStatus(str, Enum):
@@ -636,6 +708,7 @@ class Assessment:
     source_manifest: list[dict[str, Any]] = field(default_factory=list)
     mechanisms: list["MechanismResult"] = field(default_factory=list)       # WP5
     valuation: dict[str, Any] = field(default_factory=dict)                  # WP7, optional context only
+    thesis: Optional["InflectionThesis"] = None                              # forward-looking layer
     replay_mode: str = "PUBLIC_INFORMATION_RECONSTRUCTION"
     schema_version: str = SCHEMA_VERSION
 

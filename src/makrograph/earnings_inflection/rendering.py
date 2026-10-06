@@ -37,6 +37,43 @@ def render_markdown(a: Assessment) -> str:
     L.append("## Why this status")
     L += [f"- {x}" for x in a.status_rationale] or ["- (none)"]
     L.append("")
+    th = a.thesis
+    if th is not None:
+        L.append("## Forward-looking thesis (per mechanism; research states, not actions)")
+        L.append(f"- Thesis stage: **{th.stage.value}** · confidence: {th.confidence}"
+                 + (f" · earliest defensible signal still standing: {_ts(th.earliest_defensible_at)}"
+                    if th.earliest_defensible_at else "")
+                 + (" · **STALE**" if th.stale else ""))
+        if th.stale_note:
+            L.append(f"- Stale: {th.stale_note}")
+        if th.last_known_status:
+            L.append(f"- Last known evidence status (stale): **{th.last_known_status}** as of {th.last_known_as_of}")
+            L += [f"  - {x}" for x in th.last_known_rationale]
+        if th.next_milestone:
+            L.append(f"- Next milestone: {th.next_milestone}")
+        L += [f"- {n}" for n in th.notes]
+        if th.outcome_history:
+            L.append("- Reported outcomes by period (first publication; not attributed to a mechanism):")
+            L += [f"  - {x}" for x in th.outcome_history]
+        active = [t for t in th.mechanisms if t.stage.value != "none" or t.positive_evidence or t.negative_evidence]
+        for t in active:
+            L.append(f"### {t.mechanism.value}: {t.stage.value} (confidence {t.confidence})"
+                     + (" — stale" if t.stale else ""))
+            if t.leading_signal:
+                L.append(f"- Leading signal ({_ts(t.leading_signal_at)}): {t.leading_signal}")
+            if t.validation:
+                v = t.validation
+                L.append(f"- First-results check [{v.outcome.value}]: {v.metric_basis}; due by {v.expected_by}"
+                         + (f"; {v.period_end}: {v.observed} (public {_ts(v.observed_at)})" if v.observed else ""))
+            if t.confirmation:
+                L.append(f"- Second period: {t.confirmation}")
+            if t.stale_note:
+                L.append(f"- Stale: {t.stale_note}")
+            L += [f"- (+) {x}" for x in t.positive_evidence[-6:]]
+            L += [f"- (−) {x}" for x in t.negative_evidence[-6:]]
+            if t.research_question:
+                L.append(f"- Research question: {t.research_question}")
+        L.append("")
     L.append("## 1. What changed, where, and when it became public")
     if not a.what_changed:
         L.append("- No qualifying change detected.")
