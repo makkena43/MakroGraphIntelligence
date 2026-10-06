@@ -61,6 +61,8 @@ DEFAULT_CATALYST_THRESHOLDS = {
     "margin_test_bps": 150.0,                # pricing / mix: margin gain needed
     "finance_cost_drop_pct": 10.0,
     "dilution_max_pct": 5.0,
+    "cancellation_contradicts_share": 0.20,  # cancelled / amended-down value vs the catalyst's own demand
+    "cancellation_note_share": 0.05,
     "financing_min_share_of_ebitda": 0.10,   # finance cost / EBITDA below this: financing is not a material lever
     "confirm_periods": 2,                    # relevant periods that must support the mechanism
     "commissioning_grace_days": 90,
@@ -259,7 +261,10 @@ def _order_seeds(series, evidence, events, rationales, p, as_of, th) -> list[See
             f"{_d(a.available_at)} -> {_d(b.available_at)})", f"book:{b.quantity.value:.0f}",
             sorted({a.doc_id, b.doc_id}), [a.evidence_id, b.evidence_id],
             facts=[f"{_d(b.available_at)}{role}: \"{b.quote[:220]}\""],
-            q={"book": b.quantity.value, "book_prev": a.quantity.value}))
+            q={"book": b.quantity.value, "book_prev": a.quantity.value,
+               # orders that became binding while the book grew are the ones this catalyst rests on
+               "event_ids": sorted(e.event_id for e in events if (first_binding_at(e) or e.first_public_at)
+                                   and a.available_at < (first_binding_at(e) or e.first_public_at) <= b.available_at)}))
     dem = summarise_demand(events, evidence, as_of)
     bound = lambda e: first_binding_at(e) or e.first_public_at  # noqa: E731
     verified = sorted((e for e in events if e.event_id in dem.verified_events and bound(e)), key=bound)
@@ -278,7 +283,8 @@ def _order_seeds(series, evidence, events, rationales, p, as_of, th) -> list[See
                 facts=[f"{_d(bound(x))}: {x.counterparty or 'customer'} {x.amount.value:,.1f} cr "
                        f"({x.current_stage.value if x.current_stage else ''})" for x in window if x.amount],
                 q={"inflow": total, "horizon_months": max(durations) if durations else None,
-                   "horizon_basis": "longest disclosed execution period" if durations else ""}))
+                   "horizon_basis": "longest disclosed execution period" if durations else "",
+                   "event_ids": sorted(x.event_id for x in window)}))
             window = []                     # the next crossing is a separate catalyst
     return out
 
@@ -833,12 +839,38 @@ def _milestones(s, c, series, p, evidence, events, as_of, th):
         else:
             mm.status = MilestoneStatus.DATA_UNAVAILABLE
         ms.append(mm)
-        cancelled = [e for e in events if e.current_stage in (EventStage.CANCELLED,) and any(
-            h.stage == EventStage.CANCELLED and h.at and s.at < h.at and _d(h.at) <= as_of for h in e.history)]
-        nc = CatalystMilestone("No material order cancellations?", "cancellations after detection", status=
-                               MilestoneStatus.CONTRADICTED if cancelled else MilestoneStatus.PENDING)
-        if cancelled:
-            nc.observed = "; ".join(f"{e.event_id} cancelled" for e in cancelled)
+        linked = set(s.q.get("event_ids") or [])
+        base = s.q.get("inflow") or ((s.q.get("book") or 0) - (s.q.get("book_prev") or 0)) or None
+        nc = CatalystMilestone("No material order cancellations?",
+                               f"value cancelled or amended down after detection, among the orders this catalyst "
+                               f"rests on, below {th['cancellation_contradicts_share']:.0%} of its demand "
+                               f"({base:,.0f} cr)" if base else "cancellations among linked orders")
+        lost, lost_ids, other = 0.0, [], []
+        for e in events:
+            red = _reduction_after(e, s.at, as_of)
+            if red <= 0:
+                continue
+            if e.event_id in linked:
+                lost += red
+                lost_ids.append(f"{e.event_id} -{red:,.1f} cr")
+            else:
+                other.append(f"{e.event_id} -{red:,.1f} cr")
+        share = lost / base if base else None
+        if lost and share is not None and share >= th["cancellation_contradicts_share"]:
+            nc.status = MilestoneStatus.CONTRADICTED
+            nc.observed = f"{lost:,.1f} cr ({share:.0%}) of the linked orders cancelled / reduced: {', '.join(lost_ids)}"
+        elif lost:
+            nc.observed = (f"partial cancellation {lost:,.1f} cr" + (f" ({share:.0%})" if share is not None else "")
+                           + f": {', '.join(lost_ids)}")
+            if share is None or share >= th["cancellation_note_share"]:
+                c.uncertainties.append(f"partial cancellation of linked orders: {nc.observed}")
+        if not linked:
+            c.uncertainties.append("orders behind this catalyst are not individually disclosed: cancellations "
+                                   "cannot be linked to it")
+        if other:
+            c.uncertainties.append("company-level risk (not linked to this catalyst): cancellations / reductions "
+                                   + ", ".join(other[:4]))
+        nc.value, nc.periods_judged = share, 0
         ms.append(nc)
         inv += ["order cancellations or customer disputes", "execution period passes with revenue flat",
                 "margins fall well below the detection level (low-priced orders)",
@@ -963,6 +995,23 @@ def _milestones(s, c, series, p, evidence, events, as_of, th):
                 m.status, m.observed = MilestoneStatus.MISSED, "no order from the customer within 12 months"
         ms.append(m)
     return ms, inv
+
+
+def _reduction_after(e: EconomicEvent, t0: datetime, as_of: date) -> float:
+    """Value removed from an order after ``t0`` (full or partial cancellation, downward amendment)."""
+    hist = sorted((h for h in e.history if h.at is not None), key=lambda h: h.at)
+    value = None
+    lost = 0.0
+    for h in hist:
+        if _d(h.at) > as_of:
+            break
+        new = 0.0 if (h.stage == EventStage.CANCELLED and h.amount is None) else h.amount
+        if value is not None and new is not None and new < value and h.at > t0 \
+                and h.stage in (EventStage.CANCELLED, EventStage.AMENDED):
+            lost += value - new
+        if new is not None:
+            value = new
+    return lost
 
 
 _FINANCIAL_TESTS = ("converting on schedule", "reaching revenue", "visible in margins", "hold in margins",

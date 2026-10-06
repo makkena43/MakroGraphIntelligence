@@ -117,15 +117,39 @@ def test_execution_beyond_the_run_rate_without_a_stated_horizon_is_only_potentia
     assert {x.link: x.status for x in o.chain}["deliverable_capacity"] == "unknown"
 
 
-def test_a_cancelled_order_contradicts_even_with_strong_growth():
-    ev = EconomicEvent("e1", "T", Metric.ORDER_WIN, Quantity(300, Unit.INR_CRORE, "300"), "Utility A",
-                       at(date(2023, 8, 25)), evidence_ids=["x"], doc_ids=["d1"], current_stage=EventStage.CANCELLED,
-                       history=[EventStateChange(EventStage.BINDING_ORDER, at(date(2023, 8, 25)), "d1", "x"),
-                                EventStateChange(EventStage.CANCELLED, at(date(2023, 11, 20)), "d2", "y")],
-                       customer_verification=CustomerVerification.ISSUER_NAMED, value_basis=ValueBasis.FIRM)
-    cats, _ = run(rows([100] * 6 + [160] * 6), BOOKS, date(2024, 3, 1), events=[ev])
-    o = [c for c in kind(cats, CatalystKind.ORDERS) if "order book" in c.operating_change][0]
+def order(eid, bound, amount, *changes):
+    hist = [EventStateChange(EventStage.BINDING_ORDER, at(bound), f"d{eid}", "x", amount)]
+    hist += [EventStateChange(st, at(d), f"c{eid}{i}", "y", amt) for i, (st, d, amt) in enumerate(changes)]
+    stage = hist[-1].stage if hist[-1].stage == EventStage.CANCELLED and hist[-1].amount is None else \
+        EventStage.BINDING_ORDER
+    return EconomicEvent(eid, "T", Metric.ORDER_WIN, Quantity(amount, Unit.INR_CRORE, str(amount)), "Utility A",
+                         at(bound), evidence_ids=["x"], doc_ids=[f"d{eid}"], current_stage=stage, history=hist,
+                         customer_verification=CustomerVerification.ISSUER_NAMED, value_basis=ValueBasis.FIRM)
+
+
+def book_catalyst(events, as_of=date(2024, 3, 1)):
+    cats, _ = run(rows([100] * 6 + [160] * 6), BOOKS, as_of, events=events)
+    return next(c for c in kind(cats, CatalystKind.ORDERS) if "order book" in c.operating_change)
+
+
+def test_a_cancelled_linked_order_contradicts_even_with_strong_growth():
+    # bound while the book grew (between the two snapshots): 120 of the 250 cr increase, then cancelled
+    o = book_catalyst([order("e1", date(2023, 5, 10), 120, (EventStage.CANCELLED, date(2023, 11, 20), None))])
     assert o.stage == ResearchStage.CONTRADICTED and "cancel" in o.stage_reasons[0]
+
+
+def test_an_unrelated_cancellation_is_a_company_risk_not_a_contradiction():
+    o = book_catalyst([order("e2", date(2023, 9, 25), 300, (EventStage.CANCELLED, date(2023, 11, 20), None))])
+    assert o.stage != ResearchStage.CONTRADICTED
+    assert any("company-level risk" in u and "e2" in u for u in o.uncertainties)
+
+
+def test_partial_cancellations_are_weighed_against_the_catalysts_demand():
+    small = book_catalyst([order("e3", date(2023, 5, 10), 120, (EventStage.CANCELLED, date(2023, 11, 20), 100))])
+    assert small.stage != ResearchStage.CONTRADICTED                    # 20 of 250 cr = 8%: noted
+    assert any("partial cancellation" in u for u in small.uncertainties)
+    big = book_catalyst([order("e4", date(2023, 5, 10), 120, (EventStage.AMENDED, date(2023, 11, 20), 40))])
+    assert big.stage == ResearchStage.CONTRADICTED                       # 80 of 250 cr = 32%: contradicts
 
 
 CAP_PLAN = stmt(Metric.CAPACITY, "The Board approved capex to increase the production capacity from 100 MW to 200 MW, "
