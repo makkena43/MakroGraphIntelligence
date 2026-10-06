@@ -58,6 +58,12 @@ def render_markdown(a: Assessment) -> str:
                              for r in g.revisions) or "—"
             L.append(f"| {g.metric.value} | {g.target_period_label} | {q.raw if q else '?'} ({_ts(g.original.stated_at)}) "
                      f"| {revs} | {g.outcome.value} | {g.latest_outcome.value} | {g.outcome_note} |")
+    tr = a.coverage.get("management_track_record")
+    if tr and tr.get("targets"):
+        L.append(f"- Track record (counts, not a score): {tr['judged']} judged of {tr['targets']} target(s); "
+                 f"vs original {tr['vs_original']}; vs latest {tr['vs_latest']}; "
+                 f"{tr['downward_revisions']} downward revision(s), {tr['downward_with_stated_reason']} with a stated "
+                 f"reason (credibility is a human judgment). {tr['sample_note']}.")
     L.append("")
     if a.events:
         L.append("")

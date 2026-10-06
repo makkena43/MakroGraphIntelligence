@@ -103,7 +103,12 @@ def main(argv=None):
         print(json.dumps(report, indent=2, default=str))
         return 0
 
-    pipe = EarningsInflectionPipeline(cfg, repo)
+    from makrograph.earnings_inflection.llm import LLMPreflightError
+    try:
+        pipe = EarningsInflectionPipeline(cfg, repo)
+    except LLMPreflightError as e:
+        print(f"LLM preflight failed (no company processed): {e}", file=sys.stderr)
+        return 2
     if args.diagnose:
         for t in args.ticker:
             print(pipe.diagnose(t, args.as_of))

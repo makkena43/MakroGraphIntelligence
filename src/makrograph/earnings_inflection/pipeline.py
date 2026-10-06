@@ -36,11 +36,15 @@ from .drivers import compute_drivers
 from .mechanisms import detect_mechanisms
 from .earnings_bridge import build_bridge
 from .event_resolution import resolve_events
-from .extraction import ConstrainedLLMExtractor, extract_sentence_evidence, garbled_ratio, parse_results_tables
+from .extraction import extract_sentence_evidence, garbled_ratio, parse_results_tables
+from .llm import CallableClient, LLMEvidenceExtractor, build_client
+from .llm import PROMPT_VERSION as LLM_PROMPT_VERSION
+from .llm import SCHEMA_VERSION as LLM_SCHEMA_VERSION
+from .llm import preflight as llm_preflight
 from .financial_series import FinancialSeries
 from .coverage import document_coverage, result_period_coverage
 from .validation import margin_conflicts
-from .guidance_ledger import build_ledger
+from .guidance_ledger import build_ledger, management_track_record
 from .text_artifacts import text_hash
 from .identity import (
     AliasRecord, IdentityResolver, IssuerRecord, IssuerRegistry, ReplayMode, SymbolSpan, alias_for_document,
@@ -84,14 +88,25 @@ class RunResult:
 
 
 class EarningsInflectionPipeline:
-    def __init__(self, config: dict, repository, llm_complete: Optional[Callable[[str], str]] = None):
+    def __init__(self, config: dict, repository, llm_complete: Optional[Callable[[str], str]] = None,
+                 llm_client=None):
         self.cfg = config or {}
         self.repo = repository
         self.country = self.cfg.get("country", "IN")
         self.budget = Budget.from_config(self.cfg)
         llm_cfg = self.cfg.get("llm", {})
-        self.llm = ConstrainedLLMExtractor(llm_complete, self.budget, enabled=bool(llm_cfg.get("enabled", False)),
-                                           est_tokens_per_call=int(llm_cfg.get("est_tokens_per_call", 2500)))
+        # WP6: explicit provider adapter; llm.enabled without a usable client / budget fails
+        # here ONCE (LLMPreflightError), never separately for every company.
+        client = CallableClient(llm_complete) if llm_complete is not None else (llm_client or build_client(llm_cfg))
+        llm_preflight(self.cfg, client, self.budget)
+        import hashlib as _h
+        import json as _j
+        fp = _h.sha256(_j.dumps({k: llm_cfg.get(k) for k in ("model", "effort", "max_tokens", "provider")},
+                                sort_keys=True, default=str).encode()).hexdigest()[:16]
+        self.llm = (LLMEvidenceExtractor(client, self.budget, max_tokens=int(llm_cfg.get("max_tokens", 2048)),
+                                         max_chunks_per_doc=int(llm_cfg.get("max_chunks_per_doc", 4)),
+                                         config_fingerprint=fp)
+                    if llm_cfg.get("enabled") and client is not None else None)
         spans = [SymbolSpan(**{**s, "valid_from": _d(s["valid_from"]), "valid_to": _d(s.get("valid_to"))})
                  for s in self.cfg.get("identity", {}).get("symbol_history", [])]
         self.identity = IdentityResolver(spans)
@@ -137,7 +152,8 @@ class EarningsInflectionPipeline:
             code = "unknown"
         cfg = {k: v for k, v in self.cfg.items() if k not in ("persistence",)}
         incomplete = [a.ticker for a in res.assessments
-                      if a.coverage.get("result_periods", {}).get("missing") or a.coverage.get("unreadable_documents")]
+                      if a.coverage.get("result_periods", {}).get("missing") or a.coverage.get("unreadable_documents")
+                      or a.coverage.get("llm", {}).get("partial")]
         status = "FAILED" if (res.errors and not res.assessments) else \
                  "PARTIAL" if (res.errors or incomplete) else "COMPLETE"
         return {
@@ -154,6 +170,9 @@ class EarningsInflectionPipeline:
             "failed": res.errors,
             "incomplete_coverage": incomplete,
             "budget": self.budget.summary(),
+            "llm": ({"provider": self.llm.client.provider, "model": self.llm.client.model,
+                     "prompt_version": LLM_PROMPT_VERSION, "schema_version": LLM_SCHEMA_VERSION,
+                     **self.llm.stats.summary()} if self.llm is not None else {"enabled": False}),
             "sources": {a.ticker: a.source_manifest for a in res.assessments},
             "status": status,
         }
@@ -289,9 +308,10 @@ class EarningsInflectionPipeline:
                     r.system_available_at = sys_t
                 measurements += rows
                 issues += iss
-            evidence += extract_sentence_evidence(d, chunks)
-            if self.llm._enabled:
-                ev, rej = self.llm.extract(d, chunks)
+            det = extract_sentence_evidence(d, chunks)
+            evidence += det
+            if self.llm is not None:
+                ev, rej = self.llm.extract(d, chunks, det)
                 evidence += ev
                 llm_rejected += rej
 
@@ -411,6 +431,12 @@ class EarningsInflectionPipeline:
         if segment == ListingSegment.SME:
             lim.append("SME-listed issuer: thinner disclosure (often no earnings call or presentation); "
                        "verify figures against the filed statement.")
+        if self.llm is not None:
+            coverage["llm"] = self.llm.stats.summary()
+            if self.llm.stats.partial:
+                lim.append("LLM extraction incomplete: "
+                           f"{self.llm.stats.skipped_budget} chunk(s) skipped at the budget limit, "
+                           f"{self.llm.stats.failed_calls} failed call(s); this assessment may miss narrative evidence.")
         if llm_rejected:
             lim.append(f"{len(llm_rejected)} LLM-extracted item(s) rejected by validation.")
 
@@ -418,6 +444,7 @@ class EarningsInflectionPipeline:
         coverage["evidence_items"] = len(evidence)
         coverage["evidence_rejected"] = len(unusable)
         coverage["financial_rows"] = len(measurements)
+        coverage["management_track_record"] = management_track_record(guidance)
         coverage["series_scope"] = series.scope.value
         if series.scope_note:
             coverage["series_scope_note"] = series.scope_note

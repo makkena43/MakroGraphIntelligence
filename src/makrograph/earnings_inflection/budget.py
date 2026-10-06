@@ -102,4 +102,7 @@ class Budget:
 
     def summary(self) -> dict:
         return {"enabled": self.enabled, "calls": self.calls, "tokens": self.tokens, "spend_usd": round(self.spend, 4),
-                "limits": {"calls": self.max_calls, "tokens": self.max_tokens, "spend_usd": self.max_spend}}
+                "limits": {"calls": self.max_calls, "tokens": self.max_tokens, "spend_usd": self.max_spend},
+                "cost_guarantee": "limits are enforced on estimated tokens BEFORE each call; the actual usage of "
+                                  "the last call can exceed its estimate, and provider prices are taken from "
+                                  "config (usd_per_1k_tokens), so this is not a hard billing guarantee"}
