@@ -1,0 +1,646 @@
+{
+ "symbol": "SWSOLAR",
+ "rules_version": "catalyst-rules-4",
+ "fingerprint": "8d896bb571e58393",
+ "coverage": {
+  "symbol": "SWSOLAR",
+  "announcements": 506,
+  "kept": 366,
+  "downloaded": 364,
+  "with_text": 367,
+  "skipped_no_text": 2,
+  "download_failed": 2,
+  "annual_reports": 5,
+  "annual_report_date_from_filename": 4,
+  "by_year": {
+   "2021": 72,
+   "2022": 51,
+   "2023": 76,
+   "2024": 83,
+   "2025": 85
+  },
+  "cadence": "Q",
+  "scope": "consolidated",
+  "periods_parsed": 23,
+  "first_period": "2020-03-31",
+  "last_period": "2025-09-30",
+  "credit_rating_filings": 26,
+  "snapshot_errors": []
+ },
+ "catalysts_total": 17,
+ "catalysts_by_kind": {
+  "customer_approval": 1,
+  "executable_orders": 14,
+  "product_mix": 1,
+  "segment_turnaround": 1
+ },
+ "alerts": [
+  {
+   "catalyst_id": "8628a6f96761",
+   "kind": "executable_orders",
+   "change": "stated order book 473.0 -> 719.0 cr (+52%; disclosed 2021-08-15 -> 2022-04-09)",
+   "first_public": "2022-04-09",
+   "supported_at": "2024-07-18",
+   "verdict": "executed_unconfirmable",
+   "final_stage": "execution_validating",
+   "stages": [
+    [
+     "2022-05-31",
+     "potential_catalyst"
+    ],
+    [
+     "2022-08-31",
+     "delayed"
+    ],
+    [
+     "2022-11-30",
+     "data_unavailable"
+    ],
+    [
+     "2023-02-28",
+     "contradicted"
+    ],
+    [
+     "2024-08-31",
+     "execution_validating"
+    ]
+   ],
+   "flagged_snapshots": 7,
+   "delivery": {
+    "from": "2024-06-30",
+    "to": "2025-06-30",
+    "ttm_revenue": [
+     3435.47,
+     7148.429999999999
+    ],
+    "ttm_parent_pat": [
+     null,
+     109.22999999999999
+    ],
+    "delivered": false,
+    "measurable": false
+   }
+  },
+  {
+   "catalyst_id": "f4270ba8460a",
+   "kind": "executable_orders",
+   "change": "stated order book 719.0 -> 2,654.0 cr (+269%; disclosed 2022-04-18 -> 2022-10-13)",
+   "first_public": "2022-10-13",
+   "supported_at": "2024-07-18",
+   "verdict": "executed_unconfirmable",
+   "final_stage": "execution_validating",
+   "stages": [
+    [
+     "2022-11-30",
+     "potential_catalyst"
+    ],
+    [
+     "2023-02-28",
+     "delayed"
+    ],
+    [
+     "2023-08-31",
+     "contradicted"
+    ],
+    [
+     "2024-08-31",
+     "execution_validating"
+    ]
+   ],
+   "flagged_snapshots": 7,
+   "delivery": {
+    "from": "2024-06-30",
+    "to": "2025-06-30",
+    "ttm_revenue": [
+     3435.47,
+     7148.429999999999
+    ],
+    "ttm_parent_pat": [
+     null,
+     109.22999999999999
+    ],
+    "delivered": false,
+    "measurable": false
+   }
+  },
+  {
+   "catalyst_id": "5a7274065c88",
+   "kind": "product_mix",
+   "change": "product_customer_mix: operation and maintenance service: share of segment revenue 3.3% -> 14.5% (margin gap 37.2 pp vs other segments, year-ago margins; before ",
+   "first_public": "2023-01-19",
+   "supported_at": "2023-10-21",
+   "verdict": "executed_unconfirmable",
+   "final_stage": "execution_validating",
+   "stages": [
+    [
+     "2023-02-28",
+     "potential_catalyst"
+    ],
+    [
+     "2023-05-31",
+     "data_unavailable"
+    ],
+    [
+     "2023-08-31",
+     "contradicted"
+    ],
+    [
+     "2023-11-30",
+     "execution_validating"
+    ]
+   ],
+   "flagged_snapshots": 10,
+   "delivery": {
+    "from": "2023-09-30",
+    "to": "2024-09-30",
+    "ttm_revenue": [
+     1772.91,
+     3706.44
+    ],
+    "ttm_parent_pat": [
+     null,
+     -50.980000000000004
+    ],
+    "delivered": false,
+    "measurable": false
+   }
+  },
+  {
+   "catalyst_id": "30f21e0d4e31",
+   "kind": "executable_orders",
+   "change": "stated order book 719.0 -> 2,703.0 cr (+276%; disclosed 2022-04-18 -> 2023-01-25)",
+   "first_public": "2023-01-25",
+   "supported_at": "2024-07-18",
+   "verdict": "executed_unconfirmable",
+   "final_stage": "execution_validating",
+   "stages": [
+    [
+     "2023-02-28",
+     "potential_catalyst"
+    ],
+    [
+     "2023-05-31",
+     "data_unavailable"
+    ],
+    [
+     "2023-08-31",
+     "contradicted"
+    ],
+    [
+     "2024-08-31",
+     "execution_validating"
+    ]
+   ],
+   "flagged_snapshots": 7,
+   "delivery": {
+    "from": "2024-06-30",
+    "to": "2025-06-30",
+    "ttm_revenue": [
+     3435.47,
+     7148.429999999999
+    ],
+    "ttm_parent_pat": [
+     null,
+     109.22999999999999
+    ],
+    "delivered": false,
+    "measurable": false
+   }
+  },
+  {
+   "catalyst_id": "97688bb94c5f",
+   "kind": "executable_orders",
+   "change": "stated order book 2,654.0 -> 4,000.0 cr (+51%; disclosed 2022-10-18 -> 2023-03-27)",
+   "first_public": "2023-03-27",
+   "supported_at": "2023-03-27",
+   "verdict": "confirmed",
+   "final_stage": "confirmed_for_investment_review",
+   "stages": [
+    [
+     "2023-05-31",
+     "data_unavailable"
+    ],
+    [
+     "2023-08-31",
+     "contradicted"
+    ],
+    [
+     "2024-08-31",
+     "confirmed_for_investment_review"
+    ]
+   ],
+   "flagged_snapshots": 7,
+   "delivery": {
+    "from": "2022-12-31",
+    "to": "2023-12-31",
+    "ttm_revenue": [
+     3000.65,
+     1945.7900000000002
+    ],
+    "ttm_parent_pat": [
+     -878.4,
+     null
+    ],
+    "delivered": false,
+    "measurable": false
+   }
+  },
+  {
+   "catalyst_id": "ed77ea0f4899",
+   "kind": "executable_orders",
+   "change": "stated order book 2,654.0 -> 4,913.0 cr (+85%; disclosed 2022-10-18 -> 2023-04-20)",
+   "first_public": "2023-04-20",
+   "supported_at": "2024-07-18",
+   "verdict": "confirmed",
+   "final_stage": "confirmed_for_investment_review",
+   "stages": [
+    [
+     "2023-05-31",
+     "potential_catalyst"
+    ],
+    [
+     "2023-08-31",
+     "delayed"
+    ],
+    [
+     "2023-11-30",
+     "contradicted"
+    ],
+    [
+     "2024-08-31",
+     "confirmed_for_investment_review"
+    ]
+   ],
+   "flagged_snapshots": 7,
+   "delivery": {
+    "from": "2024-06-30",
+    "to": "2025-06-30",
+    "ttm_revenue": [
+     3435.47,
+     7148.429999999999
+    ],
+    "ttm_parent_pat": [
+     null,
+     109.22999999999999
+    ],
+    "delivered": false,
+    "measurable": false
+   }
+  },
+  {
+   "catalyst_id": "dd79a0d2aecc",
+   "kind": "executable_orders",
+   "change": "stated order book 2,703.0 -> 4,903.0 cr (+81%; disclosed 2023-01-25 -> 2023-07-13)",
+   "first_public": "2023-07-13",
+   "supported_at": "2023-10-21",
+   "verdict": "confirmed",
+   "final_stage": "confirmed_for_investment_review",
+   "stages": [
+    [
+     "2023-08-31",
+     "potential_catalyst"
+    ],
+    [
+     "2023-11-30",
+     "execution_validating"
+    ],
+    [
+     "2025-02-28",
+     "confirmed_for_investment_review"
+    ]
+   ],
+   "flagged_snapshots": 10,
+   "delivery": {
+    "from": "2023-09-30",
+    "to": "2024-09-30",
+    "ttm_revenue": [
+     1772.91,
+     3706.44
+    ],
+    "ttm_parent_pat": [
+     null,
+     -50.980000000000004
+    ],
+    "delivered": false,
+    "measurable": false
+   }
+  },
+  {
+   "catalyst_id": "3f08d947973d",
+   "kind": "segment_turnaround",
+   "change": "segment_turnaround: epc business: segment result -181.1 -> 55.6 cr vs year-ago period",
+   "first_public": "2023-07-13",
+   "supported_at": "2023-10-21",
+   "verdict": "executed_unconfirmable",
+   "final_stage": "execution_validating",
+   "stages": [
+    [
+     "2023-08-31",
+     "potential_catalyst"
+    ],
+    [
+     "2023-11-30",
+     "execution_validating"
+    ]
+   ],
+   "flagged_snapshots": 10,
+   "delivery": {
+    "from": "2023-09-30",
+    "to": "2024-09-30",
+    "ttm_revenue": [
+     1772.91,
+     3706.44
+    ],
+    "ttm_parent_pat": [
+     null,
+     -50.980000000000004
+    ],
+    "delivered": false,
+    "measurable": false
+   }
+  },
+  {
+   "catalyst_id": "598a9b5755ce",
+   "kind": "executable_orders",
+   "change": "stated order book 2,703.0 -> 4,900.0 cr (+81%; disclosed 2023-01-25 -> 2023-07-18)",
+   "first_public": "2023-07-18",
+   "supported_at": "2023-10-21",
+   "verdict": "confirmed",
+   "final_stage": "confirmed_for_investment_review",
+   "stages": [
+    [
+     "2023-08-31",
+     "potential_catalyst"
+    ],
+    [
+     "2023-11-30",
+     "execution_validating"
+    ],
+    [
+     "2025-02-28",
+     "confirmed_for_investment_review"
+    ]
+   ],
+   "flagged_snapshots": 10,
+   "delivery": {
+    "from": "2023-09-30",
+    "to": "2024-09-30",
+    "ttm_revenue": [
+     1772.91,
+     3706.44
+    ],
+    "ttm_parent_pat": [
+     null,
+     -50.980000000000004
+    ],
+    "delivered": false,
+    "measurable": false
+   }
+  },
+  {
+   "catalyst_id": "5981f4e66e5c",
+   "kind": "executable_orders",
+   "change": "stated order book 4,900.0 -> 8,750.0 cr (+79%; disclosed 2023-07-18 -> 2024-01-18)",
+   "first_public": "2024-01-18",
+   "supported_at": "2024-07-18",
+   "verdict": "confirmed",
+   "final_stage": "confirmed_for_investment_review",
+   "stages": [
+    [
+     "2024-02-28",
+     "potential_catalyst"
+    ],
+    [
+     "2024-05-31",
+     "data_unavailable"
+    ],
+    [
+     "2024-08-31",
+     "confirmed_for_investment_review"
+    ]
+   ],
+   "flagged_snapshots": 7,
+   "delivery": {
+    "from": "2024-06-30",
+    "to": "2025-06-30",
+    "ttm_revenue": [
+     3435.47,
+     7148.429999999999
+    ],
+    "ttm_parent_pat": [
+     null,
+     109.22999999999999
+    ],
+    "delivered": false,
+    "measurable": false
+   }
+  },
+  {
+   "catalyst_id": "0729276d53fc",
+   "kind": "executable_orders",
+   "change": "issuer-disclosed binding orders 4,515.0 cr in 12 months = 2.55x TTM revenue known then",
+   "first_public": "2024-01-18",
+   "supported_at": "2024-07-18",
+   "verdict": "executed_unconfirmable",
+   "final_stage": "execution_validating",
+   "stages": [
+    [
+     "2024-02-28",
+     "potential_catalyst"
+    ],
+    [
+     "2024-05-31",
+     "data_unavailable"
+    ],
+    [
+     "2024-08-31",
+     "execution_validating"
+    ]
+   ],
+   "flagged_snapshots": 7,
+   "delivery": {
+    "from": "2024-06-30",
+    "to": "2025-06-30",
+    "ttm_revenue": [
+     3435.47,
+     7148.429999999999
+    ],
+    "ttm_parent_pat": [
+     null,
+     109.22999999999999
+    ],
+    "delivered": false,
+    "measurable": false
+   }
+  },
+  {
+   "catalyst_id": "a644259d4bc0",
+   "kind": "executable_orders",
+   "change": "stated order book 4,900.0 -> 8,000.0 cr (+63%; disclosed 2023-07-18 -> 2024-01-24)",
+   "first_public": "2024-01-24",
+   "supported_at": "2024-07-18",
+   "verdict": "confirmed",
+   "final_stage": "confirmed_for_investment_review",
+   "stages": [
+    [
+     "2024-02-28",
+     "potential_catalyst"
+    ],
+    [
+     "2024-05-31",
+     "data_unavailable"
+    ],
+    [
+     "2024-08-31",
+     "confirmed_for_investment_review"
+    ]
+   ],
+   "flagged_snapshots": 7,
+   "delivery": {
+    "from": "2024-06-30",
+    "to": "2025-06-30",
+    "ttm_revenue": [
+     3435.47,
+     7148.429999999999
+    ],
+    "ttm_parent_pat": [
+     null,
+     109.22999999999999
+    ],
+    "delivered": false,
+    "measurable": false
+   }
+  },
+  {
+   "catalyst_id": "d31528f06170",
+   "kind": "executable_orders",
+   "change": "issuer-disclosed binding orders 2,170.0 cr in 12 months = 0.71x TTM revenue known then",
+   "first_public": "2024-07-18",
+   "supported_at": "2025-01-16",
+   "verdict": "executed_unconfirmable",
+   "final_stage": "execution_validating",
+   "stages": [
+    [
+     "2024-08-31",
+     "potential_catalyst"
+    ],
+    [
+     "2024-11-30",
+     "data_unavailable"
+    ],
+    [
+     "2025-02-28",
+     "execution_validating"
+    ]
+   ],
+   "flagged_snapshots": 5,
+   "delivery": null
+  },
+  {
+   "catalyst_id": "0e76c15cfa16",
+   "kind": "executable_orders",
+   "change": "issuer-disclosed binding orders 2,421.0 cr in 12 months = 0.80x TTM revenue known then",
+   "first_public": "2024-07-24",
+   "supported_at": "2025-01-16",
+   "verdict": "open",
+   "final_stage": "execution_validating",
+   "stages": [
+    [
+     "2024-08-31",
+     "potential_catalyst"
+    ],
+    [
+     "2024-11-30",
+     "data_unavailable"
+    ],
+    [
+     "2025-02-28",
+     "execution_validating"
+    ]
+   ],
+   "flagged_snapshots": 5,
+   "delivery": null
+  },
+  {
+   "catalyst_id": "3d7a870de88d",
+   "kind": "executable_orders",
+   "change": "issuer-disclosed binding orders 4,726.0 cr in 12 months = 1.56x TTM revenue known then",
+   "first_public": "2024-10-14",
+   "supported_at": "2025-01-16",
+   "verdict": "open",
+   "final_stage": "execution_validating",
+   "stages": [
+    [
+     "2024-11-30",
+     "potential_catalyst"
+    ],
+    [
+     "2025-02-28",
+     "execution_validating"
+    ]
+   ],
+   "flagged_snapshots": 5,
+   "delivery": null
+  },
+  {
+   "catalyst_id": "851b544425fa",
+   "kind": "executable_orders",
+   "change": "stated order book 8,000.0 -> 10,549.0 cr (+32%; disclosed 2024-04-25 -> 2024-10-22)",
+   "first_public": "2024-10-22",
+   "supported_at": "2025-01-16",
+   "verdict": "confirmed",
+   "final_stage": "confirmed_for_investment_review",
+   "stages": [
+    [
+     "2024-11-30",
+     "potential_catalyst"
+    ],
+    [
+     "2025-02-28",
+     "execution_validating"
+    ],
+    [
+     "2025-05-31",
+     "confirmed_for_investment_review"
+    ]
+   ],
+   "flagged_snapshots": 5,
+   "delivery": null
+  }
+ ],
+ "false_alerts": [],
+ "unresolved_alerts": [
+  "0e76c15cfa16",
+  "3d7a870de88d"
+ ],
+ "prefix_defects": [],
+ "vanished_catalysts": [],
+ "inflections": [],
+ "workload": {
+  "alerts_per_year": 3.37,
+  "snapshots_in_flag_lane": 10,
+  "snapshots": 20,
+  "documents": 367
+ },
+ "timeline": {
+  "first_defensible_catalyst": "2023-03-27",
+  "first_any_catalyst": "2021-11-14",
+  "supported": 16,
+  "confirmed": 7,
+  "false_positives": 0,
+  "delayed": 0,
+  "executed_unconfirmable": 7,
+  "data_unavailable": 0,
+  "potential_only": 1,
+  "days_to_confirmed": [
+   479,
+   455,
+   553,
+   548,
+   182,
+   176,
+   184
+  ],
+  "rules_version": "catalyst-rules-4"
+ }
+}

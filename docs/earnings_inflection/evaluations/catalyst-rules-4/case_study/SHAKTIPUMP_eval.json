@@ -1,0 +1,59 @@
+{
+ "symbol": "SHAKTIPUMP",
+ "rules_version": "catalyst-rules-4",
+ "fingerprint": "8d896bb571e58393",
+ "coverage": {
+  "symbol": "SHAKTIPUMP",
+  "announcements": 466,
+  "kept": 316,
+  "downloaded": 312,
+  "with_text": 315,
+  "download_failed": 4,
+  "skipped_no_text": 1,
+  "annual_reports": 4,
+  "annual_report_date_from_filename": 3,
+  "by_year": {
+   "2021": 29,
+   "2022": 57,
+   "2023": 61,
+   "2024": 79,
+   "2025": 89
+  },
+  "cadence": "Q",
+  "scope": "consolidated",
+  "periods_parsed": 19,
+  "first_period": "2021-03-31",
+  "last_period": "2025-09-30",
+  "credit_rating_filings": 5,
+  "snapshot_errors": []
+ },
+ "catalysts_total": 1,
+ "catalysts_by_kind": {
+  "executable_orders": 1
+ },
+ "alerts": [],
+ "false_alerts": [],
+ "unresolved_alerts": [],
+ "prefix_defects": [],
+ "vanished_catalysts": [],
+ "inflections": [],
+ "workload": {
+  "alerts_per_year": 0.0,
+  "snapshots_in_flag_lane": 0,
+  "snapshots": 20,
+  "documents": 315
+ },
+ "timeline": {
+  "first_defensible_catalyst": null,
+  "first_any_catalyst": "2025-05-10",
+  "supported": 0,
+  "confirmed": 0,
+  "false_positives": 0,
+  "delayed": 0,
+  "executed_unconfirmable": 0,
+  "data_unavailable": 0,
+  "potential_only": 1,
+  "days_to_confirmed": [],
+  "rules_version": "catalyst-rules-4"
+ }
+}

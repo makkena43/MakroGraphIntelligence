@@ -1,0 +1,123 @@
+{
+ "symbol": "OLECTRA",
+ "rules_version": "catalyst-rules-4",
+ "fingerprint": "8d896bb571e58393",
+ "coverage": {
+  "symbol": "OLECTRA",
+  "announcements": 370,
+  "kept": 250,
+  "downloaded": 250,
+  "with_text": 252,
+  "skipped_no_text": 3,
+  "annual_reports": 5,
+  "annual_report_date_from_filename": 3,
+  "by_year": {
+   "2021": 59,
+   "2022": 65,
+   "2023": 41,
+   "2024": 40,
+   "2025": 47
+  },
+  "cadence": "Q",
+  "scope": "consolidated",
+  "periods_parsed": 23,
+  "first_period": "2019-12-31",
+  "last_period": "2025-09-30",
+  "credit_rating_filings": 6,
+  "snapshot_errors": []
+ },
+ "catalysts_total": 3,
+ "catalysts_by_kind": {
+  "customer_approval": 1,
+  "product_mix": 1,
+  "segment_turnaround": 1
+ },
+ "alerts": [
+  {
+   "catalyst_id": "ba72e7e6496b",
+   "kind": "product_mix",
+   "change": "product_customer_mix: insulator division: share of segment revenue 0.1% -> 94.9% (margin gap 18.0 pp vs other segments, year-ago margins; before unallocable cos",
+   "first_public": "2024-04-25",
+   "supported_at": "2024-04-25",
+   "verdict": "confirmed",
+   "final_stage": "confirmed_for_investment_review",
+   "stages": [
+    [
+     "2024-05-31",
+     "supported_prospective_inflection"
+    ],
+    [
+     "2024-08-31",
+     "delayed"
+    ],
+    [
+     "2025-05-31",
+     "confirmed_for_investment_review"
+    ],
+    [
+     "2025-08-31",
+     "delayed"
+    ],
+    [
+     "2025-11-30",
+     "confirmed_for_investment_review"
+    ]
+   ],
+   "flagged_snapshots": 4,
+   "delivery": {
+    "from": "2023-12-31",
+    "to": "2024-12-31",
+    "ttm_revenue": [
+     1956.086,
+     3344.7249
+    ],
+    "ttm_parent_pat": [
+     128.7164,
+     194.7178
+    ],
+    "delivered": true,
+    "measurable": true
+   }
+  }
+ ],
+ "false_alerts": [],
+ "unresolved_alerts": [],
+ "prefix_defects": [],
+ "vanished_catalysts": [],
+ "inflections": [
+  {
+   "from": "2023-12-31",
+   "to": "2024-12-31",
+   "ttm_parent_pat": [
+    128.7164,
+    194.7178
+   ],
+   "end_published": "2025-01-31",
+   "alert_before": [
+    "ba72e7e6496b"
+   ],
+   "missed": false
+  }
+ ],
+ "workload": {
+  "alerts_per_year": 0.21,
+  "snapshots_in_flag_lane": 4,
+  "snapshots": 20,
+  "documents": 252
+ },
+ "timeline": {
+  "first_defensible_catalyst": "2024-04-25",
+  "first_any_catalyst": "2021-07-29",
+  "supported": 1,
+  "confirmed": 1,
+  "false_positives": 0,
+  "delayed": 0,
+  "executed_unconfirmable": 0,
+  "data_unavailable": 1,
+  "potential_only": 2,
+  "days_to_confirmed": [
+   279
+  ],
+  "rules_version": "catalyst-rules-4"
+ }
+}
