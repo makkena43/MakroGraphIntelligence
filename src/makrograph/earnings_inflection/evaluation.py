@@ -458,13 +458,17 @@ def thesis_timeline(snapshots: list[dict]) -> dict:
     leading = sorted((e for e in eps.values() if e.origin == "leading"), key=lambda e: e.signal_at or date.max)
     confirmed_status = first("EXECUTION_CONFIRMED")
     earliest = min((e.signal_at for e in eps.values() if e.signal_at and e.verdict != "false_alarm"), default=None)
+    earliest_leading = min((e.signal_at for e in leading if e.signal_at and e.verdict != "false_alarm"), default=None)
     return {
+        "earliest_leading_signal": earliest_leading,
         "episodes": sorted(eps.values(), key=lambda e: (e.signal_at or date.max, e.mechanism)),
         "first_status": {st: first(st) for st in ("EXECUTION_EMERGING", "EXECUTION_CONFIRMED",
                                                   "COMMITMENT_BACKED", "EARLY_COMMITMENT_UNVERIFIED")},
         "earliest_defensible_signal": earliest,
-        "days_before_first_confirmed_status": ((confirmed_status - earliest).days
-                                               if confirmed_status and earliest else None),
+        # how far a standing LEADING signal preceded the first confirmed status that followed it
+        "days_before_first_confirmed_status": next(
+            ((d - earliest_leading).days for d, x in statuses
+             if x == "EXECUTION_CONFIRMED" and earliest_leading and d >= earliest_leading), None),
         "leading_episodes": len(leading),
         "false_alarms": sum(1 for e in leading if e.verdict == "false_alarm"),
         "validated": sum(1 for e in leading if e.verdict == "validated"),
@@ -521,10 +525,13 @@ def timeline_report(ticker: str, timeline: dict, note: str = "") -> str:
     if note:
         L += [note, ""]
     fs = timeline["first_status"]
-    L.append(f"- Earliest defensible signal still standing: **{timeline['earliest_defensible_signal'] or '—'}**")
+    L.append(f"- Earliest defensible signal still standing (any origin): "
+             f"**{timeline['earliest_defensible_signal'] or '—'}** · earliest standing leading signal: "
+             f"**{timeline['earliest_leading_signal'] or '—'}**")
     L.append(f"- First EXECUTION_EMERGING: {fs['EXECUTION_EMERGING'] or '—'} · first EXECUTION_CONFIRMED: "
              f"{fs['EXECUTION_CONFIRMED'] or '—'}"
-             + (f" · signal led the confirmed status by {timeline['days_before_first_confirmed_status']} days"
+             + (f" · the leading signal preceded the next confirmed status by "
+                f"{timeline['days_before_first_confirmed_status']} days"
                 if timeline["days_before_first_confirmed_status"] is not None else ""))
     L.append(f"- Leading episodes: {timeline['leading_episodes']} · validated {timeline['validated']} · "
              f"false alarms {timeline['false_alarms']} · unresolved {timeline['unresolved']}")
@@ -543,6 +550,7 @@ def timeline_report(ticker: str, timeline: dict, note: str = "") -> str:
                      if d.get(k) is not None]
             dl = f"{d['base_period']} -> {d['horizon_period']}: " + ", ".join(parts)
         L.append(f"| {e.mechanism} | {e.origin} | {e.signal_at or '—'}: {e.signal[:110]} | {e.first_seen_as_of} | "
-                 f"{e.validation_outcome}" + (f" ({e.validated_at}; {e.validation_observed})" if e.validated_at else "")
+                 + ("n/a (seen in results)" if e.origin == "realized" else e.validation_outcome)
+                 + (f" ({e.validated_at}; {e.validation_observed})" if e.validated_at else "")
                  + f" | {e.confirmed_as_of or '—'} | {e.verdict} | {dl} |")
     return "\n".join(L) + "\n"
