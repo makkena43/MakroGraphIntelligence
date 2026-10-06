@@ -466,3 +466,58 @@ Series points now carry `first_public_at` (first filing stating the value), so a
 as a comparative column does not move its date.
 
 Schema version `ei-assessment-4` (adds `Assessment.thesis`, `MechanismResult.stale`).
+
+## 10. Forward catalysts: detect a credible future earnings change, then verify it
+
+The system was refined from "find strong reported growth" to "detect a credible future earnings change, then verify
+it". It is the same pipeline; the evidence status remains as *current reported performance*.
+
+**Correctness fixes first** (from an independent review of the thesis / replay / parser changes; each fix has a
+regression test in `test_review_fixes_thesis.py`):
+- order signals are dated at the binding date;
+- declining mix is not a positive signal;
+- old capacity signals no longer hide newer ones;
+- validation uses only periods ending after the signal;
+- half-year deadlines are correct;
+- the stale last-known reading is rebuilt only from what was public at its cutoff;
+- delivery horizons use calendar periods;
+- stale readings never upgrade;
+- spaced-thousands merges need two column gaps.
+
+| Request | Implementation | Tests |
+|---|---|---|
+| 1. Forward catalysts trigger discovery | `catalysts.py` seeds: order-book growth or verified binding inflow, customer approvals, capacity or testing-bottleneck changes (completed, or planned with dates), utilisation, mix, stated price / input-cost changes, financing (only when finance cost is at least 10% of EBITDA), segment turnaround. Current growth is not required. `research_summary.current_performance` is kept apart. | `test_catalysts.py` |
+| 2. Full credit-rating rationales | `rating_rationale.py` and the `CREDIT_RATING_RATIONALE` document kind. It extracts capacity / utilisation / expansion, capex / funding / completion, order book / horizon, concentration, payment protection, pass-through, working capital, DSCR / cover / obligations and liquidity, with observed vs expected per fact. Sensitivities are kept apart, and every dated version is kept. Agency evidence is tagged `source_role="rating_agency"` (corroborating context). Agency-website retrieval is **blocked** (network authorisation). | `test_rating_rationale.py` |
+| 3. Persistent catalyst record | The `Catalyst` contract holds: first public disclosure, operating change, facts / expectations / corroboration / uncertainties, execution window, contribution, chain, milestones and invalidators. It is rebuilt from all documents by the as-of date (never overwritten). `catalyst_ledger.py` is an opt-in, append-only versioned ledger; the test DB has `ei_catalyst*` and `ei_rating_rationale`. | ledger test |
+| 4. Earnings mechanism, not capex | The chain runs demand → deliverable capacity → revenue conversion → recurring profit → cash. Capacity without demand stays potential and its magnitude unresolved. Capacity contribution is bounded by demand. Downside / base / upside are given only with inputs and frozen at detection from what was public then. | capacity tests |
+| 5. Discovery separate from confirmation | Stages: potential / supported / execution validating / confirmed for investment review / delayed / contradicted / data unavailable. Catalysts older than window + 12 months are history. | stage tests |
+| 6. Thesis-specific confirmation | Questions are fixed at detection (orders: conversion and margins and no cancellations; capacity: commissioned and output; mix / pricing: margins; debt: interest and dilution; turnaround: segment losses). They are judged on the first two periods ending after the catalyst could contribute, singly and together. A muted quarter is consistent. Guards never validate on their own. Confirmation needs established materiality (margin catalysts may establish it from the measured change). | muted / cancelled / shelved / data-gap tests |
+| 7. Investment-review gate | `InvestmentReview` opens only from a confirmed catalyst. It covers: remaining upside (with "already exceeded"), conservative valuation if a market adapter exists, cash / financing / dilution, governance flags, liquidity / downside, and missing inputs. It is never an action. | review test |
+| 8. Early detection, not hindsight | `evaluation.catalyst_timeline / review_entries / missed_candidates / catalyst_report / rules_fingerprint`. Returns are measured from the confirmation date only. CLI replay writes `T_catalysts.md`. | timeline test |
+
+### Regression example: INDOTECH replay, Jun-2020 → Dec-2025 (month-ends; rules `catalyst-rules-1`, fingerprint f6fe4d677e763c50)
+
+| Catalyst (first public) | Path | Days to supported / validating / confirmed | Base EBITDA/yr |
+|---|---|---|---|
+| Order book 261 → 437 cr (2023-07-07, ICRA rationale, "next 12 months") | supported 2023-07-31 → confirmed 2024-02-29 | 24 / – / 237 | 5.5 cr (18% of TTM) |
+| Capacity 7,000 → 10,000 MVA, completed (2024-07-11) | validating 2024-07-31 → confirmed 2025-07-31 | – / 20 / 385 | 25.5 cr |
+| Order book 437 → 700 cr (2024-07-11, "by March 2025-end") | supported 2024-07-31 → validating 2024-11-30 → confirmed 2025-05-31 | 20 / 142 / 324 | 50.9 cr |
+| Planned capacity 9,500 → 16,000 MVA (2025-07-18) | potential (commissioning pending) | – | 27.2 cr (bounded by the order book) |
+| Rating upgrade, financing (2022-07-15) | contradicted (finance cost rose) | – | unresolved |
+
+- **First defensible catalyst:** 2023-07-07. The backward-looking status reached EXECUTION_CONFIRMED earlier (Aug-2023), from quarters that predate the catalyst. Those quarters do not count toward the catalyst.
+- **Delayed confirmations:** the Jul-2024 orders were confirmed in May-2025, not Feb-2025. EBITDA for the Dec-2024 quarter could not be derived from that scanned filing, so the margin check was "data unavailable" until the next filing restated it. This is a data gap, not a business verdict.
+- **Remaining upside:** at confirmation, the first order catalyst's realised EBITDA gain already exceeded its base estimate. The review gate says so, rather than reporting upside.
+
+### Unfamiliar companies (exports as of 2024-03-31)
+
+- **SHAILY, ASALCBR, REFEX, PGIL:** no forward catalyst in their disclosures.
+- **SUPRIYA:** a potential mix catalyst (magnitude unresolved).
+- **GOLDIAM:** lab-grown mix catalysts; the Aug-2023 one was contradicted (margin −293 bps); later ones are potential.
+- **DEEPAKFERT:** its 2022 pricing catalyst was confirmed on the measured +557 bps margin, but by 2024 it is history, so the headline is "no live supported catalyst".
+
+### Limits
+
+- **One example only:** INDOTECH is a regression example, not a validation sample. No returns were computed, because no identity-checked price series is available.
+- **Rules and cohort:** the two-period combined test was specified by the request ("next one or two relevant quarters"). I had already seen INDOTECH's lumpy quarters when implementing it. The thresholds must be frozen (fingerprint above) and evaluated on a pre-registered cohort that includes failures.
+- **Extraction:** lexical extraction still produces some noisy statements. The pricing and mix seeds now require explicit, sized changes.
