@@ -44,7 +44,10 @@ def load_config(path):
 def _replay(args, cfg, repo) -> int:
     """Monthly point-in-time replay, then a timeline scored in the outcome sandbox."""
     from datetime import date
-    from makrograph.earnings_inflection.evaluation import earnings_delivery, thesis_timeline, timeline_report
+    from makrograph.earnings_inflection.catalysts import DEFAULT_CATALYST_THRESHOLDS, RULES_VERSION
+    from makrograph.earnings_inflection.evaluation import (
+        catalyst_report, catalyst_timeline, earnings_delivery, rules_fingerprint, thesis_timeline, timeline_report,
+    )
     from makrograph.earnings_inflection.replay import month_ends, replay
     pipe = EarningsInflectionPipeline(cfg, repo)
     out = Path(args.out)
@@ -59,6 +62,11 @@ def _replay(args, cfg, repo) -> int:
             ep.delivery = earnings_delivery(ep, pipe.last_series, data_until=end)
         (out / f"{t}_timeline.md").write_text(timeline_report(
             t, tl, f"Replay {start} -> {end}, month-ends; outcomes use data public by {end} only."))
+        ctl = catalyst_timeline(snaps)
+        fp = rules_fingerprint({**DEFAULT_CATALYST_THRESHOLDS, **(cfg.get("catalyst_thresholds") or {})},
+                               RULES_VERSION)
+        (out / f"{t}_catalysts.md").write_text(catalyst_report(
+            t, ctl, f"Replay {start} -> {end}, month-ends; each month sees only documents public by then.", fp))
         print(f"{t}: {len(snaps)} snapshots; earliest defensible signal {tl['earliest_defensible_signal']}; "
               f"leading episodes {tl['leading_episodes']} (validated {tl['validated']}, false alarms "
               f"{tl['false_alarms']}) -> {out / (t + '_timeline.md')}")

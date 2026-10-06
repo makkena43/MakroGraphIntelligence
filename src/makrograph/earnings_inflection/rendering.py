@@ -34,46 +34,27 @@ def render_markdown(a: Assessment) -> str:
     L.append(f"- Evidence status: **{a.evidence_status.value}** · review: {a.review_status.value} · "
              f"scenarios: {a.scenario_status.value}")
     L.append("")
-    L.append("## Why this status")
+    rs = a.research_summary or {}
+    if rs:
+        L.append("## Research summary (forward setup; not an instruction to invest)")
+        L.append(f"- **Detected:** {rs.get('detected')}")
+        for w in rs.get("why", []):
+            L.append(f"- **Why:** {w}")
+        for w in rs.get("waiting_for", [])[:6]:
+            L.append(f"- **Waiting for:** {w}")
+        L.append(f"- **Investment review:** {rs.get('investment_review')}")
+        L.append("")
+    L.append("## Current reported performance (evidence status; recorded separately from the forward setup)")
     L += [f"- {x}" for x in a.status_rationale] or ["- (none)"]
     L.append("")
     th = a.thesis
-    if th is not None:
-        L.append("## Forward-looking thesis (per mechanism; research states, not actions)")
-        L.append(f"- Thesis stage: **{th.stage.value}** · confidence: {th.confidence}"
-                 + (f" · earliest defensible signal still standing: {_ts(th.earliest_defensible_at)}"
-                    if th.earliest_defensible_at else "")
-                 + (" · **STALE**" if th.stale else ""))
-        if th.stale_note:
-            L.append(f"- Stale: {th.stale_note}")
+    if th is not None and th.stale:
+        L.append(f"- Financial series is stale: {th.stale_note}")
         if th.last_known_status:
-            L.append(f"- Last known evidence status (stale): **{th.last_known_status}** as of {th.last_known_as_of}")
-            L += [f"  - {x}" for x in th.last_known_rationale]
-        if th.next_milestone:
-            L.append(f"- Next milestone: {th.next_milestone}")
-        L += [f"- {n}" for n in th.notes]
-        if th.outcome_history:
-            L.append("- Reported outcomes by period (first publication; not attributed to a mechanism):")
-            L += [f"  - {x}" for x in th.outcome_history]
-        active = [t for t in th.mechanisms if t.stage.value != "none" or t.positive_evidence or t.negative_evidence]
-        for t in active:
-            L.append(f"### {t.mechanism.value}: {t.stage.value} (confidence {t.confidence})"
-                     + (" — stale" if t.stale else ""))
-            if t.leading_signal:
-                L.append(f"- Leading signal ({_ts(t.leading_signal_at)}): {t.leading_signal}")
-            if t.validation:
-                v = t.validation
-                L.append(f"- First-results check [{v.outcome.value}]: {v.metric_basis}; due by {v.expected_by}"
-                         + (f"; {v.period_end}: {v.observed} (public {_ts(v.observed_at)})" if v.observed else ""))
-            if t.confirmation:
-                L.append(f"- Second period: {t.confirmation}")
-            if t.stale_note:
-                L.append(f"- Stale: {t.stale_note}")
-            L += [f"- (+) {x}" for x in t.positive_evidence[-6:]]
-            L += [f"- (−) {x}" for x in t.negative_evidence[-6:]]
-            if t.research_question:
-                L.append(f"- Research question: {t.research_question}")
+            L.append(f"- Last known evidence status (stale): **{th.last_known_status}** as of {th.last_known_as_of}, "
+                     "rebuilt from what was public then")
         L.append("")
+    L += _render_catalysts(a)
     L.append("## 1. What changed, where, and when it became public")
     if not a.what_changed:
         L.append("- No qualifying change detected.")
@@ -216,3 +197,58 @@ def render_markdown(a: Assessment) -> str:
     L += [f"- {x}" for x in a.limitations]
     md = "\n".join(L) + "\n"
     return md
+
+
+def _render_catalysts(a) -> list[str]:
+    L: list[str] = []
+    if a.catalysts:
+        L.append("## Forward catalysts (separate, persistent records; earliest disclosure first)")
+        for c in sorted(a.catalysts, key=lambda x: (x.first_public_at is None, x.first_public_at)):
+            L.append(f"### {c.kind.value} — {c.stage.value} (first public {_ts(c.first_public_at)}; id {c.catalyst_id})")
+            L.append(f"- Operating change: {c.operating_change}")
+            L += [f"- Fact: {x}" for x in c.facts[:4]]
+            L += [f"- Expectation / plan: {x}" for x in c.expectations[:4]]
+            L += [f"- Corroboration: {x}" for x in c.corroboration[:4]]
+            L += [f"- Uncertainty: {x}" for x in c.uncertainties]
+            L.append("- Mechanism chain: " + " → ".join(f"{x.link} [{x.status}]" for x in c.chain))
+            L += [f"  - {x.link}: {x.basis}" for x in c.chain if x.basis]
+            k = c.contribution
+            if k.status == "estimated" or k.base_crore is not None:
+                L.append(f"- Potential earnings contribution ({k.status}): EBITDA/yr downside {k.downside_crore} / base "
+                         f"{k.base_crore} / upside {k.upside_crore} cr"
+                         + (f" ({k.share_of_ttm_ebitda:.0%} of TTM EBITDA, base)" if k.share_of_ttm_ebitda is not None
+                            else "") + f"; {k.basis}")
+                L += [f"  - assumption: {x}" for x in k.assumptions]
+            else:
+                L.append(f"- Potential earnings contribution: {k.status.replace('_', ' ')} — {k.basis}")
+            L.append(f"- Expected execution window: {c.window_start or '?'} → {c.window_end or '?'} ({c.window_basis})")
+            for m in c.milestones:
+                L.append(f"- Milestone [{m.status.value}]: {m.question} — {m.test}"
+                         + (f"; relevant from {m.relevant_from}" if m.relevant_from else "")
+                         + (f"; due by {m.due_by}" if m.due_by else "")
+                         + (f"; observed: {m.observed}" if m.observed else ""))
+            if c.invalidators:
+                L.append("- Invalidators: " + "; ".join(c.invalidators))
+            L += [f"- Stage basis: {x}" for x in c.stage_reasons]
+        L.append("")
+    rv = a.investment_review
+    if rv is not None and rv.status != "not_started":
+        L.append("## Investment review gate (opened by a confirmed catalyst)")
+        L.append(f"> {rv.note}")
+        L.append(f"- Status: {rv.status}; opened by: {', '.join(rv.opened_by)}")
+        for title, items in (("Remaining earnings upside", rv.remaining_upside),
+                             ("Cash conversion, financing, dilution", rv.cash_and_financing),
+                             ("Governance", rv.governance), ("Liquidity and downside", rv.liquidity_and_downside)):
+            L += [f"- {title}: {x}" for x in items]
+        L.append(f"- Valuation (conservative, context only): {rv.valuation.get('status')} "
+                 f"{rv.valuation.get('reason', '')}")
+        if rv.missing:
+            L.append(f"- Missing for the review: {', '.join(rv.missing)}")
+        L.append("")
+    if a.rating_rationales:
+        L.append("### Credit-rating rationales (every dated version; agency plans are context, not proof)")
+        for r in a.rating_rationales:
+            L.append(f"- {r.rationale_date} {r.agency}: {r.action or 'rating'} {r.long_term_rating} {r.outlook} — "
+                     + "; ".join(f"{f.field} {f.text}{' (expected)' if f.expected else ''}" for f in r.facts[:8]))
+        L.append("")
+    return L

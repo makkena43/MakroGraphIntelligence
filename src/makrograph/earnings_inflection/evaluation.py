@@ -553,3 +553,120 @@ def timeline_report(ticker: str, timeline: dict, note: str = "") -> str:
                  + (f" ({e.validated_at}; {e.validation_observed})" if e.validated_at else "")
                  + f" | {e.confirmed_as_of or '—'} | {e.verdict} | {dl} |")
     return "\n".join(L) + "\n"
+
+
+# --- catalyst replays: early detection, not hindsight success --------------------------------------
+
+_STAGES = ("potential_catalyst", "supported_prospective_inflection", "execution_validating",
+           "confirmed_for_investment_review", "delayed", "contradicted", "data_unavailable")
+
+
+def rules_fingerprint(thresholds: dict, rules_version: str) -> str:
+    """Freeze the catalyst rules before looking at outcomes: record this with every evaluation."""
+    return config_hash({"rules_version": rules_version, "thresholds": thresholds})[:16]
+
+
+def catalyst_timeline(snapshots: list[dict]) -> dict:
+    """Per catalyst: first public disclosure, first replay date in each stage, days to validating
+    and to confirmation, final stage.  Verdicts: confirmed / contradicted / delayed /
+    data_unavailable / open (still potential, supported or validating at the end)."""
+    cats: dict[str, dict] = {}
+    for s in sorted((x for x in snapshots if "error" not in x), key=lambda x: x["as_of"]):
+        d = date.fromisoformat(s["as_of"])
+        for c in s.get("catalysts", []):
+            r = cats.setdefault(c["catalyst_id"], {"catalyst_id": c["catalyst_id"], "kind": c["kind"],
+                                                   "first_public": _pd(c["first_public_at"]),
+                                                   "change": c["operating_change"], "first_seen_as_of": d,
+                                                   "stage_first_as_of": {}, "stages": []})
+            r["stage_first_as_of"].setdefault(c["stage"], d)
+            if not r["stages"] or r["stages"][-1][1] != c["stage"]:
+                r["stages"].append((d, c["stage"]))
+            r["final_stage"], r["last_seen_as_of"] = c["stage"], d
+            r["contribution"], r["base_crore"] = c["contribution"], c["base_crore"]
+    for r in cats.values():
+        f, fp = r["stage_first_as_of"], r["first_public"]
+        days = lambda st: (f[st] - fp).days if st in f and fp else None  # noqa: E731
+        r["days_to_supported"] = days("supported_prospective_inflection")
+        r["days_to_validating"] = days("execution_validating")
+        r["days_to_confirmed"] = days("confirmed_for_investment_review")
+        r["ever_supported"] = any(st in f for st in ("supported_prospective_inflection", "execution_validating",
+                                                     "confirmed_for_investment_review"))
+        fs = r["final_stage"]
+        r["verdict"] = ("confirmed" if "confirmed_for_investment_review" in f and fs != "contradicted" else
+                        fs if fs in ("contradicted", "delayed", "data_unavailable") else "open")
+    rows = sorted(cats.values(), key=lambda r: (r["first_public"] or date.max, r["kind"]))
+    supported = [r for r in rows if r["ever_supported"]]
+    return {
+        "catalysts": rows,
+        "first_defensible_catalyst": min((r["first_public"] for r in supported if r["first_public"]), default=None),
+        "first_any_catalyst": min((r["first_public"] for r in rows if r["first_public"]), default=None),
+        "supported": len(supported),
+        "confirmed": sum(1 for r in supported if r["verdict"] == "confirmed"),
+        "false_positives": sum(1 for r in supported if r["verdict"] == "contradicted"),
+        "delayed": sum(1 for r in supported if r["verdict"] == "delayed"),
+        "data_unavailable": sum(1 for r in rows if r["verdict"] == "data_unavailable"),
+        "potential_only": sum(1 for r in rows if not r["ever_supported"]),
+        "days_to_confirmed": [r["days_to_confirmed"] for r in supported if r["days_to_confirmed"] is not None],
+        "rules_version": next((s.get("rules_version") for s in snapshots if s.get("rules_version")), ""),
+    }
+
+
+def review_entries(timeline: dict, ticker: str) -> list[dict]:
+    """Entries for ``lane_outcomes`` dated at CONFIRMATION (the investment-review date), never at
+    the earlier watch-list date: returns are measured from when the thesis was confirmed."""
+    out = []
+    for r in timeline["catalysts"]:
+        d = r["stage_first_as_of"].get("confirmed_for_investment_review")
+        if d:
+            out.append({"ticker": ticker, "as_of": d.isoformat(), "lane": "CONFIRMED_FOR_INVESTMENT_REVIEW",
+                        "catalyst_id": r["catalyst_id"]})
+    return out
+
+
+def missed_candidates(labels: list[dict], timelines: dict[str, dict], coverage: dict[str, dict]) -> list[dict]:
+    """Labelled inflections with no supported catalyst: split into data-coverage misses (documents
+    missing or unparsed) and detector misses.  ``coverage[ticker]`` = {"missing_periods": n,
+    "unreadable_documents": n} from the assessments."""
+    out = []
+    for l in labels:
+        if not l.get("should_detect"):
+            continue
+        tl = timelines.get(l["ticker"])
+        if tl and tl["supported"]:
+            continue
+        cov = coverage.get(l["ticker"], {})
+        data = (tl is None or cov.get("missing_periods", 0) > 0 or cov.get("unreadable_documents", 0) > 0
+                or (tl and tl["data_unavailable"]))
+        out.append({"ticker": l["ticker"], "reason": "data coverage" if data else "detector miss",
+                    "detail": cov})
+    return out
+
+
+def catalyst_report(ticker: str, tl: dict, note: str = "", fingerprint: str = "") -> str:
+    L = [f"# Catalyst replay — {ticker}", "",
+         "> Early-detection evaluation of a point-in-time replay. One issuer is a regression example, not a "
+         "validation sample. Stages are research states, not instructions to invest; returns, where shown, are "
+         "measured from the confirmation date only.", ""]
+    if note:
+        L += [note, ""]
+    if fingerprint:
+        L.append(f"- Frozen rules: {tl['rules_version']} (fingerprint {fingerprint})")
+    L.append(f"- First defensible (supported) catalyst: **{tl['first_defensible_catalyst'] or '—'}** · first catalyst "
+             f"of any stage: {tl['first_any_catalyst'] or '—'}")
+    L.append(f"- Supported catalysts {tl['supported']}: confirmed {tl['confirmed']}, contradicted (false positives) "
+             f"{tl['false_positives']}, delayed {tl['delayed']}; potential only {tl['potential_only']}; "
+             f"data unavailable {tl['data_unavailable']}")
+    if tl["days_to_confirmed"]:
+        L.append(f"- Days from first disclosure to confirmation: {tl['days_to_confirmed']}")
+    L += ["", "| Catalyst | First public | Stage path (replay dates) | Days to supported / validating / confirmed | "
+          "Contribution (base EBITDA/yr) | Verdict |", "|---|---|---|---|---|---|"]
+    for r in tl["catalysts"]:
+        path = " → ".join(f"{st} ({d})" for d, st in r["stages"])
+        contrib = (f"{r['base_crore']:,.1f} cr" if r["base_crore"] is not None else
+                   r["contribution"].replace("_", " "))
+        L.append(f"| {r['kind']}: {r['change'][:90]} | {r['first_public'] or '—'} | {path} | "
+                 f"{r['days_to_supported'] if r['days_to_supported'] is not None else '—'} / "
+                 f"{r['days_to_validating'] if r['days_to_validating'] is not None else '—'} / "
+                 f"{r['days_to_confirmed'] if r['days_to_confirmed'] is not None else '—'} | {contrib} | "
+                 f"{r['verdict']} |")
+    return "\n".join(L) + "\n"
