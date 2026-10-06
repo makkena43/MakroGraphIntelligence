@@ -52,6 +52,18 @@ def snapshot(a: Assessment) -> dict:
         "stale": bool(th and th.stale), "last_known_status": th.last_known_status if th else "",
         "last_known_as_of": _iso(th.last_known_as_of) if th else None,
         "mechanisms": mechs,
+        "research_detected": (a.research_summary or {}).get("detected", ""),
+        "rules_version": (a.research_summary or {}).get("rules_version", ""),
+        "investment_review": a.investment_review.status if a.investment_review else "not_started",
+        "catalysts": [{
+            "catalyst_id": c.catalyst_id, "kind": c.kind.value, "stage": c.stage.value,
+            "first_public_at": _iso(c.first_public_at), "operating_change": c.operating_change,
+            "contribution": c.contribution.status, "base_crore": c.contribution.base_crore,
+            "share_of_ttm_ebitda": c.contribution.share_of_ttm_ebitda,
+            "window": [_iso(c.window_start), _iso(c.window_end)],
+            "milestones": [{"question": m.question, "status": m.status.value, "observed": m.observed,
+                            "observed_at": _iso(m.observed_at)} for m in c.milestones],
+            "stage_reasons": c.stage_reasons[:3]} for c in a.catalysts],
     }
 
 

@@ -19,7 +19,7 @@ import logging
 import os
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, time, timezone
+from datetime import date, datetime, time, timezone
 from typing import Callable, Optional
 
 from .assessments import (
@@ -35,6 +35,7 @@ from .document_versions import availability, is_restatement, link_versions
 from .drivers import compute_drivers
 from .mechanisms import detect_mechanisms
 from .thesis import build_thesis
+from .catalysts import detect_catalysts, investment_review, research_summary
 from .rating_rationale import parse_rationale, rationale_history
 from .valuation import Security, valuation_context
 from .earnings_bridge import build_bridge
@@ -520,6 +521,19 @@ class EarningsInflectionPipeline:
                                 self.cfg.get("thesis_thresholds"), stale_note),
             rating_rationales=rationale_history(rationales),
         )
+        # forward setup: catalysts first, current performance (the evidence status) kept apart
+        a.catalysts = detect_catalysts(ticker, series, evidence, events, mechanisms, a.rating_rationales,
+                                       as_of.date(), self.cfg.get("catalyst_thresholds"), measurements)
+        a.research_summary = research_summary(a.catalysts, status.value, why)
+        if self.cfg.get("catalyst_ledger"):                   # explicit opt-in: append-only local ledger
+            from .catalyst_ledger import CatalystLedger
+            from .catalysts import RULES_VERSION
+            led = CatalystLedger(self.cfg["catalyst_ledger"])
+            led.record(ticker, as_of.date().isoformat(), a.catalysts, RULES_VERSION)
+            since = led.stage_dates(ticker)
+            for c in a.catalysts:
+                d = since.get(c.catalyst_id, {}).get(c.stage.value)
+                c.stage_since = date.fromisoformat(d) if d else None
         if stale_note and cadence:
             self._last_known_reading(a, ticker, measurements, evidence, docs, docs_by_id, issuer_model, cadence,
                                      series)
@@ -534,6 +548,8 @@ class EarningsInflectionPipeline:
                 bridge, sec, listing.series if listing else None, as_of.date(), self.market_data,
                 series.shares_diluted_crore(end_, p_) if end_ else None, end_,
                 tuple(vcfg.get("reference_pe", (15.0, 25.0))))
+        a.investment_review = investment_review(a.catalysts, series, drivers, evidence, a.rating_rationales, bridge,
+                                                a.valuation, events, as_of.date())
         a.validate()
         return a
 

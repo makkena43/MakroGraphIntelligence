@@ -206,3 +206,39 @@ CREATE TABLE IF NOT EXISTS earnings_inflection.ei_shortlist_entries (
     payload               JSONB NOT NULL,
     PRIMARY KEY (run_id, ticker)
 );
+
+-- Forward catalysts (append-only; mirrors CatalystLedger).  Test database only.
+-- Rollback: DROP TABLE IF EXISTS earnings_inflection.ei_catalyst_version; DROP TABLE IF EXISTS earnings_inflection.ei_catalyst;
+CREATE TABLE IF NOT EXISTS earnings_inflection.ei_catalyst (
+    catalyst_id      TEXT PRIMARY KEY,
+    ticker           TEXT NOT NULL,
+    kind             TEXT NOT NULL,
+    first_public_at  TIMESTAMPTZ,
+    first_doc_ids    JSONB NOT NULL DEFAULT '[]',
+    operating_change TEXT NOT NULL,
+    created_run_id   TEXT
+);
+CREATE TABLE IF NOT EXISTS earnings_inflection.ei_catalyst_version (
+    catalyst_id      TEXT NOT NULL REFERENCES earnings_inflection.ei_catalyst(catalyst_id),
+    version          INTEGER NOT NULL,
+    as_of            DATE NOT NULL,
+    stage            TEXT NOT NULL,
+    rules_version    TEXT NOT NULL,
+    record           JSONB NOT NULL,            -- facts, expectations, chain, contribution, milestones
+    recorded_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (catalyst_id, version)
+);
+CREATE INDEX IF NOT EXISTS ei_catalyst_version_stage ON earnings_inflection.ei_catalyst_version (stage, as_of);
+
+-- Credit-rating rationales: one row per dated version (never overwritten).
+CREATE TABLE IF NOT EXISTS earnings_inflection.ei_rating_rationale (
+    doc_id           TEXT PRIMARY KEY,
+    ticker           TEXT NOT NULL,
+    agency           TEXT NOT NULL,
+    rationale_date   DATE,
+    published_at     TIMESTAMPTZ,
+    action           TEXT,
+    long_term_rating TEXT,
+    outlook          TEXT,
+    facts            JSONB NOT NULL DEFAULT '[]'  -- field, value, unit, text, expected, quote
+);
