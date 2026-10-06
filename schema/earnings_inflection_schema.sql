@@ -196,8 +196,9 @@ CREATE TABLE IF NOT EXISTS earnings_inflection.ei_universe_runs (
 CREATE TABLE IF NOT EXISTS earnings_inflection.ei_shortlist_entries (
     run_id                TEXT NOT NULL REFERENCES earnings_inflection.ei_universe_runs(run_id) ON DELETE CASCADE,
     ticker                VARCHAR(30) NOT NULL,
-    lane                  VARCHAR(30) NOT NULL CHECK (lane IN ('EXECUTION_RESEARCH','COMMITMENT_RESEARCH',
-                              'ASSERTION_WATCH','DATA_REPAIR','CONTRADICTED_OR_STALE')),
+    lane                  VARCHAR(30) NOT NULL CHECK (lane IN ('CONFIRMED_FOR_REVIEW','EXECUTION_VALIDATING',
+                              'PROSPECTIVE_SUPPORTED','POTENTIAL_CATALYST','REPORTED_PERFORMANCE_ONLY',
+                              'DATA_REPAIR','CONTRADICTED_OR_STALE')),   -- lanes follow the forward catalyst stage
     rank_in_lane          INTEGER NOT NULL,
     score                 NUMERIC,
     score_components_json JSONB,               -- visible heuristic components, not probabilities
