@@ -32,6 +32,15 @@ Results are judged only against outcomes that happen **after** each run. No hist
 2. A sample of 10 issuers per run from the other lanes and from "no qualifying evidence" is also reviewed, to estimate misses.
 3. Labels are written **before** any price outcome is looked at, by a reviewer who does not see prices.
 
+## Catalyst metrics (added with catalyst-rules-1; frozen with the config hash)
+
+- **First defensible catalyst date:** per issuer.
+- **Timing:** days from the first public disclosure to execution validating, and to confirmed for investment review.
+- **Failure counts:** false positives (supported catalysts later contradicted), delays, failed theses, and catalysts stuck at data unavailable.
+- **Misses:** candidates missed because documents were missing or unparsed, kept apart from detector misses (`missed_candidates`).
+- **Returns:** measured from the **confirmation / review date** only (`review_entries`), never from the earlier watch-list date.
+- **Cohort:** include unfamiliar companies and failures. INDOTECH is a regression example, not the template.
+
 ## Success metrics (fixed now)
 
 | Metric | Definition | Target to continue |

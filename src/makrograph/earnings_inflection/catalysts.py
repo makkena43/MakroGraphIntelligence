@@ -1025,9 +1025,15 @@ def investment_review(catalysts: list[Catalyst], series: FinancialSeries, driver
         base, at_det = c.contribution.base_crore, c.quantities.get("ttm_ebitda_at_detection")
         if base is not None and ttm_now is not None and at_det is not None:
             realised = ttm_now - at_det
-            rv.remaining_upside.append(
-                f"{c.kind.value}: base contribution {base:,.1f} cr/yr; TTM EBITDA already up {realised:,.1f} cr since "
-                f"detection -> remaining ~{base - realised:,.1f} cr (before overlap with other catalysts)")
+            if realised >= base:
+                rv.remaining_upside.append(
+                    f"{c.kind.value}: TTM EBITDA already up {realised:,.1f} cr since detection, more than this catalyst's "
+                    f"base estimate ({base:,.1f} cr/yr): no remaining upside is supported by this catalyst alone - any "
+                    "further upside needs a newer catalyst")
+            else:
+                rv.remaining_upside.append(
+                    f"{c.kind.value}: base contribution {base:,.1f} cr/yr; TTM EBITDA up {realised:,.1f} cr since "
+                    f"detection -> remaining ~{base - realised:,.1f} cr (before overlap with other catalysts)")
         else:
             rv.remaining_upside.append(f"{c.kind.value}: remaining upside not quantifiable "
                                        f"({c.contribution.status.replace('_', ' ')})")

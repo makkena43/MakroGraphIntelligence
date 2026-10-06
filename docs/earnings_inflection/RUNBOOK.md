@@ -192,6 +192,77 @@ Each report has an **Earnings mechanisms** table covering utilisation, product/c
 - **Research questions:** shown wherever a magnitude cannot be quantified.
 - **Thresholds:** `mechanism_thresholds` in the config.
 
+### D.1a Forward catalysts: detect a credible future earnings change, then verify it
+
+Every report now opens with:
+
+- **Detected:** credible prospective earnings change / potential catalyst(s) / none.
+- **Why:** dated evidence and the operating mechanism.
+- **Waiting for:** the specific milestones over the next relevant reporting periods.
+- **Investment review:** only after confirmation, with valuation and downside assessed.
+
+The evidence status is shown separately as *current reported performance*.
+
+**Discovery triggers** are new disclosures of a potentially material change in:
+- executable orders or customer approvals;
+- capacity commissioning, or removal of a production or testing bottleneck;
+- utilisation, product mix or contract pricing;
+- financing costs (only when interest is at least 10% of EBITDA) or a loss-making segment.
+
+Current-quarter growth is not required.
+
+**Catalyst records:**
+- **Persistence:** each catalyst is a separate record keyed by its first public disclosure, holding:
+  - facts and expectations;
+  - the mechanism chain (demand → deliverable capacity → revenue conversion → recurring profit → cash);
+  - its contribution;
+  - its execution window;
+  - milestones and invalidators.
+- **No overwriting:** catalysts are rebuilt from every document public by the as-of date, so a new quarter never overwrites an older one.
+- **Ledger:** `catalyst_ledger: DIR` appends a dated version on each change (append-only JSONL); the test-database mirror is `ei_catalyst*`.
+
+**Contribution:**
+- **When it is computed:** EBITDA per year (downside/base/upside) is computed only when the inputs exist. It is frozen at detection, from what was public then.
+- **Capacity:** bounded by demand, never by the capacity ratio. Without demand evidence it stays potential, because capacity alone may only add depreciation.
+- **Otherwise:** "potentially material; magnitude unresolved".
+
+**Stages:**
+
+| Stage | When |
+|---|---|
+| potential | an announced change; economics or execution support incomplete |
+| supported | the mechanism, materiality and execution pathway are credible |
+| execution validating | a primary milestone is met (guards such as margins held never validate on their own) |
+| confirmed for investment review | the primary milestones are met over the required relevant periods, with materiality established |
+| delayed | the timetable slipped |
+| contradicted | e.g. a cancellation, a shelved project or an adverse result |
+| data unavailable | results are due but missing; this is not a business verdict |
+
+Catalysts older than their window plus 12 months are history: they are listed, but don't drive the headline.
+
+**Confirmation questions** are fixed at detection. They are judged only on reporting periods that end after the catalyst could contribute (for capacity, about two months after commissioning). The first two such periods are judged singly and together; a muted quarter remains consistent.
+
+**Credit-rating rationales** (ICRA, CARE, CRISIL, India Ratings, Acuite, Infomerics, Brickwork):
+- **Source:** read in full from the exchange-filed copies. Every dated version is kept.
+- **Fields extracted:**
+  - capacity, utilisation and expansion;
+  - capex, funding and completion;
+  - order book and execution horizon;
+  - customer concentration and payment protection;
+  - pass-through;
+  - working capital, DSCR, interest cover and obligations;
+  - liquidity and bank-limit utilisation.
+- **Plans vs observations:** an agency repeating a plan is labelled corroborating context, never proof of execution.
+- **Agency websites:** retrieval stays disabled until network access is authorised.
+
+**Replay:** `--replay-from/--replay-to` also writes `T_catalysts.md`, which records:
+- the first defensible (supported) catalyst;
+- days to validating and to confirmed;
+- false positives, delays and data gaps;
+- the frozen-rules fingerprint.
+
+`evaluation.review_entries` dates returns from the confirmation date, never from the earlier watch-list date. `missed_candidates` separates data-coverage misses from detector misses.
+
 ### D.1b Forward-looking thesis and replay timelines
 
 Each report also has a **Forward-looking thesis** section, next to (never replacing) the evidence status.
