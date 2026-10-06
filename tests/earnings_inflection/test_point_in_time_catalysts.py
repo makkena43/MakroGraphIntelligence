@@ -1,0 +1,164 @@
+"""Historical correctness (review round 3, item 3): what the detector says it knew at a date must be
+rebuilt from what was public at that date.  Each event is taken in the state it stood then,
+catalysts are generated from evidence available then, later failures are kept, and appending future
+disclosures never changes an earlier assessment (prefix invariance)."""
+
+import copy
+from datetime import date, datetime, timedelta
+
+from makrograph.earnings_inflection.catalysts import detect_catalysts
+from makrograph.earnings_inflection.contracts import (
+    IST, CatalystKind, CustomerVerification, EconomicEvent, EventStage, EventStateChange, Mechanism, MechanismResult,
+    MechanismState, Metric, Quantity, ResearchStage, Unit, ValueBasis,
+)
+from makrograph.earnings_inflection.demand import event_state_at
+from makrograph.earnings_inflection.financial_series import FinancialSeries
+
+from .test_catalysts import BOOKS, at, kind, rows, stmt  # shared synthetic issuer
+
+REV = [100] * 12                      # flat: 400 cr TTM revenue, threshold 0.25x = 100 cr of inflow
+
+
+def order(eid, bound, amount, *changes, verification=CustomerVerification.ISSUER_NAMED, counterparty="Utility A"):
+    hist = [EventStateChange(EventStage.BINDING_ORDER, at(bound), f"d{eid}", "x", amount)]
+    hist += [EventStateChange(st, at(d), f"c{eid}{i}", "y", amt) for i, (st, d, amt) in enumerate(changes)]
+    last = hist[-1]
+    stage = EventStage.CANCELLED if last.stage == EventStage.CANCELLED and last.amount is None else \
+        EventStage.BINDING_ORDER
+    cur = amount
+    for h in hist[1:]:
+        cur = 0 if (h.stage == EventStage.CANCELLED and h.amount is None) else (h.amount if h.amount is not None
+                                                                               else cur)
+    return EconomicEvent(eid, "T", Metric.ORDER_WIN, Quantity(cur or amount, Unit.INR_CRORE, str(amount)),
+                         counterparty, at(bound), evidence_ids=[f"x{eid}"], doc_ids=[f"d{eid}"], current_stage=stage,
+                         history=hist, customer_verification=verification, value_basis=ValueBasis.FIRM,
+                         cancelled_amount=0.0 if cur else amount)
+
+
+def detect(as_of, events, evidence=(), mechanisms=(), **kw):
+    cutoff = at(as_of) + timedelta(days=1)
+    vis = [r for r in rows(REV) if r.available_at < cutoff]
+    s = FinancialSeries.build("T", vis)
+    ev = [e for e in evidence if e.available_at < cutoff]
+    return detect_catalysts("T", s, ev, list(events), list(mechanisms), [], as_of, measurements=vis, **kw)
+
+
+def inflow(cats):
+    return [c for c in kind(cats, CatalystKind.ORDERS) if "binding external orders" in c.operating_change]
+
+
+def stage_on(c, d):
+    """The stage the record says the catalyst had on date ``d``."""
+    cut = at(d) + timedelta(days=1)
+    return [st for t, st in c.stage_history if datetime.fromisoformat(t) < cut][-1]
+
+
+# --- event state at a timestamp ----------------------------------------------------------------------
+
+def test_event_state_is_rebuilt_from_its_dated_history():
+    e = order("e1", date(2023, 5, 10), 120, (EventStage.AMENDED, date(2023, 9, 1), 80),
+              (EventStage.CANCELLED, date(2023, 11, 20), None))
+    assert event_state_at(e, at(date(2023, 5, 9))) is None                      # not public yet
+    s = event_state_at(e, at(date(2023, 6, 1)))
+    assert s.current_stage == EventStage.BINDING_ORDER and s.amount.value == 120 and s.cancelled_amount == 0
+    s = event_state_at(e, at(date(2023, 10, 1)))
+    assert s.amount.value == 80 and s.current_stage == EventStage.BINDING_ORDER
+    s = event_state_at(e, at(date(2023, 12, 1)))
+    assert s.current_stage == EventStage.CANCELLED and s.amount.value == 0 and s.cancelled_amount == 80
+    assert e.current_stage == EventStage.CANCELLED and len(e.history) == 3   # the stored event is not changed
+
+
+# --- catalysts generated from what was public then; failures retained ------------------------------------
+
+def test_an_order_verified_then_cancelled_still_yields_its_catalyst_as_a_failure():
+    live = order("e1", date(2023, 5, 10), 120)
+    early = inflow(detect(date(2023, 6, 30), [live]))
+    assert len(early) == 1 and early[0].first_public_at.date() == date(2023, 5, 10)
+    dead = order("e1", date(2023, 5, 10), 120, (EventStage.CANCELLED, date(2023, 11, 20), None))
+    late = inflow(detect(date(2024, 3, 1), [dead]))
+    assert len(late) == 1, "a later cancellation must not erase the earlier candidate"
+    c = late[0]
+    assert c.catalyst_id == early[0].catalyst_id
+    assert c.stage == ResearchStage.CONTRADICTED and "cancel" in c.stage_reasons[0]
+    assert c.quantities["inflow"] == 120                                       # sized as known then
+
+
+def test_a_later_amendment_does_not_resize_the_original_signal():
+    early = inflow(detect(date(2023, 6, 30), [order("e1", date(2023, 5, 10), 120)]))[0]
+    cut = order("e1", date(2023, 5, 10), 120, (EventStage.AMENDED, date(2023, 10, 5), 30))
+    c = inflow(detect(date(2024, 3, 1), [cut]))[0]
+    assert c.initial_assessment == early.initial_assessment
+    assert c.quantities["inflow"] == 120 and c.stage == ResearchStage.CONTRADICTED   # 90 of 120 cr removed
+
+
+def test_a_later_verification_dates_the_catalyst_when_it_became_verifiable():
+    anon = order("e1", date(2023, 5, 10), 120, verification=CustomerVerification.ANONYMOUS, counterparty=None)
+    named = copy.deepcopy(anon)
+    named.counterparty, named.customer_verification = "Utility A", CustomerVerification.CORROBORATED
+    t_named = at(date(2023, 8, 1))
+
+    def events_at(t):
+        return [x for x in (event_state_at(named if t >= t_named else anon, t),) if x is not None]
+    naming = stmt(Metric.ORDER_WIN, "The order received in May 2023 is from Utility A.", date(2023, 8, 1))
+    c = inflow(detect(date(2024, 3, 1), [named], [naming], events_at=events_at))
+    assert len(c) == 1 and c[0].first_public_at == t_named         # not back-dated to the 10 May award
+    assert inflow(detect(date(2023, 7, 31), [anon], events_at=events_at)) == []
+
+
+def test_a_mechanism_is_dated_when_it_became_detectable_not_by_the_period_it_describes():
+    early_signal = at(date(2023, 5, 15))
+    m = MechanismResult(Mechanism.UTILIZATION, MechanismState.EMERGING, "positive", 12.0, "pp",
+                        "utilisation 60% -> 72%", date(2023, 3, 31), early_signal)
+    t_detect = datetime.combine(date(2023, 11, 14), datetime.min.time(), tzinfo=IST)   # Sep-23 results
+
+    def mechanisms_at(t):
+        return [m] if t >= t_detect else []
+    cats = detect(date(2024, 3, 1), [], mechanisms=[m], mechanisms_at=mechanisms_at)
+    u = kind(cats, CatalystKind.UTILIZATION)
+    assert len(u) == 1 and u[0].first_public_at == t_detect
+
+
+# --- prefix invariance ---------------------------------------------------------------------------------
+
+def _prefix_invariant(early_cats, late_cats, d):
+    by_id = {c.catalyst_id: c for c in late_cats}
+    for c in early_cats:
+        assert c.catalyst_id in by_id, f"{c.catalyst_id} known on {d} disappeared later"
+        later = by_id[c.catalyst_id]
+        assert later.first_public_at == c.first_public_at
+        assert later.initial_assessment == c.initial_assessment
+        assert stage_on(later, d) == c.stage.value
+        for f in ("materiality_supported_at", "execution_supported_at", "supported_at", "validating_at",
+                  "confirmed_at"):
+            if getattr(c, f) is not None:
+                assert getattr(later, f) == getattr(c, f), f
+
+
+def test_appending_future_disclosures_never_changes_an_earlier_assessment():
+    d, d2 = date(2023, 9, 30), date(2024, 9, 1)
+    now = [order("e1", date(2023, 5, 10), 120)]
+    full = [order("e1", date(2023, 5, 10), 120, (EventStage.CANCELLED, date(2023, 11, 20), None)),
+            order("e2", date(2024, 2, 10), 150, (EventStage.AMENDED, date(2024, 6, 1), 60))]
+    early = detect(d, now, BOOKS)
+    assert early, "fixture must produce catalysts before the cutoff"
+    late = detect(d2, full, BOOKS)
+    _prefix_invariant(early, late, d)
+    # and at every intermediate month the record of earlier dates is unchanged
+    prev = early
+    for m in (date(2023, 12, 31), date(2024, 3, 31), date(2024, 6, 30)):
+        cur = detect(m, full, BOOKS)
+        _prefix_invariant(prev, cur, d if prev is early else last)
+        prev, last = cur, m
+
+
+def test_pipeline_assessment_is_prefix_invariant(tmp_path):
+    from .test_discovery_catalysts import build
+
+    from makrograph.earnings_inflection.pipeline import EarningsInflectionPipeline
+    from makrograph.earnings_inflection.source_repository import FixtureRepository
+    pipe = EarningsInflectionPipeline({}, FixtureRepository(build(tmp_path)))
+    d = date(2024, 8, 15)
+    early = pipe.run(["QUIETCO"], d.isoformat()).assessments[0].catalysts
+    late = pipe.run(["QUIETCO"], "2024-12-31").assessments[0].catalysts
+    assert early
+    _prefix_invariant(early, late, d)

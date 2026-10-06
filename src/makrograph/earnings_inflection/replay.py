@@ -70,7 +70,7 @@ def snapshot(a: Assessment) -> dict:
             "materiality_supported_at": _iso(c.materiality_supported_at),
             "execution_supported_at": _iso(c.execution_supported_at), "supported_at": _iso(c.supported_at),
             "validating_at": _iso(c.validating_at), "confirmed_at": _iso(c.confirmed_at),
-            "upgrades": c.upgrades[-6:]} for c in a.catalysts],
+            "upgrades": c.upgrades[-6:], "stage_history": c.stage_history} for c in a.catalysts],
     }
 
 
