@@ -501,16 +501,27 @@ def _judge_series(ms: CatalystMilestone, periods, as_of, value_fn, met, consiste
                 ms.status = MilestoneStatus.MISSED if consistent(v) else MilestoneStatus.CONTRADICTED
                 ms.observed = f"met on schedule ({ms.original_observed}); since then {ms.latest_observed}"
         return
-    # missed on the original timetable: did a later window recover?
+    # missed on the original timetable: did a later window recover?  The CURRENT status is always
+    # the latest complete window - a recovery that has since deteriorated is not still "met".
     rec = next(((win, v) for win, v in later if met(v)), None)
     if rec:
         win, v = rec
-        ms.timetable = "recovered_late"
+        recovered = f"{label} over {', '.join(str(e) for e, _, _ in win)}: {v:+.1f}"
         ms.status, ms.value = MilestoneStatus.MET, v
         ms.observed_at = max(at for _, at, _ in win)
-        ms.latest_observed = f"{label} over {', '.join(str(e) for e, _, _ in win)}: {v:+.1f}"
-        ms.observed = f"missed the original timetable ({ms.original_observed}); later recovered: {ms.latest_observed}"
         ms.periods_judged = n_required
+        lwin, lv = later[-1]
+        ms.latest_observed = f"{label} over {', '.join(str(e) for e, _, _ in lwin)}: {lv:+.1f}"
+        if met(lv):
+            ms.timetable = "recovered_late"
+            ms.observed = f"missed the original timetable ({ms.original_observed}); later recovered: {recovered}" + (
+                f"; latest {ms.latest_observed}" if lwin is not win else "")
+        else:
+            ms.timetable = "deteriorated"
+            ms.status = MilestoneStatus.MISSED if consistent(lv) else MilestoneStatus.CONTRADICTED
+            ms.value, ms.observed_at = lv, max(at for _, at, _ in lwin)
+            ms.observed = (f"missed the original timetable ({ms.original_observed}); recovered ({recovered}); "
+                           f"since then {ms.latest_observed}")
     else:
         ms.timetable = "missed"
         if later:
@@ -911,7 +922,9 @@ def _parent_bridge(c: Catalyst, s: Seed, ser: FinancialSeries, p: str, evidence,
         k.earnings_materiality = "unresolved"
         return
     missing, assume = [], []
+    assumed: list[str] = []                    # inputs that are analyst assumptions, not disclosed facts
     da = interest = 0.0
+    capex, debt_share = None, None
     if s.kind == CatalystKind.CAPACITY:
         capex, src, debt_share, fbasis = _capex_for(c, s, evidence, rationales)
         if capex is None:
@@ -919,9 +932,11 @@ def _parent_bridge(c: Catalyst, s: Seed, ser: FinancialSeries, p: str, evidence,
         else:
             da = capex / th["capex_useful_life_years"]
             if debt_share is None:
-                debt_share = th["capex_debt_share_if_unstated"]
-                fbasis = f"funding not stated: {debt_share:.0%} debt assumed (analyst assumption)"
-            interest = capex * debt_share * th["incremental_debt_rate_pct"] / 100
+                fbasis = (f"funding not stated: {th['capex_debt_share_if_unstated']:.0%} debt assumed (analyst "
+                          "assumption); materiality tested at 100% debt")
+                assumed.append("funding mix")
+            interest = capex * (th["capex_debt_share_if_unstated"] if debt_share is None else debt_share) \
+                * th["incremental_debt_rate_pct"] / 100
             assume += [f"capex {capex:,.1f} cr ({src}); D&A over {th['capex_useful_life_years']:g} years = "
                        f"{da:,.1f} cr/yr", f"{fbasis}; interest at {th['incremental_debt_rate_pct']:g}% = "
                        f"{interest:,.1f} cr/yr"]
@@ -937,40 +952,75 @@ def _parent_bridge(c: Catalyst, s: Seed, ser: FinancialSeries, p: str, evidence,
     if tax_rate is None:
         tax_rate = th["fallback_tax_rate_pct"] / 100
         assume.append(f"tax at {th['fallback_tax_rate_pct']:g}% (effective rate not available; analyst assumption)")
+        assumed.append("tax rate")
     else:
         assume.append(f"tax at the TTM effective rate {tax_rate:.1%}")
-    share = 1.0
+    # Parent share and the parent-PAT base are reported facts or unknown - never defaulted.  Missing,
+    # zero and negative figures are different things: a missing figure is not a loss, and an
+    # unknown parent share is not 100%.
+    pa = pt = None
     if end:
         pa, pt = ser.ttm(Metric.PAT_ATTRIBUTABLE, end, p)[0], ser.ttm(Metric.PAT, end, p)[0]
-        if pa is not None and pt and pt > 0:
-            share = max(0.0, min(1.0, pa / pt))
-            assume.append(f"parent share of profit {share:.0%} (TTM)")
-        else:
-            assume.append("no minority interest reported: parent share 100%")
+    standalone = getattr(ser.scope, "value", "") == "standalone"
+    share = None
+    if pa is not None and pt is not None and pt > 0 and pa >= 0:
+        share = max(0.0, min(1.0, pa / pt))
+        assume.append(f"parent share of profit {share:.0%} (TTM, reported)")
+    elif standalone:
+        share = 1.0
+        assume.append("standalone statements: no minority interest, parent share 100%")
+    elif pa is not None:
+        missing.append("parent share of profit (total profit not positive or not reported: the share of an "
+                       "increment cannot be inferred)")
+    else:
+        missing.append("profit attributable to owners of the parent (not reported for these "
+                       f"{getattr(ser.scope, 'value', 'unknown')} statements; parent share not assumed to be 100%)")
+    ttm_parent = pa if pa is not None else (pt if standalone else None)
     k.bridge_assumptions = assume
     if missing:
         k.bridge_status, k.bridge_missing, k.earnings_materiality = "unresolved", missing, "unresolved"
         return
 
-    def conv(ebitda):
-        return None if ebitda is None else round((ebitda - da - interest) * (1 - tax_rate) * share, 2)
+    def conv(ebitda, intr=interest):
+        return None if ebitda is None else round((ebitda - da - intr) * (1 - tax_rate) * share, 2)
     k.pat_downside_crore, k.pat_base_crore, k.pat_upside_crore = (conv(k.downside_crore), conv(k.base_crore),
                                                                   conv(k.upside_crore))
     shares = ser.shares_diluted_crore(end, p) if end else None
     if shares:
         k.eps_base = round(k.pat_base_crore / shares, 2)
         assume.append(f"per diluted share on {shares:,.3f} crore shares at detection (later dilution reduces it)")
-    ttm_pat = None
-    if end:
-        ttm_pat = ser.ttm(Metric.PAT_ATTRIBUTABLE, end, p)[0] or ser.ttm(Metric.PAT, end, p)[0]
     k.bridge_status = "computed"
-    if ttm_pat and ttm_pat > 0:
-        k.share_of_ttm_parent_pat = round(k.pat_base_crore / ttm_pat, 3)
-        k.earnings_materiality = ("established" if k.share_of_ttm_parent_pat >= th["materiality_share_of_ttm_ebitda"]
-                                  else "not_material")
+    # materiality may rest only on facts: an assumed funding mix is replaced by its conservative
+    # bound (all debt); an assumed tax rate leaves materiality unresolved
+    test = conv(k.base_crore, capex * th["incremental_debt_rate_pct"] / 100) if "funding mix" in assumed \
+        else k.pat_base_crore
+    thr = th["materiality_share_of_ttm_ebitda"]
+    if ttm_parent is None:
+        k.earnings_materiality = "unresolved"
+        k.bridge_missing = ["TTM parent PAT not reported: no earnings base (a missing figure is not a loss)"]
+        return
+    if ttm_parent > 0:
+        k.share_of_ttm_parent_pat = round(k.pat_base_crore / ttm_parent, 3)
+        material = test / ttm_parent >= thr
+        basis = f"{test / ttm_parent:.0%} of TTM parent PAT {ttm_parent:,.1f} cr"
+    elif ttm_parent < 0:
+        # a loss-maker: the increment is measured against the size of the loss it has to close
+        material = test / abs(ttm_parent) >= thr
+        basis = f"{test:,.1f} cr/yr against a TTM parent loss of {ttm_parent:,.1f} cr"
+        assume.append(f"TTM parent PAT negative ({ttm_parent:,.1f} cr): increment measured against the loss")
     else:
-        k.earnings_materiality = "established" if k.pat_base_crore > 0 else "not_material"
-        assume.append("TTM parent PAT not positive: materiality judged on sign only")
+        k.earnings_materiality = "unresolved"
+        k.bridge_missing = ["TTM parent PAT is zero: no earnings base to measure the increment against"]
+        return
+    k.materiality_basis = basis + (" (funding at 100% debt)" if "funding mix" in assumed else "")
+    if not material:
+        k.earnings_materiality = "not_material"
+    elif "tax rate" in assumed:
+        k.earnings_materiality = "unresolved"
+        k.bridge_missing = [f"material only on an assumed tax rate ({basis}); effective tax rate not available"]
+    else:
+        k.earnings_materiality = "established"
+    assume.append(f"materiality basis: {k.materiality_basis}")
 
 
 def _milestones(s, c, series, p, evidence, events, as_of, th):
@@ -1228,7 +1278,7 @@ def _stage(c: Catalyst, as_of: date, th: dict) -> None:
         if k.earnings_materiality == "not_material":
             c.stage = ResearchStage.VALIDATING
             why = [f"execution verified, but the recurring parent-earnings effect is not material "
-                   f"({k.share_of_ttm_parent_pat:.0%} of TTM parent PAT after D&A, interest and tax)"] + why
+                   f"({k.materiality_basis}, after D&A, interest and tax)"] + why
         elif k.earnings_materiality == "unresolved":
             cond = ("recurring parent earnings not established (" + "; ".join(k.bridge_missing or ["bridge inputs"])
                     + "): earnings materiality is an open investment-review condition")
