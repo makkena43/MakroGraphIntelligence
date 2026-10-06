@@ -27,6 +27,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from dataclasses import replace
 from datetime import date, datetime
 from typing import Callable, Iterable, Optional
 
@@ -161,7 +162,8 @@ _MONTHS = {m: i for i, m in enumerate(
 # "1.", "a)", "(2)", "Less:", so the patterns below anchor at the start of
 # the remaining text.
 _ENUMERATOR = re.compile(
-    r"^\s*(?:(?:\(?(?:[ivxlIVXL]{1,5}|\d{1,2}|[a-zA-Z])\s*[.):]|(?:[ivxlIVXL]{1,5}|\d{1,2})\s)\s*|"
+    r"^\s*(?:(?:\(?(?:[ivxlIVXL]{1,5}|\d{1,2}|[a-zA-Z])\s*[.):]|(?:[ivxlIVXL]{1,5}|\d{1,2})\s|"
+    r"[A-Z]\s+(?=[A-Z][a-z]))\s*|"     # SEBI layout letter column: "A      Revenue from operations"
     r"(?:less|add)\s*:\s*|[-–•*]\s*)+")
 
 
@@ -241,13 +243,14 @@ _CELL = re.compile(r"\(?-?\d[\d,]*(?:\.\d+)?\)?")
 
 
 _NOT_AMOUNT_ROW = re.compile(r"\beps\b|earnings\s*per\s*share|\bbasic\b|\bdiluted\b|face\s*value|par\s*value|"
-                             r"margin|ratio|%|\bper\s+share|no\.?\s*of\s*shares|number\s+of\s+shares", re.I)
+                             r"\bmargins?\b|\bratios?\b|%|\bper\s+share|no\.?\s*of\s*shares|number\s+of\s+shares", re.I)
 
 
 def _decimal_convention(lines: list[str]) -> int:
     """Decimals a table prints its amounts with (-1 when it has no clear convention)."""
     from collections import Counter
     counts: Counter = Counter()
+    grouped_integers = grouped_three_decimals = 0
     for l in lines:
         label, cells = split_numeric_row(l)
         if _NOT_AMOUNT_ROW.search(label):
@@ -256,16 +259,30 @@ def _decimal_convention(lines: list[str]) -> int:
             core = cell.strip("()-")
             if _CELL.fullmatch(cell) and sum(ch.isdigit() for ch in core) >= 3:
                 counts[len(core.split(".")[1]) if "." in core else 0] += 1
+                if "," in core and "." not in core:
+                    grouped_integers += 1          # "14,467"
+                elif "," in core and len(core.split(".")[1]) == 3:
+                    grouped_three_decimals += 1    # "1,234.567": a genuine 3-decimal amount
     total = sum(counts.values())
     if total < 10:
         return 0 if total >= 3 and counts[0] == total else -1
     decimal = [(n, k) for k, n in counts.items() if k > 0]
     if decimal:
         n, k = max(decimal)
+        if (k == 3 and not grouped_three_decimals and grouped_integers >= 3
+                and grouped_integers >= 0.2 * total):
+            # an integer table whose scan turned thousands commas into dots ("17.511" next to
+            # "14,467"): a table printed with 3 decimals has no comma-grouped whole amounts
+            return 0
         # amounts printed with k decimals (a scan that lost many decimal points still shows 20%+)
         if n >= 0.2 * total:
             return k
     return 0 if counts[0] >= 0.7 * total else -1      # -1 = no clear convention in this table
+
+
+def _integer_table_cells(cells: list[str]) -> list[str]:
+    """In a table printed in whole amounts, "(1.076)" / "17.511" are scanned "(1,076)" / "17,511"."""
+    return [re.sub(r"^(\(?-?\d{1,3})\.(\d{3}\)?)$", r"\1,\2", x) for x in cells]
 
 
 def _cell_value(s: str) -> float:
@@ -538,8 +555,15 @@ def _reorient_split_rows(lines: list[str]) -> tuple[list[str], str]:
     return out, ("values printed above their labels" if ok[0] == 1 else "values printed below their labels")
 
 
-def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list[FinancialMeasurement], list[str]]:
-    """Parse results statements into measurements.  Returns (rows, issues)."""
+def parse_results_tables(doc: SourceDocument, chunks: list[Chunk],
+                         unscaled: Optional[list[FinancialMeasurement]] = None,
+                         ) -> tuple[list[FinancialMeasurement], list[str]]:
+    """Parse results statements into measurements.  Returns (rows, issues).
+
+    Amounts of a table whose unit line is missing or unreadable are never used as crore.
+    When ``unscaled`` is given they are collected there with their printed values
+    (``value`` = the figure as printed); ``infer_unstated_scales`` may later scale them
+    from the issuer's earlier filings."""
     out: list[FinancialMeasurement] = []
     issues: list[str] = []
     page_texts = (doc.pages or (doc.text or "").split("\f"))
@@ -680,7 +704,8 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
                 displaced = True      # "Income 18,589.83 ...": figures pushed onto a heading line
             if (_TOTAL_INCOME.match(_strip_enumerator(label)) and total_income is None
                     and not _COMPREHENSIVE.search(label) and len(cells) in (n, n + 1)):
-                total_income = [(_cell_value(x) if _CELL.fullmatch(x) else None) for x in cells[-n:]]
+                ti_cells = _integer_table_cells(cells[-n:]) if conv == 0 else cells[-n:]
+                total_income = [(_cell_value(x) if _CELL.fullmatch(x) else None) for x in ti_cells]
             is_tax_part = bool(_TAX_PARTS.match(_strip_enumerator(label)))
             # Join a wrapped label only when this line has no enumerator of its own:
             # "(1) Current tax" under "VIII Tax expense" is a sub-row, not a continuation.
@@ -710,8 +735,7 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
             vals: list[Optional[float]] = []
             decimals = 0
             if conv == 0 and not _NOT_AMOUNT_ROW.search(label):
-                # integer table: "(1.076)" is a scanned "(1,076)", not 1.076
-                cells = [re.sub(r"^(\(?-?\d{1,3})\.(\d{3}\)?)$", r"\1,\2", x) for x in cells]
+                cells = _integer_table_cells(cells)
             for cell in cells:
                 if conv and "." not in cell and sum(ch.isdigit() for ch in cell) > conv + 1:
                     # a figure in a table printed with `conv` decimals that lost its decimal point
@@ -778,6 +802,13 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
                     unit, val, du = Unit.INR_PER_SHARE, v, 10 ** -decimals
                 else:
                     if row_scale is None:
+                        if unscaled is not None:
+                            unscaled.append(FinancialMeasurement(
+                                ticker=doc.ticker, metric=metric, period_end=d, period_type=ptypes[col_i],
+                                value=v, unit=Unit.INR_CRORE, scope=col_scopes[col_i], doc_id=doc.doc_id,
+                                available_at=doc.available_at, source=source,
+                                quote=f"{c.header.splitlines()[-1] if c.header else ''} | {line.strip()}"[:400],
+                                display_unit=10 ** -decimals))
                         continue
                     unit, val = Unit.INR_CRORE, round(v * row_scale, 6)
                     du = (10 ** -decimals) * row_scale
@@ -789,6 +820,64 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
                     display_unit=du,
                 ))
     return _reconcile_copies(out, issues, doc.doc_id), issues
+
+
+# crore per printed unit: crore, lakh, million, thousand, rupee
+_STANDARD_SCALES = (1.0, 0.01, 0.1, 1e-4, 1e-7)
+
+
+def infer_unstated_scales(unscaled: list[FinancialMeasurement], scaled: list[FinancialMeasurement],
+                          min_matches: int = 3, agreement: float = 0.8, tol: float = 0.01,
+                          ) -> tuple[list[FinancialMeasurement], list[str]]:
+    """Scale amounts printed without a readable unit line, from the issuer's own earlier filings.
+
+    A filing's comparative columns repeat figures published before ("31-Dec-23" in a later
+    statement).  If at least ``min_matches`` of its printed figures equal the same metric and
+    period in filings available no later than it, and at least ``agreement`` of the compared
+    figures agree on exactly ONE standard unit (crore, lakh, million, thousand, rupee),
+    that unit is used.  Otherwise the figures stay unused.  Point-in-time: only reference
+    figures available at or before the filing count."""
+    from collections import defaultdict
+    by_doc: dict[str, list[FinancialMeasurement]] = defaultdict(list)
+    for r in unscaled:
+        by_doc[r.doc_id].append(r)
+    ref: dict[tuple, list[FinancialMeasurement]] = defaultdict(list)
+    for r in scaled:
+        if r.unit == Unit.INR_CRORE:
+            ref[(r.ticker, r.metric, r.period_end, r.period_type)].append(r)
+    out: list[FinancialMeasurement] = []
+    issues: list[str] = []
+    for doc_id, rows in by_doc.items():
+        votes: dict[float, int] = defaultdict(int)
+        compared = 0
+        for r in rows:
+            if not r.value:
+                continue
+            cands = [x for x in ref.get((r.ticker, r.metric, r.period_end, r.period_type), [])
+                     if x.doc_id != doc_id and x.available_at and r.available_at
+                     and x.available_at <= r.available_at
+                     and (x.scope == r.scope or Scope.UNKNOWN in (x.scope, r.scope))]
+            if not cands:
+                continue
+            compared += 1
+            hits = {sc for sc in _STANDARD_SCALES for x in cands
+                    if abs(r.value * sc - x.value) <= tol * abs(x.value)}
+            if len(hits) == 1:
+                votes[hits.pop()] += 1
+        if not votes:
+            continue
+        sc, n = max(votes.items(), key=lambda kv: kv[1])
+        if n < min_matches or n < agreement * compared or sum(votes.values()) - n > 0:
+            issues.append(f"{doc_id}: unit line unreadable; earlier filings do not establish its unit "
+                          f"({n} of {compared} comparative figures agree); amounts not used")
+            continue
+        name = {1.0: "crore", 0.01: "lakh", 0.1: "million", 1e-4: "thousand", 1e-7: "rupee"}[sc]
+        issues.append(f"{doc_id}: unit line unreadable; unit inferred as {name} from {n} of {compared} "
+                      "comparative figures matching earlier filings")
+        for r in rows:
+            out.append(replace(r, value=round(r.value * sc, 6), display_unit=r.display_unit * sc,
+                               quote=f"[unit inferred: {name}] {r.quote}"[:400]))
+    return out, issues
 
 
 _SEG_REV = re.compile(r"segment\s*[-\s]?(?:wise\s*)?revenue|revenue\s*(?:by|from)\s*(?:business\s*)?segments?|"

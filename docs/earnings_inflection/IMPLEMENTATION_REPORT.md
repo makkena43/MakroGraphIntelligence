@@ -296,6 +296,11 @@ All fixes are general, and each has a regression test built from the real text (
 | Figures on a section-heading line | ASALCBR | Labels treated as displaced; revenue and other income not used |
 | A filing "superseded" by an unreadable re-filing lost its numbers | INDOTECH | Only figures the later version provides are replaced |
 | Q4 derived for a non-March "FY" | PGIL | Derivation requires a March year end |
+| Thousands commas scanned as dots in a whole-lakh table ("17.511" next to "14,467") made the table look 3-decimal, so no repair ran and revenue failed the total-income identity | INDOTECH (2024-25 filings) | A table with comma-grouped whole amounts and no "1,234.567" figures is a whole-number table; its total-income line is repaired the same way (`test_scanned_separators.py`) |
+| "ratio" matched inside "ope*ratio*ns", so revenue rows were treated as ratio rows | all | Word boundaries on margin / ratio |
+| Bare SEBI letter column ("A      Revenue from operations") not stripped | INDOTECH | Single capital letter + spaces before a capitalised word is an enumerator |
+| A space scanned inside a cell of column-aligned text ("50 321", "1 ,917") | INDOTECH | Merged only when the row's columns are 2+ spaces apart; single-space text is unchanged |
+| Unit line unreadable ("(Rq In lakh*]", "fFls in hkhc\\") | INDOTECH | Figures kept aside; unit adopted only when ≥3 comparative figures match the issuer's **earlier** filings at exactly one standard unit and ≥80% of compared figures agree; quote marked `[unit inferred: …]`; otherwise unused |
 
 ### Series rules added
 
@@ -340,6 +345,7 @@ The last five did not show an earnings inflection in filings public by March 202
   - SUPRIYA's older ₹-million statements are heavily scanned, so only 4 quarters parse.
   - SHAILY Jun-2023, REFEX Jun-2023 and GOLDIAM Mar-2023 are missing, which blocks TTM and the bridge for those names.
 - **Utilisation:** the "capacity utilisation change" assertion (e.g. PGIL 95% to 34%) compares statements that may not share a scope. Mechanism-specific utilisation is WP5.
+- **Damaged text layers:** the INDOTECH Sep-2025 results scan (Nov 2025) has its revenue row merged into prose; that quarter stays missing, and later as-of dates report a stale series instead of a status built on old numbers.
 - **Unextracted documents:** 7 documents have no text, with `local_path` = `UNSUPPORTED_FORMAT`. The ingestion stage could not handle them, and no original remains to extract.
 - **Next:** a pre-registered control group of non-winners, chosen before looking at statuses, is still needed. Without it, no claim can be made that these states separate winners from the rest.
 
