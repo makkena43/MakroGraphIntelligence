@@ -34,7 +34,7 @@ from .contracts import (
     IST, EconomicEvent, Evidence, InflectionThesis, Mechanism, MechanismResult, MechanismState, MechanismThesis,
     Metric, MilestoneOutcome, Modality, ThesisMilestone, ThesisStage, Unit,
 )
-from .demand import summarise_demand
+from .demand import first_binding_at, summarise_demand
 from .financial_series import FinancialSeries, _year_ago, prev_period_end
 from .mechanisms import DEFAULT_MECHANISM_THRESHOLDS, _usual_cost_parts
 
@@ -131,13 +131,20 @@ def _results_published(series: FinancialSeries, p: str) -> list[tuple[date, date
 
 def _deadline(signal_at: datetime, p: str, th) -> date:
     """Results deadline for the first reporting period that ends after the signal."""
-    d = _d(signal_at)
-    months = 3 if p == "Q" else 6
-    m = ((d.month - 1) // months + 1) * months           # 3,6,9,12 or 6,12
-    y = d.year
-    end = date(y, m, 30 if m in (6, 9) else 31)
-    days = th["results_deadline_days_year_end"] if m == 3 else th["results_deadline_days"]
+    end = next_period_end_on_or_after(_d(signal_at), p)
+    days = th["results_deadline_days_year_end"] if end.month == 3 else th["results_deadline_days"]
     return end + timedelta(days=days)
+
+
+def next_period_end_on_or_after(d: date, p: str) -> date:
+    """Quarter ends Jun/Sep/Dec/Mar; half-year ends Sep/Mar (Indian financial year)."""
+    ends = (3, 6, 9, 12) if p == "Q" else (3, 9)
+    for y in (d.year, d.year + 1):
+        for m in ends:
+            e = date(y, m, 30 if m in (6, 9) else 31)
+            if e >= d:
+                return e
+    raise ValueError(d)
 
 
 # --- leading signals ----------------------------------------------------------------------
@@ -160,15 +167,16 @@ def _leading_orders(series, evidence, events, p, as_of, th) -> list[tuple[dateti
     if p is None:
         return out
     dem = summarise_demand(events, evidence, as_of)
-    verified = sorted((e for e in events if e.event_id in dem.verified_events and e.first_public_at),
-                      key=lambda e: e.first_public_at)
+    # an order counts from the day it became BINDING (an earlier L1 / LoI is not yet an order)
+    bound = lambda e: first_binding_at(e) or e.first_public_at  # noqa: E731
+    verified = sorted((e for e in events if e.event_id in dem.verified_events and bound(e)), key=bound)
     window: list[EconomicEvent] = []
     for e in verified:
-        window = [x for x in window if (e.first_public_at - x.first_public_at).days <= 365] + [e]
+        window = [x for x in window if (bound(e) - bound(x)).days <= 365] + [e]
         total = sum(x.amount.value for x in window if x.amount)
-        ttm = _ttm_known_at(series, p, e.first_public_at)
+        ttm = _ttm_known_at(series, p, bound(e))
         if ttm and total >= th["order_inflow_to_ttm_revenue"] * ttm:
-            out.append((e.first_public_at,
+            out.append((bound(e),
                         f"verified binding external orders {total:,.1f} cr in 12 months = {total / ttm:.2f}x TTM "
                         f"revenue known then ({ttm:,.1f} cr)",
                         sorted({d for x in window for d in x.doc_ids}),
@@ -242,7 +250,6 @@ def _leading_capacity(evidence, th):
         if g >= th["capacity_expansion_pct"]:
             out.append((e.available_at, f"stated capacity {va:g} -> {vb:g} {ub} ({g:+.0f}%), completed "
                         f"(disclosed {_d(e.available_at)})", [e.doc_id], [e.evidence_id]))
-            break
     caps = [e for e in _realized(evidence, Metric.CAPACITY) if e.quantity and e.quantity.value > 0]
     by_fac: dict[str, list[Evidence]] = {}
     for e in caps:
@@ -259,7 +266,6 @@ def _leading_capacity(evidence, th):
                     out.append((b.available_at, f"{fac}: stated capacity {a.quantity.value:g} -> "
                                 f"{b.quantity.value:g} {b.quantity.unit.value} ({g:+.0f}%), in operation",
                                 sorted({a.doc_id, b.doc_id}), [a.evidence_id, b.evidence_id]))
-                    break
     return sorted(out, key=lambda x: x[0])
 
 
@@ -274,11 +280,29 @@ def _leading_statements(evidence, metric, sign):
     return out
 
 
+_MIX_FROM_TO = re.compile(r"from\s+(\d+(?:\.\d+)?)\s*%\s+to\s+(\d+(?:\.\d+)?)\s*%|"
+                          r"to\s+(\d+(?:\.\d+)?)\s*%\s+from\s+(\d+(?:\.\d+)?)\s*%", re.I)
+_DECLINE = re.compile(r"\b(?:declin|decreas|fell|fall|drop|reduc|lower|shrank|contract)\w*", re.I)
+
+
+def _mix_shift(quote: str) -> Optional[tuple[float, float]]:
+    """(old %, new %) for a stated mix change; None when the direction is not explicit."""
+    m = _MIX_FROM_TO.search(quote)
+    if m:
+        return (float(m.group(1)), float(m.group(2))) if m.group(1) else (float(m.group(4)), float(m.group(3)))
+    m = re.search(r"(\d+(?:\.\d+)?)\s*%[^%]{0,80}?(?:compared to|against|vs\.?|versus)\s+(\d+(?:\.\d+)?)\s*%",
+                  quote, re.I)
+    if m:
+        return float(m.group(2)), float(m.group(1))
+    return None
+
+
 def _leading_mix(evidence):
     out = []
     for e in _realized(evidence, Metric.MIX_SHARE):
-        pcts = [float(x) for x in re.findall(r"(\d+(?:\.\d+)?)\s*%", e.quote)]
-        if len(pcts) >= 2 and pcts[0] > pcts[1]:
+        shift = _mix_shift(e.quote)
+        if shift and shift[1] > shift[0] and e.direction >= 0 and not (
+                _DECLINE.search(e.quote) and not _MIX_FROM_TO.search(e.quote)):
             out.append((e.available_at, f"issuer-stated mix shift ({_d(e.available_at)}): \"{e.quote[:140]}\"",
                         [e.doc_id], [e.evidence_id]))
     return out
@@ -376,7 +400,7 @@ def mechanism_thesis(mr: MechanismResult, series: FinancialSeries, evidence: lis
             t.stale = True
             t.stale_note = t.stale_note or f"first results after the signal were due by {v.expected_by} and are not parsed"
     # a mechanism seen first in reported results (no earlier leading signal)
-    if t.stage in (ThesisStage.NONE, ThesisStage.LEADING, ThesisStage.FIRST_RESULTS_NOT_VALIDATED):
+    if not mr.stale and t.stage in (ThesisStage.NONE, ThesisStage.LEADING, ThesisStage.FIRST_RESULTS_NOT_VALIDATED):
         if mr.direction == "positive" and mr.state == MechanismState.CONFIRMED:
             t.stage, t.confidence = ThesisStage.CONFIRMED, "high"
             t.confirmation = mr.durability
@@ -400,8 +424,8 @@ def _validate(mech, series, p, signal_at: datetime, as_of: date, th, published) 
              f"revenue growth >= {th['validation_revenue_growth_pct']:.0f}% YoY")
     v = ThesisMilestone(name="first results after the leading signal", metric_basis=basis,
                         expected_by=_deadline(signal_at, p, th))
-    after = [(e, at) for e, at in published if at > signal_at and _d(at) <= as_of
-             and e >= _d(signal_at) - timedelta(days=92 if p == "Q" else 183)]
+    # only a period that ENDS after the signal can show it (an earlier quarter predates it)
+    after = [(e, at) for e, at in published if at > signal_at and _d(at) <= as_of and e >= _d(signal_at)]
     if not after:
         v.outcome = MilestoneOutcome.OVERDUE if as_of > v.expected_by else MilestoneOutcome.PENDING
         return v

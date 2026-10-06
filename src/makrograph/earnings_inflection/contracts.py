@@ -18,7 +18,7 @@ from enum import Enum
 from typing import Any, Optional
 
 IST = timezone(timedelta(hours=5, minutes=30))
-SCHEMA_VERSION = "ei-assessment-4"
+SCHEMA_VERSION = "ei-assessment-5"
 
 RESEARCH_ONLY_NOTICE = (
     "Research-only evidence assessment. Not an investment recommendation, "
@@ -42,6 +42,7 @@ class DocumentKind(str, Enum):
     EARNINGS_CALL_TRANSCRIPT = "earnings_call_transcript"
     EARNINGS_CALL_INVITATION = "earnings_call_invitation"   # NOT a transcript
     ORDER_ANNOUNCEMENT = "order_announcement"
+    CREDIT_RATING_RATIONALE = "credit_rating_rationale"    # ICRA / CARE / CRISIL / India Ratings ...
     OTHER_ANNOUNCEMENT = "other_announcement"
     UNKNOWN = "unknown"
 
@@ -259,6 +260,141 @@ class MechanismResult:
     def qualifies_positive(self) -> bool:
         return (not self.stale and self.direction == "positive"
                 and self.state in (MechanismState.EMERGING, MechanismState.CONFIRMED))
+
+
+@dataclass
+class RationaleFact:
+    """One fact from a credit-rating rationale.  ``expected`` = the agency reports a plan or a
+    forecast (often management's) - context, not evidence that execution happened."""
+    field: str                       # capacity / order_book / capex / dscr / ...
+    value: Optional[float]
+    unit: str
+    text: str                        # the value as written, with its qualifier ("as of June 2024")
+    expected: bool
+    quote: str
+
+
+@dataclass
+class RatingRationale:
+    doc_id: str
+    agency: str
+    published_at: Optional[datetime]
+    rationale_date: Optional[date]
+    action: str = ""                 # upgraded / downgraded / reaffirmed / assigned / withdrawn / watch
+    long_term_rating: str = ""
+    outlook: str = ""
+    facts: list[RationaleFact] = field(default_factory=list)
+    sensitivities: list[str] = field(default_factory=list)
+
+    def get(self, name: str) -> list[RationaleFact]:
+        return [f for f in self.facts if f.field == name]
+
+
+class CatalystKind(str, Enum):
+    """A forward change that can move recurring earnings.  Discovery is triggered by these,
+    not by current-quarter growth."""
+    ORDERS = "executable_orders"
+    CUSTOMER_APPROVAL = "customer_approval"
+    CAPACITY = "capacity_or_bottleneck"
+    UTILIZATION = "utilization"
+    PRODUCT_MIX = "product_mix"
+    CONTRACT_PRICING = "contract_pricing"
+    FINANCING_COST = "financing_cost"
+    SEGMENT_TURNAROUND = "segment_turnaround"
+
+
+class ResearchStage(str, Enum):
+    """Research stages - none of them is an instruction to invest."""
+    POTENTIAL = "potential_catalyst"                       # announced; economics or execution support incomplete
+    SUPPORTED = "supported_prospective_inflection"         # mechanism, materiality and execution pathway credible
+    VALIDATING = "execution_validating"                    # milestones / first financial evidence support it
+    CONFIRMED = "confirmed_for_investment_review"          # relevant reporting periods support the mechanism
+    DELAYED = "delayed"                                    # timetable slipped; thesis not contradicted
+    CONTRADICTED = "contradicted"                          # business evidence against the thesis
+    DATA_UNAVAILABLE = "data_unavailable"                  # results/filings due but missing: not a business verdict
+
+
+class MilestoneStatus(str, Enum):
+    NOT_YET_RELEVANT = "not_yet_relevant"    # the catalyst cannot have contributed yet
+    PENDING = "pending"
+    MET = "met"
+    CONSISTENT_MUTED = "consistent_muted"    # not met, not against the thesis (lumpy execution)
+    MISSED = "missed"                        # deadline passed without it (delay)
+    CONTRADICTED = "contradicted"
+    DATA_UNAVAILABLE = "data_unavailable"
+
+
+@dataclass
+class ChainLink:
+    """Demand -> deliverable capacity -> revenue conversion -> recurring profit -> cash."""
+    link: str
+    status: str            # supported | unsupported | unknown | contradicted | not_applicable
+    basis: str = ""
+    source_doc_ids: list[str] = field(default_factory=list)
+
+
+@dataclass
+class CatalystMilestone:
+    question: str                         # fixed when the catalyst is first detected
+    test: str                             # how it is judged
+    relevant_from: Optional[date] = None  # first period end that can count
+    due_by: Optional[date] = None
+    status: "MilestoneStatus" = MilestoneStatus.PENDING
+    observed: str = ""
+    observed_at: Optional[datetime] = None
+    source_doc_ids: list[str] = field(default_factory=list)
+
+
+@dataclass
+class EarningsContribution:
+    status: str = "unresolved"     # estimated | potentially_material_unresolved | immaterial | unresolved
+    downside_crore: Optional[float] = None    # incremental EBITDA per year
+    base_crore: Optional[float] = None
+    upside_crore: Optional[float] = None
+    share_of_ttm_ebitda: Optional[float] = None
+    basis: str = ""
+    assumptions: list[str] = field(default_factory=list)
+
+
+@dataclass
+class Catalyst:
+    catalyst_id: str
+    ticker: str
+    kind: "CatalystKind"
+    first_public_at: Optional[datetime]           # when discovery was defensible
+    first_doc_ids: list[str]
+    operating_change: str                          # what is different
+    facts: list[str] = field(default_factory=list)          # dated source facts
+    expectations: list[str] = field(default_factory=list)   # plans / forecasts (incl. agency-repeated)
+    corroboration: list[str] = field(default_factory=list)  # rating-agency context etc.
+    uncertainties: list[str] = field(default_factory=list)
+    window_start: Optional[date] = None           # when confirmation can start to arrive
+    window_end: Optional[date] = None
+    window_basis: str = ""
+    contribution: EarningsContribution = field(default_factory=EarningsContribution)
+    chain: list[ChainLink] = field(default_factory=list)
+    milestones: list[CatalystMilestone] = field(default_factory=list)
+    invalidators: list[str] = field(default_factory=list)
+    stage: "ResearchStage" = ResearchStage.POTENTIAL
+    stage_reasons: list[str] = field(default_factory=list)
+    stage_since: Optional[date] = None
+    quantities: dict[str, Any] = field(default_factory=dict)  # seed values used to rebuild it
+
+
+@dataclass
+class InvestmentReview:
+    """Separate gate, opened only by a confirmed catalyst.  Assembles review inputs;
+    never a recommendation, never a position size."""
+    status: str = "not_started"                # not_started | inputs_assembled | inputs_incomplete
+    opened_by: list[str] = field(default_factory=list)
+    remaining_upside: list[str] = field(default_factory=list)
+    valuation: dict[str, Any] = field(default_factory=dict)
+    cash_and_financing: list[str] = field(default_factory=list)
+    governance: list[str] = field(default_factory=list)
+    liquidity_and_downside: list[str] = field(default_factory=list)
+    missing: list[str] = field(default_factory=list)
+    note: str = ("A valid inflection can still be an unattractive investment at the prevailing price; "
+                 "this gate assembles inputs for a human review and does not authorise any action.")
 
 
 class ThesisStage(str, Enum):
@@ -488,6 +624,9 @@ class Evidence:
     extractor: str = "deterministic"   # "deterministic" | "llm"
     direction: int = 0                 # +1 increase / -1 decrease stated in the sentence, 0 = not stated
     validation_issues: list[str] = field(default_factory=list)
+    # who is speaking: "" = the issuer / its filing; "rating_agency" = a credit-rating rationale
+    # (corroborating context: an agency repeating management's plan is not proof of execution)
+    source_role: str = ""
 
     @property
     def usable(self) -> bool:
@@ -709,6 +848,10 @@ class Assessment:
     mechanisms: list["MechanismResult"] = field(default_factory=list)       # WP5
     valuation: dict[str, Any] = field(default_factory=dict)                  # WP7, optional context only
     thesis: Optional["InflectionThesis"] = None                              # forward-looking layer
+    rating_rationales: list["RatingRationale"] = field(default_factory=list)  # dated, every version kept
+    catalysts: list["Catalyst"] = field(default_factory=list)                # forward setup (discovery)
+    research_summary: dict[str, Any] = field(default_factory=dict)            # detected / why / waiting for
+    investment_review: Optional["InvestmentReview"] = None                   # only after confirmation
     replay_mode: str = "PUBLIC_INFORMATION_RECONSTRUCTION"
     schema_version: str = SCHEMA_VERSION
 
