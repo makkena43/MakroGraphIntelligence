@@ -34,6 +34,7 @@ from .counterparty import apply_reference_data, build_profiles
 from .document_versions import availability, is_restatement, link_versions
 from .drivers import compute_drivers
 from .mechanisms import detect_mechanisms
+from .valuation import Security, valuation_context
 from .earnings_bridge import build_bridge
 from .event_resolution import resolve_events
 from .extraction import extract_sentence_evidence, garbled_ratio, parse_results_tables
@@ -89,7 +90,7 @@ class RunResult:
 
 class EarningsInflectionPipeline:
     def __init__(self, config: dict, repository, llm_complete: Optional[Callable[[str], str]] = None,
-                 llm_client=None):
+                 llm_client=None, market_data=None):
         self.cfg = config or {}
         self.repo = repository
         self.country = self.cfg.get("country", "IN")
@@ -118,6 +119,7 @@ class EarningsInflectionPipeline:
         reg = reg.merge(IssuerRegistry.from_dict(self.cfg.get("identity", {}).get("issuers", {})))
         self.registry = _legacy_spans_to_registry(spans, reg)
         self.replay_mode = self.cfg.get("replay_mode", "PUBLIC_INFORMATION_RECONSTRUCTION")
+        self.market_data = market_data            # WP7: optional, injected; never fetched here
         pins = self.cfg.get("pinned_extractions") or {}
         if pins and hasattr(self.repo, "text_policy"):
             self.repo.text_policy.pinned.update(pins)
@@ -358,11 +360,12 @@ class EarningsInflectionPipeline:
             DocumentKind.EARNINGS_CALL_TRANSCRIPT, DocumentKind.INVESTOR_PRESENTATION)]
         guidance = build_ledger(evidence, series, as_of, docs_by_id, commentary_times)
         profiles = build_profiles(events, ttm_rev)
-        bridge = build_bridge(series, issuer_model, guidance, as_of.date())
-        missing += [m for m in bridge.missing_inputs if m not in missing]
-
         mechanisms = detect_mechanisms(series, evidence, events, drivers, as_of.date(),
                                        self.cfg.get("mechanism_thresholds"))
+        bridge = build_bridge(series, issuer_model, guidance, as_of.date(), evidence=evidence,
+                              mechanisms=mechanisms, assumptions=self.cfg.get("bridge_assumptions"))
+        missing += [m for m in bridge.missing_inputs if m not in missing]
+
         usable_docs = sum(1 for d in docs if d.full_text().strip())
         status, why = decide_status(drivers, events, evidence, guidance, usable_docs, ttm_rev, as_of,
                                     int(self.cfg.get("event_lookback_days", 365)), mechanisms)
@@ -494,6 +497,17 @@ class EarningsInflectionPipeline:
             sources=sources, limitations=lim, coverage=coverage, source_manifest=source_manifest,
             replay_mode=mode, mechanisms=mechanisms,
         )
+        # Optional valuation context, computed AFTER the evidence status and never fed back into it.
+        vcfg = self.cfg.get("valuation", {}) or {}
+        if vcfg.get("enabled"):
+            p_, end_, _ = series.current_period(as_of.date())
+            sec = (Security(listing.exchange or "NSE", listing.symbol or ticker, listing.series, listing.isin)
+                   if listing else (Security("NSE", ticker, vcfg["default_series"]) if vcfg.get("default_series")
+                                    else None))
+            a.valuation = valuation_context(
+                bridge, sec, listing.series if listing else None, as_of.date(), self.market_data,
+                series.shares_diluted_crore(end_, p_) if end_ else None, end_,
+                tuple(vcfg.get("reference_pe", (15.0, 25.0))))
         a.validate()
         return a
 

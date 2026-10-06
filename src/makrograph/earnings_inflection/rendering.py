@@ -107,11 +107,26 @@ def render_markdown(a: Assessment) -> str:
             L.append(f"| {s.name} | {s.revenue_crore:,.1f} | {s.assumptions.get('ebitda_margin_pct')}% | "
                      f"{s.recurring_pat_attributable_crore:,.1f} | {s.recurring_diluted_eps:,.2f} |")
         L.append("")
-        common = {k: v for k, v in b.scenarios[0].assumptions.items() if k not in ("revenue_crore", "ebitda_margin_pct")}
-        L.append("Common assumptions: " + "; ".join(f"{k} = {v}" for k, v in common.items()))
         for s in b.scenarios:
             for n in s.notes:
                 L.append(f"- {s.name}: {n}")
+        if b.management_case_note:
+            L.append(f"- management case: {b.management_case_note}")
+        if b.assumption_register:
+            L.append("")
+            L.append("| Input | Value | Source | Note |")
+            L.append("|---|---|---|---|")
+            for r in b.assumption_register:
+                L.append(f"| {r['input']} | {r['value']} | {r['source']} | {r.get('note', '')} |")
+        for c in b.mechanism_contributions:
+            if c["mechanism"] == "note":
+                L.append(f"- {c['basis']}")
+            else:
+                eff = (f"{c['annual_effect_crore']:,.1f} cr/yr - {c['basis']}"
+                       if c.get("annual_effect_crore") is not None else "not quantified")
+                L.append(f"- mechanism {c['mechanism']} ({c['state']}): {eff}")
+        for n in b.cash_notes:
+            L.append(f"- cash: {n}")
     else:
         L.append(f"Not computed ({b.status.value}). Missing: " + ("; ".join(b.missing_inputs) or "—"))
     if a.drivers:
@@ -123,6 +138,24 @@ def render_markdown(a: Assessment) -> str:
             L.append(f"| {d.driver} | {f(d.prior)} | {f(d.current)} | {f(d.change)} {d.unit} | "
                      f"{'yes' if d.material else 'no'} | {d.basis} |")
     L.append("")
+    if a.valuation:
+        v = a.valuation
+        L.append("### Valuation context (optional; does not affect the evidence status)")
+        if v.get("status") != "COMPUTED":
+            L.append(f"- unavailable: {v.get('reason')}")
+        else:
+            L.append(f"- price {v['price']['close']} on {v['price']['date']} ({v['security']['symbol']} "
+                     f"{v['security']['series']}); shares {v['shares_crore']} crore; market cap "
+                     f"{v['market_cap_crore']:,.1f} cr")
+            L.append("- scenario multiples: " + "; ".join(
+                f"{r['scenario']} {r['pe'] if r['pe'] is not None else r['pe_note']}x" for r in v["scenario_multiples"]))
+            L.append("- recurring PAT implied by the price at reference multiples: "
+                     + "; ".join(f"{k}: {x:,.1f} cr" for k, x in v["implied_recurring_pat_crore"].items()))
+            if v["price_change_context"]:
+                L.append("- dated price changes to the as-of date: " + "; ".join(
+                    f"{k} {c['pct']:+.1f}%" for k, c in v["price_change_context"].items()))
+            L.append(f"- {v['note']}")
+        L.append("")
     L.append("## 4. Contradictions, financing needs, customer risks, missing inputs")
     for title, items in (("Contradictions", a.contradictions), ("Financing", a.financing_risks),
                          ("Customer / counterparty", a.customer_risks), ("Missing inputs", a.missing_inputs)):

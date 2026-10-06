@@ -577,6 +577,11 @@ class EarningsBridge:
     scenarios: list[BridgeScenario] = field(default_factory=list)
     missing_inputs: list[str] = field(default_factory=list)
     cash_notes: list[str] = field(default_factory=list)
+    # WP7: every input with its source (reported / management assertion / analyst assumption)
+    assumption_register: list[dict[str, Any]] = field(default_factory=list)
+    # WP7: annual earnings contribution by mechanism (overlapping effects are not additive)
+    mechanism_contributions: list[dict[str, Any]] = field(default_factory=list)
+    management_case_note: str = ""
 
 
 @dataclass
@@ -630,6 +635,7 @@ class Assessment:
     # exact text versions read for this assessment (replayable via the run manifest)
     source_manifest: list[dict[str, Any]] = field(default_factory=list)
     mechanisms: list["MechanismResult"] = field(default_factory=list)       # WP5
+    valuation: dict[str, Any] = field(default_factory=dict)                  # WP7, optional context only
     replay_mode: str = "PUBLIC_INFORMATION_RECONSTRUCTION"
     schema_version: str = SCHEMA_VERSION
 

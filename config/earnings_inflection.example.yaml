@@ -79,6 +79,18 @@ earnings_inflection:
     order_cancellation_share: 0.2
     statement_max_age_days: 200
 
+  bridge_assumptions:                  # WP7: visible analyst assumptions (listed in every bridge's register)
+    capex_useful_life_years: 15.0
+    capex_debt_share_if_unstated: 0.5  # used only when the company does not state the funding
+    incremental_debt_rate_pct: 9.0
+    fallback_tax_rate_pct: 25.17       # only when the effective TTM rate is outside 5-40%
+    share_basis_max_gap_pct: 10.0      # EPS-implied vs capital-implied shares; larger gaps block EPS
+
+  valuation:                           # WP7: optional context; needs an injected market-data adapter
+    enabled: false                     # never changes the evidence status
+    reference_pe: [15.0, 25.0]         # visible reference multiples for "implied earnings"
+    # default_series: EQ               # only when no dated security record exists for the issuer
+
   llm:
     enabled: false                     # WP6: needs a provider AND budget.enabled with non-zero limits,
                                        # otherwise the run fails preflight once, before any company
