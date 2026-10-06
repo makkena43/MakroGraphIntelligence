@@ -381,6 +381,15 @@ class Catalyst:
     stage_reasons: list[str] = field(default_factory=list)
     stage_since: Optional[date] = None
     quantities: dict[str, Any] = field(default_factory=dict)  # seed values used to rebuild it
+    # what was knowable when: the initial assessment uses ONLY evidence public at first disclosure;
+    # later evidence produces dated upgrades and never improves the original signal retrospectively
+    initial_assessment: dict[str, Any] = field(default_factory=dict)
+    materiality_supported_at: Optional[datetime] = None
+    execution_supported_at: Optional[datetime] = None
+    supported_at: Optional[datetime] = None
+    validating_at: Optional[datetime] = None
+    confirmed_at: Optional[datetime] = None
+    upgrades: list[str] = field(default_factory=list)
 
 
 @dataclass

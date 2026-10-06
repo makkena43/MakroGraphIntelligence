@@ -63,7 +63,12 @@ def snapshot(a: Assessment) -> dict:
             "window": [_iso(c.window_start), _iso(c.window_end)],
             "milestones": [{"question": m.question, "status": m.status.value, "observed": m.observed,
                             "observed_at": _iso(m.observed_at)} for m in c.milestones],
-            "stage_reasons": c.stage_reasons[:3]} for c in a.catalysts],
+            "stage_reasons": c.stage_reasons[:3],
+            "initial_stage": (c.initial_assessment or {}).get("stage"),
+            "materiality_supported_at": _iso(c.materiality_supported_at),
+            "execution_supported_at": _iso(c.execution_supported_at), "supported_at": _iso(c.supported_at),
+            "validating_at": _iso(c.validating_at), "confirmed_at": _iso(c.confirmed_at),
+            "upgrades": c.upgrades[-6:]} for c in a.catalysts],
     }
 
 

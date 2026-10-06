@@ -223,9 +223,12 @@ class Seed:
 
 
 def _horizon_months(rationales: list[RatingRationale], near: datetime, book_date: date) -> tuple[Optional[int], str]:
-    """Execution horizon stated next to the order book (same rationale, or one within 30 days)."""
+    """Execution horizon stated for this order book: a rationale published from 30 days BEFORE the
+    disclosure up to 120 days after it.  Callers pass only rationales public by their cutoff, so a
+    horizon published after the first disclosure becomes a dated upgrade, never part of the
+    original signal."""
     for r in sorted(rationales, key=lambda x: abs(((x.published_at or near) - near).days)):
-        if r.published_at and abs((r.published_at - near).days) <= 30:
+        if r.published_at and -30 <= (r.published_at - near).days <= 120:
             for f in r.get("execution_horizon"):
                 end = parse_when(f.text, book_date)
                 if end and end > book_date:
@@ -249,7 +252,6 @@ def _order_seeds(series, evidence, events, rationales, p, as_of, th) -> list[See
         g = (b.quantity.value / a.quantity.value - 1) * 100
         if g < th["order_book_growth_pct"]:
             continue
-        months, basis = _horizon_months(rationales, b.available_at, _d(b.available_at))
         role = " (rating-agency rationale)" if b.source_role == "rating_agency" else ""
         out.append(Seed(
             CatalystKind.ORDERS, b.available_at,
@@ -257,9 +259,7 @@ def _order_seeds(series, evidence, events, rationales, p, as_of, th) -> list[See
             f"{_d(a.available_at)} -> {_d(b.available_at)})", f"book:{b.quantity.value:.0f}",
             sorted({a.doc_id, b.doc_id}), [a.evidence_id, b.evidence_id],
             facts=[f"{_d(b.available_at)}{role}: \"{b.quote[:220]}\""],
-            expectations=[f"execution horizon: {basis}"] if basis else [],
-            q={"book": b.quantity.value, "book_prev": a.quantity.value, "horizon_months": months,
-               "horizon_basis": basis}))
+            q={"book": b.quantity.value, "book_prev": a.quantity.value}))
     dem = summarise_demand(events, evidence, as_of)
     bound = lambda e: first_binding_at(e) or e.first_public_at  # noqa: E731
     verified = sorted((e for e in events if e.event_id in dem.verified_events and bound(e)), key=bound)
@@ -533,13 +533,20 @@ def _latest_book(evidence, as_of: date) -> Optional[Evidence]:
     return books[-1] if books else None
 
 
-def build_catalyst(ticker: str, s: Seed, series: FinancialSeries, evidence: list[Evidence],
-                   events: list[EconomicEvent], rationales: list[RatingRationale], all_seeds: list[Seed],
-                   as_of: date, th: dict, series_at=None) -> Catalyst:
+def _build(ticker: str, s: Seed, series: FinancialSeries, evidence: list[Evidence],
+           events: list[EconomicEvent], rationales: list[RatingRationale], all_seeds: list[Seed],
+           as_of: date, th: dict, series_at=None) -> Catalyst:
     p = series.cadence(Metric.REVENUE) or "Q"
     c = Catalyst(_cid(ticker, s), ticker, s.kind, s.at, list(s.doc_ids), s.change, facts=list(s.facts),
                  expectations=list(s.expectations), quantities=dict(s.q))
     start = _d(s.at)
+    if s.kind == CatalystKind.ORDERS and s.q.get("book") is not None:
+        months, basis = _horizon_months(rationales, s.at, start)       # only rationales public by the cutoff
+        c.quantities.update({"horizon_months": months, "horizon_basis": basis})
+        s = Seed(s.kind, s.at, s.change, s.key, s.doc_ids, s.evidence_ids, s.facts, s.expectations,
+                 {**s.q, "horizon_months": months, "horizon_basis": basis}, s.completed)
+        if basis:
+            c.expectations.insert(0, f"execution horizon: {basis}")
     # detection-time figures come from what was public at detection (frozen; later filings and
     # restatements do not move them)
     s_det = series_at(s.at) if series_at else series
@@ -907,7 +914,13 @@ def _milestones(s, c, series, p, evidence, events, as_of, th):
         if sh0 and sh1:
             chg = (sh1 / sh0 - 1) * 100
             dil.observed = f"diluted shares {chg:+.1f}%"
-            dil.status = MilestoneStatus.MET if chg <= th["dilution_max_pct"] else MilestoneStatus.CONTRADICTED
+            if abs(chg) > 100:
+                # a doubling or collapse of the share count between adjacent periods is almost always a
+                # parsing / unit artefact (face value, lakh vs crore); never a verdict on its own
+                dil.status = MilestoneStatus.DATA_UNAVAILABLE
+                dil.observed += " - implausible jump; share-count series needs checking"
+            else:
+                dil.status = MilestoneStatus.MET if chg <= th["dilution_max_pct"] else MilestoneStatus.CONTRADICTED
         else:
             dil.status = MilestoneStatus.PENDING if not pub else MilestoneStatus.DATA_UNAVAILABLE
         ms.append(dil)
@@ -1018,6 +1031,72 @@ def _stage(c: Catalyst, as_of: date, th: dict) -> None:
 
 
 # --- entry point -----------------------------------------------------------------------------------------
+
+_SUPPORTED_UP = (ResearchStage.SUPPORTED, ResearchStage.VALIDATING, ResearchStage.CONFIRMED)
+
+
+def _summary(c: Catalyst) -> dict:
+    return {"stage": c.stage.value, "stage_reasons": c.stage_reasons[:3],
+            "contribution": {"status": c.contribution.status, "base_crore": c.contribution.base_crore,
+                             "share_of_ttm_ebitda": c.contribution.share_of_ttm_ebitda, "basis": c.contribution.basis},
+            "chain": {x.link: x.status for x in c.chain}, "window": [str(c.window_start), str(c.window_end)],
+            "window_basis": c.window_basis, "horizon_basis": c.quantities.get("horizon_basis", "")}
+
+
+def build_catalyst(ticker: str, s: Seed, series: FinancialSeries, evidence: list[Evidence],
+                   events: list[EconomicEvent], rationales: list[RatingRationale], all_seeds: list[Seed],
+                   as_of: date, th: dict, series_at=None, as_of_dt: Optional[datetime] = None) -> Catalyst:
+    """The current record, plus what was knowable when: the initial assessment rebuilt ONLY from what
+    was public at first disclosure, and re-assessments at every later dated filing up to the as-of
+    date, which give the dates materiality / execution / support / validation / confirmation became
+    supportable.  Later evidence never improves the original signal: it is a dated upgrade."""
+    end = as_of_dt or datetime.combine(as_of, datetime.max.time(), tzinfo=IST)
+
+    def at(t: datetime) -> Catalyst:
+        ev = [e for e in evidence if e.available_at and e.available_at <= t]
+        rats = [r for r in rationales if r.published_at and r.published_at <= t]
+        evs = [e for e in events if e.first_public_at and e.first_public_at <= t]
+        seeds = [x for x in all_seeds if x.at <= t]
+        ser = series_at(t) if series_at else series
+        return _build(ticker, s, ser, ev, evs, rats, seeds, t.date(), th, series_at)
+
+    cur = _build(ticker, s, series, evidence, events, rationales, all_seeds, as_of, th, series_at)
+    first = at(s.at)
+    cur.initial_assessment = {"as_of": s.at.isoformat(), **_summary(first)}
+    times = sorted({t for t in (
+        [e.available_at for e in evidence if e.available_at] + [r.published_at for r in rationales if r.published_at]
+        + [pt.first_public_at or pt.available_at for pt in series.points.values()
+           if (pt.first_public_at or pt.available_at)]) if s.at < t <= end})
+    prev, history = first, [(s.at, first)]
+    for t in times:
+        c_t = at(t)
+        if _summary(c_t) != _summary(prev):
+            history.append((t, c_t))
+            prev = c_t
+    if history[-1][1].stage != cur.stage or _summary(history[-1][1]) != _summary(cur):
+        history.append((end, cur))
+
+    def first_when(pred):
+        return next((t for t, c in history if pred(c)), None)
+    cur.materiality_supported_at = first_when(lambda c: c.contribution.status == "estimated")
+    cur.execution_supported_at = first_when(lambda c: any(
+        x.link in ("revenue_conversion", "deliverable_capacity") and x.status == "supported" for x in c.chain))
+    cur.supported_at = first_when(lambda c: c.stage in _SUPPORTED_UP)
+    cur.validating_at = first_when(lambda c: c.stage in (ResearchStage.VALIDATING, ResearchStage.CONFIRMED))
+    cur.confirmed_at = first_when(lambda c: c.stage == ResearchStage.CONFIRMED)
+    for (t0, a), (t1, b) in zip(history, history[1:]):
+        what = []
+        if a.stage != b.stage:
+            what.append(f"{a.stage.value} -> {b.stage.value}")
+        if a.contribution.status != b.contribution.status:
+            what.append(f"contribution {a.contribution.status} -> {b.contribution.status}")
+        if a.quantities.get("horizon_basis") != b.quantities.get("horizon_basis") and b.quantities.get("horizon_basis"):
+            what.append(f"execution horizon now stated: {b.quantities['horizon_basis']}")
+        if what:
+            cur.upgrades.append(f"{t1.date()}: " + "; ".join(what)
+                                + (f" ({b.stage_reasons[0][:140]})" if b.stage_reasons else ""))
+    return cur
+
 
 def detect_catalysts(ticker: str, series: FinancialSeries, evidence: list[Evidence], events: list[EconomicEvent],
                      mechanisms: list[MechanismResult], rationales: list[RatingRationale], as_of: date,
