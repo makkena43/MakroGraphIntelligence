@@ -173,11 +173,20 @@ def test_detection_never_imports_evaluation_or_production_modules():
     banned = ("evaluation", "guidance_radar", "pg_store", "storage", "pipeline.runner", "ranking", "themes",
               "fetcher", "india", "stock_selector", "requests", "aiohttp", "anthropic", "openai")
     for f in PKG.glob("*.py"):
-        if f.name == "evaluation.py":
+        # evaluation.py is the outcome sandbox; llm_provider_anthropic.py is the opt-in provider
+        # adapter (WP6), imported lazily only when llm.provider=anthropic is configured
+        if f.name in ("evaluation.py", "llm_provider_anthropic.py"):
             continue
         for m in _imports(f):
             leaf = m.lstrip(".")
             assert not any(leaf == b or leaf.startswith(b + ".") or leaf.endswith("." + b) for b in banned), (f.name, m)
+
+
+def test_network_provider_is_only_imported_lazily():
+    src = (PKG / "llm.py").read_text()
+    assert "import anthropic" not in src and "from .llm_provider_anthropic import" in src
+    top = [m for m in _imports(PKG / "pipeline.py") if "provider" in m]
+    assert not top
 
 
 def test_package_not_wired_into_existing_code():

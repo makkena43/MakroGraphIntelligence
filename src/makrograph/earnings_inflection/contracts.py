@@ -514,7 +514,7 @@ class DriverChange:
     system_known_at: Optional[datetime] = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class GuidanceRevision:
     stated_at: Optional[datetime]
     doc_id: str
@@ -536,7 +536,8 @@ class GuidanceRecord:
     metric: Metric
     target_period_label: str
     original: GuidanceRevision
-    revisions: list[GuidanceRevision] = field(default_factory=list)
+    # append-only: every later statement in publication order, each an immutable record
+    revisions: tuple[GuidanceRevision, ...] = ()
     outcome: GuidanceOutcome = GuidanceOutcome.PENDING          # vs ORIGINAL statement
     latest_outcome: GuidanceOutcome = GuidanceOutcome.PENDING   # vs latest stated guidance
     realized_value: Optional[float] = None

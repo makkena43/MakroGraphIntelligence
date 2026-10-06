@@ -80,7 +80,15 @@ earnings_inflection:
     statement_max_age_days: 200
 
   llm:
-    enabled: false                     # constrained extractor; requires an injected client AND budget.enabled
+    enabled: false                     # WP6: needs a provider AND budget.enabled with non-zero limits,
+                                       # otherwise the run fails preflight once, before any company
+    provider: none                     # none | fake (offline, deterministic) | anthropic
+    # fake_responses: tests/llm_fake_responses.json   # provider: fake -> {chunk substring: JSON array}
+    model: claude-opus-5-5             # provider: anthropic; credentials from ANTHROPIC_API_KEY / ant auth profile
+    effort: low                        # bounded extraction task
+    fallbacks: true                    # server-side refusal fallback (Claude API only); set false to disable
+    max_tokens: 2048
+    max_chunks_per_doc: 4              # only ambiguous / material narrative chunks are sent
     est_tokens_per_call: 2500
 
   budget:

@@ -18,6 +18,7 @@ Revision policy (evidence-only, no reputation scoring):
 from __future__ import annotations
 
 import hashlib
+from dataclasses import replace
 import re
 from datetime import date, datetime, time
 from typing import Iterable, Optional
@@ -130,11 +131,16 @@ def build_ledger(evidence: list[Evidence], series: Optional[FinancialSeries], as
             ledger[key] = GuidanceRecord(f"g-{gid}", e.ticker, e.metric, key[1], rev)
             continue
         last = rec.revisions[-1] if rec.revisions else rec.original
-        rev.direction = _direction(last, e)
+        rev = replace(rev, direction=_direction(last, e))
         if rev.direction in DOWNWARD:
-            rev.explained, rev.explanation = _find_explanation(rev, (docs_by_id or {}).get(e.doc_id))
+            explained, explanation = _find_explanation(rev, (docs_by_id or {}).get(e.doc_id))
+            llm_reason = next((i[len("explanation: "):] for i in e.validation_issues
+                               if i.startswith("explanation: ")), "")      # verbatim-validated (WP6)
+            if not explained and llm_reason:
+                explained, explanation = True, llm_reason
+            rev = replace(rev, explained=explained, explanation=explanation)
         if rev.evidence_id not in {r.evidence_id for r in rec.revisions}:
-            rec.revisions.append(rev)
+            rec.revisions = rec.revisions + (rev,)
 
     commentary = sorted(t for t in commentary_times if t is not None)
     for rec in ledger.values():
@@ -230,3 +236,29 @@ def _judge(rec: GuidanceRecord, series: Optional[FinancialSeries], as_of: dateti
         latest_note = (f"latest {latest.quantity.raw or latest.quantity.value} -> {rec.latest_outcome.value}"
                        if latest is not rec.original else "no revision")
     rec.outcome_note = f"realized {realized:.2f} vs original {q.raw or q.value} -> {rec.outcome.value}; {latest_note}"
+
+
+def management_track_record(guidance: list[GuidanceRecord], min_judged: int = 3) -> dict:
+    """Counts only - no reputation score.  Outcomes are against the ORIGINAL target and the
+    latest stated target separately.  An explained revision is not automatically credible and
+    an unexplained one is not proof of wrongdoing; both are for human review."""
+    judged = [g for g in guidance if g.outcome in (GuidanceOutcome.MET, GuidanceOutcome.PARTIALLY_MET,
+                                                   GuidanceOutcome.MISSED)]
+    count = lambda attr, o: sum(1 for g in judged if getattr(g, attr) == o)  # noqa: E731
+    revs = [r for g in guidance for r in g.revisions if r.direction in DOWNWARD]
+    return {
+        "targets": len(guidance),
+        "judged": len(judged),
+        "vs_original": {o.value: count("outcome", o) for o in (GuidanceOutcome.MET, GuidanceOutcome.PARTIALLY_MET,
+                                                                GuidanceOutcome.MISSED)},
+        "vs_latest": {o.value: count("latest_outcome", o) for o in (GuidanceOutcome.MET,
+                                                                     GuidanceOutcome.PARTIALLY_MET,
+                                                                     GuidanceOutcome.MISSED)},
+        "pending": sum(1 for g in guidance if g.outcome == GuidanceOutcome.PENDING),
+        "unverifiable": sum(1 for g in guidance if g.outcome == GuidanceOutcome.UNVERIFIABLE),
+        "downward_revisions": len(revs),
+        "downward_with_stated_reason": sum(1 for r in revs if r.explained),
+        "sample_note": (f"insufficient history: {len(judged)} judged target(s) (< {min_judged}); no conclusion "
+                        "about management delivery" if len(judged) < min_judged
+                        else f"{len(judged)} judged target(s); small samples, read with the quotes"),
+    }
