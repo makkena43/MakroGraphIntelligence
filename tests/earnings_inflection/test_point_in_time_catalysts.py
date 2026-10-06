@@ -44,7 +44,7 @@ def detect(as_of, events, evidence=(), mechanisms=(), **kw):
 
 
 def inflow(cats):
-    return [c for c in kind(cats, CatalystKind.ORDERS) if "binding external orders" in c.operating_change]
+    return [c for c in kind(cats, CatalystKind.ORDERS) if "binding" in c.operating_change and "TTM revenue" in c.operating_change]
 
 
 def stage_on(c, d):
@@ -162,3 +162,15 @@ def test_pipeline_assessment_is_prefix_invariant(tmp_path):
     late = pipe.run(["QUIETCO"], "2024-12-31").assessments[0].catalysts
     assert early
     _prefix_invariant(early, late, d)
+
+
+def test_thesis_leading_order_signal_survives_a_later_cancellation():
+    from makrograph.earnings_inflection.thesis import DEFAULT_THESIS_THRESHOLDS, _leading_orders
+    s = FinancialSeries.build("T", rows(REV))
+    live = _leading_orders(s, [], [order("e1", date(2023, 5, 10), 120)], "Q", date(2023, 6, 30),
+                           DEFAULT_THESIS_THRESHOLDS)
+    dead = _leading_orders(s, [], [order("e1", date(2023, 5, 10), 120, (EventStage.CANCELLED, date(2023, 11, 20),
+                                                                         None))], "Q", date(2024, 3, 1),
+                           DEFAULT_THESIS_THRESHOLDS)
+    assert live and dead and live[0][0] == dead[0][0] and live[0][1] == dead[0][1]
+    assert live[0][1].startswith("issuer-disclosed binding orders")

@@ -37,17 +37,17 @@ from .contracts import (
     EventStage, Evidence, InvestmentReview, Mechanism, MechanismResult, MechanismState, Metric, MilestoneStatus,
     Modality, RatingRationale, ResearchStage, Unit,
 )
-from .demand import event_state_at, first_binding_at, summarise_demand
+from .demand import INDEPENDENTLY_SUPPORTED, ISSUER_DISCLOSED, demand_support, event_state_at, first_binding_at, summarise_demand
 from .financial_series import FinancialSeries, PERIODS_PER_YEAR, _year_ago, prev_period_end
 from .thesis import (
     _leading_capacity, _leading_mix, _leading_statements, _results_published, _ttm_known_at,
     next_period_end_on_or_after, order_book_snapshots,
 )
 
-RULES_VERSION = "catalyst-rules-2"
+RULES_VERSION = "catalyst-rules-3"
 
 DEFAULT_CATALYST_THRESHOLDS = {
-    "order_inflow_to_ttm_revenue": 0.25,     # verified binding external orders in 12 months / TTM revenue
+    "order_inflow_to_ttm_revenue": 0.25,     # binding, named, unrelated orders in 12 months / TTM revenue
     "order_book_growth_pct": 30.0,           # stated order book vs a snapshot 5-15 months earlier
     "capacity_expansion_pct": 20.0,
     "materiality_share_of_ttm_ebitda": 0.15, # base incremental EBITDA / TTM EBITDA for "material"
@@ -271,7 +271,7 @@ def _order_seeds(series, evidence, events, rationales, p, as_of, th) -> list[See
             f"{_d(a.available_at)} -> {_d(b.available_at)})", f"book:{b.quantity.value:.0f}",
             sorted({a.doc_id, b.doc_id}), [a.evidence_id, b.evidence_id],
             facts=[f"{_d(b.available_at)}{role}: \"{b.quote[:220]}\""],
-            q={"book": b.quantity.value, "book_prev": a.quantity.value,
+            q={"book": b.quantity.value, "book_prev": a.quantity.value, "demand_basis": ISSUER_DISCLOSED,
                # orders that became binding while the book grew are the ones this catalyst rests on
                "event_ids": sorted(e.event_id for e in events if (first_binding_at(e) or e.first_public_at)
                                    and a.available_at < (first_binding_at(e) or e.first_public_at) <= b.available_at)}))
@@ -285,14 +285,19 @@ def _order_seeds(series, evidence, events, rationales, p, as_of, th) -> list[See
         ttm = _ttm_known_at(series, p, bound(e))
         if ttm and total >= th["order_inflow_to_ttm_revenue"] * ttm:
             durations = [x.duration_months for x in window if x.duration_months]
+            indep = sum(x.amount.value for x in window if x.amount and demand_support(x) == INDEPENDENTLY_SUPPORTED)
+            basis = INDEPENDENTLY_SUPPORTED if indep >= th["order_inflow_to_ttm_revenue"] * ttm else ISSUER_DISCLOSED
+            label = ("binding external orders, independently supported," if basis == INDEPENDENTLY_SUPPORTED
+                     else "issuer-disclosed binding orders")
             out.append(Seed(
                 CatalystKind.ORDERS, bound(e),
-                f"verified binding external orders {total:,.1f} cr in 12 months = {total / ttm:.2f}x TTM revenue "
+                f"{label} {total:,.1f} cr in 12 months = {total / ttm:.2f}x TTM revenue "
                 f"known then", f"inflow:{bound(e).date()}", sorted({d for x in window for d in x.doc_ids}),
                 [i for x in window for i in x.evidence_ids],
                 facts=[f"{_d(bound(x))}: {x.counterparty or 'customer'} {x.amount.value:,.1f} cr "
                        f"({x.current_stage.value if x.current_stage else ''})" for x in window if x.amount],
-                q={"inflow": total, "horizon_months": max(durations) if durations else None,
+                q={"inflow": total, "demand_basis": basis, "independently_supported_crore": indep,
+                   "horizon_months": max(durations) if durations else None,
                    "horizon_basis": "longest disclosed execution period" if durations else "",
                    "event_ids": sorted(x.event_id for x in window)}))
             window = []                     # the next crossing is a separate catalyst
@@ -669,7 +674,11 @@ def _build(ticker: str, s: Seed, series: FinancialSeries, evidence: list[Evidenc
     other_orders = [x for x in all_seeds if x.kind == CatalystKind.ORDERS and abs((x.at - s.at).days) <= 400]
     chain: list[ChainLink] = []
     if s.kind == CatalystKind.ORDERS:
-        chain.append(ChainLink("demand", "supported", s.change, list(s.doc_ids)))
+        c.demand_basis = s.q.get("demand_basis", ISSUER_DISCLOSED)
+        chain.append(ChainLink("demand", "supported", s.change + (
+            "" if c.demand_basis == INDEPENDENTLY_SUPPORTED else
+            " [issuer disclosure: customer and independence not confirmed by an external source]"),
+            list(s.doc_ids)))
     elif s.kind in (CatalystKind.CAPACITY, CatalystKind.UTILIZATION):
         basis = []
         if cover is not None and cover >= th["demand_cover_min"]:
@@ -687,6 +696,7 @@ def _build(ticker: str, s: Seed, series: FinancialSeries, evidence: list[Evidenc
             basis.append(f"order catalyst(s) within a year: {other_orders[0].change[:80]}")
         if s.q.get("bottleneck") and basis:
             basis.append("testing / bottleneck capacity limits deliveries only while demand exceeds it")
+        c.demand_basis = ISSUER_DISCLOSED if basis else ""
         chain.append(ChainLink("demand", "supported" if basis else "unsupported",
                                "; ".join(basis) or "no order book, utilisation or order evidence: added capacity may "
                                                     "only add depreciation"))
@@ -887,20 +897,29 @@ def _contribution(s, c, series, p, ttm_rev, ttm_ebitda, m_base, margins, chain, 
 
 
 def _capex_for(c: Catalyst, s: Seed, evidence, rationales) -> tuple[Optional[float], str, Optional[float], str]:
-    """(capex crore, source, debt share, funding basis) attributable to a capacity catalyst."""
-    best = None
+    """(capex crore, source, debt share, funding basis) attributable to a capacity catalyst.  Only
+    capex that names this project (its facility or target capacity) is attributed to it; a
+    company-wide capex figure is not this project's cost, so the bridge stays unresolved (the
+    source then explains why).  Debt share None = funding not stated as a fact."""
+    best, unattributed = None, []
+    ident = s.q.get("project") or {}
     for r in rationales:
         if r.published_at and abs((r.published_at - s.at).days) <= 200:
             for f in r.get("capex"):
-                if f.value and best is None:
+                if not f.value or best is not None:
+                    continue
+                if _quote_matches_project(f.quote, ident):
                     best = (f.value, f"{r.agency} {r.rationale_date}: {f.text}", r)
+                else:
+                    unattributed.append(f"{r.agency} {r.rationale_date} capex {f.text} does not identify this "
+                                        "project (company-wide or another project): not attributed")
     for e in evidence:
         if best is None and e.usable and e.metric == Metric.CAPEX and e.quantity and e.quantity.unit == Unit.INR_CRORE \
                 and e.available_at and abs((e.available_at - s.at).days) <= 200 \
                 and _quote_matches_project(e.quote, s.q.get("project") or {}):
             best = (e.quantity.value, f"issuer {_d(e.available_at)}: \"{e.quote[:100]}\"", None)
     if best is None:
-        return None, "", None, ""
+        return None, "; ".join(unattributed[:2]), None, ""
     capex, src, r = best
     funding = " ".join(f.text for f in r.get("capex_funding")) if r else ""
     fl = funding.lower()
@@ -909,7 +928,7 @@ def _capex_for(c: Catalyst, s: Seed, evidence, rationales) -> tuple[Optional[flo
     if re.search(r"debt|loan|borrow", fl) and "internal accrual" not in fl:
         return capex, src, 1.0, f"funding stated: {funding}"
     if fl:
-        return capex, src, 0.5, f"funding stated as a mix: {funding} (half debt assumed)"
+        return capex, src, None, f"funding stated as a mix without proportions: {funding}"
     return capex, src, None, ""
 
 
@@ -928,12 +947,13 @@ def _parent_bridge(c: Catalyst, s: Seed, ser: FinancialSeries, p: str, evidence,
     if s.kind == CatalystKind.CAPACITY:
         capex, src, debt_share, fbasis = _capex_for(c, s, evidence, rationales)
         if capex is None:
-            missing.append("capex of the expansion (incremental depreciation and financing unknown)")
+            missing.append("capex of the expansion (incremental depreciation and financing unknown)"
+                           + (f"; {src}" if src else ""))
         else:
             da = capex / th["capex_useful_life_years"]
             if debt_share is None:
-                fbasis = (f"funding not stated: {th['capex_debt_share_if_unstated']:.0%} debt assumed (analyst "
-                          "assumption); materiality tested at 100% debt")
+                fbasis = (f"{fbasis or 'funding not stated'}: {th['capex_debt_share_if_unstated']:.0%} debt assumed "
+                          "(analyst assumption); materiality tested at 100% debt")
                 assumed.append("funding mix")
             interest = capex * (th["capex_debt_share_if_unstated"] if debt_share is None else debt_share) \
                 * th["incremental_debt_rate_pct"] / 100
@@ -1323,6 +1343,20 @@ def _stage(c: Catalyst, as_of: date, th: dict) -> None:
             as_of > c.window_end + timedelta(days=th["window_grace_days"]) and c.stage != ResearchStage.DATA_UNAVAILABLE:
         c.stage = ResearchStage.DELAYED
         why.insert(0, f"execution window ended {c.window_end} without confirmation")
+    # issuer-disclosed demand is weaker evidence than independently supported demand: lower
+    # confidence, and before investment review its customer and independence must be confirmed
+    issuer = c.demand_basis == ISSUER_DISCLOSED
+    if c.stage in (ResearchStage.SUPPORTED, ResearchStage.VALIDATING, ResearchStage.CONFIRMED) and issuer:
+        why.append("demand is issuer-disclosed (customer / independence not confirmed by an external source)")
+    if c.stage == ResearchStage.CONFIRMED and issuer:
+        c.review_conditions.append("demand rests on issuer disclosure: confirm the customer and its independence "
+                                   "from an attributable external source before relying on it")
+    if c.stage in (ResearchStage.VALIDATING, ResearchStage.CONFIRMED):
+        c.confidence = "medium" if issuer else "high"
+    elif c.stage == ResearchStage.SUPPORTED:
+        c.confidence = "low" if issuer else "medium"
+    else:
+        c.confidence = "low"
     c.stage_reasons = why
 
 

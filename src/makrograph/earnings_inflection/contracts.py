@@ -406,6 +406,11 @@ class Catalyst:
     # what was knowable when: the initial assessment uses ONLY evidence public at first disclosure;
     # later evidence produces dated upgrades and never improves the original signal retrospectively
     review_conditions: list[str] = field(default_factory=list)   # unresolved items the review must settle
+    # who stands behind the demand: "independently_supported" (attributable external source for the
+    # customer and its independence) | "issuer_disclosed" (the company's own disclosure, incl. a rating
+    # agency repeating it) | "" (no demand link / not applicable)
+    demand_basis: str = ""
+    confidence: str = "low"                        # low | medium | high (evidence quality, not probability)
     initial_assessment: dict[str, Any] = field(default_factory=dict)
     materiality_supported_at: Optional[datetime] = None
     execution_supported_at: Optional[datetime] = None

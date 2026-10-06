@@ -118,12 +118,31 @@ def unverified_reasons(e: EconomicEvent) -> list[str]:
     return r
 
 
+INDEPENDENTLY_SUPPORTED = "independently_supported"
+ISSUER_DISCLOSED = "issuer_disclosed"
+
+
+def demand_support(e: EconomicEvent) -> str:
+    """Who stands behind a binding order: an attributable external source that confirms both the
+    customer and that it is unrelated ("independently_supported"), or only the issuer's own
+    disclosure ("issuer_disclosed").  An issuer-named customer, an issuer statement that the
+    customer is unrelated, or a rating agency repeating the company's order data is still issuer
+    disclosure."""
+    if e.customer_verification == CustomerVerification.CORROBORATED and \
+            e.relationship == RelationshipStatus.INDEPENDENTLY_SUPPORTED_UNRELATED:
+        return INDEPENDENTLY_SUPPORTED
+    return ISSUER_DISCLOSED
+
+
 @dataclass
 class DemandSummary:
     window_start: date
     as_of: date
     verified_inflow_crore: float = 0.0
-    verified_events: list[str] = field(default_factory=list)
+    verified_events: list[str] = field(default_factory=list)     # binding, named, firm, not related
+    # of which: confirmed by an attributable external source (customer and independence)
+    independently_supported_events: list[str] = field(default_factory=list)
+    independently_supported_inflow_crore: float = 0.0
     unverified_inflow_crore: float = 0.0                  # early lane (headline values, not executable)
     unverified_events: dict[str, list[str]] = field(default_factory=dict)
     related_party_excluded: list[str] = field(default_factory=list)
@@ -178,6 +197,9 @@ def summarise_demand(events: list[EconomicEvent], evidence: list[Evidence], as_o
         if not reasons:
             s.verified_inflow_crore += amount
             s.verified_events.append(e.event_id)
+            if demand_support(e) == INDEPENDENTLY_SUPPORTED:
+                s.independently_supported_events.append(e.event_id)
+                s.independently_supported_inflow_crore += amount
             counted |= group
             if e.annual_executable_estimate is not None:
                 s.annual_executable_crore = (s.annual_executable_crore or 0.0) + e.annual_executable_estimate

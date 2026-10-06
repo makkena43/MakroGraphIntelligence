@@ -286,7 +286,8 @@ def _forward(a: Assessment) -> dict:
                           "supported_at": (getattr(c, "supported_at", None).isoformat()
                                            if getattr(c, "supported_at", None) else None),
                           "operating_change": c.operating_change[:200], "contribution": c.contribution.status,
-                          "base_ebitda_crore": c.contribution.base_crore}
+                          "base_ebitda_crore": c.contribution.base_crore,
+                          "demand_basis": getattr(c, "demand_basis", ""), "confidence": getattr(c, "confidence", "")}
                          for c in current_catalysts(a)]}
     out["lead"] = out["catalysts"][[c.catalyst_id for c in current_catalysts(a)].index(lead.catalyst_id)] \
         if lead is not None else None
