@@ -412,6 +412,8 @@ class Catalyst:
     validating_at: Optional[datetime] = None
     confirmed_at: Optional[datetime] = None
     upgrades: list[str] = field(default_factory=list)
+    # (date, stage) at every change, each rebuilt only from what was public on that date
+    stage_history: list[tuple[str, str]] = field(default_factory=list)
 
 
 @dataclass

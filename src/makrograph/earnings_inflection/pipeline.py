@@ -348,12 +348,19 @@ class EarningsInflectionPipeline:
         keys_by_doc: dict = {}
         for r in measurements:
             keys_by_doc.setdefault(r.doc_id, set()).add(key(r))
-        measurements = [r for r in measurements
-                        if not any(key(r) in keys_by_doc.get(later, ()) for later in _chain(r.doc_id))]
+        doc_public = {d.doc_id: d.available_at for d in docs}
+
+        def superseded(r, t=None) -> bool:
+            """Replaced by a later version of its filing - one public by ``t`` when given."""
+            return any(key(r) in keys_by_doc.get(later, ()) for later in _chain(r.doc_id)
+                       if t is None or (doc_public.get(later) and doc_public[later] <= t))
+        as_filed = list(measurements)          # kept for point-in-time series: a re-filing replaces
+        measurements = [r for r in measurements if not superseded(r)]   # figures only from its own date
 
         # 4. validation + dedup
         evidence = validate_evidence(evidence, docs_by_id, as_of)
         measurements, m_issues = validate_measurements(measurements, as_of)
+        as_filed, _ = validate_measurements(as_filed, as_of)
         recon = reconcile_structured(measurements)
         issues += m_issues + scope_conflicts(measurements)
         coverage["reconciliation"] = {st: sum(1 for r in recon if r.status == st)
@@ -522,9 +529,30 @@ class EarningsInflectionPipeline:
             rating_rationales=rationale_history(rationales),
         )
         # forward setup: catalysts first, current performance (the evidence status) kept apart
+        # every input rebuilt from what was public at each historical timestamp
+        def measurements_at(t):
+            return [r for r in as_filed if r.available_at and r.available_at <= t and not superseded(r, t)]
+
+        _evs_cache: dict = {}
+
+        def events_at(t):
+            if t not in _evs_cache:
+                evs_t = resolve_events([e for e in evidence if e.available_at and e.available_at <= t])
+                apply_reference_data(evs_t, self.cfg.get("counterparties", {}), t.date())
+                _evs_cache[t] = evs_t
+            return _evs_cache[t]
+
+        def mechanisms_at(t):
+            s_t = FinancialSeries.build(ticker, measurements_at(t))
+            ev_t = [e for e in evidence if e.available_at and e.available_at <= t]
+            evs_t = events_at(t)
+            drv_t, _ = compute_drivers(s_t, evs_t, ev_t, issuer_model, t.date(), self.cfg.get("thresholds"))
+            return detect_mechanisms(s_t, ev_t, evs_t, drv_t, t.date(), self.cfg.get("mechanism_thresholds"))
         a.catalysts = detect_catalysts(ticker, series, evidence, events, mechanisms, a.rating_rationales,
                                        as_of.date(), {**(self.cfg.get("bridge_assumptions") or {}),
-                                                      **(self.cfg.get("catalyst_thresholds") or {})}, measurements)
+                                                      **(self.cfg.get("catalyst_thresholds") or {})}, measurements,
+                                       events_at=events_at, mechanisms_at=mechanisms_at,
+                                       measurements_at=measurements_at)
         a.research_summary = research_summary(a.catalysts, status.value, why)
         if self.cfg.get("catalyst_ledger"):                   # explicit opt-in: append-only local ledger
             from .catalyst_ledger import CatalystLedger
@@ -542,7 +570,7 @@ class EarningsInflectionPipeline:
                 d = since.get(c.catalyst_id, {}).get(c.stage.value)
                 c.stage_since = date.fromisoformat(d) if d else None
         if stale_note and cadence:
-            self._last_known_reading(a, ticker, measurements, evidence, docs, docs_by_id, issuer_model, cadence,
+            self._last_known_reading(a, ticker, measurements_at, evidence, docs, docs_by_id, issuer_model, cadence,
                                      series)
         # Optional valuation context, computed AFTER the evidence status and never fed back into it.
         vcfg = self.cfg.get("valuation", {}) or {}
@@ -562,7 +590,7 @@ class EarningsInflectionPipeline:
 
     # -- diagnostics -----------------------------------------------------------
 
-    def _last_known_reading(self, a, ticker, measurements, evidence, docs, docs_by_id, issuer_model, cadence,
+    def _last_known_reading(self, a, ticker, measurements_at, evidence, docs, docs_by_id, issuer_model, cadence,
                             series):
         """The status as of the day the latest parsed results were first public, rebuilt ONLY from
         what was public by then (series, events, guidance and documents are re-derived at that
@@ -572,9 +600,10 @@ class EarningsInflectionPipeline:
         at = pt and (pt.first_public_at or pt.available_at)
         if not at:
             return
-        s_at = FinancialSeries.build(ticker, [m for m in measurements if m.available_at and m.available_at <= at])
+        s_at = FinancialSeries.build(ticker, measurements_at(at))      # figures as filed by then
         ev = [e for e in evidence if e.available_at and e.available_at <= at]
         evs = resolve_events(ev)
+        apply_reference_data(evs, self.cfg.get("counterparties", {}), at.date())
         docs_at = [d for d in docs if d.available_at and d.available_at <= at]
         guid = build_ledger(ev, s_at, at, {d.doc_id: d for d in docs_at},
                             [d.available_at for d in docs_at if d.kind in (

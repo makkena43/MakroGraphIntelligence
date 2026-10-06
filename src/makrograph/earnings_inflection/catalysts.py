@@ -30,14 +30,14 @@ import hashlib
 import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
-from typing import Optional
+from typing import Callable, Optional
 
 from .contracts import (
     IST, Catalyst, CatalystKind, CatalystMilestone, ChainLink, DriverChange, EarningsContribution, EconomicEvent,
     EventStage, Evidence, InvestmentReview, Mechanism, MechanismResult, MechanismState, Metric, MilestoneStatus,
     Modality, RatingRationale, ResearchStage, Unit,
 )
-from .demand import first_binding_at, summarise_demand
+from .demand import event_state_at, first_binding_at, summarise_demand
 from .financial_series import FinancialSeries, PERIODS_PER_YEAR, _year_ago, prev_period_end
 from .thesis import (
     _leading_capacity, _leading_mix, _leading_statements, _results_published, _ttm_known_at,
@@ -246,6 +246,10 @@ def _horizon_months(rationales: list[RatingRationale], near: datetime, book_date
 
 
 def _order_seeds(series, evidence, events, rationales, p, as_of, th) -> list[Seed]:
+    """Order catalysts from what was public by ``as_of`` only: ``events`` must be the events as
+    they stood then (stage, amount and verification at that time), ``evidence`` the evidence
+    public by then.  Later amendments or cancellations never remove or resize a seed; they are
+    judged later as milestones of the catalyst."""
     out = []
     if p is None:
         return out
@@ -359,8 +363,11 @@ def _capacity_seeds(evidence, rationales, th) -> list[Seed]:
     return out
 
 
-def _other_seeds(series, evidence, mechanisms, rationales, as_of, th) -> list[Seed]:
+def _other_seeds(series, evidence, mechanisms, rationales, as_of, th, now: Optional[datetime] = None) -> list[Seed]:
+    """``now``: the scan time.  A mechanism first detected at ``now`` is dated ``now`` - never back-
+    dated to the period it describes, which was not yet recognisable as a change then."""
     out = []
+    at_or = lambda t: max(t, now) if (now is not None and t is not None) else t  # noqa: E731
     for at, text, docs, ev in _leading_mix(evidence):
         out.append(Seed(CatalystKind.PRODUCT_MIX, at, text, f"mix:{_d(at)}", docs, ev, facts=[text]))
     for at, text, docs, ev in (_leading_statements(evidence, Metric.PRICING, +1)
@@ -380,7 +387,7 @@ def _other_seeds(series, evidence, mechanisms, rationales, as_of, th) -> list[Se
         if m.stale or m.direction != "positive" or m.state not in (MechanismState.EMERGING, MechanismState.CONFIRMED) \
                 or m.first_signal_at is None:
             continue
-        if m.mechanism == Mechanism.DEBT_REDUCTION and not _financing_material(series, m.first_signal_at, th):
+        if m.mechanism == Mechanism.DEBT_REDUCTION and not _financing_material(series, at_or(m.first_signal_at), th):
             continue
         kind = {Mechanism.UTILIZATION: CatalystKind.UTILIZATION, Mechanism.PRODUCT_MIX: CatalystKind.PRODUCT_MIX,
                 Mechanism.DEBT_REDUCTION: CatalystKind.FINANCING_COST,
@@ -388,8 +395,8 @@ def _other_seeds(series, evidence, mechanisms, rationales, as_of, th) -> list[Se
         if kind is None:
             continue
         seg = re.match(r"([^:]+):", m.magnitude_basis or "")
-        out.append(Seed(kind, m.first_signal_at, f"{m.mechanism.value}: {m.magnitude_basis or m.attribution}",
-                        f"{kind.value}:{m.period_end}", list(m.source_doc_ids), list(m.evidence_ids),
+        out.append(Seed(kind, at_or(m.first_signal_at), f"{m.mechanism.value}: {m.magnitude_basis or m.attribution}",
+                        f"{kind.value}:{seg.group(1).strip().lower() if seg else ''}", list(m.source_doc_ids), list(m.evidence_ids),
                         facts=[m.magnitude_basis], q={"magnitude": m.magnitude, "unit": m.magnitude_unit,
                                                       "segment": seg.group(1).strip() if seg else None,
                                                       "period_end": m.period_end.isoformat() if m.period_end else None}))
@@ -411,24 +418,6 @@ def _financing_material(series, t: datetime, th) -> bool:
     fc, _ = _ttm_at(series, Metric.FINANCE_COST, p, t)
     eb, _ = _ttm_at(series, Metric.EBITDA, p, t)
     return bool(fc and eb and eb > 0 and fc / eb >= th["financing_min_share_of_ebitda"])
-
-
-def _dedupe(seeds: list[Seed]) -> list[Seed]:
-    """The same change restated later (annual report, next rationale) is one catalyst: keep the
-    earliest disclosure, merge documents and facts."""
-    seeds = sorted(seeds, key=lambda s: (s.at, s.kind.value, s.key))
-    out: list[Seed] = []
-    for s in seeds:
-        dup = next((x for x in out if x.kind == s.kind and x.key == s.key and (s.at - x.at).days <= 400), None)
-        if dup:
-            dup.doc_ids = sorted(set(dup.doc_ids) | set(s.doc_ids))
-            dup.facts += [f for f in s.facts if f not in dup.facts][:3]
-            dup.expectations += [f for f in s.expectations if f not in dup.expectations][:3]
-            if s.completed and not dup.completed:
-                dup.facts.append(f"{_d(s.at)}: reported completed")
-            continue
-        out.append(s)
-    return out
 
 
 # --- per-period measurements (relevant periods only) ---------------------------------------------------
@@ -1302,7 +1291,8 @@ def _summary(c: Catalyst) -> dict:
 
 def build_catalyst(ticker: str, s: Seed, series: FinancialSeries, evidence: list[Evidence],
                    events: list[EconomicEvent], rationales: list[RatingRationale], all_seeds: list[Seed],
-                   as_of: date, th: dict, series_at=None, as_of_dt: Optional[datetime] = None) -> Catalyst:
+                   as_of: date, th: dict, series_at=None, as_of_dt: Optional[datetime] = None,
+                   events_at=None) -> Catalyst:
     """The current record, plus what was knowable when: the initial assessment rebuilt ONLY from what
     was public at first disclosure, and re-assessments at every later dated filing up to the as-of
     date, which give the dates materiality / execution / support / validation / confirmation became
@@ -1312,7 +1302,8 @@ def build_catalyst(ticker: str, s: Seed, series: FinancialSeries, evidence: list
     def at(t: datetime) -> Catalyst:
         ev = [e for e in evidence if e.available_at and e.available_at <= t]
         rats = [r for r in rationales if r.published_at and r.published_at <= t]
-        evs = [e for e in events if e.first_public_at and e.first_public_at <= t]
+        # each event as it stood at t (stage, amount, cancellations), not its current state
+        evs = events_at(t) if events_at else [x for x in (event_state_at(e, t) for e in events) if x is not None]
         seeds = [x for x in all_seeds if x.at <= t]
         ser = series_at(t) if series_at else series
         return _build(ticker, s, ser, ev, evs, rats, seeds, t.date(), th, series_at)
@@ -1323,7 +1314,10 @@ def build_catalyst(ticker: str, s: Seed, series: FinancialSeries, evidence: list
     times = sorted({t for t in (
         [e.available_at for e in evidence if e.available_at] + [r.published_at for r in rationales if r.published_at]
         + [pt.first_public_at or pt.available_at for pt in series.points.values()
-           if (pt.first_public_at or pt.available_at)]) if s.at < t <= end})
+           if (pt.first_public_at or pt.available_at)]
+        # order awards, amendments and cancellations are dated where they were disclosed
+        + [h.at for e in events for h in e.history if h.at] + [e.first_public_at for e in events if e.first_public_at])
+        if s.at < t <= end})
     prev, history = first, [(s.at, first)]
     for t in times:
         c_t = at(t)
@@ -1332,6 +1326,8 @@ def build_catalyst(ticker: str, s: Seed, series: FinancialSeries, evidence: list
             prev = c_t
     if history[-1][1].stage != cur.stage or _summary(history[-1][1]) != _summary(cur):
         history.append((end, cur))
+
+    cur.stage_history = [(t.isoformat(), c.stage.value) for t, c in history]
 
     def first_when(pred):
         return next((t for t, c in history if pred(c)), None)
@@ -1355,26 +1351,91 @@ def build_catalyst(ticker: str, s: Seed, series: FinancialSeries, evidence: list
     return cur
 
 
+def _seeds_at(t: datetime, series, evidence, events, rationales, mechanisms, p, th) -> list[Seed]:
+    """Every seed derivable from what was public at ``t`` (inputs already cut at ``t``)."""
+    return (_order_seeds(series, evidence, events, rationales, p, t.date(), th) + _capacity_seeds(evidence, rationales, th)
+            + _other_seeds(series, evidence, mechanisms, rationales, t.date(), th, now=t))
+
+
 def detect_catalysts(ticker: str, series: FinancialSeries, evidence: list[Evidence], events: list[EconomicEvent],
                      mechanisms: list[MechanismResult], rationales: list[RatingRationale], as_of: date,
-                     thresholds: Optional[dict] = None, measurements: Optional[list] = None) -> list[Catalyst]:
-    """``measurements`` (optional) lets detection-time figures be rebuilt from what was public
-    at each catalyst's first disclosure."""
+                     thresholds: Optional[dict] = None, measurements: Optional[list] = None,
+                     events_at: Optional[Callable[[datetime], list[EconomicEvent]]] = None,
+                     mechanisms_at: Optional[Callable[[datetime], list[MechanismResult]]] = None,
+                     measurements_at: Optional[Callable[[datetime], list]] = None) -> list[Catalyst]:
+    """Point-in-time detection.  Catalysts are generated by scanning every disclosure time up to the
+    as-of date and asking what the evidence public THEN established: events in the state they
+    stood then (``events_at``; default: each event's dated history truncated), mechanisms detected
+    from the figures public then (``mechanisms_at``; without it the supplied mechanisms are used,
+    dated by their first signal), and financial figures as first published (``measurements_at`` or
+    ``measurements``, before any later re-filing supersedes them).  A catalyst is dated when it
+    first became derivable and is kept when later evidence contradicts it, so appending future
+    disclosures never changes an earlier assessment (prefix invariance)."""
     th = {**DEFAULT_CATALYST_THRESHOLDS, **(thresholds or {})}
     p = series.cadence(Metric.REVENUE)
-    rats = [r for r in rationales if r.published_at and _d(r.published_at) <= as_of]
-    seeds = _dedupe(_order_seeds(series, evidence, events, rats, p, as_of, th) + _capacity_seeds(evidence, rats, th)
-                    + _other_seeds(series, evidence, mechanisms, rats, as_of, th))
-    seeds = [s for s in seeds if _d(s.at) <= as_of]
-    cache: dict = {}
+    end = datetime.combine(as_of, datetime.max.time(), tzinfo=IST)
+    rats = [r for r in rationales if r.published_at and r.published_at <= end]
+    s_cache: dict = {}
+    e_cache: dict = {}
+    m_cache: dict = {}
 
     def series_at(t: datetime) -> FinancialSeries:
-        if measurements is None:
+        if measurements_at is None and measurements is None:
             return series
-        if t not in cache:
-            cache[t] = FinancialSeries.build(ticker, [m for m in measurements if m.available_at and m.available_at <= t])
-        return cache[t]
-    return [build_catalyst(ticker, s, series, evidence, events, rats, seeds, as_of, th, series_at) for s in seeds]
+        if t not in s_cache:
+            rows = (measurements_at(t) if measurements_at is not None
+                    else [m for m in measurements if m.available_at and m.available_at <= t])
+            s_cache[t] = FinancialSeries.build(ticker, rows)
+        return s_cache[t]
+
+    def evs_at(t: datetime) -> list[EconomicEvent]:
+        if t not in e_cache:
+            e_cache[t] = (events_at(t) if events_at is not None
+                          else [x for x in (event_state_at(e, t) for e in events) if x is not None])
+        return e_cache[t]
+
+    results_times = sorted({pt.first_public_at or pt.available_at for pt in series.points.values()
+                            if (pt.first_public_at or pt.available_at)})
+
+    def mechs_at(t: datetime) -> list[MechanismResult]:
+        if mechanisms_at is None:
+            return [m for m in mechanisms if m.first_signal_at and m.first_signal_at <= t]
+        r = max((x for x in results_times if x <= t), default=None)  # mechanisms change only with results
+        if r is None:
+            return []
+        if r not in m_cache:
+            m_cache[r] = mechanisms_at(r)
+        return m_cache[r]
+
+    times = sorted({t for t in (
+        [e.available_at for e in evidence if e.available_at] + [r.published_at for r in rats]
+        + results_times + [h.at for e in events for h in e.history if h.at] + [e.first_public_at for e in events
+                                                                             if e.first_public_at]) if t <= end})
+    seeds: list[Seed] = []
+    last_seen: dict = {}
+    for t in times:
+        ev_t = [e for e in evidence if e.available_at and e.available_at <= t]
+        rats_t = [r for r in rats if r.published_at <= t]
+        for x in sorted(_seeds_at(t, series_at(t), ev_t, evs_at(t), rats_t, mechs_at(t), p, th),
+                        key=lambda x: (x.at, x.kind.value, x.key)):
+            k = (x.kind, x.key)
+            dup = next((y for y in seeds if (y.kind, y.key) == k and (t - last_seen[id(y)]).days <= 400), None)
+            if dup is not None:                        # the same change restated: one catalyst
+                last_seen[id(dup)] = t
+                if t > dup.at:
+                    dup.doc_ids = sorted(set(dup.doc_ids) | set(x.doc_ids))
+                    dup.facts += [f for f in x.facts if f not in dup.facts][:3]
+                    dup.expectations += [f for f in x.expectations if f not in dup.expectations][:3]
+                    if x.completed and not dup.completed and not any(f.endswith("reported completed")
+                                                                      for f in dup.facts):
+                        dup.facts.append(f"{_d(t)}: reported completed")
+                continue
+            if x.at is None or x.at > t or any(x.at <= tt < t for tt in times):
+                x.at = t        # not derivable at an earlier scan: dated when it first became derivable
+            seeds.append(x)
+            last_seen[id(x)] = t
+    return [build_catalyst(ticker, s, series, evidence, events, rats, seeds, as_of, th, series_at, events_at=evs_at)
+            for s in seeds]
 
 
 _ACTIVE = (ResearchStage.SUPPORTED, ResearchStage.VALIDATING, ResearchStage.CONFIRMED)

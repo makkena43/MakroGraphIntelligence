@@ -55,6 +55,43 @@ def normalise_legacy(e: EconomicEvent) -> EconomicEvent:
     return e
 
 
+def event_state_at(e: EconomicEvent, t: datetime) -> Optional[EconomicEvent]:
+    """The event as it stood at ``t``: dated history truncated, stage / amount / cancelled value
+    re-derived from it.  None if the event was not public yet.  (Verification and relationship
+    are not dated on the event itself; callers that need them point-in-time rebuild events from
+    the evidence public by ``t``.)"""
+    import copy
+    if e.first_public_at is None or e.first_public_at > t:
+        return None
+    x = copy.deepcopy(normalise_legacy(copy.deepcopy(e)))
+    hist = [h for h in x.history if h.at is None or h.at <= t]
+    if not hist:
+        return None
+    x.history = hist
+    stage, amount, cancelled = None, None, 0.0
+    for h in hist:
+        if h.stage == EventStage.CANCELLED:
+            before = amount
+            if h.amount is None or h.amount <= 0:
+                stage, amount = EventStage.CANCELLED, 0.0
+            else:
+                amount = h.amount                 # partial cancellation: the remainder stays active
+            cancelled += (before or 0.0) - (amount or 0.0) if before is not None else 0.0
+            continue
+        if h.stage == EventStage.AMENDED:
+            amount = h.amount if h.amount is not None else amount
+            continue
+        stage = h.stage
+        if h.amount is not None:
+            amount = h.amount
+    x.current_stage = stage or x.current_stage
+    if x.amount is not None and amount is not None:
+        from .contracts import Quantity
+        x.amount = Quantity(amount, x.amount.unit, raw=f"as of {t.date()}")
+    x.cancelled_amount = cancelled
+    return x
+
+
 def first_binding_at(e: EconomicEvent) -> Optional[datetime]:
     return next((h.at for h in e.history if h.stage in BINDING_STAGES), None)
 
