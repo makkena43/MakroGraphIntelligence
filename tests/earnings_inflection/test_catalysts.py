@@ -292,3 +292,54 @@ def test_an_unidentified_project_is_never_matched_implicitly():
     ident = project_identity(plan.quote, {})
     assert ident == {"facilities": [], "capacities": []}
     assert not _quote_matches_project("Plant B commenced commercial production.", ident)
+
+
+# --- what was knowable when ---------------------------------------------------------------------
+
+def horizon_rationale(day, months):
+    return RatingRationale(f"rr{day}", "ICRA", at(day), day, facts=[
+        RationaleFact("execution_horizon", None, "", f"next {months} months", True,
+                      f"to be executed over the next {months} months")])
+
+
+def test_a_later_rationale_never_improves_the_original_signal():
+    later = horizon_rationale(date(2023, 9, 10), 9)                  # published 21 days AFTER the 20-Aug catalyst
+    cats, _ = run(rows(FLAT + [100] * 6), BOOKS, date(2023, 9, 30), rationales=[later])
+    o = kind(cats, CatalystKind.ORDERS)[0]
+    assert o.first_public_at.date() == date(2023, 8, 20)
+    assert o.initial_assessment["horizon_basis"] == "" and "assumed" in o.initial_assessment["window_basis"]
+    assert "ICRA" in o.quantities["horizon_basis"]                  # the current record uses it ...
+    assert any(u.startswith("2023-09-10") and "execution horizon now stated" in u for u in o.upgrades)  # ... dated
+    cats, _ = run(rows(FLAT + [100] * 6), BOOKS, date(2023, 8, 31), rationales=[later])
+    assert kind(cats, CatalystKind.ORDERS)[0].quantities["horizon_basis"] == ""    # not yet public
+
+
+def test_support_dates_are_separate_from_first_disclosure():
+    big = [book(250, date(2022, 8, 10), "b22"), book(600, date(2023, 8, 20), "b23")]   # needs 600/yr vs 400
+    stretch = horizon_rationale(date(2023, 10, 5), 15)                               # 480/yr: deliverable
+    cats, _ = run(rows(FLAT + [100] * 6), big, date(2023, 10, 31), rationales=[stretch])
+    o = kind(cats, CatalystKind.ORDERS)[0]
+    assert o.initial_assessment["stage"] == "potential_catalyst"         # what was knowable on 20 Aug
+    assert o.first_public_at.date() == date(2023, 8, 20)                 # first disclosure
+    assert o.materiality_supported_at.date() == date(2023, 8, 20)        # material even at 12 months assumed
+    assert o.execution_supported_at.date() == date(2023, 10, 5)          # pathway only once the horizon was public
+    assert o.supported_at.date() == date(2023, 10, 5) and o.stage == ResearchStage.SUPPORTED
+    assert any(u.startswith("2023-10-05") and "potential_catalyst -> supported" in u for u in o.upgrades)
+
+
+
+def test_timeline_uses_point_in_time_support_and_confirmation_dates():
+    base = {"catalyst_id": "c9", "kind": "executable_orders", "first_public_at": "2023-08-20T00:00:00+05:30",
+            "operating_change": "book up", "contribution": "estimated", "base_crore": 30.0, "share_of_ttm_ebitda": 0.5,
+            "window": [None, None], "milestones": [], "stage_reasons": [], "initial_stage": "potential_catalyst"}
+    snaps = [{"ticker": "T", "as_of": "2023-10-31", "evidence_status": "x", "mechanisms": [],
+              "catalysts": [{**base, "stage": "supported_prospective_inflection",
+                             "supported_at": "2023-10-05T00:00:00+05:30"}]},
+             {"ticker": "T", "as_of": "2024-02-29", "evidence_status": "x", "mechanisms": [],
+              "catalysts": [{**base, "stage": "confirmed_for_investment_review", "supported_at":
+                             "2023-10-05T00:00:00+05:30", "confirmed_at": "2024-02-14T00:00:00+05:30"}]}]
+    tl = catalyst_timeline(snaps)
+    r = tl["catalysts"][0]
+    assert tl["first_defensible_catalyst"] == date(2023, 10, 5)            # support date, not first mention
+    assert r["days_to_supported"] == 46 and r["days_to_confirmed"] == (date(2024, 2, 14) - date(2023, 8, 20)).days
+    assert review_entries(tl, "T")[0]["as_of"] == "2024-02-14"

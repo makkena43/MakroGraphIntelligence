@@ -206,6 +206,16 @@ def _render_catalysts(a) -> list[str]:
         for c in sorted(a.catalysts, key=lambda x: (x.first_public_at is None, x.first_public_at)):
             L.append(f"### {c.kind.value} — {c.stage.value} (first public {_ts(c.first_public_at)}; id {c.catalyst_id})")
             L.append(f"- Operating change: {c.operating_change}")
+            dates = [("materiality supportable", c.materiality_supported_at), ("execution supportable",
+                     c.execution_supported_at), ("supported", c.supported_at), ("validating", c.validating_at),
+                     ("confirmed", c.confirmed_at)]
+            L.append("- Dates: first disclosure " + _ts(c.first_public_at) + "; "
+                     + "; ".join(f"{k} {_ts(v) if v else '—'}" for k, v in dates))
+            if c.initial_assessment:
+                ia = c.initial_assessment
+                L.append(f"- Initial assessment (only what was public at first disclosure): {ia.get('stage')}; "
+                         f"contribution {ia.get('contribution', {}).get('status')}; {ia.get('window_basis')}")
+            L += [f"- Dated upgrade / change: {u}" for u in c.upgrades[-6:]]
             L += [f"- Fact: {x}" for x in c.facts[:4]]
             L += [f"- Expectation / plan: {x}" for x in c.expectations[:4]]
             L += [f"- Corroboration: {x}" for x in c.corroboration[:4]]

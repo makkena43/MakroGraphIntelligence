@@ -584,12 +584,20 @@ def catalyst_timeline(snapshots: list[dict]) -> dict:
                 r["stages"].append((d, c["stage"]))
             r["final_stage"], r["last_seen_as_of"] = c["stage"], d
             r["contribution"], r["base_crore"] = c["contribution"], c["base_crore"]
+            r["initial_stage"] = r.get("initial_stage") or c.get("initial_stage")
+            for k in ("supported_at", "validating_at", "confirmed_at", "materiality_supported_at",
+                      "execution_supported_at"):
+                if c.get(k):                      # point-in-time dates computed from what was public then
+                    r.setdefault(k, _pd(c[k]))
     for r in cats.values():
         f, fp = r["stage_first_as_of"], r["first_public"]
-        days = lambda st: (f[st] - fp).days if st in f and fp else None  # noqa: E731
-        r["days_to_supported"] = days("supported_prospective_inflection")
-        r["days_to_validating"] = days("execution_validating")
-        r["days_to_confirmed"] = days("confirmed_for_investment_review")
+
+        def days(key, st):
+            when = r.get(key) or f.get(st)        # exact date when known, else first replay date in the stage
+            return (when - fp).days if when and fp else None
+        r["days_to_supported"] = days("supported_at", "supported_prospective_inflection")
+        r["days_to_validating"] = days("validating_at", "execution_validating")
+        r["days_to_confirmed"] = days("confirmed_at", "confirmed_for_investment_review")
         r["ever_supported"] = any(st in f for st in ("supported_prospective_inflection", "execution_validating",
                                                      "confirmed_for_investment_review"))
         fs = r["final_stage"]
@@ -599,7 +607,9 @@ def catalyst_timeline(snapshots: list[dict]) -> dict:
     supported = [r for r in rows if r["ever_supported"]]
     return {
         "catalysts": rows,
-        "first_defensible_catalyst": min((r["first_public"] for r in supported if r["first_public"]), default=None),
+        # the date support (materiality + execution pathway) was established - not the first mention
+        "first_defensible_catalyst": min((r.get("supported_at") or r["first_public"] for r in supported
+                                          if r.get("supported_at") or r["first_public"]), default=None),
         "first_any_catalyst": min((r["first_public"] for r in rows if r["first_public"]), default=None),
         "supported": len(supported),
         "confirmed": sum(1 for r in supported if r["verdict"] == "confirmed"),
@@ -617,7 +627,7 @@ def review_entries(timeline: dict, ticker: str) -> list[dict]:
     the earlier watch-list date: returns are measured from when the thesis was confirmed."""
     out = []
     for r in timeline["catalysts"]:
-        d = r["stage_first_as_of"].get("confirmed_for_investment_review")
+        d = r.get("confirmed_at") or r["stage_first_as_of"].get("confirmed_for_investment_review")
         if d:
             out.append({"ticker": ticker, "as_of": d.isoformat(), "lane": "CONFIRMED_FOR_INVESTMENT_REVIEW",
                         "catalyst_id": r["catalyst_id"]})
