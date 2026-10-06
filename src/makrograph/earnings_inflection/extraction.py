@@ -171,9 +171,10 @@ def _strip_enumerator(label: str) -> str:
     return _ENUMERATOR.sub("", label, count=1).strip()
 
 
-_P = r"profit\s*(?:/\s*\(?\s*loss\s*\)?)?"           # "Profit", "Profit/(Loss)", "Profit / (loss)"
+_P = r"profi[tl]\s*(?:/\s*\(?\s*loss\s*\)?)?"       # "Profit", "Profit/(Loss)", "Profit / (loss)"; scanned "Profil"
+_PL = rf"(?:{_P}|loss(?:\s*/\s*\(?\s*profi[tl]\s*\)?)?)"   # also a loss-maker's "Loss for the period", "Loss/(Profit)"
 _ROW_METRICS = [
-    (re.compile(rf"(?:net\s+)?{_P}.{{0,40}}attributable\s+to\s+(?:the\s+)?(?:owners|equity|shareholders)", re.I),
+    (re.compile(rf"(?:net\s+)?(?:\(\s*loss\s*\)\s*/\s*)?{_PL}.{{0,40}}attributable\s+to\s+(?:the\s+)?(?:owners|equity|shareholders)", re.I),
      Metric.PAT_ATTRIBUTABLE),
     (re.compile(r"(?:total\s+)?(?:revenue|income)\s+from\s+operations\b", re.I), Metric.REVENUE),
     (re.compile(r"(?:net\s+)?sales\b", re.I), Metric.REVENUE),
@@ -191,12 +192,12 @@ _ROW_METRICS = [
      Metric.EBITDA),
     (re.compile(r"depreciation", re.I), Metric.DEPRECIATION),
     (re.compile(r"finance\s+costs?\b|interest\s+(?:and\s+finance\s+)?(?:costs?|expenses?)\b", re.I), Metric.FINANCE_COST),
-    (re.compile(rf"(?:\(\s*loss\s*\)\s*/\s*)?{_P}\s*before\s+exceptional\s+(?:items?\s+)?(?:and|&)\s+tax", re.I),
+    (re.compile(rf"(?:\(\s*loss\s*\)\s*/\s*)?{_PL}\s*before\s+exceptional\s+(?:items?\s+)?(?:and|&)\s+tax", re.I),
      Metric.PBT_PRE_EXCEPTIONAL),
     (re.compile(r"exceptional\s+items?\b", re.I), Metric.EXCEPTIONAL_ITEMS),
-    (re.compile(rf"(?:\(\s*loss\s*\)\s*/\s*)?{_P}\s*before\s+tax", re.I), Metric.PBT),
+    (re.compile(rf"(?:\(\s*loss\s*\)\s*/\s*)?{_PL}\s*before\s+tax", re.I), Metric.PBT),
     (re.compile(r"(?:total\s+)?(?:income\s+)?tax\s+expenses?\b", re.I), Metric.TAX),
-    (re.compile(rf"(?:net\s+)?{_P}\s*(?:after\s+tax|for\s+the\s+(?:period|year|quarter|half))", re.I), Metric.PAT),
+    (re.compile(rf"(?:net\s+)?(?:\(\s*loss\s*\)\s*/\s*)?{_PL}\s*(?:after\s+tax|for\s+the\s+(?:period|year|quarter|half))", re.I), Metric.PAT),
     (re.compile(r"(?:owners|equity\s+(?:share)?holders|shareholders)\s+of\s+the\s+(?:company|parent|holding)", re.I),
      Metric.PAT_ATTRIBUTABLE),
     (re.compile(r"non[- ]controlling\s+interests?\b", re.I), Metric.NCI_PROFIT),
@@ -234,6 +235,10 @@ _SECTION = [
 _TAX_PARTS = re.compile(r"(?:current\s+tax|deferred\s+tax|(?:tax\s+(?:in\s+respect\s+of|relating\s+to|for)\s+)?"
                         r"(?:earlier|prior)\s+(?:years?|periods?))\b", re.I)
 _COMPREHENSIVE = re.compile(r"comprehensive\s+income", re.I)
+# "Profit/(Loss) attributable to:", "Other comprehensive income attributable to:" - the heading decides
+# whose share the following bare "Owners of the Company" / "Non-controlling interests" rows are
+_ATTRIBUTION_HEADING = re.compile(r"attributable\s+to\s*[:\-]?\s*$", re.I)
+_PROFIT_WORD = re.compile(r"\b(?:profit|loss|net\s+income|earnings)\b", re.I)
 # Segment reporting: rows such as "Total income from operations" there are segment
 # totals, never the company's own revenue / profit lines.
 _SEGMENT_SECTION = re.compile(r"segment\s*[-‐]?\s*(?:wise\s*)?(?:revenue|results?|information|reporting|assets|"
@@ -570,6 +575,8 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk],
     doc_conv = max(0, _decimal_convention([l for c in chunks if c.kind == "table" for l in c.text.split("\n")]))
     prev_tail: list[str] = []
     prev_page = 0
+    last_table: Optional[tuple] = None    # (page, char_end, columns, scale, scope) of the previous table chunk
+    between = 0                            # characters of non-table text since the previous table chunk
     for c in chunks:
         # lines just before this chunk on the same page: a period-header line can be cut off
         # into its own chunk by a long "(Unaudited) (Audited)" line in between
@@ -577,6 +584,7 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk],
         prev_tail = ([l for l in c.header.split("\n") if l.strip()] + [l for l in c.text.split("\n") if l.strip()])[-8:]
         prev_page = c.page
         if c.kind != "table":
+            between += len(c.text.strip())
             continue
         page_text = page_texts[c.page - 1] if 0 < c.page <= len(page_texts) else ""
         lines = [l for l in c.text.split("\n") if l.strip()]
@@ -611,6 +619,13 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk],
                 resolved, col_issue = layout, ""
                 issues.append(f"{doc.doc_id}:p{c.page}: period columns inferred from the SEBI results layout "
                               f"and {basis} (header dates unreadable)")
+        carried_scale = None
+        counts = widths or {len(split_numeric_row(l)[1]) for l in lines if split_numeric_row(l)[1]}
+        if (not resolved or col_issue or (widths and len(resolved) not in widths)) and last_table and counts \
+                and c.page - last_table[0] in (0, 1) and between <= 300 and len(last_table[2]) in counts:
+            # a statement split into chunks ("12 Profit/(Loss) attributable to:" starts a new chunk):
+            # the rows continue the table immediately above, with the same columns and unit
+            resolved, col_issue, carried_scale = last_table[2], "", last_table[3]
         if not resolved:
             continue
         if col_issue:
@@ -618,14 +633,16 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk],
         cols = [d for d, _ in resolved]
         ptypes = [t for _, t in resolved]
         n = len(cols)
-        scale = _table_scale(c.header, "")
+        scale = _table_scale(c.header, "") or carried_scale
         if scale is None:
             # nearest unit line ABOVE this table; a document without page breaks holds several
             # statements, possibly in different units
             pos = page_text.find(lines[0]) if lines else -1
             above = page_text[max(0, pos - 3000):pos] if pos > 0 else ""
             scale = _nearest_scale(above) or _single_document_scale(page_text)
-        scope = _resolve_scope(c, page_texts)
+        scope = last_table[4] if carried_scale is not None or (last_table and resolved is last_table[2]) \
+            else _resolve_scope(c, page_texts)
+        last_table, between = (c.page, c.char_end, resolved, scale, scope), 0
         col_scopes = [scope] * n
         if n >= 6 and n % 2 == 0 and resolved[: n // 2] == resolved[n // 2:]:
             # side-by-side statements: the column-group line names the order ("Consolidated  Standalone")
@@ -651,6 +668,16 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk],
         found: dict[Metric, list] = {}
         tax_parts: list[list[Optional[float]]] = []
         pending, after_comprehensive, misaligned, section, face_value = "", False, 0, "", None
+        attribution = ""          # "profit" | "comprehensive": the "... attributable to:" block a row sits in
+        prev_label = ""
+        for hl in c.header.split("\n"):        # a chunk can start right under its "... attributable to:" heading
+            hl = hl.strip()
+            if _ATTRIBUTION_HEADING.search(hl.rstrip(" |")):
+                ctx = hl if (_COMPREHENSIVE.search(hl) or _PROFIT_WORD.search(hl)) else prev_label
+                attribution = ("comprehensive" if _COMPREHENSIVE.search(ctx) else
+                               "profit" if _PROFIT_WORD.search(ctx) else "")
+            elif re.search(r"[A-Za-z]{3}", hl):
+                prev_label = hl
         in_segment = bool(_SEGMENT_SECTION.search("\n".join(c.header.split("\n")[-3:])))
         seg_state: dict = {"kind": None, "heading": "", "rows": {}}
         if in_segment:
@@ -675,8 +702,17 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk],
             if in_segment:
                 _segment_row(label, cells, seg_state, n)
                 continue
-            if _COMPREHENSIVE.search(label):
+            if _ATTRIBUTION_HEADING.search(label.rstrip(" |")):
+                # a bare "Attributable to:" takes its meaning from the line above it
+                ctx = label if (_COMPREHENSIVE.search(label) or _PROFIT_WORD.search(label)) else prev_label
+                attribution = ("comprehensive" if _COMPREHENSIVE.search(ctx) else
+                               "profit" if _PROFIT_WORD.search(ctx) else "")
+            elif _COMPREHENSIVE.search(label):
                 after_comprehensive = True
+                if attribution == "profit":
+                    attribution = ""      # the profit-attribution block has ended
+            if re.search(r"[A-Za-z]{3}", label) and not _ATTRIBUTION_HEADING.search(label.rstrip(" |")):
+                prev_label = label
             fv = _FACE_VALUE.search(label)
             if fv:
                 try:
@@ -721,8 +757,14 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk],
             pending = ""
             if not metrics and not is_tax_part:
                 continue
-            if (Metric.PAT_ATTRIBUTABLE in metrics or Metric.NCI_PROFIT in metrics) and after_comprehensive:
-                continue   # owners / NCI share of comprehensive income, not of profit
+            if Metric.PAT_ATTRIBUTABLE in metrics or Metric.NCI_PROFIT in metrics:
+                # owners / NCI share of PROFIT only: a row under "Profit attributable to:" counts even
+                # after the comprehensive-income lines (the usual Ind AS order); a row under a
+                # comprehensive-income heading, or naming comprehensive income itself, never does
+                names_profit = bool(_PROFIT_WORD.search(label) or re.search(r"\bprofi[tl]\b", label, re.I))
+                if _COMPREHENSIVE.search(label) or (not names_profit and (
+                        attribution == "comprehensive" or (attribution != "profit" and after_comprehensive))):
+                    continue
             if len(cells) < n:
                 continue   # blank cells dropped by the PDF text; cannot align safely
             if len(cells) > n + 1:
