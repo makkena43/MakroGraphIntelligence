@@ -62,7 +62,9 @@ def snapshot(a: Assessment) -> dict:
             "share_of_ttm_ebitda": c.contribution.share_of_ttm_ebitda,
             "window": [_iso(c.window_start), _iso(c.window_end)],
             "milestones": [{"question": m.question, "status": m.status.value, "observed": m.observed,
-                            "observed_at": _iso(m.observed_at)} for m in c.milestones],
+                            "observed_at": _iso(m.observed_at), "timetable": m.timetable,
+                            "original_status": m.original_status.value if m.original_status else None}
+                           for m in c.milestones],
             "stage_reasons": c.stage_reasons[:3],
             "initial_stage": (c.initial_assessment or {}).get("stage"),
             "materiality_supported_at": _iso(c.materiality_supported_at),
