@@ -87,6 +87,76 @@ _PRICE_CHANGE = re.compile(r"(?:(?:price|prices|pricing|realis\w*|realiz\w*|ASPs
 _BOTTLENECK = re.compile(r"\b(?:testing (?:facility|capacity|bay|lab\w*)|test bay|bottleneck|debottleneck\w*)\b", re.I)
 
 
+# --- project identity: milestones are judged only on evidence about the SAME project ---------------
+
+_FAC_AFTER = re.compile(r"\b(?i:plant|facility|factory|unit|works|line|site)\s+(?i:no\.?\s*)?"
+                        r"(?:(?i:at|in|of|located at)\s+)?([A-Z][A-Za-z0-9-]*|[0-9IVX]+)\b")
+_FAC_BEFORE = re.compile(r"\b([A-Z][A-Za-z0-9-]{2,})\s+(?i:plant|facility|factory|unit|works)\b")
+_GENERIC = {"the", "new", "our", "this", "that", "its", "manufacturing", "production", "existing", "proposed",
+            "greenfield", "brownfield", "company", "said", "same", "another", "second", "first", "testing", "power",
+            "a", "an", "is", "was", "has", "in", "at", "of", "and", "for", "with", "transformer", "solar", "steel"}
+_QTY_UNIT = re.compile(r"([\d,]+(?:\.\d+)?)\s*(MVA|MW|GW|KW|TPA|MTPA|KTPA|KLPD|KLD|MT|tonnes|tons|units|"
+                       r"lakh units|million units|pieces|sets)\b", re.I)
+
+
+def _facilities(text: str) -> set[str]:
+    """Facility tokens: short designators keep their case ("A", "II"); names are lower-cased."""
+    out = set()
+    for rx in (_FAC_AFTER, _FAC_BEFORE):
+        for m in rx.finditer(text):
+            tok = m.group(1)
+            if len(tok) <= 3 and (tok.isupper() or tok.isdigit()):
+                out.add(tok)
+            elif tok.lower() not in _GENERIC and not tok.isdigit():
+                out.add(tok.lower())
+    return out
+
+
+def project_identity(text: str, q: dict) -> dict:
+    """Facility names and target capacities that identify a project; empty = cannot be matched."""
+    fac = _facilities(text or "")
+    caps = set()
+    if q.get("to") and q.get("unit"):
+        caps.add((round(float(q["to"]), 3), str(q["unit"]).lower()))
+    return {"facilities": sorted(fac), "capacities": sorted(caps)}
+
+
+def _quote_matches_project(quote: str, ident: dict) -> bool:
+    if not ident or not (ident.get("facilities") or ident.get("capacities")):
+        return False                                   # unidentified project: never matched implicitly
+    q_fac = _facilities(quote)
+    if ident.get("facilities"):
+        if q_fac & set(ident["facilities"]):
+            return True
+        if q_fac:                                      # names a DIFFERENT facility
+            return False
+    q_caps = {(round(float(n.replace(",", "")), 3), u.lower()) for n, u in _QTY_UNIT.findall(quote)}
+    return bool(q_caps & {tuple(x) for x in ident.get("capacities", [])})
+
+
+_NOT_DONE = re.compile(r"\b(?:not yet|yet to|is expected to|are expected to|expected to be|will be|would be|shall be|"
+                       r"scheduled to|likely to|planned to|plans? to|proposed to|targeted? to|anticipated to|"
+                       r"to be commissioned|awaiting|pending)\b", re.I)
+_RISK_ONLY = re.compile(r"\b(?:risk|could|may|might|if|in case|any)\b[^.]{0,40}\b(?:cancel\w*|abandon\w*|delay\w*|"
+                        r"defer\w*)", re.I)
+
+
+def _realised_about(e: Evidence, rx: re.Pattern, ident: dict, allow_forecast: bool = False) -> bool:
+    """A realised (not forecast, not negated, not a mere risk) statement about THIS project."""
+    if e.modality in (Modality.NEGATED,) or (not allow_forecast and e.modality in (Modality.FORWARD,
+                                                                                   Modality.CONDITIONAL)):
+        return False
+    m = rx.search(e.quote)
+    if not m:
+        return False
+    window = e.quote[max(0, m.start() - 60):m.end() + 20]
+    if not allow_forecast and _NOT_DONE.search(window):
+        return False
+    if _RISK_ONLY.search(window):
+        return False
+    return _quote_matches_project(e.quote, ident)
+
+
 def _d(x) -> Optional[date]:
     if x is None:
         return None
@@ -218,6 +288,8 @@ def _capacity_seeds(evidence, rationales, th) -> list[Seed]:
     for at, text, docs, ev in _leading_capacity(evidence, th):
         m = re.search(r"([\d.]+)\s*->\s*([\d.]+)\s*(\S+)", text)
         q = {"from": float(m.group(1)), "to": float(m.group(2)), "unit": m.group(3)} if m else {}
+        src = " ".join(e.quote for e in evidence if e.evidence_id in ev)
+        q["project"] = project_identity(src, q)
         out.append(Seed(CatalystKind.CAPACITY, at, text, f"cap:{q.get('to')}{q.get('unit')}", docs, ev,
                         facts=[f"{_d(at)}: {text}"], q=q, completed=True))
     for r in rationales:
@@ -229,6 +301,7 @@ def _capacity_seeds(evidence, rationales, th) -> list[Seed]:
             if not a or (b / a - 1) * 100 < th["capacity_expansion_pct"]:
                 continue
             q = {"from": a, "to": b, "unit": m.group(3)}
+            q["project"] = project_identity(f.quote, q)
             if f.expected:
                 when = next((parse_when(c.text, _d(r.published_at)) for c in r.get("completion") if c.expected), None)
                 q["expected_completion"] = when.isoformat() if when else None
@@ -257,7 +330,8 @@ def _capacity_seeds(evidence, rationales, th) -> list[Seed]:
                         f"planned capacity {a:g} -> {b:g} {m.group(4)} ({(b / a - 1) * 100:+.0f}%), stated by the issuer",
                         f"cap:{b}{m.group(4)}", [e.doc_id], [e.evidence_id],
                         expectations=[f"{_d(e.available_at)} issuer plan: \"{e.quote[:220]}\""],
-                        q={"from": a, "to": b, "unit": m.group(4),
+                        q={"from": a, "to": b, "unit": m.group(4), "project": project_identity(e.quote, {
+                            "to": b, "unit": m.group(4)}),
                            "expected_completion": when.isoformat() if when else None}, completed=False))
     for e in evidence:
         if e.usable and e.available_at and _BOTTLENECK.search(e.quote) and re.search(
@@ -269,7 +343,7 @@ def _capacity_seeds(evidence, rationales, th) -> list[Seed]:
                             f"({_d(e.available_at)})", f"bottleneck:{_d(e.available_at)}", [e.doc_id], [e.evidence_id],
                             facts=[f"\"{e.quote[:220]}\""] if done else [],
                             expectations=[] if done else [f"\"{e.quote[:220]}\""],
-                            q={"bottleneck": True}, completed=done))
+                            q={"bottleneck": True, "project": project_identity(e.quote, {})}, completed=done))
     return out
 
 
@@ -770,12 +844,20 @@ def _milestones(s, c, series, p, evidence, events, as_of, th):
         if s.completed:
             com.status, com.observed, com.observed_at = MilestoneStatus.MET, "reported in operation at disclosure", s.at
         else:
-            done = [e for e in later_ev if _COMMISSIONED.search(e.quote) and re.search(r"capacit|plant|line|unit|facilit",
-                                                                                         e.quote, re.I)]
-            dropped = [e for e in later_ev if _ABANDONED.search(e.quote) and re.search(r"capex|project|plant|capacit|"
-                                                                                       r"expansion", e.quote, re.I)]
-            slipped = [e for e in later_ev if _DELAYED.search(e.quote) and re.search(r"capex|project|plant|capacit|"
-                                                                                    r"expansion|commission", e.quote, re.I)]
+            ident = s.q.get("project") or {}
+            done = [e for e in later_ev if _realised_about(e, _COMMISSIONED, ident)]
+            dropped = [e for e in later_ev if _realised_about(e, _ABANDONED, ident)]
+            # a stated delay is itself a statement about the future timetable: forecasts allowed, risks not
+            slipped = [e for e in later_ev if _realised_about(e, _DELAYED, ident, allow_forecast=True)]
+            unmatched = [e for e in later_ev if (_COMMISSIONED.search(e.quote) or _DELAYED.search(e.quote)
+                                                 or _ABANDONED.search(e.quote)) and e not in done + dropped + slipped
+                         and re.search(r"capacit|plant|line|unit|facilit|project", e.quote, re.I)]
+            if not (ident.get("facilities") or ident.get("capacities")):
+                c.uncertainties.append("project not identifiable (no facility or target capacity): later "
+                                       "commissioning / delay statements cannot be attributed to it")
+            if unmatched:
+                c.uncertainties.append(f"{len(unmatched)} later commissioning / delay statement(s) not attributable "
+                                       "to this project (other facility, unidentified, forecast or risk): unresolved")
             if dropped:
                 com.status, com.observed = MilestoneStatus.CONTRADICTED, f"\"{dropped[0].quote[:160]}\""
             elif done:
