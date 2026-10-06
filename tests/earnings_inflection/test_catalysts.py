@@ -466,3 +466,25 @@ def test_a_stated_delay_sets_an_explicit_revised_deadline():
     com = c.milestones[0]
     assert com.status == MilestoneStatus.MET and com.timetable == "recovered_late"
     assert com.original_status == MilestoneStatus.MISSED
+
+
+def test_ledger_versions_every_decision_relevant_change(tmp_path):
+    import copy
+    from makrograph.earnings_inflection.catalyst_ledger import CatalystLedger
+    cats, _ = run(rows([100] * 12), [CAP_PLAN, book(500, date(2023, 6, 20), "bk")], date(2023, 7, 1))
+    led = CatalystLedger(tmp_path)
+    assert led.record("T", "2023-07-01", cats, RULES_VERSION, "cfgA") >= 1
+    assert led.record("T", "2023-07-02", cats, RULES_VERSION, "cfgA") == 0          # nothing changed
+    moved = copy.deepcopy(cats)
+    c = kind(moved, CatalystKind.CAPACITY)[0]
+    c.window_start = date(2024, 9, 30)                                               # completion date moved
+    assert led.record("T", "2023-07-03", moved, RULES_VERSION, "cfgA") == 1
+    funded = copy.deepcopy(moved)
+    kind(funded, CatalystKind.CAPACITY)[0].contribution.bridge_assumptions.append("funding now stated: equity")
+    assert led.record("T", "2023-07-04", funded, RULES_VERSION, "cfgA") == 1
+    uncertain = copy.deepcopy(funded)
+    kind(uncertain, CatalystKind.CAPACITY)[0].uncertainties.append("new source disagrees")
+    assert led.record("T", "2023-07-05", uncertain, RULES_VERSION, "cfgA") == 1
+    assert led.record("T", "2023-07-06", uncertain, RULES_VERSION, "cfgB") >= 1          # configuration changed
+    v = led.history("T")[c.catalyst_id]
+    assert [x["config_hash"] for x in v][-1] == "cfgB" and v[1]["record"]["window_start"] == "2024-09-30"
