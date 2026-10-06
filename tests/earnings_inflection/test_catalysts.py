@@ -154,7 +154,7 @@ def test_missed_commissioning_is_delayed_and_a_shelved_project_is_contradicted()
     ev = [CAP_PLAN, book(500, date(2023, 6, 20), "bk")]
     cats, _ = run(rows([100] * 12), ev, date(2024, 7, 15))
     assert kind(cats, CatalystKind.CAPACITY)[0].stage == ResearchStage.DELAYED
-    shelved = ev + [stmt(Metric.CAPEX, "The expansion project has been put on hold given weak demand.",
+    shelved = ev + [stmt(Metric.CAPEX, "The 200 MW expansion project has been put on hold given weak demand.",
                          date(2024, 2, 1), doc="hold")]
     cats, _ = run(rows([100] * 6 + [150] * 6), shelved, date(2024, 3, 1))     # strong growth, but shelved
     assert kind(cats, CatalystKind.CAPACITY)[0].stage == ResearchStage.CONTRADICTED
@@ -238,3 +238,57 @@ def test_timeline_measures_early_detection_and_returns_from_confirmation_only():
                              {"V": {**tl, "supported": 0, "data_unavailable": 0}},
                              {"U": {"missing_periods": 3}, "V": {}})
     assert [(m["ticker"], m["reason"]) for m in miss] == [("U", "data coverage"), ("V", "detector miss")]
+
+
+# --- milestones are linked to the project's identity --------------------------------------------
+
+PLANT_A = stmt(Metric.CAPACITY, "The Board approved expanding the Plant A facility capacity from 100 MW to 200 MW, "
+                                "expected by March 2024.", date(2023, 6, 1), Modality.FORWARD, "planA")
+DEMAND = book(500, date(2023, 6, 20), "bkA")
+
+
+def cap_after(*later, as_of=date(2024, 3, 1)):
+    cats, _ = run(rows([100] * 12), [PLANT_A, DEMAND, *later], as_of)
+    return kind(cats, CatalystKind.CAPACITY)[0]
+
+
+def test_another_plants_commissioning_does_not_confirm_this_project():
+    c = cap_after(stmt(Metric.CAPACITY, "Plant B commenced commercial production during the quarter.",
+                       date(2024, 1, 10), doc="b"))
+    com = c.milestones[0]
+    assert com.status != MilestoneStatus.MET and c.stage != ResearchStage.VALIDATING
+    assert any("not attributable" in u for u in c.uncertainties)
+    c = cap_after(stmt(Metric.CAPACITY, "Plant A commenced commercial production during the quarter.",
+                       date(2024, 1, 10), doc="a"))
+    assert c.milestones[0].status == MilestoneStatus.MET
+
+
+def test_forecast_or_negated_commissioning_is_not_commissioning():
+    for q in ("Plant A is yet to be commissioned.", "Plant A is expected to be commissioned in Q1 FY25.",
+              "Commercial production at Plant A will be started next quarter."):
+        c = cap_after(stmt(Metric.CAPACITY, q, date(2024, 1, 10), doc="x"))
+        assert c.milestones[0].status != MilestoneStatus.MET, q
+
+
+def test_delays_and_abandonment_must_concern_this_project():
+    c = cap_after(stmt(Metric.CAPEX, "The Plant B expansion has been deferred.", date(2024, 1, 10), doc="d"),
+                  as_of=date(2024, 1, 31))
+    assert c.stage not in (ResearchStage.DELAYED, ResearchStage.CONTRADICTED)
+    c = cap_after(stmt(Metric.CAPEX, "Any delay could defer the Plant A project and it may be cancelled.",
+                       date(2024, 1, 10), doc="r"), as_of=date(2024, 1, 31))
+    assert c.stage != ResearchStage.CONTRADICTED                       # a stated risk is not an abandonment
+    c = cap_after(stmt(Metric.CAPEX, "Commissioning of Plant A has been delayed to Q2 FY25.", date(2024, 1, 10),
+                       doc="dA"), as_of=date(2024, 1, 31))
+    assert c.stage == ResearchStage.DELAYED
+    c = cap_after(stmt(Metric.CAPEX, "The Plant A project has been shelved.", date(2024, 1, 10), doc="sA"),
+                  as_of=date(2024, 1, 31))
+    assert c.stage == ResearchStage.CONTRADICTED
+
+
+def test_an_unidentified_project_is_never_matched_implicitly():
+    plan = stmt(Metric.CAPACITY, "We plan to add new capacity, expected by March 2024.", date(2023, 6, 1),
+                Modality.FORWARD, "p0")
+    from makrograph.earnings_inflection.catalysts import project_identity, _quote_matches_project
+    ident = project_identity(plan.quote, {})
+    assert ident == {"facilities": [], "capacities": []}
+    assert not _quote_matches_project("Plant B commenced commercial production.", ident)
