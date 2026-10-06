@@ -12,10 +12,10 @@ class AnthropicClient:
     Credentials resolve the SDK's usual way (ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN or an
     ``ant auth login`` profile) and are never logged.  Extraction is a bounded task, so
     effort defaults to ``low``.  A refusal is a failed call (counted, never "no signal").
-    Server-side refusal fallback is on by default and can be disabled in config."""
+    Server-side refusal fallback is off by default; enable it with llm.fallbacks: true."""
     provider = "anthropic"
 
-    def __init__(self, model: str = "claude-opus-5-5", effort: str = "low", fallbacks: bool = True,
+    def __init__(self, model: str = "claude-opus-5-5", effort: str = "low", fallbacks: bool = False,
                  timeout_s: float = 120.0):
         try:
             import anthropic

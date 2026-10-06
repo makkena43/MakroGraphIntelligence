@@ -110,7 +110,7 @@ earnings_inflection:
     # fake_responses: tests/llm_fake_responses.json   # provider: fake -> {chunk substring: JSON array}
     model: claude-opus-5-5             # provider: anthropic; credentials from ANTHROPIC_API_KEY / ant auth profile
     effort: low                        # bounded extraction task
-    fallbacks: true                    # server-side refusal fallback (Claude API only); set false to disable
+    fallbacks: false                   # server-side refusal fallback (Claude API only); off by default
     max_tokens: 2048
     max_chunks_per_doc: 4              # only ambiguous / material narrative chunks are sent
     est_tokens_per_call: 2500

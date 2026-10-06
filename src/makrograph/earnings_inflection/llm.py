@@ -110,7 +110,7 @@ def build_client(llm_cfg: dict) -> Optional[LLMClient]:
     if provider == "anthropic":
         from .llm_provider_anthropic import AnthropicClient       # opt-in network adapter, imported only here
         return AnthropicClient(model=llm_cfg.get("model", "claude-opus-5-5"), effort=llm_cfg.get("effort", "low"),
-                               fallbacks=bool(llm_cfg.get("fallbacks", True)))
+                               fallbacks=bool(llm_cfg.get("fallbacks", False)))
     return None
 
 

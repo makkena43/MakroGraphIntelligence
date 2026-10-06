@@ -199,7 +199,7 @@ llm: {enabled: true, provider: fake, fake_responses: my_fake.json}   # offline d
 budget: {enabled: true, max_calls: 50, max_tokens: 500000, max_spend_usd: 2.0, usd_per_1k_tokens: 0.004}
 ```
 
-- **Provider `anthropic`:** uses `claude-opus-5-5` at low effort, with server-side refusal fallback on. Credentials come from `ANTHROPIC_API_KEY` or an `ant auth login` profile and are never printed.
+- **Provider `anthropic`:** uses `claude-opus-5-5` at low effort, with server-side refusal fallback off (set `llm.fallbacks: true` to enable). Credentials come from `ANTHROPIC_API_KEY` or an `ant auth login` profile and are never printed.
 - **Preflight:** a missing client or zero budget fails preflight **once** (exit code 2) before any company is processed.
 - **What is sent:** only ambiguous or material narrative chunks.
 - **Validation:** every returned field is checked against the quote. Rejections, failed calls and budget stops are counted in `coverage.llm` and the manifest. A budget stop marks the run PARTIAL.
