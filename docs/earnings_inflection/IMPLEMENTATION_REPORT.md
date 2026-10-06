@@ -521,3 +521,31 @@ regression test in `test_review_fixes_thesis.py`):
 - **One example only:** INDOTECH is a regression example, not a validation sample. No returns were computed, because no identity-checked price series is available.
 - **Rules and cohort:** the two-period combined test was specified by the request ("next one or two relevant quarters"). I had already seen INDOTECH's lumpy quarters when implementing it. The thresholds must be frozen (fingerprint above) and evaluated on a pre-registered cohort that includes failures.
 - **Extraction:** lexical extraction still produces some noisy statements. The pricing and mix seeds now require explicit, sized changes.
+
+## 11. Review round 2: shortlist and dates you can trust (rules catalyst-rules-2, fingerprint 59c9ec2217ec6c4d)
+
+| # | Finding | Fix | Tests |
+|---|---|---|---|
+| 1 | Discovery still ranked by `evidence_status` | Lanes follow the current lead catalyst. Reported performance is a separate field, and a lower lane only when there is no catalyst. Scores come from the lead catalyst. Flags = supported or better. | `test_discovery_catalysts.py`: muted results + supported catalyst reach the shortlist end to end; WP8/WP9 updated |
+| 2 | Plant B commissioning confirmed Plant A | Project identity (facility, target capacity). Realised-only matching (no forecast, negation or risk). Unattributable statements are unresolved. Same rules for delays and abandonment. | identity tests |
+| 3 | Later rationale attached to an earlier date | Initial assessment frozen at first disclosure. Dated upgrades. Separate materiality / execution / support / validation / confirmation dates. Horizon only from rationales public by the cutoff. | knowability tests |
+| 4 | Any cancellation contradicted every order catalyst | Linked event ids per catalyst. Cancelled or amended-down value vs the catalyst's demand (20% contradicts, 5% noted; partials count). Unrelated cancellations are company risks. | cancellation tests |
+| 5 | Only the first two periods examined | Original verdict kept. Rolling monitoring. Recovered-late vs on-schedule vs deteriorated. Explicit revised deadlines. | monitoring tests |
+| 6 | Materiality was an EBITDA proxy | Three tiers (illustrative / supported EBITDA / recurring parent PAT and EPS). Stricter supported capacity increment. Confirmation needs material recurring earnings or carries an open review condition. | tier and bridge tests |
+| 7 | Ledger missed changes | Full-record fingerprint plus rules version plus config hash. | ledger test |
+
+**Also fixed:**
+- an implausible share-count jump (+9,904% on INDOTECH) is treated as data to check, not dilution;
+- shared ingestion gains an opt-in to download rating rationales (off by default; regression-tested).
+
+**Unfamiliar companies (eight exported issuers, as of 2024-03-31; LIMITED COHORT):**
+- no issuer reached supported or better;
+- SUPRIYA and GOLDIAM are potential catalysts (mix shifts with unresolved magnitude);
+- INDOTECH and SHAILY are reported performance only;
+- DEEPAKFERT is data repair.
+- The database export contains no credit-rating filings, so INDOTECH's order-book catalyst, visible in NSE filings, is missing here. This is a document-coverage gap, not a detector verdict.
+
+**Still needed before trusting historical detection dates:**
+- a pre-registered, company-neutral cohort that includes failed expansions and cancelled orders;
+- documents for that cohort, including rating rationales (needs the ingestion option and authorisation);
+- an identity-checked adjusted price series for returns from confirmation dates.

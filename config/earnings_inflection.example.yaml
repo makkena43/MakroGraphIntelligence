@@ -89,7 +89,7 @@ earnings_inflection:
     results_deadline_days: 45            # SEBI quarterly / half-yearly deadline; 60 after the year end
     results_deadline_days_year_end: 60
 
-  catalyst_thresholds:                 # forward catalysts (rules_version catalyst-rules-1; freeze before evaluating)
+  catalyst_thresholds:                 # forward catalysts (rules_version catalyst-rules-2; freeze before evaluating)
     order_book_growth_pct: 30.0          # stated order book vs a snapshot 5-15 months earlier
     order_inflow_to_ttm_revenue: 0.25    # verified binding external orders in 12 months / TTM revenue
     capacity_expansion_pct: 20.0

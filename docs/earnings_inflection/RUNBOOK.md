@@ -263,6 +263,23 @@ Catalysts older than their window plus 12 months are history: they are listed, b
 
 `evaluation.review_entries` dates returns from the confirmation date, never from the earlier watch-list date. `missed_candidates` separates data-coverage misses from detector misses.
 
+#### Catalyst rules (catalyst-rules-2; `FROZEN_RULES.md`)
+
+- **Knowability:**
+  - Each catalyst records its first disclosure plus the dates materiality, execution, support, validation and confirmation became supportable.
+  - The initial assessment uses only what was public at first disclosure; later evidence appears as dated upgrades.
+  - An execution horizon counts only from rationales already public at the cutoff.
+- **Project identity:** commissioning, delay and abandonment count only when they name the same facility or target capacity, and only as realised statements (no forecasts, negations or mere risks). Unattributable statements stay unresolved.
+- **Cancellations:** linked to the orders behind each catalyst and weighed against its demand (20% or more contradicts; 5% or more is noted). Unrelated cancellations are company-level risks.
+- **Monitoring:** the original-timetable verdict is kept, and later windows keep being monitored. "Recovered late", "deteriorated" and "confirmed on schedule" are distinct labels. Stated delays set explicit revised deadlines; original deadlines never move.
+- **Earnings tiers:**
+  - illustrative operating upside, never counted;
+  - supported incremental EBITDA (for capacity this needs a stated order-book horizon and evidence that capacity is constraining);
+  - recurring parent earnings after D&A, interest, tax, minority share and dilution.
+  - Confirmation needs material recurring earnings; otherwise there is an explicit open investment-review condition.
+- **Ledger:** the fingerprint covers the complete record plus the rules version and config hash.
+- **Shared ingestion (opt-in, off):** `download_high_value_pdfs(include_credit_rating_rationales=True)` also downloads company-filed rating rationales (NSE "Credit Rating" categories). The current database export holds none, so production catalysts cannot see them until this is enabled with authorisation.
+
 ### D.1b Forward-looking thesis and replay timelines
 
 Each report also has a **Forward-looking thesis** section, next to (never replacing) the evidence status.
@@ -334,7 +351,10 @@ python scripts/earnings_inflection.py --universe SNAP.json --as-of LATER --previ
   - `shortlist.json`
   - `shortlist.md`
   - `checkpoint.json`
-- **Lanes:** EXECUTION_RESEARCH, COMMITMENT_RESEARCH, ASSERTION_WATCH, DATA_REPAIR and CONTRADICTED_OR_STALE. Scores are visible components, not probabilities, and lanes are never padded.
+- **Lanes (forward catalyst first):** CONFIRMED_FOR_REVIEW, EXECUTION_VALIDATING, PROSPECTIVE_SUPPORTED, POTENTIAL_CATALYST, REPORTED_PERFORMANCE_ONLY (growth with no current catalyst), DATA_REPAIR and CONTRADICTED_OR_STALE.
+  - Every record also carries `reported_performance` (the evidence status) as a separate dimension, plus `forward_setup` with the lead catalyst and its dates.
+  - The first defensible signal is the date support was established, not the first mention.
+  - Scores are visible components, not probabilities. Lanes are never padded.
 - **Example:** `docs/earnings_inflection/examples/research_shortlist_synthetic.md` (synthetic issuers).
 - **Production use:** needs a production snapshot built from your universe tables and the read-only adapter.
 
