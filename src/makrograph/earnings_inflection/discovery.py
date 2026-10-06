@@ -193,7 +193,9 @@ def score_components(a: Assessment, as_of: date) -> dict[str, float]:
             q -= 0.05                                      # agency restatement only: corroboration, lower weight
         if a.coverage.get("result_periods", {}).get("missing"):
             q -= 0.1
-        share = lead.contribution.share_of_ttm_ebitda
+        # recurring parent earnings when bridged; otherwise the supported EBITDA increment
+        share = (lead.contribution.share_of_ttm_parent_pat if lead.contribution.bridge_status == "computed"
+                 and lead.contribution.share_of_ttm_parent_pat is not None else lead.contribution.share_of_ttm_ebitda)
         materiality = _clip((share or 0.0) / 0.5) if lead.contribution.status == "estimated" else \
             (0.2 if lead.contribution.status == "potentially_material_unresolved" else 0.0)
         anchor = getattr(lead, "supported_at", None) or lead.first_public_at

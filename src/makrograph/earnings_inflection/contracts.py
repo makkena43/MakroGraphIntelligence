@@ -364,6 +364,19 @@ class EarningsContribution:
     share_of_ttm_ebitda: Optional[float] = None
     basis: str = ""
     assumptions: list[str] = field(default_factory=list)
+    # three tiers: illustrative operating upside (never counted) | supported incremental EBITDA (above) |
+    # recurring parent earnings after D&A, interest, tax, minority interest and dilution
+    illustrative_crore: Optional[float] = None
+    illustrative_basis: str = ""
+    pat_downside_crore: Optional[float] = None
+    pat_base_crore: Optional[float] = None
+    pat_upside_crore: Optional[float] = None
+    eps_base: Optional[float] = None
+    share_of_ttm_parent_pat: Optional[float] = None
+    bridge_status: str = "not_computed"      # computed | unresolved
+    bridge_missing: list[str] = field(default_factory=list)
+    bridge_assumptions: list[str] = field(default_factory=list)
+    earnings_materiality: str = "unresolved"  # established | not_material | unresolved
 
 
 @dataclass
@@ -391,6 +404,7 @@ class Catalyst:
     quantities: dict[str, Any] = field(default_factory=dict)  # seed values used to rebuild it
     # what was knowable when: the initial assessment uses ONLY evidence public at first disclosure;
     # later evidence produces dated upgrades and never improves the original signal retrospectively
+    review_conditions: list[str] = field(default_factory=list)   # unresolved items the review must settle
     initial_assessment: dict[str, Any] = field(default_factory=dict)
     materiality_supported_at: Optional[datetime] = None
     execution_supported_at: Optional[datetime] = None
@@ -412,6 +426,7 @@ class InvestmentReview:
     governance: list[str] = field(default_factory=list)
     liquidity_and_downside: list[str] = field(default_factory=list)
     missing: list[str] = field(default_factory=list)
+    conditions: list[str] = field(default_factory=list)       # explicit unresolved review conditions
     note: str = ("A valid inflection can still be an unattractive investment at the prevailing price; "
                  "this gate assembles inputs for a human review and does not authorise any action.")
 
