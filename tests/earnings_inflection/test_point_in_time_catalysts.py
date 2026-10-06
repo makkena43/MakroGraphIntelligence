@@ -174,3 +174,35 @@ def test_thesis_leading_order_signal_survives_a_later_cancellation():
                            DEFAULT_THESIS_THRESHOLDS)
     assert live and dead and live[0][0] == dead[0][0] and live[0][1] == dead[0][1]
     assert live[0][1].startswith("issuer-disclosed binding orders")
+
+
+def test_a_later_refiling_does_not_rewrite_figures_known_earlier(tmp_path):
+    """A revised results filing replaces the earlier figures only from its own publication date:
+    the catalyst assessed before it keeps the figures as originally filed."""
+    import json
+
+    from makrograph.earnings_inflection.pipeline import EarningsInflectionPipeline
+    from makrograph.earnings_inflection.source_repository import FixtureRepository
+
+    from .test_discovery_catalysts import build, results_text
+    fx = build(tmp_path)
+    data = json.loads((fx / "quiet.json").read_text())
+    q = date(2024, 3, 31)                       # as filed: 130; revised on 25 Jul 2024 (after detection): 50
+    orig = next(d for d in data["documents"] if d["doc_id"] == f"QR-{q}")
+    orig["text"] = orig["text"].replace("Revenue from operations          100.00",
+                                        "Revenue from operations          130.00")
+    data["documents"].append({
+        "doc_id": "QR-revised", "ticker": "QUIETCO", "source_name": "nse", "doc_type": "announcement",
+        "filing_type": "Financial Results", "title": f"Revised financial results for quarter ended {q}",
+        "company": "Quiet Co Limited", "published_at": "2024-07-25T18:00:00+05:30",
+        "text": results_text(q).replace("Revenue from operations          100.00",
+                                        "Revenue from operations          50.00")})
+    (fx / "quiet.json").write_text(json.dumps(data))
+    pipe = EarningsInflectionPipeline({}, FixtureRepository(fx))
+    before = pipe.run(["QUIETCO"], "2024-07-20").assessments[0].catalysts
+    after = pipe.run(["QUIETCO"], "2024-08-05").assessments[0].catalysts     # revision public, Jun-24 not yet
+    assert pipe.last_series.get(Metric.REVENUE, q, "Q").value == 50.0        # the revision is the current figure
+    assert before
+    _prefix_invariant(before, after, date(2024, 7, 20))
+    c = next(x for x in after if x.catalyst_id == before[0].catalyst_id)
+    assert c.quantities["ttm_revenue_at_detection"] == before[0].quantities["ttm_revenue_at_detection"] == 430.0
