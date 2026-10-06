@@ -530,7 +530,13 @@ class EarningsInflectionPipeline:
             from .catalyst_ledger import CatalystLedger
             from .catalysts import RULES_VERSION
             led = CatalystLedger(self.cfg["catalyst_ledger"])
-            led.record(ticker, as_of.date().isoformat(), a.catalysts, RULES_VERSION)
+            import hashlib as _h
+            import json as _j
+            from .catalysts import DEFAULT_CATALYST_THRESHOLDS
+            cfg_used = {**DEFAULT_CATALYST_THRESHOLDS, **(self.cfg.get("bridge_assumptions") or {}),
+                        **(self.cfg.get("catalyst_thresholds") or {})}
+            led.record(ticker, as_of.date().isoformat(), a.catalysts, RULES_VERSION,
+                       _h.sha256(_j.dumps(cfg_used, sort_keys=True, default=str).encode()).hexdigest()[:16])
             since = led.stage_dates(ticker)
             for c in a.catalysts:
                 d = since.get(c.catalyst_id, {}).get(c.stage.value)

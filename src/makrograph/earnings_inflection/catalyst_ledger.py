@@ -20,11 +20,20 @@ from typing import Iterable
 from .contracts import Catalyst, to_jsonable
 
 
-def _fingerprint(c: Catalyst) -> str:
-    return json.dumps({"stage": c.stage.value, "milestones": [(m.question, m.status.value, m.observed)
-                                                              for m in c.milestones],
-                       "contribution": [c.contribution.status, c.contribution.base_crore],
-                       "chain": [(x.link, x.status) for x in c.chain]}, sort_keys=True, default=str)
+# fields that are bookkeeping, not decisions (set from the ledger itself after recording)
+_NOT_DECISION = {"stage_since"}
+
+
+def _fingerprint(c: Catalyst, rules_version: str = "", config_hash: str = "") -> str:
+    """Hash of the COMPLETE decision-relevant record (facts, expectations, sources, uncertainties,
+    window, chain, every scenario / bridge figure and assumption, milestones, invalidators, stage,
+    dates, upgrades) plus the rules version and configuration in force.  Any change - a moved
+    completion date, a new funding assumption, a changed threshold - creates a new version."""
+    import hashlib
+    rec = {k: v for k, v in to_jsonable(c).items() if k not in _NOT_DECISION}
+    payload = json.dumps({"record": rec, "rules_version": rules_version, "config_hash": config_hash},
+                         sort_keys=True, default=str)
+    return hashlib.sha256(payload.encode()).hexdigest()
 
 
 class CatalystLedger:
@@ -46,7 +55,8 @@ class CatalystLedger:
             out.setdefault(v["catalyst_id"], []).append(v)
         return out
 
-    def record(self, ticker: str, as_of: str, catalysts: Iterable[Catalyst], rules_version: str = "") -> int:
+    def record(self, ticker: str, as_of: str, catalysts: Iterable[Catalyst], rules_version: str = "",
+               config_hash: str = "") -> int:
         """Append a version for each new or changed catalyst.  Returns the number appended.
         Versions are written in as-of order; recording an earlier as-of after a later one is
         refused (the ledger is a timeline, not a cache)."""
@@ -59,13 +69,14 @@ class CatalystLedger:
         with self._file(ticker).open("a") as fh:
             for c in catalysts:
                 prev = hist.get(c.catalyst_id, [])
-                fp = _fingerprint(c)
+                fp = _fingerprint(c, rules_version, config_hash)
                 if prev and prev[-1]["fingerprint"] == fp:
                     continue
                 fh.write(json.dumps({"catalyst_id": c.catalyst_id, "ticker": ticker, "as_of": as_of,
                                      "version": len(prev) + 1, "stage": c.stage.value,
                                      "first_public_at": c.first_public_at.isoformat() if c.first_public_at else None,
-                                     "rules_version": rules_version, "fingerprint": fp,
+                                     "rules_version": rules_version, "config_hash": config_hash,
+                                     "fingerprint": fp,
                                      "record": to_jsonable(c)}, default=str) + "\n")
                 n += 1
         return n
