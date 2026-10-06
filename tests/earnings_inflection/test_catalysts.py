@@ -177,11 +177,11 @@ def test_capacity_needs_horizon_and_a_constraint_before_its_increment_is_support
     assert k.illustrative_crore == pytest.approx(60.0) and "never counted" in k.illustrative_basis
 
 
-def capacity_rationale(day, util, horizon=12, capex=None, funding=None):
+def capacity_rationale(day, util, horizon=12, capex=None, funding=None, capex_for=" to expand capacity to 200 MW"):
     facts = [RationaleFact("execution_horizon", None, "", f"next {horizon} months", True, "to be executed"),
              RationaleFact("utilization", util, "%", f"{util}%", False, f"capacity utilisation stood at {util}%")]
     if capex:
-        facts.append(RationaleFact("capex", capex, "crore", f"Rs {capex} crore", True, f"capex of Rs {capex} crore"))
+        facts.append(RationaleFact("capex", capex, "crore", f"Rs {capex} crore", True, f"capex of Rs {capex} crore{capex_for}"))
     if funding:
         facts.append(RationaleFact("capex_funding", None, "", funding, True, f"funded through {funding}"))
     return RatingRationale(f"cr{day}", "CARE", at(day), day, facts=facts)

@@ -206,6 +206,11 @@ def _render_catalysts(a) -> list[str]:
         for c in sorted(a.catalysts, key=lambda x: (x.first_public_at is None, x.first_public_at)):
             L.append(f"### {c.kind.value} — {c.stage.value} (first public {_ts(c.first_public_at)}; id {c.catalyst_id})")
             L.append(f"- Operating change: {c.operating_change}")
+            if c.demand_basis:
+                L.append(f"- Demand basis: {c.demand_basis.replace('_', ' ')}; confidence {c.confidence}")
+            if c.stage_history:
+                L.append("- Stage history (each rebuilt from what was public then): "
+                         + "; ".join(f"{t[:10]} {st}" for t, st in c.stage_history[-8:]))
             dates = [("materiality supportable", c.materiality_supported_at), ("execution supportable",
                      c.execution_supported_at), ("supported", c.supported_at), ("validating", c.validating_at),
                      ("confirmed", c.confirmed_at)]
@@ -237,7 +242,9 @@ def _render_catalysts(a) -> list[str]:
                              f"{k.pat_downside_crore} / base {k.pat_base_crore} / upside {k.pat_upside_crore} cr"
                              + (f"; EPS base {k.eps_base}" if k.eps_base is not None else "")
                              + (f"; {k.share_of_ttm_parent_pat:.0%} of TTM parent PAT" if k.share_of_ttm_parent_pat
-                                is not None else "") + f" — earnings materiality {k.earnings_materiality}")
+                                is not None else "") + f" — earnings materiality {k.earnings_materiality}"
+                             + (f" ({k.materiality_basis})" if k.materiality_basis else "")
+                             + (f"; open: {'; '.join(k.bridge_missing)}" if k.bridge_missing else ""))
                 else:
                     L.append(f"- Recurring parent earnings: unresolved — missing {', '.join(k.bridge_missing)}")
                 L += [f"  - bridge: {x}" for x in k.bridge_assumptions]

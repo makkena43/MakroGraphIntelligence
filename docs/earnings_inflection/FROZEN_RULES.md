@@ -1,11 +1,29 @@
 # Frozen catalyst rules
 
-Rules version **catalyst-rules-2** · fingerprint `59c9ec2217ec6c4d` (`evaluation.rules_fingerprint(DEFAULT_CATALYST_THRESHOLDS, RULES_VERSION)`).
+Current rules version **catalyst-rules-3** · fingerprint `1b744b3fe6944180` (`evaluation.rules_fingerprint(DEFAULT_CATALYST_THRESHOLDS, RULES_VERSION)`).
 
 Frozen before any further historical evaluation.
 - **Any change** to a threshold, test or stage rule needs a new rules version and a new fingerprint.
 - **Evaluation:** results are reported per fingerprint, and evaluations under different fingerprints are never pooled.
+- **Earlier results are kept unchanged** under `docs/earnings_inflection/evaluations/<rules version>/`. They are not re-labelled or overwritten when the rules change.
 - **INDOTECH** is a regression example only. The thresholds below were not tuned to it, but its quarterly pattern was known when the two-period combined test was written.
+
+## Version history
+
+| Version | Fingerprint | What changed | Archived results |
+|---|---|---|---|
+| catalyst-rules-1 | `f6fe4d677e763c50` | first frozen catalyst rules | `evaluations/catalyst-rules-1/` (INDOTECH replay 2020-06 to 2025-12) |
+| catalyst-rules-2 | `59c9ec2217ec6c4d` | review round 2: catalyst-driven lanes, project identity, knowability dates, linked cancellations, continuous monitoring, three earnings tiers, full ledger fingerprint | `evaluations/catalyst-rules-2/` (eight exported issuers, 2024-03-31) |
+| catalyst-rules-3 | `1b744b3fe6944180` | review round 3, with **no threshold changed** (only rule logic). See the list below. | `evaluations/catalyst-rules-3/` |
+
+**catalyst-rules-3 changes:**
+- **Historical state:** every input is rebuilt at each historical timestamp: event state, mechanisms, and figures as filed. Later failures are kept, and appending future disclosures does not change earlier assessments (prefix invariance).
+- **Recovery:** the current status after a recovery comes from the latest complete window.
+- **Earnings materiality:** missing, zero and negative earnings are handled separately. An unknown parent share is never 100%. Assumptions cannot establish materiality.
+- **Capex:** rating-rationale capex counts only when it names the project.
+- **Demand:** issuer-disclosed binding demand is separated from independently supported external demand, with different confidence and verification requirements.
+
+The thresholds are identical in versions 2 and 3:
 
 | Threshold | Value |
 |---|---|

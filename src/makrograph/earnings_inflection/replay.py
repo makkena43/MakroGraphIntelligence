@@ -58,6 +58,7 @@ def snapshot(a: Assessment) -> dict:
         "catalysts": [{
             "catalyst_id": c.catalyst_id, "kind": c.kind.value, "stage": c.stage.value,
             "first_public_at": _iso(c.first_public_at), "operating_change": c.operating_change,
+            "demand_basis": c.demand_basis, "confidence": c.confidence,
             "contribution": c.contribution.status, "base_crore": c.contribution.base_crore,
             "share_of_ttm_ebitda": c.contribution.share_of_ttm_ebitda,
             "window": [_iso(c.window_start), _iso(c.window_end)],

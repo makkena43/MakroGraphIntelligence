@@ -90,3 +90,94 @@ def test_an_assumed_tax_rate_cannot_establish_materiality():
     assert "assumed tax rate" in assumed.contribution.bridge_missing[0]
     stated = bridge(results(pat=10.0))
     assert stated.contribution.earnings_materiality == "established"
+
+
+# --- 4. rationale capex is attributed only when it identifies the project ----------------------------------
+
+from .test_catalysts import CAP_PLAN, book, capacity_rationale  # noqa: E402
+
+
+def capacity_bridge(**kw):
+    r = capacity_rationale(date(2023, 6, 20), 88, capex=60, funding="a term loan", **kw)
+    cats, _ = run(rows([100] * 12), [CAP_PLAN, book(500, date(2023, 6, 20), "bk")], date(2023, 7, 1),
+                  rationales=[r])
+    return kind(cats, CatalystKind.CAPACITY)[0].contribution
+
+
+def test_company_wide_rationale_capex_is_not_this_projects_cost():
+    k = capacity_bridge(capex_for=" over FY24-FY26 for maintenance and modernisation")
+    assert k.bridge_status == "unresolved" and k.earnings_materiality == "unresolved"
+    assert any("does not identify this project" in m for m in k.bridge_missing)
+
+
+def test_capex_for_another_facility_is_not_attributed():
+    k = capacity_bridge(capex_for=" for the new Pune plant of 50 MW")
+    assert k.bridge_status == "unresolved"
+
+
+def test_capex_naming_the_projects_target_capacity_is_attributed():
+    k = capacity_bridge()
+    assert k.bridge_status == "computed" and any("D&A" in a for a in k.bridge_assumptions)
+
+
+def test_a_funding_mix_without_proportions_is_an_assumption_tested_conservatively():
+    r = capacity_rationale(date(2023, 6, 20), 88, capex=60, funding="a mix of term loan and internal accruals")
+    cats, _ = run(rows([100] * 12), [CAP_PLAN, book(500, date(2023, 6, 20), "bk")], date(2023, 7, 1),
+                  rationales=[r])
+    k = kind(cats, CatalystKind.CAPACITY)[0].contribution
+    assert any("without proportions" in a and "100% debt" in a for a in k.bridge_assumptions)
+
+
+# --- 5. issuer-disclosed binding demand vs independently supported external demand ------------------------
+
+from makrograph.earnings_inflection.contracts import (  # noqa: E402
+    CustomerVerification, RelationshipStatus,
+)
+
+from .test_point_in_time_catalysts import inflow, order  # noqa: E402
+
+
+def orders_case(verification, relationship, rev=REV, as_of=date(2024, 3, 1)):
+    e = order("e1", date(2023, 5, 10), 120, verification=verification)
+    e.relationship, e.duration_months = relationship, 12          # execution period disclosed
+    cats, _ = run(rows(rev, pat=10.0), [], as_of, events=[e])
+    return inflow(cats)[0]
+
+
+def test_issuer_named_orders_are_issuer_disclosed_demand_with_lower_confidence():
+    c = orders_case(CustomerVerification.ISSUER_NAMED, RelationshipStatus.UNKNOWN)
+    assert c.demand_basis == "issuer_disclosed" and c.operating_change.startswith("issuer-disclosed binding orders")
+    assert "verified" not in c.operating_change
+    # an inflow without a disclosed backlog is never sized, so it validates but cannot confirm
+    assert c.stage == ResearchStage.VALIDATING and c.confidence == "medium"
+    assert any("issuer-disclosed" in r for r in c.stage_reasons)
+
+
+def test_an_issuer_assertion_of_independence_is_not_independent_support():
+    c = orders_case(CustomerVerification.CORROBORATED, RelationshipStatus.ISSUER_ASSERTED_UNRELATED)
+    assert c.demand_basis == "issuer_disclosed"
+
+
+def test_externally_corroborated_unrelated_customer_is_independently_supported():
+    c = orders_case(CustomerVerification.CORROBORATED, RelationshipStatus.INDEPENDENTLY_SUPPORTED_UNRELATED)
+    assert c.demand_basis == "independently_supported" and "independently supported" in c.operating_change
+    assert c.stage == ResearchStage.VALIDATING and c.confidence == "high"
+    assert not any("issuer-disclosed" in r for r in c.stage_reasons)
+
+
+def test_a_rating_agency_stating_the_order_book_is_still_issuer_disclosure():
+    cats, _ = run(rows(REV, pat=10.0), BOOKS, date(2024, 3, 1))
+    o = next(c for c in kind(cats, CatalystKind.ORDERS) if "order book" in c.operating_change)
+    assert o.demand_basis == "issuer_disclosed"
+    assert o.stage == ResearchStage.CONFIRMED and o.confidence == "medium"
+    assert any("issuer disclosure" in x for x in o.review_conditions)      # extra verification before review
+
+
+def test_demand_summary_separates_independent_support():
+    from makrograph.earnings_inflection.demand import summarise_demand
+    a = order("a", date(2023, 5, 10), 100)
+    b = order("b", date(2023, 6, 10), 50, verification=CustomerVerification.CORROBORATED, counterparty="Utility B")
+    b.relationship = RelationshipStatus.INDEPENDENTLY_SUPPORTED_UNRELATED
+    dem = summarise_demand([a, b], [], date(2023, 7, 1))
+    assert sorted(dem.verified_events) == ["a", "b"]
+    assert dem.independently_supported_events == ["b"] and dem.independently_supported_inflow_crore == 50

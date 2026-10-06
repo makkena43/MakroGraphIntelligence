@@ -119,8 +119,11 @@ def decide_status(drivers: list[DriverChange], events: list[EconomicEvent], evid
     cover = _driver(drivers, "order_book_cover")
     if verified and ((btb and btb.material) or (cover and cover.material)
                      or (ttm_revenue and dem.verified_inflow_crore >= 0.25 * ttm_revenue)):
-        why.append(f"{len(verified)} verified binding external order event(s) in the last {event_lookback_days} "
-                   f"days, {dem.verified_inflow_crore:.1f} cr current value (deduplicated)")
+        n_ind = len(dem.independently_supported_events)
+        why.append(f"{len(verified)} binding, named, unrelated order event(s) in the last {event_lookback_days} "
+                   f"days, {dem.verified_inflow_crore:.1f} cr current value (deduplicated); "
+                   + (f"{n_ind} independently supported, {len(verified) - n_ind} issuer-disclosed only"
+                      if n_ind else "issuer-disclosed (customer / independence not confirmed externally)"))
         why += dem.notes()
         return EvidenceStatus.COMMITMENT_BACKED, why
     if dem.unverified_events or (verified and not ttm_revenue):

@@ -207,7 +207,7 @@ def test_backlog_is_a_dated_snapshot_not_added_to_inflow():
 def test_verified_binding_external_order_backs_a_commitment():
     events = resolve_events(ev_from(("A", PO, "2024-06-10")))
     st, why = decide_status([], events, [], [], 1, 1000.0, AS_OF)
-    assert st == EvidenceStatus.COMMITMENT_BACKED and any("verified binding external" in w for w in why)
+    assert st == EvidenceStatus.COMMITMENT_BACKED and any("binding, named, unrelated order" in w for w in why)
 
 
 def test_anonymous_binding_order_stays_in_the_early_lane():

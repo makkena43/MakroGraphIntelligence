@@ -5,7 +5,7 @@ periods of them to confirm.  This layer keeps that ladder unchanged and adds the
 forward-looking view next to it:
 
 * **Leading candidate** - a source-backed change in economics that is not yet in
-  reported results: verified binding external orders material to revenue, a rising
+  reported results: binding, named, unrelated orders material to revenue, a rising
   company-stated order book, commissioned capacity, issuer-stated realised price /
   input-cost / mix / volume changes.  Bare forward-looking statements are not leading
   signals (they stay ASSERTION_ONLY).
@@ -34,14 +34,14 @@ from .contracts import (
     IST, EconomicEvent, Evidence, InflectionThesis, Mechanism, MechanismResult, MechanismState, MechanismThesis,
     Metric, MilestoneOutcome, Modality, ThesisMilestone, ThesisStage, Unit,
 )
-from .demand import first_binding_at, summarise_demand
+from .demand import demand_support, event_state_at, first_binding_at, summarise_demand
 from .financial_series import FinancialSeries, _year_ago, prev_period_end
 from .mechanisms import DEFAULT_MECHANISM_THRESHOLDS, _usual_cost_parts
 
 DEFAULT_THESIS_THRESHOLDS = {
     "validation_revenue_growth_pct": 15.0,   # first results after an order / capacity / volume signal
     "validation_margin_bps": 150.0,          # first results after a pricing / mix signal
-    "order_inflow_to_ttm_revenue": 0.25,     # verified binding external inflow (12 months) / TTM revenue
+    "order_inflow_to_ttm_revenue": 0.25,     # binding, named, unrelated inflow (12 months) / TTM revenue
     "order_book_growth_pct": 30.0,           # company-stated order book vs a snapshot 5-15 months earlier
     "capacity_expansion_pct": 20.0,          # same facility, commissioned capacity
     "leading_max_age_days": 400,             # older signals no longer lead anything
@@ -166,19 +166,23 @@ def _leading_orders(series, evidence, events, p, as_of, th) -> list[tuple[dateti
     out = []
     if p is None:
         return out
-    dem = summarise_demand(events, evidence, as_of)
-    # an order counts from the day it became BINDING (an earlier L1 / LoI is not yet an order)
+    # an order counts from the day it became BINDING (an earlier L1 / LoI is not yet an order), and
+    # each event is taken in the state it stood then: a later cancellation or verification does not
+    # remove or create an earlier signal
     bound = lambda e: first_binding_at(e) or e.first_public_at  # noqa: E731
-    verified = sorted((e for e in events if e.event_id in dem.verified_events and bound(e)), key=bound)
-    window: list[EconomicEvent] = []
-    for e in verified:
-        window = [x for x in window if (bound(e) - bound(x)).days <= 365] + [e]
+    for t in sorted({bound(e) for e in events if bound(e) and _d(bound(e)) <= _d(as_of)}):
+        evs_t = [x for x in (event_state_at(e, t) for e in events) if x is not None]
+        dem = summarise_demand(evs_t, [x for x in evidence if x.available_at and x.available_at <= t], _d(t))
+        window = [e for e in evs_t if e.event_id in dem.verified_events and bound(e)
+                  and 0 <= (t - bound(e)).days <= 365]
         total = sum(x.amount.value for x in window if x.amount)
-        ttm = _ttm_known_at(series, p, bound(e))
+        ttm = _ttm_known_at(series, p, t)
         if ttm and total >= th["order_inflow_to_ttm_revenue"] * ttm:
-            out.append((bound(e),
-                        f"verified binding external orders {total:,.1f} cr in 12 months = {total / ttm:.2f}x TTM "
-                        f"revenue known then ({ttm:,.1f} cr)",
+            indep = all(demand_support(x) == "independently_supported" for x in window)
+            out.append((t,
+                        f"{'independently supported binding external' if indep else 'issuer-disclosed binding'} "
+                        f"orders {total:,.1f} cr in 12 months = {total / ttm:.2f}x TTM revenue known then "
+                        f"({ttm:,.1f} cr)",
                         sorted({d for x in window for d in x.doc_ids}),
                         [i for x in window for i in x.evidence_ids]))
             break
