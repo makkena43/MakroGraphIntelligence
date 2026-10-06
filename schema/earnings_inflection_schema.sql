@@ -167,3 +167,42 @@ CREATE TABLE IF NOT EXISTS earnings_inflection.ei_event_states (
     note          TEXT,
     UNIQUE (event_row_id, seq)
 );
+
+-- ============================================================
+-- WP8: bounded universe runs and research shortlists (test database only; NOT EXECUTED
+-- against any shared database).  Rows are immutable per run; no column carries an action.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS earnings_inflection.ei_universe_snapshots (
+    snapshot_id   TEXT PRIMARY KEY,
+    as_of         DATE NOT NULL,
+    source        TEXT NOT NULL,
+    cohort_label  TEXT,
+    members_json  JSONB NOT NULL,              -- includes delisted / suspended members
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS earnings_inflection.ei_universe_runs (
+    run_id            TEXT PRIMARY KEY,
+    snapshot_id       TEXT NOT NULL REFERENCES earnings_inflection.ei_universe_snapshots(snapshot_id),
+    as_of             DATE NOT NULL,
+    status            VARCHAR(20) NOT NULL CHECK (status IN ('COMPLETE','PARTIAL','FAILED')),
+    coverage_complete BOOLEAN NOT NULL,
+    counts_json       JSONB NOT NULL,          -- scanned / excluded / eligible / completed / failed / deferred
+    config_json       JSONB NOT NULL,          -- limits, weights, critical checks
+    previous_run_id   TEXT,                    -- incremental runs
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS earnings_inflection.ei_shortlist_entries (
+    run_id                TEXT NOT NULL REFERENCES earnings_inflection.ei_universe_runs(run_id) ON DELETE CASCADE,
+    ticker                VARCHAR(30) NOT NULL,
+    lane                  VARCHAR(30) NOT NULL CHECK (lane IN ('EXECUTION_RESEARCH','COMMITMENT_RESEARCH',
+                              'ASSERTION_WATCH','DATA_REPAIR','CONTRADICTED_OR_STALE')),
+    rank_in_lane          INTEGER NOT NULL,
+    score                 NUMERIC,
+    score_components_json JSONB,               -- visible heuristic components, not probabilities
+    first_signal_at       TIMESTAMPTZ,
+    change_since_previous TEXT,
+    payload               JSONB NOT NULL,
+    PRIMARY KEY (run_id, ticker)
+);

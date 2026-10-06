@@ -60,6 +60,13 @@ def main(argv=None):
     ap.add_argument("--max-docs", type=int, default=50, help="--extract: maximum documents this run")
     ap.add_argument("--ocr", choices=["none", "ocrmypdf"], default="none",
                     help="--extract: local OCR fallback for scanned PDFs (default none; ocrmypdf must be installed)")
+    ap.add_argument("--universe", help="WP8: eligibility snapshot JSON; runs a bounded universe scan instead of tickers")
+    ap.add_argument("--runs-root", default="data/earnings_inflection/runs",
+                    help="universe: parent of immutable run directories")
+    ap.add_argument("--resume", help="universe: run directory of an interrupted run to continue")
+    ap.add_argument("--previous", help="universe: earlier run directory; reassess only issuers with new documents")
+    ap.add_argument("--max-issuers", type=int, help="universe: hard cap on issuers assessed (others deferred)")
+    ap.add_argument("--page-size", type=int, help="universe: issuers per checkpointed page")
     ap.add_argument("--replay-manifest",
                     help="manifest.json of an earlier run: read exactly the text versions that run used")
     args = ap.parse_args(argv)
@@ -83,8 +90,8 @@ def main(argv=None):
     if args.preflight_only:
         print(json.dumps(to_jsonable(repo.preflight()), indent=2, default=str))
         return 0
-    if not args.ticker or not args.as_of:
-        ap.error("--ticker and --as-of are required (no implicit whole-market runs)")
+    if not args.as_of or (not args.ticker and not args.universe):
+        ap.error("--as-of and either --ticker or --universe <snapshot> are required (no implicit whole-market runs)")
 
     if args.extract:
         if store is None:
@@ -109,6 +116,20 @@ def main(argv=None):
     except LLMPreflightError as e:
         print(f"LLM preflight failed (no company processed): {e}", file=sys.stderr)
         return 2
+    if args.universe:
+        from makrograph.earnings_inflection.discovery import EligibilitySnapshot, UniverseScanner
+        dcfg = dict(cfg.get("discovery", {}) or {})
+        if args.max_issuers:
+            dcfg["max_issuers"] = args.max_issuers
+        if args.page_size:
+            dcfg["page_size"] = args.page_size
+        scan = UniverseScanner(pipe, repo, dcfg).run(
+            EligibilitySnapshot.load(args.universe), args.as_of, Path(args.runs_root),
+            resume=Path(args.resume) if args.resume else None,
+            previous=Path(args.previous) if args.previous else None)
+        print(json.dumps({"run_id": scan.run_id, "status": scan.status, "counts": scan.counts,
+                          "shortlist": str(scan.run_dir / "shortlist.md")}, indent=1))
+        return 0
     if args.diagnose:
         for t in args.ticker:
             print(pipe.diagnose(t, args.as_of))
