@@ -177,6 +177,14 @@ _ROW_METRICS = [
     (re.compile(r"(?:net\s+)?sales\b", re.I), Metric.REVENUE),
     (re.compile(r"other\s+income\b", re.I), Metric.OTHER_INCOME),
     (re.compile(r"total\s+expenses?\b", re.I), Metric.TOTAL_EXPENSES),
+    # cost of goods (WP5 gross margin) and equity issuance (WP5 funding source)
+    (re.compile(r"cost\s+of\s+(?:raw\s+)?materials?\s+consumed|raw\s+materials?\s+consumed|"
+                r"consumption\s+of\s+raw\s+materials?", re.I), Metric.COST_OF_MATERIALS),
+    (re.compile(r"purchases?\s+of\s+(?:stock|traded\s+goods)", re.I), Metric.PURCHASES_STOCK),
+    (re.compile(r"changes?\s+in\s+inventor", re.I), Metric.INVENTORY_CHANGE),
+    (re.compile(r"proceeds\s+from\s+(?:the\s+)?(?:issue|issuance|allotment)\s+of\s+(?:equity\s+)?(?:shares?|share\s+capital|"
+                r"warrants?|convertible\s+warrants?)|(?:share|equity)\s+warrants?\s+(?:money|subscription)", re.I),
+     Metric.EQUITY_ISSUED),
     (re.compile(r"ebitda\b(?!\s*margin)|earnings\s+before\s+interest,?\s+tax(?:es)?,?\s+depreciation", re.I),
      Metric.EBITDA),
     (re.compile(r"depreciation", re.I), Metric.DEPRECIATION),
@@ -620,6 +628,10 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
         tax_parts: list[list[Optional[float]]] = []
         pending, after_comprehensive, misaligned, section, face_value = "", False, 0, "", None
         in_segment = bool(_SEGMENT_SECTION.search("\n".join(c.header.split("\n")[-3:])))
+        seg_state: dict = {"kind": None, "heading": "", "rows": {}}
+        if in_segment:
+            for hl in c.header.split("\n")[-4:]:
+                _segment_row(hl, [], seg_state, n)
         last_values_only = False
         total_income = None
         displaced = False
@@ -637,6 +649,7 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
             if _SEGMENT_SECTION.search(label):
                 in_segment = True
             if in_segment:
+                _segment_row(label, cells, seg_state, n)
                 continue
             if _COMPREHENSIVE.search(label):
                 after_comprehensive = True
@@ -696,6 +709,9 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
             cells = cells[-n:]   # one extra leading value = note reference column
             vals: list[Optional[float]] = []
             decimals = 0
+            if conv == 0 and not _NOT_AMOUNT_ROW.search(label):
+                # integer table: "(1.076)" is a scanned "(1,076)", not 1.076
+                cells = [re.sub(r"^(\(?-?\d{1,3})\.(\d{3}\)?)$", r"\1,\2", x) for x in cells]
             for cell in cells:
                 if conv and "." not in cell and sum(ch.isdigit() for ch in cell) > conv + 1:
                     # a figure in a table printed with `conv` decimals that lost its decimal point
@@ -742,6 +758,16 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
         if misaligned:
             issues.append(f"{doc.doc_id}:p{c.page}: {misaligned} row(s) had more values than the {n} "
                           f"identified period columns; skipped")
+        for (kind, name), (line, vals, decimals) in seg_state["rows"].items():
+            metric = Metric.SEGMENT_REVENUE if kind == "rev" else Metric.SEGMENT_RESULT
+            for col_i, (d, v) in enumerate(zip(cols, vals)):
+                if v is None or ptypes[col_i] is None or scale is None:
+                    continue
+                out.append(FinancialMeasurement(
+                    ticker=doc.ticker, metric=metric, period_end=d, period_type=ptypes[col_i],
+                    value=round(v * scale, 6), unit=Unit.INR_CRORE, scope=col_scopes[col_i], doc_id=doc.doc_id,
+                    available_at=doc.available_at, display_unit=(10 ** -decimals) * scale,
+                    quote=f"segment | {line.strip()}"[:400], segment=name))
         if face_value and Metric.PAID_UP_CAPITAL in found:
             found[Metric.FACE_VALUE] = [f"face value Rs {face_value:g} per share", [face_value] * n, 2, scale, "reported"]
         for metric, (line, vals, decimals, row_scale, source) in found.items():
@@ -765,6 +791,71 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk]) -> tuple[list
     return _reconcile_copies(out, issues, doc.doc_id), issues
 
 
+_SEG_REV = re.compile(r"segment\s*[-\s]?(?:wise\s*)?revenue|revenue\s*(?:by|from)\s*(?:business\s*)?segments?|"
+                      r"segment\s*(?:wise\s*)?(?:sales|turnover)", re.I)
+_SEG_RES = re.compile(r"segment\s*(?:wise\s*)?(?:results?|profit|ebit)|(?:results?|profit)\s*(?:by|from)\s*segments?|"
+                      r"profit\s*/?\s*\(?loss\)?\s*before\s*(?:finance|interest|tax)", re.I)
+_SEG_OTHER = re.compile(r"segment\s*(?:wise\s*)?(?:assets|liabilities)|capital\s*employed", re.I)
+_SEG_SKIP = re.compile(r"^(?:total|less|add|inter[- ]?segment|unallocab|eliminat|revenue\s+from|income\s+from|net\s+(?:sales|income)|"
+                       r"finance|interest|other\s+(?:un)?allocable|other\s+income|profit|exceptional|tax|segment)", re.I)
+_SEG_PART = re.compile(r"^(?:manufactured|traded|domestic|exports?|india|overseas|external|internal)\b", re.I)
+
+
+def _segment_name(label: str) -> str:
+    """Clean segment label: enumerators and scanning debris removed ("l'l d\\ Others" -> "others")."""
+    name = re.sub(r"[^a-z&/ -]", " ", label.lower())
+    words = [w for w in name.split() if len(w) > 1 or w == "&"]
+    while words and ((len(words[0]) <= 2 and words[0] not in ("it", "oe"))     # "(a)", "ii", scanned "l d"
+                     or not re.search(r"[aeiouy]", words[0])):                   # scanned "lldl"
+        words.pop(0)
+    return " ".join(words).strip(" -&/")
+
+
+def _is_segment_name(name: str, label: str) -> bool:
+    return bool(name) and len(name) < 50 and bool(re.search(r"[a-z]{3}", name)) and not (
+        _SEG_SKIP.match(name) or re.search(r"unallocab|un-allocab|expenditure|segm?en|sel.?ment|interest|\btax\b|"
+                                           r"defer|profit|loss|before|after|finance|total", name)
+        or sum(ch.isalpha() or ch == " " for ch in label.strip()) < 0.6 * len(label.strip())
+        or re.search(r"\b[a-z]\b(?:\s+\b[a-z]\b)+", name))
+
+
+def _segment_row(label: str, cells: list[str], st: dict, n: int) -> None:
+    """Rows of a segment-reporting table: per-segment revenue and result.  Segment totals,
+    inter-segment eliminations, unallocable items and sub-lines (manufactured / traded) are
+    not segments.  A "Total" line directly under a named heading is that segment's total."""
+    if _SEG_OTHER.search(label):
+        st["kind"], st["heading"] = "other", ""
+        return
+    if _SEG_RES.search(label):
+        st["kind"], st["heading"] = "res", ""
+    elif _SEG_REV.search(label):
+        st["kind"], st["heading"] = "rev", ""
+    if st["kind"] not in ("rev", "res"):
+        return
+    name = _segment_name(label)
+    if not cells:
+        st["heading"] = name if (not _SEG_REV.search(label) and not _SEG_RES.search(label)
+                                 and _is_segment_name(name, label)) else ""
+        return
+    if len(cells) < n or len(cells) > n + 1:
+        return
+    if re.match(r"total\b", name) and st["heading"]:
+        name, st["heading"] = st["heading"], ""
+    elif st["heading"] and _SEG_PART.match(name):
+        return
+    if not _is_segment_name(name, label):
+        return
+    vals, decimals = [], 0
+    for cell in cells[-n:]:
+        try:
+            vals.append(_cell_value(cell) if _CELL.fullmatch(cell) else None)
+        except ValueError:
+            vals.append(None)
+        if "." in cell:
+            decimals = max(decimals, len(cell.strip("()").split(".")[-1]))
+    st["rows"].setdefault((st["kind"], name), (label, vals, decimals))
+
+
 def _reconcile_copies(rows: list[FinancialMeasurement], issues: list[str], doc_id: str) -> list[FinancialMeasurement]:
     """One filing often holds the same statement more than once (scanned copy + OCR copy, a
     restated repeat).  Where the copies disagree on a figure, the value most copies state is
@@ -772,7 +863,7 @@ def _reconcile_copies(rows: list[FinancialMeasurement], issues: list[str], doc_i
     from collections import defaultdict
     groups = defaultdict(list)
     for r in rows:
-        groups[(r.metric, r.period_type, r.period_end, r.scope)].append(r)
+        groups[(r.metric, r.period_type, r.period_end, r.scope, r.segment)].append(r)
     out = []
     for key, rs in groups.items():
         clusters: list[list[FinancialMeasurement]] = []
@@ -1522,6 +1613,82 @@ def extract_sentence_evidence(doc: SourceDocument, chunks: list[Chunk]) -> list[
             seen.add(ev.evidence_id)
             out.append(ev)
     _enrich_single_order_disclosure(doc, out)
+    out += _mechanism_evidence(doc, chunks, seen)
+    return out
+
+
+# --- mechanism statements (WP5) -------------------------------------------
+# A sentence may support several mechanisms ("EBITDA margin improved on lower raw
+# material costs and better realisations"), so this pass is separate from the one
+# metric per sentence above and never changes it.
+_MECH_CUES: list[tuple[re.Pattern, Metric]] = [
+    (re.compile(r"\b(?:sales\s+|production\s+|dispatch\s+)?volumes?\b(?!\s+of\s+business)|\bunits?\s+(?:sold|shipped|"
+                r"dispatched)\b|\b(?:shipments|dispatches|tonnage)\b", re.I), Metric.VOLUME),
+    (re.compile(r"\b(?:realisations?|realizations?|average\s+selling\s+prices?|ASPs?|price\s+(?:hikes?|increases?|"
+                r"cuts?|reductions?|revisions?)|selling\s+prices?|pricing)\b", re.I), Metric.PRICING),
+    (re.compile(r"\b(?:raw[- ]material|input|commodity|gas|coal|power\s+and\s+fuel|freight)\s+(?:costs?|prices?)\b",
+                re.I), Metric.INPUT_COST),
+    (re.compile(r"\b(?:contribut\w+|share)\b[^.]{0,40}?\d+(?:\.\d+)?\s*%[^.]{0,30}?\b(?:revenue|sales|turnover|mix)\b|"
+                r"\b(?:revenue|sales|product)\s+mix\b", re.I), Metric.MIX_SHARE),
+    (re.compile(r"\bmarket\s+share\b", re.I), Metric.MARKET_SHARE),
+    (re.compile(r"\b(?:acquisition\s+of|acquired|inorganic|amalgamation|takeover\s+of)\b", re.I), Metric.ACQUISITION),
+]
+_UP_WORDS = re.compile(r"\b(?:increas\w*|rose|rise[sn]?|rising|grew|grow\w*|higher|better|improv\w*|up|hike[sd]?|firm\w*|"
+                       r"strong\w*|expan\w*|gain\w*|surg\w*|jump\w*)\b", re.I)
+_DOWN_WORDS = re.compile(r"\b(?:decreas\w*|declin\w*|fell|fall\w*|lower|reduc\w*|soften\w*|cuts?|down|weak\w*|"
+                         r"contract\w*|dropp?\w*|eas(?:ed|ing)|subdued|pressure)\b", re.I)
+
+
+def _local_direction(s: str, m: re.Match) -> int:
+    """Direction from the words next to the cue ("lower raw material costs", "volumes grew 18%")."""
+    before = " ".join(s[:m.start()].split()[-2:])
+    after = " ".join(s[m.end():].split()[:4])
+    return _stated_direction(before) or _stated_direction(after)
+
+
+def _stated_direction(text: str) -> int:
+    up, down = bool(_UP_WORDS.search(text)), bool(_DOWN_WORDS.search(text))
+    return 1 if up and not down else -1 if down and not up else 0
+
+
+def _mechanism_evidence(doc: SourceDocument, chunks: list[Chunk], seen: set) -> list[Evidence]:
+    out: list[Evidence] = []
+    for c in chunks:
+        if c.kind == "table":
+            continue
+        for s in sentences(c):
+            s_clean = re.sub(r"\s+", " ", s).strip()
+            if len(s_clean) < 20 or is_garbled(s_clean) or _NUMBER_SOUP(s_clean):
+                continue
+            for pat, metric in _MECH_CUES:
+                m = pat.search(s_clean)
+                if not m:
+                    continue
+                window = s_clean[max(0, m.start() - 60):m.end() + 80]
+                pct = re.search(r"[-+]?\d+(?:\.\d+)?\s*%", window)
+                qty = parse_percent(pct.group(0)) if pct else None
+                if metric in (Metric.VOLUME, Metric.MIX_SHARE) and qty is None:
+                    continue           # unquantified volume / mix talk is too vague
+                product = ""
+                if metric == Metric.MIX_SHARE:
+                    pm = re.search(r"([A-Za-z][\w&/ -]{2,50}?)\s+(?:contribut\w+|share)", s_clean)
+                    product = re.sub(r"^(?:the|our|its)\s+", "", pm.group(1).strip(), flags=re.I).lower() if pm else ""
+                modality = classify_modality(s_clean)
+                ev = Evidence(
+                    evidence_id=_evidence_id(doc.doc_id, s_clean, metric), doc_id=doc.doc_id, ticker=doc.ticker,
+                    metric=metric, tier=(EvidenceTier.MANAGEMENT_ASSERTION
+                                         if modality in (Modality.FORWARD, Modality.CONDITIONAL)
+                                         else EvidenceTier.REALIZED_EXECUTION),
+                    modality=modality, quote=s_clean, available_at=doc.available_at, page=c.page,
+                    chunk_id=c.chunk_id, quantity=qty, period_label=(find_period_labels(s_clean) or [""])[0],
+                    scope=_scope_from(s_clean), segment=product,
+                    facility=(re.sub(r"\s+", " ", f.group(1)).strip().lower()
+                              if (f := _FACILITY.search(s_clean) or _FACILITY_BARE.search(s_clean)) else ""),
+                    direction=_local_direction(s_clean, m))
+                if ev.evidence_id in seen:
+                    continue
+                seen.add(ev.evidence_id)
+                out.append(ev)
     return out
 
 

@@ -68,6 +68,17 @@ earnings_inflection:
     utilization_change_pp: 10.0
     operating_leverage_min_revenue_growth_pct: 5.0   # EBITDA/revenue growth ratio is noise below this
 
+  mechanism_thresholds:                # WP5: per-mechanism materiality (descriptive, not tuned to named stocks)
+    utilization_change_pp: 10.0        # same plant/product scope only
+    gross_margin_change_bps: 150.0     # constant cost-of-goods definition
+    mix_share_change_pp: 3.0
+    mix_min_segment_share_pct: 10.0    # smaller profitable segments cannot move group earnings
+    mix_margin_gap_pp: 2.0
+    volume_growth_pct: 10.0
+    debt_reduction_pct: 10.0
+    order_cancellation_share: 0.2
+    statement_max_age_days: 200
+
   llm:
     enabled: false                     # constrained extractor; requires an injected client AND budget.enabled
     est_tokens_per_call: 2500

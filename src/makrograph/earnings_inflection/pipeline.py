@@ -33,6 +33,7 @@ from .contracts import (
 from .counterparty import apply_reference_data, build_profiles
 from .document_versions import availability, is_restatement, link_versions
 from .drivers import compute_drivers
+from .mechanisms import detect_mechanisms
 from .earnings_bridge import build_bridge
 from .event_resolution import resolve_events
 from .extraction import ConstrainedLLMExtractor, extract_sentence_evidence, garbled_ratio, parse_results_tables
@@ -340,12 +341,16 @@ class EarningsInflectionPipeline:
         bridge = build_bridge(series, issuer_model, guidance, as_of.date())
         missing += [m for m in bridge.missing_inputs if m not in missing]
 
+        mechanisms = detect_mechanisms(series, evidence, events, drivers, as_of.date(),
+                                       self.cfg.get("mechanism_thresholds"))
         usable_docs = sum(1 for d in docs if d.full_text().strip())
         status, why = decide_status(drivers, events, evidence, guidance, usable_docs, ttm_rev, as_of,
-                                    int(self.cfg.get("event_lookback_days", 365)))
+                                    int(self.cfg.get("event_lookback_days", 365)), mechanisms)
         first_public = {d.doc_id: d.available_at for d in docs}
 
         contradictions = [f"{g.metric.value} {g.target_period_label}: {f}" for g in guidance for f in g.flags]
+        contradictions += [f"adverse mechanism {m.mechanism.value}: {m.magnitude_basis or m.attribution}"
+                           for m in mechanisms if m.state.value in ("adverse", "contradicted")]
         contradictions += [f"negated statement: \"{e.quote[:160]}\"" for e in evidence
                            if e.usable and e.modality.value == "negated" and e.tier.value == "management_assertion"][:5]
         seen_recon = set()
@@ -460,7 +465,7 @@ class EarningsInflectionPipeline:
             missing_inputs=sorted(set(missing)),
             next_checks=next_checks(drivers, events, guidance, sorted(set(missing)), status),
             sources=sources, limitations=lim, coverage=coverage, source_manifest=source_manifest,
-            replay_mode=mode,
+            replay_mode=mode, mechanisms=mechanisms,
         )
         a.validate()
         return a

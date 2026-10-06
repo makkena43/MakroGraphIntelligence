@@ -75,6 +75,21 @@ def render_markdown(a: Assessment) -> str:
                      f"| {str(e.duration_months) + ' months' if e.duration_months else 'not disclosed'} "
                      f"| {len(e.doc_ids)} doc(s) | {'; '.join(e.unresolved_fields) or '—'} |")
         L.append("")
+    if a.mechanisms:
+        L.append("### Earnings mechanisms (each judged on its own evidence)")
+        L.append("| Mechanism | State | Direction | Magnitude | Durability | Attribution | Confidence | Invalidators / overlaps |")
+        L.append("|---|---|---|---|---|---|---|---|")
+        for m in a.mechanisms:
+            mag = (f"{m.magnitude:,.1f} {m.magnitude_unit}" if m.magnitude is not None else "unknown")
+            if m.magnitude_basis:
+                mag += f" ({m.magnitude_basis})"
+            inv = "; ".join(m.invalidators + [f"overlaps: {', '.join(m.overlaps_with)}"] * bool(m.overlaps_with))
+            L.append(f"| {m.mechanism.value} | {m.state.value} | {m.direction} | {mag} | {m.durability} | "
+                     f"{m.attribution or '—'} | {m.confidence} | {inv or '—'} |")
+        hyps = [m for m in a.mechanisms if m.hypothesis]
+        for m in hyps:
+            L.append(f"- Research question ({m.mechanism.value}): {m.hypothesis}")
+        L.append("")
     L.append("## 3. Effect on recurring parent-attributable diluted EPS and cash")
     b = a.bridge
     if b.status == ScenarioStatus.COMPUTED_ASSUMPTION_BASED:

@@ -171,11 +171,14 @@ class FinancialSeries:
     lineage_notes: list[str] = field(default_factory=list)
     excluded: list[str] = field(default_factory=list)     # reported facts kept out of calculations
     scope_note: str = ""                                   # why a non-preferred scope was used
+    segments: dict = field(default_factory=dict)           # (segment, metric, ptype, end) -> SeriesPoint
 
     @classmethod
     def build(cls, ticker: str, rows: list[FinancialMeasurement],
               preference=(Scope.CONSOLIDATED, Scope.STANDALONE, Scope.UNKNOWN)) -> "FinancialSeries":
         rows = [r for r in rows if r.ticker == ticker]
+        seg_rows = [r for r in rows if r.segment]
+        rows = [r for r in rows if not r.segment]
         scope = Scope.UNKNOWN
         scope_note = ""
         known = {r.scope for r in rows} - {Scope.UNKNOWN}
@@ -242,11 +245,48 @@ class FinancialSeries:
                 series.lineage_notes.append(
                     f"{key[0].value} {key[1]} {key[2]}: revised from {vs[0].value} ({vs[0].doc_id}) "
                     f"to {latest.value} ({latest.doc_id})")
+        # segment-reporting rows: same scope as the series, latest version per segment figure
+        seg_versions = defaultdict(list)
+        for r in seg_rows:
+            if r.scope == scope or (r.scope == Scope.UNKNOWN and len({x.scope for x in seg_rows}) == 1):
+                seg_versions[(r.segment, r.metric, r.period_type, r.period_end)].append(r)
+        for key, vs in seg_versions.items():
+            vs.sort(key=lambda r: (r.available_at, r.doc_id))
+            v = vs[-1]
+            series.segments[key] = SeriesPoint(v.value, v.unit, v.source, sorted({x.doc_id for x in vs}),
+                                               len({round(x.value, 4) for x in vs}), v.integrity, v.available_at,
+                                               v.system_available_at)
         series._derive_missing_q4()
         series._derive_missing_h2()
         series._exclude_single_source_outliers()     # also catches values derived from a mis-read
         series._derive_ebitda()
         return series
+
+    def segment(self, name: str, metric: Metric, end, ptype: str):
+        return self.segments.get((name, metric, ptype, end))
+
+    def segment_names(self) -> list[str]:
+        return sorted({k[0] for k in self.segments})
+
+    def cost_of_goods(self, end, ptype: str, parts: Optional[tuple] = None):
+        """Materials + traded purchases + change in inventories, using exactly ``parts``
+        (or every part reported for this period).  Returns (value, parts used) or (None, ())."""
+        want = parts or tuple(m for m in (Metric.COST_OF_MATERIALS, Metric.PURCHASES_STOCK, Metric.INVENTORY_CHANGE)
+                              if self.get(m, end, ptype) is not None)
+        if Metric.COST_OF_MATERIALS not in want and Metric.PURCHASES_STOCK not in want:
+            return None, ()
+        vals = [self.get(m, end, ptype) for m in want]
+        if any(v is None for v in vals):
+            return None, ()
+        return sum(v.value for v in vals), want
+
+    def gross_margin(self, end, ptype: str, parts: Optional[tuple] = None):
+        """(revenue - cost of goods) / revenue in % with the cost parts used, or (None, ())."""
+        rev = self.get(Metric.REVENUE, end, ptype)
+        cogs, used = self.cost_of_goods(end, ptype, parts)
+        if rev is None or cogs is None or rev.value <= 0:
+            return None, ()
+        return (rev.value - cogs) / rev.value * 100, used
 
     def _exclude_single_source_outliers(self) -> None:
         """A period's revenue that is 10x away from the company's median period AND stated by only
