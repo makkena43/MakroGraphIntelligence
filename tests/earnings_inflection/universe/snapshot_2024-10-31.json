@@ -1,0 +1,15 @@
+{
+ "snapshot_id": "fixture-in-2024-10",
+ "as_of": "2024-10-15",
+ "source": "synthetic fixture universe (fictional issuers)",
+ "members": [
+  {"ticker": "PLAINCO", "status": "listed"},
+  {"ticker": "ACMEGRID", "status": "listed"},
+  {"ticker": "CONTRACO", "status": "listed"},
+  {"ticker": "SMEFAB", "status": "listed"},
+  {"ticker": "GRANITEWK", "status": "listed"},
+  {"ticker": "GHOSTCO", "status": "listed"},
+  {"ticker": "OLDDELIST", "status": "delisted"},
+  {"ticker": "SAMPLEBANK", "status": "listed", "excluded_reason": "financial issuer: industrial earnings model not applicable"}
+ ]
+}

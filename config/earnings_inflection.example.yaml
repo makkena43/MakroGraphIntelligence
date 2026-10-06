@@ -91,6 +91,18 @@ earnings_inflection:
     reference_pe: [15.0, 25.0]         # visible reference multiples for "implied earnings"
     # default_series: EQ               # only when no dated security record exists for the issuer
 
+  discovery:                           # WP8: explicit universe scans (--universe snapshot.json); no scheduler
+    max_issuers: 50                    # hard caps: the rest is DEFERRED and the run is PARTIAL
+    max_documents: 5000
+    page_size: 10                      # checkpoint after every page (--resume RUN_DIR)
+    max_snapshot_age_days: 31          # older / later snapshots are labelled "limited cohort"
+    max_shortlist_per_lane: 10         # a cap, never a quota
+    weights: {evidence_quality: 0.35, materiality: 0.30, timing: 0.15, persistence: 0.20, risk_penalty: 0.30}
+    critical_checks:                   # a failed check blocks only the lane that depends on it
+      EXECUTION_RESEARCH: [identity_resolved, current_financial_series, latest_period_reconciled]
+      COMMITMENT_RESEARCH: [identity_resolved, dated_order_events]
+      ASSERTION_WATCH: [identity_resolved]
+
   llm:
     enabled: false                     # WP6: needs a provider AND budget.enabled with non-zero limits,
                                        # otherwise the run fails preflight once, before any company
