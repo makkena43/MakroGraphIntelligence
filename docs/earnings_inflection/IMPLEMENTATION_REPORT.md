@@ -141,7 +141,7 @@ Each work package was finished, tested and pushed before the next one started:
 
 All tests are offline. 201 pass across `tests/earnings_inflection`, `tests/test_ingestion_pdf_text.py` and `tests/test_pipeline.py`. Elsewhere in the repository, 9 test files couldn't be collected in this container because `psycopg2` wasn't installed (the same before and after these changes), and a full-repository run didn't finish within 10 minutes. **The full repository suite was not run to completion here.**
 
-### What was **not received**
+### What was **not received** (resolved later: the full amendment arrived as `IMPLEMENTATION_CHANGE_SPEC.md`; see §8)
 
 The pasted amendment stops at **WP4 item 7** ("Only validated binding external commitments may support a verified commitment classification…"). Not received, and not built:
 
@@ -342,3 +342,101 @@ The last five did not show an earnings inflection in filings public by March 202
 - **Utilisation:** the "capacity utilisation change" assertion (e.g. PGIL 95% to 34%) compares statements that may not share a scope. Mechanism-specific utilisation is WP5.
 - **Unextracted documents:** 7 documents have no text, with `local_path` = `UNSUPPORTED_FORMAT`. The ingestion stage could not handle them, and no original remains to extract.
 - **Next:** a pre-registered control group of non-winners, chosen before looking at statuses, is still needed. Without it, no claim can be made that these states separate winners from the rest.
+
+## 8. WP5-WP9 (full amendment, `IMPLEMENTATION_CHANGE_SPEC.md`)
+
+| Commit | Work package |
+|---|---|
+| `1239974` | WP5 |
+| `983ec58` | WP6 |
+| `711c0a9` | WP7 |
+| `18e87b6` | WP8 |
+| this commit | WP9 and docs |
+
+**Tests:** `python -m pytest tests/earnings_inflection tests/test_ingestion_pdf_text.py tests/test_pipeline.py -q` passes **304** tests, all offline.
+
+**Not run:** the full repository suite was not run to completion here (see §6).
+
+**Activation:** everything is off or run-once. There are no schedules, notifications or production writes. The LLM, valuation and persistence are disabled by default.
+
+### Requirements matrix
+
+Legend: **T** = implemented and tested offline. **L** = implemented but limited or unverified on real data. **B** = blocked by an external dependency. **D** = deferred.
+
+| Req | Implementation | Verification | State |
+|---|---|---|---|
+| **WP5.1** Utilisation: same scope, capacity denominator | `mechanisms.utilization` | `test_wp5_mechanisms` (plant A vs B, same plant, capacity change) | T; real-world utilisation statements are noisy (L) |
+| **WP5.1** Mix | segment revenue/result, or stated mix as a hypothesis | positive / adverse / too small / stated / missing | T; segment parsing is new on real scans (L) |
+| **WP5.1** Pricing / input costs | gross margin on the usual cost definition; cause only when stated | confirmed at low growth, adverse, reversible tailwind, missing | T |
+| **WP5.1** Order quality | WP4 events, payment terms, timing, cancellations | commitment / adverse / missing | T |
+| **WP5.1** Debt reduction | net debt, with funding source: operating cash vs equity vs asset sale | operating- vs dilution-funded, adverse, missing | T |
+| **WP5.1** Segment turnaround | segment loss → profit, with persistence | emerging / confirmed / adverse / missing | T |
+| **WP5.1** Organic volume / share | stated volumes; acquisitions and price separated | confirmed, inorganic, decline, missing | T |
+| **WP5.2** States, magnitude, timing, durability, attribution, confidence, invalidators; ADVERSE for negatives | `MechanismResult` | all WP5 tests | T |
+| **WP5.3** No 25% growth requirement; no double counting; research hypothesis | `decide_status` upgrade on CONFIRMED mechanisms; `overlaps_with` | low-growth confirmation; overlap test | T |
+| **WP6.1** Provider adapter, CLI, one-time preflight, fake adapter | `llm.py`, `llm_provider_anthropic.py` | CLI with fake provider; CLI preflight exit 2 | T; Anthropic adapter not called here (no paid run) |
+| **WP6.2-3** Deterministic tables; LLM narrative only; field validation; injection-safe | `select`, `validate_item` | 10 invalid-interpretation cases, injection test | T |
+| **WP6.4** Cache key; budget before dispatch; failed-call charge; cost disclosure | `LLMEvidenceExtractor`, `Budget.summary` | cache, budget-stop, failure tests | T |
+| **WP6.5** Immutable revisions; original vs latest; track record with sample size | frozen `GuidanceRevision`, `management_track_record` | immutability, both outcomes | T |
+| **WP6.6** Selective chunks; failures counted, never "no signal" | stats in coverage and manifest; PARTIAL status | budget / failure tests | T |
+| **WP7.1** Fiscal / base matching | `_management_case` | FY base, FY26/FY27 mismatch, unreported base | T |
+| **WP7.2** Downside / base / upside; D&A from capex; funding, tax, NCI, dilution | `build_bridge`, assumption register | capex funding cases, cited downside | T; working-capital timing only as cash notes (L) |
+| **WP7.3** Mechanism contributions; unsupported inputs labelled | `mechanism_contributions`, register sources | rendering on fixtures | T |
+| **WP7.4** Optional valuation: as-of price, series, dilution, corporate actions | `valuation.py` | as-of price, split/bonus cutoff, series mismatch | T; no production market adapter (B) |
+| **WP7.5** Price-change context, never rejecting; no future returns | `price_change_context`; evidence unchanged | valuation-never-changes-status test | T |
+| **WP8.1-2** Explicit universe, contemporaneous snapshot, limits, fair order, denominators | `discovery.py` | order independence, limited cohort, missing documents | T; no production snapshot (B) |
+| **WP8.3** Incremental run-once | `--previous` with document fingerprints | delta and carry-forward test | T; predecessor-issuer dependencies not re-propagated (L) |
+| **WP8.4-6** Lanes, per-mechanism states, visible ranking, critical checks, no padding | `lane_for`, `score_components` | deterministic lanes, empty lane not padded | T |
+| **WP8.7-8** Shortlist content, counts, immutable runs | `shortlist.json` / `.md` | content and counts tests; `exist_ok=False` | T |
+| **WP9.1** Returns outside detection; frozen config | `evaluation.py` isolation, `FrozenConfig` | import guard; leaked outcome field changes nothing | T |
+| **WP9.2** Company-neutral cohort | `build_cohort` | determinism, later-delisted inclusion | T; real cohort data not available (B) |
+| **WP9.3** Coverage, extraction, classification P/R, delay, burden | `classification_report`, `extraction_accuracy` | synthetic labelled run end to end | T on synthetic labels; no real labels yet (B) |
+| **WP9.4-5** Lane returns: next tradable entry, costs, liquidity, delistings, benchmarks, censoring, overlap | `lane_outcomes`, `lane_return_report` | censoring and costs tests | T on synthetic prices; no verified price data wired (B) |
+| **WP9.6** Shadow pilot plan | `SHADOW_PILOT_PLAN.md` | — | D (plan only; not started) |
+
+### Real-data observations (8 exported stocks, 2024-03-31)
+
+Mechanism outputs on the export are plausible after two fixes found on real data:
+- an OCR thousands-dot in integer tables;
+- a usual-cost-definition rule for gross margin.
+
+Two examples:
+- **INDOTECH:** gross margin is *down* 235 bps YoY while its EBITDA margin is up 485 bps, i.e. operating leverage on fixed costs.
+- **DEEPAKFERT:** the fertiliser segment swung to a loss (ADVERSE).
+
+Most bridges on the export are NOT_COMPUTED, and they name the missing quarter (e.g. depreciation for Jun-2023), because some older quarters still do not parse. This is shown, not filled.
+
+### End-to-end fixture commands
+
+```bash
+python scripts/earnings_inflection.py --ticker ACMEGRID --as-of 2024-10-31                    # single issuer
+python scripts/earnings_inflection.py --fixtures filings_export/2024-03-31 --ticker INDOTECH --as-of 2024-03-31 --diagnose
+python scripts/earnings_inflection.py --universe tests/earnings_inflection/universe/snapshot_2024-10-31.json \
+    --as-of 2024-10-31 --runs-root /tmp/ei_runs                                               # universe scan
+python scripts/earnings_inflection.py --ticker ACMEGRID --as-of 2024-10-31 --replay-manifest OUT/manifest.json
+python -m pytest tests/earnings_inflection/test_wp9_validation.py -q                          # evaluation
+```
+
+Example research shortlist (synthetic): `docs/earnings_inflection/examples/research_shortlist_synthetic.md`.
+
+### Production-readiness checklist (all open)
+
+**Data access**
+- [ ] Read-only database role and preflight output for the real `mg_documents`.
+- [ ] Explicit text extraction run for the tracked universe, with coverage reviewed.
+- [ ] Results-parser accuracy measured on at least 50 keyed statements across layouts (`extraction_accuracy`).
+
+**Universe and identity**
+- [ ] Production eligibility snapshots with contemporaneous membership, including delistings.
+- [ ] Dated issuer registry: NSE symbol, BSE scrip code, ISIN, renames, SME migrations.
+
+**Prices and costs**
+- [ ] Verified adjusted price series per security and series, plus a sourced corporate-action file (no provider is wired).
+- [ ] Source permissions and terms for exchange filings and prices.
+- [ ] LLM cost estimate per run. Roughly: (selected chunks × ~1.5k input + ~0.5k output tokens) at $4 / $20 per million tokens for `claude-opus-5-5`. Confirm before any paid run.
+
+**Validation**
+- [ ] Independent reviewer labels and a pre-registered control cohort.
+- [ ] Shadow pilot approved and started.
+
+Do not treat passing tests, or attractive backtests, as investment readiness.

@@ -6,7 +6,7 @@ Research-only and evidence-only. The detector reads documents and writes JSON/Ma
 
 ```bash
 pip install pyyaml pytest
-python -m pytest tests/earnings_inflection tests/test_ingestion_pdf_text.py tests/test_pipeline.py -q   # 201 tests
+python -m pytest tests/earnings_inflection tests/test_ingestion_pdf_text.py tests/test_pipeline.py -q   # 304 tests
 python scripts/earnings_inflection.py --ticker ACMEGRID --as-of 2024-10-31          # prints the report
 python scripts/earnings_inflection.py --ticker ACMEGRID --ticker CONTRACO \
     --as-of 2024-10-31 --out data/earnings_inflection                             # writes .md + .json
@@ -171,35 +171,95 @@ The `.json` file has the same content in machine-readable form.
 - Reassess all tracked companies after each results season.
 - There's no scheduler. Run it when you choose.
 
+## D. Mechanisms, LLM, valuation, universe scans and validation (WP5-WP9)
+
+### D.1 Earnings mechanisms (always on)
+
+Each report has an **Earnings mechanisms** table covering utilisation, product/customer mix, pricing/input costs, order quality, debt reduction, segment turnaround and organic volume.
+
+- **States:** each mechanism has its own state:
+  - `insufficient_data`
+  - `no_material_change`
+  - `assertion`
+  - `commitment`
+  - `emerging`
+  - `confirmed`
+  - `adverse`
+  - `contradicted`
+- **Detail:** every mechanism also shows its direction, magnitude, durability, attribution, confidence and invalidators.
+- **Overlaps:** mechanisms that describe the same margin change are cross-referenced, and their effects are not additive.
+- **Status upgrade:** only a **confirmed** realized mechanism can raise the overall status. For example, two consecutive periods of gross-margin gain confirm even with low sales growth.
+- **Research questions:** shown wherever a magnitude cannot be quantified.
+- **Thresholds:** `mechanism_thresholds` in the config.
+
+### D.2 LLM extraction (off by default)
+
+```yaml
+llm: {enabled: true, provider: fake, fake_responses: my_fake.json}   # offline dry run
+budget: {enabled: true, max_calls: 50, max_tokens: 500000, max_spend_usd: 2.0, usd_per_1k_tokens: 0.004}
+```
+
+- **Provider `anthropic`:** uses `claude-opus-5-5` at low effort, with server-side refusal fallback on. Credentials come from `ANTHROPIC_API_KEY` or an `ant auth login` profile and are never printed.
+- **Preflight:** a missing client or zero budget fails preflight **once** (exit code 2) before any company is processed.
+- **What is sent:** only ambiguous or material narrative chunks.
+- **Validation:** every returned field is checked against the quote. Rejections, failed calls and budget stops are counted in `coverage.llm` and the manifest. A budget stop marks the run PARTIAL.
+- **Cost:** a real provider run is a paid run and needs your separate authorisation.
+
+### D.3 Earnings bridge and valuation context
+
+- **Cases:** the bridge shows downside (reported lows), base (TTM run-rate) and upside (latest trend persists) cases. A management case appears only when the guidance year sits on a reported fiscal-year base.
+- **Assumption register:** every input is listed with its source. Capex D&A and interest assumptions are in `bridge_assumptions`.
+- **Valuation:** context only, and optional (`valuation.enabled`). It needs an injected market-data adapter with identity-checked series and sourced splits/bonuses, and it never changes the evidence status. No adapter to the production price tables is wired yet.
+
+### D.4 Universe scan and research shortlist
+
+```bash
+python scripts/earnings_inflection.py --universe tests/earnings_inflection/universe/snapshot_2024-10-31.json \
+    --as-of 2024-10-31 --runs-root data/earnings_inflection/runs --max-issuers 50 --page-size 10
+python scripts/earnings_inflection.py --universe SNAP.json --as-of DATE --resume data/earnings_inflection/runs/<run_id>
+python scripts/earnings_inflection.py --universe SNAP.json --as-of LATER --previous data/earnings_inflection/runs/<run_id>
+```
+
+- **Snapshot:** a versioned JSON eligibility list (`snapshot_id`, `as_of`, `source`, `members` with `status` and optional `excluded_reason`). Keep delisted and suspended members in it.
+- **Outputs:** each run writes an immutable directory containing:
+  - `issuers/*.json`
+  - `shortlist.json`
+  - `shortlist.md`
+  - `checkpoint.json`
+- **Lanes:** EXECUTION_RESEARCH, COMMITMENT_RESEARCH, ASSERTION_WATCH, DATA_REPAIR and CONTRADICTED_OR_STALE. Scores are visible components, not probabilities, and lanes are never padded.
+- **Example:** `docs/earnings_inflection/examples/research_shortlist_synthetic.md` (synthetic issuers).
+- **Production use:** needs a production snapshot built from your universe tables and the read-only adapter.
+
+### D.5 Validation (evaluation.py; isolated from detection)
+
+1. Freeze the config: `FrozenConfig(config_hash(cfg), date)`.
+2. Build a company-neutral cohort with `build_cohort`.
+3. Collect reviewer labels.
+4. Run `classification_report`, `extraction_accuracy`, `lane_outcomes` and `lane_return_report` with verified adjusted prices, then `evaluation_report`.
+
+Censored windows are never reported as returns. See `SHADOW_PILOT_PLAN.md` for the prospective pilot, which has not started.
+
 ## C. Pending work, in priority order
 
 ### Must do before trusting results on real data
 
 1. **Run the preflight** (B.3) and share the output. Until then, coverage is unknown.
-2. **Fill the issuer registry** (B.4c) for tracked companies: NSE symbol ↔ BSE scrip code ↔ ISIN, renames, SME migrations with dates. The mechanism exists; the data doesn't. Without it, BSE filings stay invisible when you run by NSE symbol.
-3. **Run the explicit extraction** (B.2b) for tracked companies and check the `unreadable_documents` and `result_periods.missing` coverage lines.
-4. **Fetch annual reports** for tracked companies (not the whole market).
-5. **Check the results parser on about 20 real statements.** Cover nine-month columns, multi-line headers, standalone and consolidated statements on the same page, and balance-sheet / cash-flow pages. Add them as test fixtures.
+2. **Fill the issuer registry** (B.4c) for tracked companies: NSE symbol, BSE scrip code, ISIN, renames and SME migrations, all with dates.
+3. **Run the explicit extraction** (B.2b) for tracked companies. Then check the `unreadable_documents` and `result_periods.missing` coverage lines.
+4. **Build a production eligibility snapshot** (D.4) from your universe tables, including delisted members.
+5. **Label a pre-registered control set** (D.5), with winners and non-winners chosen before you see statuses, and run the validation report.
 
-### Tracker gaps still open
+### Still open
 
-6. EBIT margin and **incremental depreciation for new capacity** in the bridge, plus a real downside scenario.
-7. Order economics still open: incremental vs replacement business, and materiality against **earnings** (WP4 covers value basis, tax basis, execution period, cancellations and backlog).
-8. Promise ledger beyond revenue and margin: capacity commissioning, customer qualification, capex vs budget, debt and working-capital targets, dilution.
-9. Segment tables (mix, turnaround).
-10. A persistent rolling evidence file per company (about 8 quarters, latest 2 annual reports) and a one-page summary view.
-
-### Not received
-
-11. The amendment's **WP4 acceptance criteria and any WP5+ (universe discovery / research shortlist)** were cut off in the pasted text. Nothing was built for them. There is still no whole-market mode.
-
-### Validation before freezing thresholds
-
-12. Freeze the rules, then build a **pre-registered, point-in-time sample that includes failed inflections**: missed guidance, cancelled orders, margin reversals. Measure whether the states separate successes from failures, using `evaluation.py` with properly adjusted prices.
+6. Production market-data adapter for valuation: series-filtered adjusted prices and a corporate-action file.
+7. Promise ledger beyond revenue and margin: capacity commissioning, customer qualification, capex vs budget.
+8. Incremental-vs-replacement order business, and order margins.
+9. A persistent rolling evidence file per company.
 
 ### Optional, needs your approval
 
-13. Turn on the LLM extractor with a Claude client and a hard budget. It would improve recall on paraphrased guidance.
-14. Paid or network OCR (refused by the code today; only local `ocrmypdf` is wired).
-15. Apply `schema/earnings_inflection_schema.sql` to a **test** database to store runs, source versions, events and reviews. It was checked only against a throwaway local Postgres 16 instance, which has been deleted.
-16. Turn on the opt-in ingestion options (`text_artifact_root`, `keep_failed_originals`, `granular_failure_status`) in production.
+10. Turn on the LLM with a real provider and a hard budget. This is a paid run.
+11. Paid or network OCR. The code refuses it today; only local `ocrmypdf` is wired.
+12. Apply `schema/earnings_inflection_schema.sql` to a **test** database.
+13. Start the shadow pilot (`SHADOW_PILOT_PLAN.md`).
+14. Turn on the opt-in ingestion options in production.
