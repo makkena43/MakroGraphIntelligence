@@ -18,7 +18,7 @@ from enum import Enum
 from typing import Any, Optional
 
 IST = timezone(timedelta(hours=5, minutes=30))
-SCHEMA_VERSION = "ei-assessment-2"
+SCHEMA_VERSION = "ei-assessment-3"
 
 RESEARCH_ONLY_NOTICE = (
     "Research-only evidence assessment. Not an investment recommendation, "
@@ -130,6 +130,19 @@ class Metric(str, Enum):
     INVENTORIES = "inventories"
     TOTAL_ASSETS = "total_assets"
     TOTAL_EQUITY_AND_LIABILITIES = "total_equity_and_liabilities"
+    # WP5: mechanism inputs
+    COST_OF_MATERIALS = "cost_of_materials"            # statement row: cost of materials consumed
+    PURCHASES_STOCK = "purchases_stock_in_trade"
+    INVENTORY_CHANGE = "inventory_change"              # changes in inventories (statement sign)
+    EQUITY_ISSUED = "equity_issued"                    # cash flow: proceeds from issue of shares / warrants
+    SEGMENT_REVENUE = "segment_revenue"                # per-segment rows (FinancialMeasurement.segment)
+    SEGMENT_RESULT = "segment_result"
+    VOLUME = "volume"                                  # stated units / tonnes / volume growth
+    PRICING = "pricing"                                # stated realisations / price changes
+    INPUT_COST = "input_cost"                          # stated raw-material / input cost changes
+    MIX_SHARE = "mix_share"                            # stated share of a product/segment in revenue
+    ACQUISITION = "acquisition"                        # acquisition / inorganic growth mentions
+    MARKET_SHARE = "market_share"
 
 
 class Unit(str, Enum):
@@ -195,6 +208,53 @@ class TaxBasis(str, Enum):
     INCLUSIVE = "inclusive"
     EXCLUSIVE = "exclusive"
     UNKNOWN = "unknown"
+
+
+class Mechanism(str, Enum):
+    """How an earnings change is produced (WP5).  Each is assessed on its own evidence."""
+    UTILIZATION = "utilization"
+    PRODUCT_MIX = "product_customer_mix"
+    PRICING_INPUT = "pricing_input_costs"
+    ORDER_QUALITY = "order_quality"
+    DEBT_REDUCTION = "debt_reduction"
+    SEGMENT_TURNAROUND = "segment_turnaround"
+    ORGANIC_VOLUME = "organic_volume_share"
+
+
+class MechanismState(str, Enum):
+    INSUFFICIENT_DATA = "insufficient_data"    # the comparison the mechanism needs is not available
+    NO_MATERIAL_CHANGE = "no_material_change"  # comparable data, change below the mechanism threshold
+    ASSERTION = "assertion"                    # management statements only
+    COMMITMENT = "commitment"                  # binding external commitments, not yet realized
+    EMERGING = "emerging"                      # one period of realized, comparable change
+    CONFIRMED = "confirmed"                    # mechanism-specific persistence / independent milestone
+    ADVERSE = "adverse"                        # the mechanism is moving against earnings
+    CONTRADICTED = "contradicted"              # evidence invalidates the claimed mechanism
+
+
+@dataclass
+class MechanismResult:
+    mechanism: "Mechanism"
+    state: "MechanismState"
+    direction: str = "neutral"                 # positive | negative | neutral (never "large = good")
+    magnitude: Optional[float] = None
+    magnitude_unit: str = ""
+    magnitude_basis: str = ""                  # what the number measures; "" when unknown
+    period_end: Optional[date] = None
+    first_signal_at: Optional[datetime] = None  # latest availability of the inputs that first showed it
+    durability: str = "unknown"                 # e.g. "2 consecutive quarters", "single statement"
+    attribution: str = ""                       # how the change is attributed (observed / issuer-stated / none)
+    confidence: str = "low"                     # low | medium | high (evidence quality, not probability)
+    invalidators: list[str] = field(default_factory=list)
+    overlaps_with: list[str] = field(default_factory=list)   # mechanisms describing the same earnings change
+    evidence_ids: list[str] = field(default_factory=list)
+    source_doc_ids: list[str] = field(default_factory=list)
+    hypothesis: str = ""                        # research question when magnitude cannot be quantified
+    notes: list[str] = field(default_factory=list)
+
+    @property
+    def qualifies_positive(self) -> bool:
+        return self.direction == "positive" and self.state in (MechanismState.EMERGING, MechanismState.CONFIRMED)
 
 
 class EvidenceStatus(str, Enum):
@@ -354,6 +414,7 @@ class Evidence:
     reference_id: str = ""
     product: str = ""
     extractor: str = "deterministic"   # "deterministic" | "llm"
+    direction: int = 0                 # +1 increase / -1 decrease stated in the sentence, 0 = not stated
     validation_issues: list[str] = field(default_factory=list)
 
     @property
@@ -429,6 +490,7 @@ class FinancialMeasurement:
     integrity_notes: list[str] = field(default_factory=list)
     evidence_id: str = ""
     quote: str = ""
+    segment: str = ""                       # segment-reporting rows only ("" = company level)
 
 
 @dataclass
@@ -566,6 +628,7 @@ class Assessment:
     notice: str = RESEARCH_ONLY_NOTICE
     # exact text versions read for this assessment (replayable via the run manifest)
     source_manifest: list[dict[str, Any]] = field(default_factory=list)
+    mechanisms: list["MechanismResult"] = field(default_factory=list)       # WP5
     replay_mode: str = "PUBLIC_INFORMATION_RECONSTRUCTION"
     schema_version: str = SCHEMA_VERSION
 

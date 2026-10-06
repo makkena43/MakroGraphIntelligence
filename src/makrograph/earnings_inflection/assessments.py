@@ -29,8 +29,9 @@ from datetime import datetime
 from typing import Optional
 
 from .demand import summarise_demand
+from .mechanisms import REALIZED_UPGRADING
 from .contracts import (
-    ChangeFinding, CommitmentStrength, CustomerVerification, DriverChange, EarningsBridge, EconomicEvent, EventStage, Evidence, EvidenceStatus, EvidenceTier, GuidanceOutcome, GuidanceRecord, IssuerModel, Metric, Modality, RelationshipStatus, ReviewStatus, RevisionDirection, Unit, ValueBasis,
+    ChangeFinding, CommitmentStrength, Mechanism, MechanismResult, MechanismState, CustomerVerification, DriverChange, EarningsBridge, EconomicEvent, EventStage, Evidence, EvidenceStatus, EvidenceTier, GuidanceOutcome, GuidanceRecord, IssuerModel, Metric, Modality, RelationshipStatus, ReviewStatus, RevisionDirection, Unit, ValueBasis,
 )
 
 
@@ -44,7 +45,8 @@ def _driver(drivers: list[DriverChange], name: str) -> Optional[DriverChange]:
 def decide_status(drivers: list[DriverChange], events: list[EconomicEvent], evidence: list[Evidence],
                   guidance: list[GuidanceRecord], usable_docs: int,
                   ttm_revenue: Optional[float], as_of: Optional[datetime] = None,
-                  event_lookback_days: int = 365) -> tuple[EvidenceStatus, list[str]]:
+                  event_lookback_days: int = 365,
+                  mechanisms: Optional[list[MechanismResult]] = None) -> tuple[EvidenceStatus, list[str]]:
     why: list[str] = []
     if usable_docs == 0:
         return EvidenceStatus.INSUFFICIENT_EVIDENCE, ["no public, dated, usable documents by as-of"]
@@ -79,12 +81,27 @@ def decide_status(drivers: list[DriverChange], events: list[EconomicEvent], evid
         material_realized = [d for d in material_realized if d.driver != "ebitda_margin_change"]
         why.append(f"EBITDA margin contracted {margin.change:.0f} bps YoY")
 
+    # Mechanism-specific confirmation (WP5): e.g. gross-margin gains in two consecutive periods
+    # confirm their own mechanism even with low sales growth.  Order quality and debt reduction
+    # never upgrade the status by themselves; utilisation only with a realized milestone.
+    mech_pos = [m for m in (mechanisms or []) if m.qualifies_positive and (
+        m.mechanism in REALIZED_UPGRADING or (m.mechanism == Mechanism.UTILIZATION
+                                              and m.state == MechanismState.CONFIRMED))]
+    mech_confirmed = [m for m in mech_pos if m.state == MechanismState.CONFIRMED]
+    for m in (mechanisms or []):
+        if m.state == MechanismState.ADVERSE:
+            why.append(f"adverse mechanism {m.mechanism.value}: {m.magnitude_basis or m.attribution}")
+    if mech_confirmed:
+        why += [f"mechanism {m.mechanism.value} confirmed ({m.durability}): {m.magnitude_basis}" for m in mech_confirmed]
+        why += [f"{d.driver}: {d.change:.1f} {d.unit}" for d in material_realized if d.change is not None]
+        return EvidenceStatus.EXECUTION_CONFIRMED, why
     if streak and streak.current and streak.current >= 2 and material_realized:
         why.append(f"{int(streak.current)} consecutive {streak.unit} of material revenue growth")
         why += [f"{d.driver}: {d.change:.1f} {d.unit}" for d in material_realized if d.change is not None]
         return EvidenceStatus.EXECUTION_CONFIRMED, why
     if material_realized:
         why += [f"{d.driver}: {d.change:.1f} {d.unit}" for d in material_realized if d.change is not None]
+        why += [f"mechanism {m.mechanism.value} emerging: {m.magnitude_basis}" for m in mech_pos]
         why.append(f"single {streak.unit.rstrip('s') if streak else 'period'} so far; persistence unproven")
         return EvidenceStatus.EXECUTION_EMERGING, why
 
