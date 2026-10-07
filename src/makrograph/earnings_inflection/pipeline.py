@@ -18,7 +18,7 @@ from __future__ import annotations
 import logging
 import os
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime, time, timezone
 from typing import Callable, Optional
 
@@ -28,7 +28,8 @@ from .assessments import (
 from .budget import Budget
 from .chunking import chunk_document
 from .contracts import (
-    IST, Assessment, DocumentKind, Evidence, ListingSegment, Metric, SourceDocument, SourceRef, Unit, to_jsonable,
+    IST, Assessment, DocumentKind, Evidence, ListingSegment, Metric, Scope, SourceDocument, SourceRef, Unit,
+    to_jsonable,
 )
 from .counterparty import apply_reference_data, build_profiles
 from .document_versions import availability, is_restatement, link_versions
@@ -357,6 +358,21 @@ class EarningsInflectionPipeline:
             """Replaced by a later version of its filing - one public by ``t`` when given."""
             return any(key(r) in keys_by_doc.get(later, ()) for later in _chain(r.doc_id)
                        if t is None or (doc_public.get(later) and doc_public[later] <= t))
+        # an issuer that files no consolidated statements: statements that do not name their scope are
+        # standalone (rules-5).  Per figure, from filings public by that figure's own filing time, so a
+        # company that starts consolidating later never changes what was inferred earlier.
+        _CONS = re.compile(r"consolidated\s+(?:un-?audited\s+|audited\s+)?(?:financial\s+)?(?:results|statements)", re.I)
+        cons_times = [d.available_at for d in docs if d.available_at and _CONS.search(d.full_text() or "")]
+        cons_times += [r.available_at for r in measurements if r.scope == Scope.CONSOLIDATED and r.available_at]
+        first_cons = min(cons_times, default=None)
+        inferred = 0
+        for i, r in enumerate(measurements):
+            if r.scope == Scope.UNKNOWN and r.available_at and (first_cons is None or r.available_at < first_cons):
+                measurements[i] = replace(r, scope=Scope.STANDALONE)
+                inferred += 1
+        if inferred:
+            coverage["scope_inferred"] = (f"{inferred} figure(s) without a stated scope treated as standalone: no "
+                                          "consolidated statements filed by then")
         as_filed = list(measurements)          # kept for point-in-time series: a re-filing replaces
         measurements = [r for r in measurements if not superseded(r)]   # figures only from its own date
 
