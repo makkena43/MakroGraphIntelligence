@@ -1492,6 +1492,14 @@ def _stage(c: Catalyst, as_of: date, th: dict) -> None:
         else:
             c.stage = ResearchStage.DELAYED
             why.insert(0, f"execution window ended {c.window_end} without confirmation")
+    # an immaterial change is a research note, never an alert (rules-6 D13: a 1.4 cr segment turnaround at a
+    # company with ~500 cr EBITDA was flagged and credited with an earnings inflection)
+    if c.contribution.status == "immaterial" and c.stage in (ResearchStage.SUPPORTED, ResearchStage.VALIDATING,
+                                                              ResearchStage.CONFIRMED):
+        c.stage = ResearchStage.POTENTIAL
+        k = c.contribution
+        why.insert(0, "immaterial: " + (f"{k.share_of_ttm_ebitda:.1%} of TTM EBITDA (base)" if k.share_of_ttm_ebitda
+                                        is not None else k.basis) + "; kept as a research note, not an alert")
     # issuer-disclosed demand is weaker evidence than independently supported demand: lower
     # confidence, and before investment review its customer and independence must be confirmed
     issuer = c.demand_basis == ISSUER_DISCLOSED

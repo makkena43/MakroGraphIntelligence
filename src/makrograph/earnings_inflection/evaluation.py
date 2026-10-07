@@ -562,6 +562,27 @@ _STAGES = ("potential_catalyst", "supported_prospective_inflection", "execution_
            "confirmed_for_investment_review", "delayed", "contradicted", "data_unavailable")
 
 
+_FLAGGED = ("supported_prospective_inflection", "execution_validating", "confirmed_for_investment_review")
+# verdicts under which an alert can be credited with an inflection: its own test was not failed
+_CREDITABLE = ("confirmed", "executed_unconfirmable", "open")
+
+
+def inflection_credit(window: dict, alerts: list[dict]) -> dict:
+    """Which alerts may be credited with a mechanical earnings inflection (rules-6 D13).
+
+    Timing alone is not enough: an alert counts only if it was flagged inside the window (from the
+    window's first period to the publication of its last), its change was not immaterial when it was
+    flagged, and its own verdict was not contradicted, delayed or data-unavailable.  ``window`` has
+    ``from`` and ``end_published`` (ISO dates); each alert has ``catalyst_id``, ``supported_at``,
+    ``verdict`` and ``contribution_when_flagged``.  Also returns the timing-only list, for comparison
+    with rules-5 and earlier results."""
+    end, start = window.get("end_published"), window["from"]
+    timed = [a for a in alerts if end and start <= str(a["supported_at"]) <= end]
+    credited = [a["catalyst_id"] for a in timed if a["verdict"] in _CREDITABLE
+                and a.get("contribution_when_flagged") != "immaterial"]
+    return {"alert_before": credited, "timing_only": [a["catalyst_id"] for a in timed], "missed": not credited}
+
+
 def rules_fingerprint(thresholds: dict, rules_version: str) -> str:
     """Freeze the catalyst rules before looking at outcomes: record this with every evaluation."""
     return config_hash({"rules_version": rules_version, "thresholds": thresholds})[:16]
@@ -585,6 +606,8 @@ def catalyst_timeline(snapshots: list[dict]) -> dict:
             r["final_stage"], r["last_seen_as_of"] = c["stage"], d
             r["confirmation_blocked"] = c.get("confirmation_blocked", "")
             r["contribution"], r["base_crore"] = c["contribution"], c["base_crore"]
+            if c["stage"] in _FLAGGED and "contribution_when_flagged" not in r:
+                r["contribution_when_flagged"] = c["contribution"]
             r["initial_stage"] = r.get("initial_stage") or c.get("initial_stage")
             for k in ("supported_at", "validating_at", "confirmed_at", "materiality_supported_at",
                       "execution_supported_at"):
