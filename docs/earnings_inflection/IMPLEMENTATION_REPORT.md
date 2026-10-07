@@ -585,3 +585,25 @@ Remaining D1 misses (11 of 38) are other layouts. D2 and D4–D7 remain open.
 | Scope | Statements without a stated scope are standalone until a consolidated statement title is filed. Inferred per figure, by its filing time. | `test_rules5_scope.py` |
 
 The development check on the ten issuers is in `evaluations/catalyst-rules-5/DEV_CHECK_RESULTS.md`: no catalyst dates changed and none vanished (one vanished under rules-4).
+
+## 15. catalyst-rules-6: defects D12–D15 from the rules-5 cohort (fingerprint 76b4dd78c36b9506)
+
+| Defect | Fix | Tests |
+|---|---|---|
+| D12: price statements | Direction is read from the sentence; quarterly restatements of a rise are one catalyst; price runs and input-cost runs are tracked separately. | `test_rules6_pricing.py` |
+| D13: materiality | Immaterial catalysts are capped at "potential" (research notes, never alerts). `evaluation.inflection_credit` credits an inflection only to an alert flagged inside the window, not immaterial when flagged, whose own verdict did not fail. | `test_rules6_materiality.py` |
+| D14: results coverage | Header lines carried across chunk splits; "(` in crore)" unit lines; lower-case letter enumerators; quarter-end dates without separators; scope from the auditor's review report; a table failing its own identity is not used at all. | `test_rules6_coverage.py` |
+| D15: order-book readings | Amounts added or retired, books "and pipeline", and past levels the sentence updates are not readings; readings within 10 days are one catalyst with the conflict recorded (`book_conflict_days`). | `test_rules6_order_books.py` |
+
+The development check on the 12 cohort issuers is in `evaluations/catalyst-rules-6/DEV_CHECK_RESULTS.md`:
+- alerts fell from 27 to 6 and false alerts from 10 to 5;
+- results coverage rose sharply for Tata Chemicals, Bata and CESC;
+- no catalyst date changed and none vanished;
+- 0 of 4 earnings inflections are caught under the stricter credit rule.
+
+**Approach change.** Four rounds of defect fixing (rules-3 to rules-6) have each been followed by a new defect class in the next cohort, and each fix was judged on the few companies that exposed it. Further work moves from per-defect patches to methods that generalise:
+1. **Financial figures:** take them from structured results filings (XBRL) where available, checked against accounting identities (revenue + other income = total income, quarters summing to the year, PBT − tax = PAT) and comparatives repeated in later filings, failing closed.
+2. **Fallback table reading:** read word positions (layout-aware) instead of whitespace, with per-issuer layout templates learned from filings that pass the identity checks.
+3. **Text extraction** (orders, capacity, pricing): measure on a labelled random sample of sentences. Local models trained on that sample, with weak supervision from the existing rules, may replace regex patterns; no paid LLM API is needed.
+4. **Acceptance:** a change is accepted only if it improves a broad random-issuer sample without regressions, never on the issuer that exposed the defect.
+5. **Evaluation:** one held-out, pre-registered cohort, used once after the rules are frozen.

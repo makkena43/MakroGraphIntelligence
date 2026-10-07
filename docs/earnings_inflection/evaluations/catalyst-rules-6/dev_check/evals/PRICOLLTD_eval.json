@@ -1,0 +1,59 @@
+{
+ "symbol": "PRICOLLTD",
+ "rules_version": "catalyst-rules-6",
+ "fingerprint": "76b4dd78c36b9506",
+ "coverage": {
+  "symbol": "PRICOLLTD",
+  "announcements": 447,
+  "kept": 246,
+  "downloaded": 239,
+  "with_text": 241,
+  "download_failed": 7,
+  "skipped_no_text": 2,
+  "annual_reports": 4,
+  "annual_report_date_from_filename": 3,
+  "by_year": {
+   "2021": 42,
+   "2022": 53,
+   "2023": 56,
+   "2024": 49,
+   "2025": 41
+  },
+  "cadence": "Q",
+  "scope": "consolidated",
+  "periods_parsed": 15,
+  "first_period": "2022-03-31",
+  "last_period": "2025-09-30",
+  "credit_rating_filings": 14,
+  "snapshot_errors": []
+ },
+ "catalysts_total": 1,
+ "catalysts_by_kind": {
+  "capacity_or_bottleneck": 1
+ },
+ "alerts": [],
+ "false_alerts": [],
+ "unresolved_alerts": [],
+ "prefix_defects": [],
+ "vanished_catalysts": [],
+ "inflections": [],
+ "workload": {
+  "alerts_per_year": 0.0,
+  "snapshots_in_flag_lane": 0,
+  "snapshots": 20,
+  "documents": 241
+ },
+ "timeline": {
+  "first_defensible_catalyst": null,
+  "first_any_catalyst": "2025-05-20",
+  "supported": 0,
+  "confirmed": 0,
+  "false_positives": 0,
+  "delayed": 0,
+  "executed_unconfirmable": 0,
+  "data_unavailable": 0,
+  "potential_only": 1,
+  "days_to_confirmed": [],
+  "rules_version": "catalyst-rules-6"
+ }
+}

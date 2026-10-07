@@ -1,0 +1,90 @@
+{
+ "symbol": "AURIONPRO",
+ "rules_version": "catalyst-rules-6",
+ "fingerprint": "76b4dd78c36b9506",
+ "coverage": {
+  "symbol": "AURIONPRO",
+  "announcements": 470,
+  "kept": 334,
+  "downloaded": 331,
+  "with_text": 323,
+  "download_failed": 3,
+  "skipped_no_text": 12,
+  "annual_reports": 4,
+  "annual_report_no_date": 1,
+  "annual_report_date_from_filename": 3,
+  "by_year": {
+   "2021": 47,
+   "2022": 71,
+   "2023": 71,
+   "2024": 75,
+   "2025": 59
+  },
+  "cadence": "Q",
+  "scope": "consolidated",
+  "periods_parsed": 21,
+  "first_period": "2020-03-31",
+  "last_period": "2025-09-30",
+  "credit_rating_filings": 1,
+  "snapshot_errors": []
+ },
+ "catalysts_total": 4,
+ "catalysts_by_kind": {
+  "customer_approval": 2,
+  "product_mix": 2
+ },
+ "alerts": [
+  {
+   "catalyst_id": "4ff3d96e1972",
+   "kind": "product_mix",
+   "change": "product_customer_mix: sale of software services: share of segment revenue 69.2% -> 75.0% (margin gap 62.2 pp vs other segments, year-ago margins; before unalloc",
+   "first_public": "2025-07-22",
+   "supported_at": "2025-07-22",
+   "verdict": "delayed",
+   "contribution_when_flagged": "estimated",
+   "final_stage": "delayed",
+   "stages": [
+    [
+     "2025-08-31",
+     "supported_prospective_inflection"
+    ],
+    [
+     "2025-11-30",
+     "data_unavailable"
+    ],
+    [
+     "2025-12-31",
+     "delayed"
+    ]
+   ],
+   "flagged_snapshots": 1,
+   "delivery": null
+  }
+ ],
+ "false_alerts": [
+  "4ff3d96e1972"
+ ],
+ "unresolved_alerts": [],
+ "prefix_defects": [],
+ "vanished_catalysts": [],
+ "inflections": [],
+ "workload": {
+  "alerts_per_year": 0.21,
+  "snapshots_in_flag_lane": 1,
+  "snapshots": 20,
+  "documents": 323
+ },
+ "timeline": {
+  "first_defensible_catalyst": "2025-07-22",
+  "first_any_catalyst": "2023-07-25",
+  "supported": 1,
+  "confirmed": 0,
+  "false_positives": 0,
+  "delayed": 1,
+  "executed_unconfirmable": 0,
+  "data_unavailable": 1,
+  "potential_only": 3,
+  "days_to_confirmed": [],
+  "rules_version": "catalyst-rules-6"
+ }
+}

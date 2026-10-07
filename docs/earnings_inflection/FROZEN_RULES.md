@@ -17,7 +17,7 @@ Frozen before any further historical evaluation.
 | catalyst-rules-3 | `1b744b3fe6944180` | review round 3, with **no threshold changed** (only rule logic). See the list below. | `evaluations/catalyst-rules-3/` |
 | catalyst-rules-4 | `8d896bb571e58393` | defects D1 and D3 from the rules-3 cohort, with **no threshold changed**. See the list below. | `evaluations/catalyst-rules-4/` (named-company case study; cohort development check) |
 | catalyst-rules-5 | `b253e4cca34d124d` | defects D2 and D4–D11 plus unstated scope. **Thresholds added** (book plausibility, restatement, monthly volume); existing ones unchanged. See the list below. | `evaluations/catalyst-rules-5/` (development check; pre-registered 12-issuer cohort) |
-| catalyst-rules-6 | `76b4dd78c36b9506` | defects D12–D15 from the rules-5 cohort. **One threshold added** (`book_conflict_days`); existing ones unchanged. See the list below. | `evaluations/catalyst-rules-6/` (development check only); needs a new pre-registered cohort |
+| catalyst-rules-6 | `76b4dd78c36b9506` | defects D12–D15 from the rules-5 cohort. **One threshold added** (`book_conflict_days`); existing ones unchanged. See the list below. | `evaluations/catalyst-rules-6/` (development check on the rules-5 cohort issuers); needs a new pre-registered cohort |
 
 **catalyst-rules-3 changes:**
 - **Historical state:** every input is rebuilt at each historical timestamp: event state, mechanisms, and figures as filed. Later failures are kept, and appending future disclosures does not change earlier assessments (prefix invariance).
