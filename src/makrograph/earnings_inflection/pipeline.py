@@ -550,7 +550,7 @@ class EarningsInflectionPipeline:
             return detect_mechanisms(s_t, ev_t, evs_t, drv_t, t.date(), self.cfg.get("mechanism_thresholds"))
         a.catalysts = detect_catalysts(ticker, series, evidence, events, mechanisms, a.rating_rationales,
                                        as_of.date(), {**(self.cfg.get("bridge_assumptions") or {}),
-                                                      **(self.cfg.get("catalyst_thresholds") or {})}, measurements,
+                                                      **(self.cfg.get("catalyst_thresholds") or {})}, as_filed,
                                        events_at=events_at, mechanisms_at=mechanisms_at,
                                        measurements_at=measurements_at)
         a.research_summary = research_summary(a.catalysts, status.value, why)

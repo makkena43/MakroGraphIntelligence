@@ -1402,7 +1402,7 @@ def _summary(c: Catalyst) -> dict:
 def build_catalyst(ticker: str, s: Seed, series: FinancialSeries, evidence: list[Evidence],
                    events: list[EconomicEvent], rationales: list[RatingRationale], all_seeds: list[Seed],
                    as_of: date, th: dict, series_at=None, as_of_dt: Optional[datetime] = None,
-                   events_at=None) -> Catalyst:
+                   events_at=None, data_times=None) -> Catalyst:
     """The current record, plus what was knowable when: the initial assessment rebuilt ONLY from what
     was public at first disclosure, and re-assessments at every later dated filing up to the as-of
     date, which give the dates materiality / execution / support / validation / confirmation became
@@ -1423,8 +1423,9 @@ def build_catalyst(ticker: str, s: Seed, series: FinancialSeries, evidence: list
     cur.initial_assessment = {"as_of": s.at.isoformat(), **_summary(first)}
     times = sorted({t for t in (
         [e.available_at for e in evidence if e.available_at] + [r.published_at for r in rationales if r.published_at]
-        + [pt.first_public_at or pt.available_at for pt in series.points.values()
-           if (pt.first_public_at or pt.available_at)]
+        + (list(data_times) if data_times is not None else
+           [pt.first_public_at or pt.available_at for pt in series.points.values()
+            if (pt.first_public_at or pt.available_at)])
         # order awards, amendments and cancellations are dated where they were disclosed
         + [h.at for e in events for h in e.history if h.at] + [e.first_public_at for e in events if e.first_public_at])
         if s.at < t <= end})
@@ -1504,8 +1505,12 @@ def detect_catalysts(ticker: str, series: FinancialSeries, evidence: list[Eviden
                           else [x for x in (event_state_at(e, t) for e in events) if x is not None])
         return e_cache[t]
 
-    results_times = sorted({pt.first_public_at or pt.available_at for pt in series.points.values()
-                            if (pt.first_public_at or pt.available_at)})
+    # every time a figure was FIRST filed - including figures a later filing superseded (a presentation
+    # figure replaced by the annual report's): taking times from the final series would drop them and
+    # re-date what was knowable earlier
+    results_times = sorted({t for t in (
+        [m.available_at for m in (measurements or [])]
+        + [pt.first_public_at or pt.available_at for pt in series.points.values()]) if t is not None})
 
     def mechs_at(t: datetime) -> list[MechanismResult]:
         if mechanisms_at is None:
@@ -1544,7 +1549,8 @@ def detect_catalysts(ticker: str, series: FinancialSeries, evidence: list[Eviden
                 x.at = t        # not derivable at an earlier scan: dated when it first became derivable
             seeds.append(x)
             last_seen[id(x)] = t
-    return [build_catalyst(ticker, s, series, evidence, events, rats, seeds, as_of, th, series_at, events_at=evs_at)
+    return [build_catalyst(ticker, s, series, evidence, events, rats, seeds, as_of, th, series_at, events_at=evs_at,
+                           data_times=results_times)
             for s in seeds]
 
 

@@ -206,3 +206,34 @@ def test_a_later_refiling_does_not_rewrite_figures_known_earlier(tmp_path):
     _prefix_invariant(before, after, date(2024, 7, 20))
     c = next(x for x in after if x.catalyst_id == before[0].catalyst_id)
     assert c.quantities["ttm_revenue_at_detection"] == before[0].quantities["ttm_revenue_at_detection"] == 430.0
+
+
+def test_a_figure_later_superseded_keeps_the_catalyst_date_it_supported():
+    """D9 (rules-5): a quarter first published in an investor presentation (highlight figure) and
+    later restated by the statement must not drop out of the scan times; otherwise the catalyst it
+    supported is re-dated to the statement and vanishes from the earlier record (Borosil, 2025)."""
+    from dataclasses import replace
+    from makrograph.earnings_inflection.contracts import Metric, Unit, Scope, FinancialMeasurement
+    q = date(2023, 6, 30)
+    t_pres, t_stmt = at(date(2023, 7, 20)), at(date(2023, 8, 25))
+    base = [r for r in rows(REV) if r.period_end != q]
+    pres = [FinancialMeasurement("T", Metric.REVENUE, q, "Q", 101.0, Unit.INR_CRORE, Scope.STANDALONE, "pres",
+                                 t_pres, display_unit=0.01, source="reported_highlight")]
+    stmt = [FinancialMeasurement("T", m, q, "Q", v, Unit.INR_CRORE, Scope.STANDALONE, "stmt", t_stmt, display_unit=0.01)
+            for m, v in ((Metric.REVENUE, 100.0), (Metric.EBITDA, 15.0))]
+    m = MechanismResult(Mechanism.UTILIZATION, MechanismState.EMERGING, "positive", 12.0, "pp",
+                        "utilisation 60% -> 72%", q, t_pres)
+
+    def mechanisms_at(t):                       # detectable once the Jun-23 quarter is public at all
+        return [m] if t >= t_pres else []
+
+    def run_to(as_of, ms):
+        cut = at(as_of) + timedelta(days=1)
+        vis = [r for r in ms if r.available_at < cut]
+        return detect_catalysts("T", FinancialSeries.build("T", vis), [], [], [m], [], as_of, measurements=vis,
+                                mechanisms_at=mechanisms_at)
+    early = kind(run_to(date(2023, 8, 1), base + pres), CatalystKind.UTILIZATION)
+    late = kind(run_to(date(2024, 3, 1), base + pres + stmt), CatalystKind.UTILIZATION)
+    assert len(early) == 1 and early[0].first_public_at == t_pres
+    assert [c.catalyst_id for c in late] == [early[0].catalyst_id]       # not re-dated to the statement
+    assert late[0].first_public_at == t_pres
