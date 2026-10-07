@@ -1,0 +1,734 @@
+{
+ "results": {
+  "dev": {
+   "baseline": {
+    "book_level:tp": 10,
+    "book_level:fp": 1,
+    "book_level:fn": 10,
+    "order_value:tp": 0,
+    "order_value:fp": 1,
+    "order_value:fn": 2,
+    "inflow_total:tp": 0,
+    "inflow_total:fp": 0,
+    "inflow_total:fn": 6
+   },
+   "spacy": {
+    "book_level:tp": 17,
+    "book_level:fp": 2,
+    "book_level:fn": 3,
+    "order_value:tp": 2,
+    "order_value:fp": 1,
+    "order_value:fn": 0,
+    "inflow_total:tp": 5,
+    "inflow_total:fp": 0,
+    "inflow_total:fn": 1
+   }
+  },
+  "test": {
+   "baseline": {
+    "book_level:tp": 2,
+    "book_level:fp": 1,
+    "book_level:fn": 15,
+    "order_value:tp": 2,
+    "order_value:fp": 0,
+    "order_value:fn": 13,
+    "inflow_total:tp": 5,
+    "inflow_total:fp": 4,
+    "inflow_total:fn": 2
+   },
+   "spacy": {
+    "book_level:tp": 10,
+    "book_level:fp": 6,
+    "book_level:fn": 7,
+    "order_value:tp": 8,
+    "order_value:fp": 1,
+    "order_value:fn": 7,
+    "inflow_total:tp": 4,
+    "inflow_total:fp": 1,
+    "inflow_total:fn": 3
+   }
+  }
+ },
+ "test_errors": [
+  [
+   "dev",
+   "spacy",
+   "RAIN",
+   "other",
+   "order_value",
+   "Net worth is The EBITDA for CY 2025 increased by \u20b9 7,641 million with increase in price realisations by 2%."
+  ],
+  [
+   "dev",
+   "baseline",
+   "TARIL",
+   "inflow_total",
+   "other",
+   "Now let me highlight the order inflow and order book position of the company: \uf0b7 During the quarter, the company received new orders worth Rs.701 crore; growth of 69% YoY basis vs Rs.414 crore orders r"
+  ],
+  [
+   "dev",
+   "baseline",
+   "TARIL",
+   "inflow_total",
+   "other",
+   "Now let me highlight the order inflow and order book position of the company: \uf0b7 During the quarter, the company received new orders worth Rs.701 crore; growth of 69% YoY basis vs Rs.414 crore orders r"
+  ],
+  [
+   "dev",
+   "spacy",
+   "GENUSPOWER",
+   "book_level",
+   "other",
+   "Ltd. as on June 30, 2025. 4 The Board has reviewed and noted total executable order book position as of June 30, 2025 to be INR 29.321 crores, excluding taxes."
+  ],
+  [
+   "dev",
+   "baseline",
+   "LUMAXIND",
+   "book_level",
+   "other",
+   "And what will be the break of this INR2,300 crores order book?"
+  ],
+  [
+   "dev",
+   "spacy",
+   "LUMAXIND",
+   "book_level",
+   "other",
+   "And what will be the break of this INR2,300 crores order book?"
+  ],
+  [
+   "dev",
+   "baseline",
+   "GENUSPOWER",
+   "book_level",
+   "other",
+   "Our total order book has surpassed Rs. 20,000 crores (net of taxes) indicating a promising outlook for future revenue growth."
+  ],
+  [
+   "test",
+   "baseline",
+   "SHAKTIPUMP",
+   "order_value",
+   "inflow_total",
+   "These consecutive order inflows, including LOE from MSEDCL for 16,025 SPWPS valued at Rs. 443.78 Crores along with smaller orders from Madhya Pradesh, Jharkhand, and other states, underscore strong de"
+  ],
+  [
+   "dev",
+   "baseline",
+   "GENUSPOWER",
+   "book_level",
+   "other",
+   "Rajiv Rupani: In the month of May you had told that the order book is Rs. 931 Crores and now our order book is Rs. 1163 Crores."
+  ],
+  [
+   "dev",
+   "spacy",
+   "GENUSPOWER",
+   "other",
+   "book_level",
+   "Rajiv Rupani: Okay, but if that Rs.25,000 Crores order book, which is to be quoted in the next three, four months so if we get a good part of that order, then the new capex will be done accordingly?"
+  ],
+  [
+   "dev",
+   "baseline",
+   "AURIONPRO",
+   "inflow_total",
+   "other",
+   "So we have added orders around Rs. 320 Cr or so this quarter."
+  ],
+  [
+   "dev",
+   "baseline",
+   "TARIL",
+   "inflow_total",
+   "other",
+   "During FY24, the company secured orders worth \u20b92,050 Crore; which is the highest we have achieved in the last five years."
+  ],
+  [
+   "test",
+   "baseline",
+   "HGINFRA",
+   "inflow_total",
+   "other",
+   "With 15% growth in revenues and strong margins - EBITDA margins expanding to 16.2% and PAT margins to 8.3%, we recorded an increase in our order book with an inflow of Rs 19,333 mn with the addition o"
+  ],
+  [
+   "test",
+   "spacy",
+   "HGINFRA",
+   "inflow_total",
+   "book_level",
+   "With 15% growth in revenues and strong margins - EBITDA margins expanding to 16.2% and PAT margins to 8.3%, we recorded an increase in our order book with an inflow of Rs 19,333 mn with the addition o"
+  ],
+  [
+   "dev",
+   "baseline",
+   "GENUSPOWER",
+   "book_level",
+   "other",
+   "Our total order book now stands at around Rs. 11,000 crore (net of taxes) \u2013 which signifies a landmark for our organization, instilling us with a resolute belief that it will act as a driving force fo"
+  ],
+  [
+   "test",
+   "spacy",
+   "SWSOLAR",
+   "other",
+   "book_level",
+   "So you can expect that we'll be opening with order book also close to INR8,000 to INR10,000 crores and similar amount of order booking in that particular year."
+  ],
+  [
+   "dev",
+   "baseline",
+   "LUMAXIND",
+   "book_level",
+   "other",
+   "Our order book remains healthy at \u20b92,275 crores, with LED lighting comprising 88% of it."
+  ],
+  [
+   "test",
+   "spacy",
+   "SWSOLAR",
+   "inflow_total",
+   "other",
+   "Total order inflows touched INR 7,051 crores, with the 01 domestic market contributing INR 5,900 crores, comprising 11 new projects."
+  ],
+  [
+   "test",
+   "baseline",
+   "GMMPFAUDLR",
+   "inflow_total",
+   "other",
+   "EBITDA PAT Order Order Revenue EBITDA PAT* EPS* 9M Margin Margin* Intake Backlog FY23 \u20b92,312 Crore \u20b9335 Crore 14.5% \u20b9199 Crore 8.6% \u20b933.9 \u20b92,601 Crore \u20b92,247 Crore * Excludes impact of exceptional ite"
+  ],
+  [
+   "test",
+   "baseline",
+   "GMMPFAUDLR",
+   "book_level",
+   "other",
+   "EBITDA PAT Order Order Revenue EBITDA PAT* EPS* 9M Margin Margin* Intake Backlog FY23 \u20b92,312 Crore \u20b9335 Crore 14.5% \u20b9199 Crore 8.6% \u20b933.9 \u20b92,601 Crore \u20b92,247 Crore * Excludes impact of exceptional ite"
+  ],
+  [
+   "test",
+   "spacy",
+   "GMMPFAUDLR",
+   "other",
+   "book_level",
+   "EBITDA PAT Order Order Revenue EBITDA PAT* EPS* 9M Margin Margin* Intake Backlog FY23 \u20b92,312 Crore \u20b9335 Crore 14.5% \u20b9199 Crore 8.6% \u20b933.9 \u20b92,601 Crore \u20b92,247 Crore * Excludes impact of exceptional ite"
+  ],
+  [
+   "test",
+   "spacy",
+   "GMMPFAUDLR",
+   "other",
+   "book_level",
+   "EBITDA PAT Order Order Revenue EBITDA PAT* EPS* 9M Margin Margin* Intake Backlog FY23 \u20b92,312 Crore \u20b9335 Crore 14.5% \u20b9199 Crore 8.6% \u20b933.9 \u20b92,601 Crore \u20b92,247 Crore * Excludes impact of exceptional ite"
+  ],
+  [
+   "test",
+   "spacy",
+   "GMMPFAUDLR",
+   "inflow_total",
+   "other",
+   "EBITDA PAT Order Order Revenue EBITDA PAT* EPS* 9M Margin Margin* Intake Backlog FY23 \u20b92,312 Crore \u20b9335 Crore 14.5% \u20b9199 Crore 8.6% \u20b933.9 \u20b92,601 Crore \u20b92,247 Crore * Excludes impact of exceptional ite"
+  ],
+  [
+   "test",
+   "spacy",
+   "GMMPFAUDLR",
+   "book_level",
+   "other",
+   "EBITDA PAT Order Order Revenue EBITDA PAT* EPS* 9M Margin Margin* Intake Backlog FY23 \u20b92,312 Crore \u20b9335 Crore 14.5% \u20b9199 Crore 8.6% \u20b933.9 \u20b92,601 Crore \u20b92,247 Crore * Excludes impact of exceptional ite"
+  ],
+  [
+   "test",
+   "baseline",
+   "SWSOLAR",
+   "book_level",
+   "other",
+   "Our unexecuted order book was approximately INR8,348 crores as of June 2025 and is expected to improve going forward with a pickup in domestic and international order inflows."
+  ],
+  [
+   "test",
+   "spacy",
+   "SHAKTIPUMP",
+   "book_level",
+   "other",
+   "Our order inflow continues to remain robust with the outstanding order book stood at around Rs. 1,800 Crores as on September 2024."
+  ],
+  [
+   "test",
+   "baseline",
+   "HGINFRA",
+   "order_value",
+   "other",
+   "Broad consideration or size of the | Rs.243.11Cr order(s)/contract(s): h."
+  ],
+  [
+   "test",
+   "baseline",
+   "SWSOLAR",
+   "other",
+   "inflow_total",
+   "The fresh order inflows which we are expecting to the tune of INR8,000 crores out of that we expect 25% to 30% will be converted to revenue."
+  ],
+  [
+   "dev",
+   "baseline",
+   "LUMAXIND",
+   "book_level",
+   "other",
+   "Saurabh Jain: So, from INR2,200 crores kind of order book which we have, like more than 50% is from Maruti?"
+  ],
+  [
+   "dev",
+   "baseline",
+   "TARIL",
+   "inflow_total",
+   "other",
+   "Chanchal Rajora: Gunjan, basically, if you see that out of 17,000 what the inquiry lines we have, we already got around INR4,500 crores of the orders."
+  ],
+  [
+   "dev",
+   "spacy",
+   "TARIL",
+   "inflow_total",
+   "other",
+   "Chanchal Rajora: Gunjan, basically, if you see that out of 17,000 what the inquiry lines we have, we already got around INR4,500 crores of the orders."
+  ],
+  [
+   "test",
+   "baseline",
+   "SWSOLAR",
+   "book_level",
+   "other",
+   "The current unexecuted order value stands at INR 9,287 crore, providing execution and revenue visibility."
+  ],
+  [
+   "test",
+   "baseline",
+   "SHAKTIPUMP",
+   "order_value",
+   "other",
+   "The total amount of the order value is for around Rs. 21.00 Crores (inclusive of GST)."
+  ],
+  [
+   "dev",
+   "baseline",
+   "LUMAXIND",
+   "book_level",
+   "other",
+   "However, as I mentioned briefly earlier, the INR1,300 crores order book, we do envisage maybe perhaps an Page 8 of 16 Lumax Industries Limited June 01, 2023 investment, which will be giving us an asse"
+  ],
+  [
+   "dev",
+   "spacy",
+   "AURIONPRO",
+   "other",
+   "book_level",
+   "Ashish Rai: So, look, we announced INR 800 crore + order book at the end of March basically, that is what it stood."
+  ],
+  [
+   "dev",
+   "baseline",
+   "TARIL",
+   "order_value",
+   "other",
+   "An order for Transformers with a total contract value of \u20b991 Crore has been awarded by JSPL."
+  ],
+  [
+   "dev",
+   "baseline",
+   "LUMAXIND",
+   "book_level",
+   "other",
+   "The INR2,600 crore order book, which we are sitting on, 15% of that has already realized in FY '25."
+  ],
+  [
+   "dev",
+   "baseline",
+   "TARIL",
+   "other",
+   "book_level",
+   "We said that when we close this current financial year, we should have order book somewhere close to INR8,000 crores."
+  ],
+  [
+   "test",
+   "baseline",
+   "GMMPFAUDLR",
+   "book_level",
+   "other",
+   "We have a strong order backlog so we have about Rs. 1,777 crores of backlog currently, executable backlog."
+  ],
+  [
+   "dev",
+   "baseline",
+   "AURIONPRO",
+   "inflow_total",
+   "other",
+   "Ashish Rai: So, we added something of the order of INR 230 Cr in Q1."
+  ],
+  [
+   "test",
+   "baseline",
+   "SHAKTIPUMP",
+   "order_value",
+   "other",
+   "Broad commercial consideration or The total amount of the work order is Rs. size of the order(s)/contract(s) 662.82 Crores and with GST the amount is Rs. 754.30 Crores. 6."
+  ],
+  [
+   "test",
+   "spacy",
+   "SHAKTIPUMP",
+   "order_value",
+   "other",
+   "Broad commercial consideration or The total amount of the work order is Rs. size of the order(s)/contract(s) 662.82 Crores and with GST the amount is Rs. 754.30 Crores. 6."
+  ],
+  [
+   "test",
+   "baseline",
+   "HGINFRA",
+   "order_value",
+   "other",
+   "Broad consideration or size of the | Rs.314.21 Cr order(s)/contract(s): h."
+  ],
+  [
+   "test",
+   "baseline",
+   "HGINFRA",
+   "book_level",
+   "other",
+   "The Company currently has a strong order book in excess of Rs. 70,401 Million, leading to a clear visibility of revenue over the next 18-24 months."
+  ],
+  [
+   "test",
+   "baseline",
+   "SHAKTIPUMP",
+   "order_value",
+   "other",
+   "During the quarter, the company received a Letter of Empanelment of 25,000 pumps amounting to Rs. 7,543 Mn (inclusive of GST) under the Magel Tyala Saur Krushi Pump Scheme in Maharashtra; and an order"
+  ],
+  [
+   "test",
+   "baseline",
+   "SHAKTIPUMP",
+   "order_value",
+   "other",
+   "During the quarter, the company received a Letter of Empanelment of 25,000 pumps amounting to Rs. 7,543 Mn (inclusive of GST) under the Magel Tyala Saur Krushi Pump Scheme in Maharashtra; and an order"
+  ],
+  [
+   "test",
+   "spacy",
+   "SHAKTIPUMP",
+   "order_value",
+   "other",
+   "During the quarter, the company received a Letter of Empanelment of 25,000 pumps amounting to Rs. 7,543 Mn (inclusive of GST) under the Magel Tyala Saur Krushi Pump Scheme in Maharashtra; and an order"
+  ],
+  [
+   "test",
+   "spacy",
+   "SHAKTIPUMP",
+   "order_value",
+   "other",
+   "During the quarter, the company received a Letter of Empanelment of 25,000 pumps amounting to Rs. 7,543 Mn (inclusive of GST) under the Magel Tyala Saur Krushi Pump Scheme in Maharashtra; and an order"
+  ],
+  [
+   "test",
+   "baseline",
+   "SHAKTIPUMP",
+   "book_level",
+   "other",
+   "We continue to maintain a healthy order book of approximately Rs. 2,000 Crores as on 30th June 2024, which is expected to be implemented in the next 15 months."
+  ],
+  [
+   "test",
+   "baseline",
+   "HGINFRA",
+   "book_level",
+   "other",
+   "Harendra Singh: What we have considered out of Rs.7,900 crores which is the order balance, say, out of this the project which are under execution where the appointed date has already been declared."
+  ],
+  [
+   "test",
+   "spacy",
+   "HGINFRA",
+   "book_level",
+   "other",
+   "Harendra Singh: What we have considered out of Rs.7,900 crores which is the order balance, say, out of this the project which are under execution where the appointed date has already been declared."
+  ],
+  [
+   "test",
+   "baseline",
+   "HGINFRA",
+   "order_value",
+   "other",
+   "Broad consideration or size of the Rs. 238.71 Cr order(s)/contract(s); h."
+  ],
+  [
+   "dev",
+   "baseline",
+   "AURIONPRO",
+   "book_level",
+   "other",
+   "With a strong pipeline across segments, together with a favourable demand environment, and a healthy order book now exceeding \u20b91,300 crore, the outlook for FY25 and beyond remains highly optimistic."
+  ],
+  [
+   "test",
+   "baseline",
+   "WAAREEENER",
+   "book_level",
+   "other",
+   "PAT has touched the highest mark of INR 878 crores, and our order book is strong at INR ~47,000 crores, and that's equivalent to ~24 gigawatts."
+  ],
+  [
+   "test",
+   "spacy",
+   "WAAREEENER",
+   "other",
+   "book_level",
+   "PAT has touched the highest mark of INR 878 crores, and our order book is strong at INR ~47,000 crores, and that's equivalent to ~24 gigawatts."
+  ],
+  [
+   "test",
+   "baseline",
+   "SHAKTIPUMP",
+   "book_level",
+   "other",
+   "As of 1st August 2025, our order book stood at approximately Rs. 13,500 Mn, supported by steady inflows and active participation in tenders across states like Maharashtra, Madhya Pradesh, Rajasthan, H"
+  ],
+  [
+   "test",
+   "baseline",
+   "GMMPFAUDLR",
+   "book_level",
+   "other",
+   "Our order backlog is also up by 5% to about Rs.1,777 crores."
+  ],
+  [
+   "test",
+   "baseline",
+   "HGINFRA",
+   "order_value",
+   "other",
+   "Broad consideration or size of the Rs. 522.02 Cr order(s)/contract(s) h."
+  ],
+  [
+   "test",
+   "baseline",
+   "GMMPFAUDLR",
+   "other",
+   "inflow_total",
+   "Harshal Sethia: And sir, on the last part of the question our order intake for Q3 was Rs.696 crores for the international business which has dropped to almost up at around half Rs.343 crores."
+  ],
+  [
+   "test",
+   "spacy",
+   "GMMPFAUDLR",
+   "other",
+   "inflow_total",
+   "Harshal Sethia: And sir, on the last part of the question our order intake for Q3 was Rs.696 crores for the international business which has dropped to almost up at around half Rs.343 crores."
+  ],
+  [
+   "dev",
+   "baseline",
+   "SMLMAH",
+   "other",
+   "order_value",
+   "Not ascertainable passed in 3 Corporation Limited Arbitral Award before High Court at this stage. favour of the (DMRC) the Hon'ble Delhi High c) The Arbitral Tribunal vide award dated 26th August 2014"
+  ],
+  [
+   "dev",
+   "baseline",
+   "AURIONPRO",
+   "order_value",
+   "other",
+   "The order is valued at US$ 1.3 Million (INR 10 crores appx.) and will be delivered in two phases by March 2022."
+  ],
+  [
+   "test",
+   "baseline",
+   "GMMPFAUDLR",
+   "book_level",
+   "other",
+   "Our order backlog remains stable at INR 2000 crores which translates to about eight months of visibility in the international business and about six months of India business."
+  ],
+  [
+   "test",
+   "baseline",
+   "HGINFRA",
+   "book_level",
+   "other",
+   "Note 50.2 - Unsatisfied performance obligations The aggregate amount of transaction price allocated to performance obligations that are unsatisfied as at the end of reporting period is Rs. 70,401 Mill"
+  ],
+  [
+   "test",
+   "spacy",
+   "HGINFRA",
+   "book_level",
+   "other",
+   "Note 50.2 - Unsatisfied performance obligations The aggregate amount of transaction price allocated to performance obligations that are unsatisfied as at the end of reporting period is Rs. 70,401 Mill"
+  ],
+  [
+   "dev",
+   "baseline",
+   "AURIONPRO",
+   "book_level",
+   "other",
+   "So order book right now is in the range of, I would say, INR 1,150 Cr, give or take, right."
+  ],
+  [
+   "dev",
+   "spacy",
+   "AURIONPRO",
+   "book_level",
+   "other",
+   "So order book right now is in the range of, I would say, INR 1,150 Cr, give or take, right."
+  ],
+  [
+   "test",
+   "baseline",
+   "HGINFRA",
+   "other",
+   "inflow_total",
+   "Infra Engineering Limited May 25, 2022 on the Rs.9,000 to Rs.10,000 crores order inflow that we are looking at, can you split in terms of the EPC, HAM, how much we are looking at?"
+  ],
+  [
+   "test",
+   "baseline",
+   "WAAREEENER",
+   "book_level",
+   "other",
+   "Balakrishna: Regarding the order book, which we have around INR50,000 crores, we can execute in the next two years, right?"
+  ],
+  [
+   "test",
+   "spacy",
+   "WAAREEENER",
+   "book_level",
+   "other",
+   "Balakrishna: Regarding the order book, which we have around INR50,000 crores, we can execute in the next two years, right?"
+  ],
+  [
+   "test",
+   "baseline",
+   "WAAREEENER",
+   "book_level",
+   "other",
+   "As of yesterday, our order book stands at 26.5 Page 3 of 21 Waaree Energies Limited January 31, 2025 gigawatts, and in rupee terms, this is around INR50,000 crores."
+  ],
+  [
+   "test",
+   "spacy",
+   "WAAREEENER",
+   "book_level",
+   "other",
+   "As of yesterday, our order book stands at 26.5 Page 3 of 21 Waaree Energies Limited January 31, 2025 gigawatts, and in rupee terms, this is around INR50,000 crores."
+  ],
+  [
+   "test",
+   "spacy",
+   "WAAREEENER",
+   "other",
+   "order_value",
+   "Cost of acquisition Rs 75 per share having face Rs. 1 Lakhs at a face value of Rs. and/or the price at value of Rs 10 per share. 10/- per share divided into 10,000 which the shares are Shares acquired"
+  ],
+  [
+   "test",
+   "baseline",
+   "WAAREEENER",
+   "book_level",
+   "other",
+   "Our order book stands at 25 GW, which is equivalent to \u20b949,000 Cr of confirmed orders, and our pipeline exceeds 100 GW."
+  ],
+  [
+   "test",
+   "spacy",
+   "WAAREEENER",
+   "book_level",
+   "other",
+   "Our order book stands at 25 GW, which is equivalent to \u20b949,000 Cr of confirmed orders, and our pipeline exceeds 100 GW."
+  ],
+  [
+   "test",
+   "baseline",
+   "OLECTRA",
+   "order_value",
+   "other",
+   "Broad commercial As per the terms and conditions consideration or size of the of the Tender, the proposed value order(s)/contract (s); of the Contract is approximately INR 395.12 Crores (inclusive of "
+  ],
+  [
+   "test",
+   "spacy",
+   "OLECTRA",
+   "order_value",
+   "other",
+   "Broad commercial As per the terms and conditions consideration or size of the of the Tender, the proposed value order(s)/contract (s); of the Contract is approximately INR 395.12 Crores (inclusive of "
+  ],
+  [
+   "test",
+   "baseline",
+   "OLECTRA",
+   "order_value",
+   "other",
+   "Broad consideration or size of Value of these 40 Buses supply the order(s)/contract(s); would be Rs. 62.80 Crores. 8."
+  ],
+  [
+   "test",
+   "spacy",
+   "OLECTRA",
+   "order_value",
+   "other",
+   "Broad consideration or size of Value of these 40 Buses supply the order(s)/contract(s); would be Rs. 62.80 Crores. 8."
+  ],
+  [
+   "test",
+   "baseline",
+   "OLECTRA",
+   "order_value",
+   "other",
+   "Broad consideration or size of the Value of these 2,400 Electric order(s) / contract(s); Buses supply would be approximately Rs. 4,000 Crores for Olectra. 8."
+  ],
+  [
+   "test",
+   "spacy",
+   "OLECTRA",
+   "order_value",
+   "other",
+   "Broad consideration or size of the Value of these 2,400 Electric order(s) / contract(s); Buses supply would be approximately Rs. 4,000 Crores for Olectra. 8."
+  ],
+  [
+   "test",
+   "baseline",
+   "HBLENGINE",
+   "other",
+   "book_level",
+   "HBL can begin deliveries of Kavach System (Version 4.0) against total accumulated order book of Rs. 3,763.83 Crores."
+  ],
+  [
+   "test",
+   "spacy",
+   "HBLENGINE",
+   "other",
+   "book_level",
+   "HBL can begin deliveries of Kavach System (Version 4.0) against total accumulated order book of Rs. 3,763.83 Crores."
+  ],
+  [
+   "test",
+   "baseline",
+   "OLECTRA",
+   "order_value",
+   "other",
+   "Broad consideration or size of the The value of these 550 Buses supply order(s)/contract(s); would be approximately Rs.1,000 Crores for Olectra. 8."
+  ],
+  [
+   "test",
+   "spacy",
+   "OLECTRA",
+   "order_value",
+   "other",
+   "Broad consideration or size of the The value of these 550 Buses supply order(s)/contract(s); would be approximately Rs.1,000 Crores for Olectra. 8."
+  ]
+ ]
+}
