@@ -55,6 +55,9 @@ def snapshot(a: Assessment) -> dict:
         "research_detected": (a.research_summary or {}).get("detected", ""),
         "rules_version": (a.research_summary or {}).get("rules_version", ""),
         "investment_review": a.investment_review.status if a.investment_review else "not_started",
+        "numeric_signals": [{"signal_id": n.signal_id, "kind": n.kind, "period_end": n.period_end.isoformat(),
+                             "known_at": _iso(n.known_at), "scope": n.scope, "values": n.values, "basis": n.basis}
+                            for n in a.numeric_signals],
         "catalysts": [{
             "catalyst_id": c.catalyst_id, "kind": c.kind.value, "stage": c.stage.value,
             "first_public_at": _iso(c.first_public_at), "operating_change": c.operating_change,

@@ -22,6 +22,7 @@ from dataclasses import dataclass, field, replace
 from datetime import date, datetime, time, timezone
 from typing import Callable, Optional
 
+from .numeric_signals import detect_numeric_signals
 from .xbrl_results import is_xbrl_document, parse_xbrl_results, reconcile_with_xbrl
 from .assessments import (
     decide_status, financing_risks, limitations_for, next_checks, review_status_for, what_changed,
@@ -277,7 +278,7 @@ class EarningsInflectionPipeline:
         coverage["garbled_text_docs"] = sum(1 for d in docs if d.full_text() and garbled_ratio(d.full_text()) > 0.3)
         coverage["superseded_or_duplicate"] = sum(1 for d in docs if d.superseded_by)
         docs.sort(key=lambda d: (d.available_at, d.doc_id))   # chronological
-        # XBRL results filings are structured data, not text: kept out of text extraction, and used only
+        # XBRL results filings are structured data, not text: kept out of text extraction, and used
         # unless disabled (``xbrl_results: false``)
         xbrl_docs = [d for d in docs if is_xbrl_document(d)]
         docs = [d for d in docs if not is_xbrl_document(d)]
@@ -595,6 +596,11 @@ class EarningsInflectionPipeline:
                                                       **(self.cfg.get("catalyst_thresholds") or {})}, as_filed,
                                        events_at=events_at, mechanisms_at=mechanisms_at,
                                        measurements_at=measurements_at)
+        # numbers-first early signals: each new quarter judged once, on the series public at its filing time
+        pub_times = sorted({r.available_at for r in as_filed if r.metric == Metric.REVENUE and r.period_type == "Q"
+                            and r.available_at and r.available_at <= as_of})
+        a.numeric_signals = detect_numeric_signals(lambda t: FinancialSeries.build(ticker, measurements_at(t)),
+                                                   pub_times, self.cfg.get("numeric_thresholds"))
         a.research_summary = research_summary(a.catalysts, status.value, why)
         if self.cfg.get("catalyst_ledger"):                   # explicit opt-in: append-only local ledger
             from .catalyst_ledger import CatalystLedger

@@ -898,6 +898,7 @@ class Assessment:
     thesis: Optional["InflectionThesis"] = None                              # forward-looking layer
     rating_rationales: list["RatingRationale"] = field(default_factory=list)  # dated, every version kept
     catalysts: list["Catalyst"] = field(default_factory=list)                # forward setup (discovery)
+    numeric_signals: list[Any] = field(default_factory=list)                 # numbers-first early signals
     research_summary: dict[str, Any] = field(default_factory=dict)            # detected / why / waiting for
     investment_review: Optional["InvestmentReview"] = None                   # only after confirmation
     replay_mode: str = "PUBLIC_INFORMATION_RECONSTRUCTION"
