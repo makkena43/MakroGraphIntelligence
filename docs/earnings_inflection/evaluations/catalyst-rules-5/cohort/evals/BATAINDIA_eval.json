@@ -1,0 +1,58 @@
+{
+ "symbol": "BATAINDIA",
+ "rules_version": "catalyst-rules-5",
+ "fingerprint": "b253e4cca34d124d",
+ "coverage": {
+  "symbol": "BATAINDIA",
+  "announcements": 582,
+  "kept": 271,
+  "downloaded": 266,
+  "with_text": 271,
+  "download_failed": 5,
+  "annual_reports": 5,
+  "annual_report_date_from_filename": 3,
+  "by_year": {
+   "2021": 43,
+   "2022": 78,
+   "2023": 47,
+   "2024": 55,
+   "2025": 48
+  },
+  "cadence": "Q",
+  "scope": "standalone",
+  "periods_parsed": 6,
+  "first_period": "2020-03-31",
+  "last_period": "2023-12-31",
+  "credit_rating_filings": 1,
+  "snapshot_errors": []
+ },
+ "catalysts_total": 2,
+ "catalysts_by_kind": {
+  "contract_pricing": 2
+ },
+ "alerts": [],
+ "false_alerts": [],
+ "unresolved_alerts": [],
+ "prefix_defects": [],
+ "vanished_catalysts": [],
+ "inflections": [],
+ "workload": {
+  "alerts_per_year": 0.0,
+  "snapshots_in_flag_lane": 0,
+  "snapshots": 20,
+  "documents": 271
+ },
+ "timeline": {
+  "first_defensible_catalyst": null,
+  "first_any_catalyst": "2023-05-18",
+  "supported": 0,
+  "confirmed": 0,
+  "false_positives": 0,
+  "delayed": 0,
+  "executed_unconfirmable": 0,
+  "data_unavailable": 2,
+  "potential_only": 2,
+  "days_to_confirmed": [],
+  "rules_version": "catalyst-rules-5"
+ }
+}
