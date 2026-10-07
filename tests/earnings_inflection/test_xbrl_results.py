@@ -133,3 +133,32 @@ def test_dissemination_time_dates_the_document():
                                "consolidated": "Consolidated", "fromDate": "01-Oct-2021", "toDate": "31-Dec-2021"},
                       filing())
     assert d.published_at.isoformat() == "2022-02-25T20:56:04+05:30" and d.doc_id == "xbrl_INDAS_1_2_3"
+
+
+def test_pipeline_uses_xbrl_only_when_enabled(tmp_path):
+    import json
+    from makrograph.earnings_inflection.pipeline import EarningsInflectionPipeline
+    from makrograph.earnings_inflection.source_repository import FixtureRepository
+    fx = tmp_path / "RAIN"
+    (fx / "xbrl").mkdir(parents=True)
+    (fx / "xbrl" / "q.xml").write_text(filing())
+    (fx / "xbrl_index.json").write_text(json.dumps({"documents": [{
+        "doc_id": "xbrl_q", "ticker": "RAIN", "source_name": "nse_xbrl", "doc_type": XBRL_DOC_TYPE,
+        "filing_type": "XBRL Financial Results", "published_at": "2022-02-25T20:56:04+05:30",
+        "text_file": "xbrl/q.xml"}]}))
+    (fx / "export.json").write_text(json.dumps({"issuers": {"RAIN": {"name": "Rain Industries"}}, "documents": [{
+        "doc_id": "pr1", "ticker": "RAIN", "doc_type": "announcement", "filing_type": "Press Release",
+        "published_at": "2022-02-26T10:00:00+05:30",
+        "text": "Rain Industries reported consolidated revenue growth driven by higher realisations in the quarter."}]}))
+    off = EarningsInflectionPipeline({}, FixtureRepository(fx))
+    off.run(["RAIN"], "2022-03-31")
+    assert (Metric.REVENUE, "Q", date(2021, 12, 31)) not in off.last_series.points
+    on = EarningsInflectionPipeline({"xbrl_results": True}, FixtureRepository(fx))
+    a = on.run(["RAIN"], "2022-03-31").assessments[0]
+    p = on.last_series.points[(Metric.REVENUE, "Q", date(2021, 12, 31))]
+    assert round(p.value, 3) == 4026.054 and on.last_series.scope == Scope.CONSOLIDATED
+    assert (Metric.PAT_ATTRIBUTABLE, "Q", date(2021, 12, 31)) not in on.last_series.points    # sign error held out
+    assert a.coverage.get("xbrl_filings") == 1
+    before = EarningsInflectionPipeline({"xbrl_results": True}, FixtureRepository(fx))
+    before.run(["RAIN"], "2022-02-24")                    # the XBRL was disseminated on 25 Feb at 20:56
+    assert (Metric.REVENUE, "Q", date(2021, 12, 31)) not in before.last_series.points

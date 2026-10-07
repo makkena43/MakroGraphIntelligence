@@ -41,4 +41,25 @@ def test_parser_layout_is_opt_in(tmp_path):
     plain = PDFParser({"output_dir": str(tmp_path)})
     words = PDFParser({"output_dir": str(tmp_path), "layout": "words"})
     assert plain.layout == "plain" and "layout-" not in plain.parser_version
-    assert words.parser_version.endswith("/layout-words-v1")
+    assert words.parser_version.endswith("/layout-words-v3")
+
+
+def tilted(text_cells, top0, x0=340.0, slope=0.021, cw=3.8, gap=0.1):
+    """Characters stored one by one with almost no gap, each a little lower than the last (Pricol's scans)."""
+    out, x = [], x0
+    for cell in text_cells:
+        for ch in cell:
+            out.append(w(ch, x, x + cw, top0 + slope * (x - x0)))
+            x += cw + gap
+        x += 12.0
+    return out
+
+
+def test_a_tilted_scan_stored_character_by_character_reads_as_whole_numbers_on_one_line():
+    cells = ["56,269.01", "55,322.33", "50,113.79", "2,19,175.34", "1,87,191.81", "56,621.24", "55,719.10",
+             "50,968.55", "2,20,816.89", "1,90,283.12"]
+    row = [w("Revenue", 66, 89, 156.0), w("from", 91, 102, 156.1)] + tilted(cells, 163.6)
+    nxt = [w("Other", 66, 81, 166.0), w("income", 82, 101, 166.1)] + tilted([c.replace("5", "4") for c in cells], 173.6)
+    lines = words_to_text(row + nxt).split("\n")
+    assert len(lines) == 2
+    assert split_numeric_row(lines[0])[1] == cells
