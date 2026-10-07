@@ -49,6 +49,10 @@ RULES_VERSION = "catalyst-rules-4"
 DEFAULT_CATALYST_THRESHOLDS = {
     "order_inflow_to_ttm_revenue": 0.25,     # binding, named, unrelated orders in 12 months / TTM revenue
     "order_book_growth_pct": 30.0,           # stated order book vs a snapshot 5-15 months earlier
+    "book_min_share_of_ttm_revenue": 0.10,   # rules-5 D6: a smaller "order book" is not the company's book
+    "book_max_uncorroborated_multiple": 4.0, # rules-5 D6: a bigger jump needs a second filing at the new level
+    "book_restatement_days": 45,             # rules-5 D5: the same book restated within this many days ...
+    "book_restatement_pct": 10.0,            # ... and within this % is one catalyst
     "capacity_expansion_pct": 20.0,
     "materiality_share_of_ttm_ebitda": 0.15, # base incremental EBITDA / TTM EBITDA for "material"
     "default_order_horizon_months": 12,      # used only when no execution period is disclosed (labelled)
@@ -263,6 +267,14 @@ def _order_seeds(series, evidence, events, rationales, p, as_of, th) -> list[See
             continue
         g = (b.quantity.value / a.quantity.value - 1) * 100
         if g < th["order_book_growth_pct"]:
+            continue
+        # D6: implausible readings (an order value or a misread taken as the order book)
+        ttm = _ttm_known_at(series, p, b.available_at)
+        if ttm and min(a.quantity.value, b.quantity.value) < th["book_min_share_of_ttm_revenue"] * ttm:
+            continue
+        if b.quantity.value / a.quantity.value > th["book_max_uncorroborated_multiple"] and not any(
+                x.doc_id != b.doc_id and 0 <= (b.available_at - x.available_at).days <= 120
+                and abs(x.quantity.value / b.quantity.value - 1) <= 0.10 for x in books if x is not b):
             continue
         role = " (rating-agency rationale)" if b.source_role == "rating_agency" else ""
         out.append(Seed(
@@ -1391,6 +1403,21 @@ def _stage(c: Catalyst, as_of: date, th: dict) -> None:
 _SUPPORTED_UP = (ResearchStage.SUPPORTED, ResearchStage.VALIDATING, ResearchStage.CONFIRMED)
 
 
+def _keep_adverse(c: Catalyst, prev: Catalyst, history) -> Catalyst:
+    """A data gap never erases an adverse business verdict: when results go missing after a catalyst
+    was judged contradicted or delayed, that verdict stands (with the gap noted) until new data
+    judges it again."""
+    if c.stage == ResearchStage.DATA_UNAVAILABLE and prev.stage in (ResearchStage.CONTRADICTED,
+                                                                     ResearchStage.DELAYED):
+        since = next((t for t, x in reversed(history) if x.stage != prev.stage), None)
+        when = next((t for t, x in history if x.stage == prev.stage and (since is None or t > since)), None)
+        c.stage = prev.stage
+        c.stage_reasons = ([f"{prev.stage.value.replace('_', ' ')} as last judged"
+                            + (f" ({when.date()})" if when else "") + "; later results not available"]
+                           + prev.stage_reasons[:1] + c.stage_reasons[:1])
+    return c
+
+
 def _summary(c: Catalyst) -> dict:
     return {"stage": c.stage.value, "stage_reasons": c.stage_reasons[:3],
             "contribution": {"status": c.contribution.status, "base_crore": c.contribution.base_crore,
@@ -1431,10 +1458,11 @@ def build_catalyst(ticker: str, s: Seed, series: FinancialSeries, evidence: list
         if s.at < t <= end})
     prev, history = first, [(s.at, first)]
     for t in times:
-        c_t = at(t)
+        c_t = _keep_adverse(at(t), prev, history)
         if _summary(c_t) != _summary(prev):
             history.append((t, c_t))
             prev = c_t
+    cur = _keep_adverse(cur, prev, history)
     if history[-1][1].stage != cur.stage or _summary(history[-1][1]) != _summary(cur):
         history.append((end, cur))
 
@@ -1535,6 +1563,11 @@ def detect_catalysts(ticker: str, series: FinancialSeries, evidence: list[Eviden
                         key=lambda x: (x.at, x.kind.value, x.key)):
             k = (x.kind, x.key)
             dup = next((y for y in seeds if (y.kind, y.key) == k and (t - last_seen[id(y)]).days <= 400), None)
+            if dup is None and x.kind == CatalystKind.ORDERS and x.q.get("book"):
+                # D5: the same order book restated a few days later (another filing, rounding) is one catalyst
+                dup = next((y for y in seeds if y.kind == CatalystKind.ORDERS and y.q.get("book")
+                            and abs((x.at - y.at).days) <= th["book_restatement_days"]
+                            and abs(x.q["book"] / y.q["book"] - 1) * 100 <= th["book_restatement_pct"]), None)
             if dup is not None:                        # the same change restated: one catalyst
                 last_seen[id(dup)] = t
                 if t > dup.at:
