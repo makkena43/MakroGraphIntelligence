@@ -1,0 +1,185 @@
+{
+ "symbol": "AFFLE",
+ "xbrl_filings": 43,
+ "xbrl_validated_figures": 645,
+ "pdf_results_filings": 32,
+ "scored_pdf_filings": 25,
+ "score": {
+  "pdftotext": {
+   "agree": 286,
+   "agree_unit_unread": 0,
+   "disagree": 26,
+   "missing": 422
+  },
+  "pdfplumber": {
+   "agree": 281,
+   "agree_unit_unread": 0,
+   "disagree": 26,
+   "missing": 427
+  }
+ },
+ "per_metric": {
+  "revenue": {
+   "pdftotext": {
+    "agree": 4,
+    "agree_unit_unread": 0,
+    "disagree": 16,
+    "missing": 67
+   },
+   "pdfplumber": {
+    "agree": 4,
+    "agree_unit_unread": 0,
+    "disagree": 16,
+    "missing": 67
+   }
+  },
+  "other_income": {
+   "pdftotext": {
+    "agree": 43,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 44
+   },
+   "pdfplumber": {
+    "agree": 43,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 44
+   }
+  },
+  "finance_cost": {
+   "pdftotext": {
+    "agree": 26,
+    "agree_unit_unread": 0,
+    "disagree": 7,
+    "missing": 54
+   },
+   "pdfplumber": {
+    "agree": 26,
+    "agree_unit_unread": 0,
+    "disagree": 6,
+    "missing": 55
+   }
+  },
+  "depreciation": {
+   "pdftotext": {
+    "agree": 43,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 44
+   },
+   "pdfplumber": {
+    "agree": 40,
+    "agree_unit_unread": 0,
+    "disagree": 1,
+    "missing": 46
+   }
+  },
+  "total_expenses": {
+   "pdftotext": {
+    "agree": 42,
+    "agree_unit_unread": 0,
+    "disagree": 1,
+    "missing": 44
+   },
+   "pdfplumber": {
+    "agree": 42,
+    "agree_unit_unread": 0,
+    "disagree": 1,
+    "missing": 44
+   }
+  },
+  "pbt": {
+   "pdftotext": {
+    "agree": 41,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 46
+   },
+   "pdfplumber": {
+    "agree": 39,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 48
+   }
+  },
+  "tax": {
+   "pdftotext": {
+    "agree": 41,
+    "agree_unit_unread": 0,
+    "disagree": 2,
+    "missing": 44
+   },
+   "pdfplumber": {
+    "agree": 41,
+    "agree_unit_unread": 0,
+    "disagree": 2,
+    "missing": 44
+   }
+  },
+  "pat": {
+   "pdftotext": {
+    "agree": 40,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 47
+   },
+   "pdfplumber": {
+    "agree": 40,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 47
+   }
+  },
+  "pat_attributable": {
+   "pdftotext": {
+    "agree": 6,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 32
+   },
+   "pdfplumber": {
+    "agree": 6,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 32
+   }
+  }
+ },
+ "examples": {
+  "pdftotext": [
+   "nse141551 revenue Q 2021-03-31 consolidated: [177.586] vs XBRL 141.57",
+   "nse141551 revenue FY 2021-03-31 consolidated: [558.31] vs XBRL 516.78",
+   "nse141551 revenue Q 2021-03-31 standalone: [75.863] vs XBRL 72.23",
+   "nse141551 revenue FY 2021-03-31 standalone: [273.179] vs XBRL 266.73",
+   "nse104927514 revenue Q 2021-03-31 consolidated: [177.586] vs XBRL 141.57",
+   "nse104927514 revenue FY 2021-03-31 consolidated: [558.31] vs XBRL 516.78",
+   "nse104927514 revenue Q 2021-03-31 standalone: [75.863] vs XBRL 72.23",
+   "nse104927514 revenue FY 2021-03-31 standalone: [273.179] vs XBRL 266.73",
+   "nse145518 revenue Q 2021-09-30 standalone: [106.358] vs XBRL 95.97",
+   "nse145518 revenue H 2021-09-30 standalone: [194.819] vs XBRL 177.82",
+   "nse145518 revenue Q 2021-09-30 consolidated: [289.932] vs XBRL 274.70",
+   "nse145518 revenue H 2021-09-30 consolidated: [455.099] vs XBRL 427.18",
+   "nse105137813 revenue Q 2021-09-30 standalone: [106.358] vs XBRL 95.97",
+   "nse105137813 revenue H 2021-09-30 standalone: [194.819] vs XBRL 177.82",
+   "nse105137813 revenue Q 2021-09-30 consolidated: [289.932] vs XBRL 274.70"
+  ],
+  "pdfplumber": [
+   "nse141551 revenue Q 2021-03-31 consolidated: [177.586] vs XBRL 141.57",
+   "nse141551 revenue FY 2021-03-31 consolidated: [558.31] vs XBRL 516.78",
+   "nse141551 revenue Q 2021-03-31 standalone: [75.863] vs XBRL 72.23",
+   "nse141551 revenue FY 2021-03-31 standalone: [273.179] vs XBRL 266.73",
+   "nse104927514 revenue Q 2021-03-31 consolidated: [177.586] vs XBRL 141.57",
+   "nse104927514 revenue FY 2021-03-31 consolidated: [558.31] vs XBRL 516.78",
+   "nse104927514 revenue Q 2021-03-31 standalone: [75.863] vs XBRL 72.23",
+   "nse104927514 revenue FY 2021-03-31 standalone: [273.179] vs XBRL 266.73",
+   "nse145518 revenue Q 2021-09-30 standalone: [106.358] vs XBRL 95.97",
+   "nse145518 revenue H 2021-09-30 standalone: [194.819] vs XBRL 177.82",
+   "nse145518 revenue Q 2021-09-30 consolidated: [289.932] vs XBRL 274.70",
+   "nse145518 revenue H 2021-09-30 consolidated: [455.099] vs XBRL 427.18",
+   "nse105137813 revenue Q 2021-09-30 standalone: [106.358] vs XBRL 95.97",
+   "nse105137813 revenue H 2021-09-30 standalone: [194.819] vs XBRL 177.82",
+   "nse105137813 revenue Q 2021-09-30 consolidated: [289.932] vs XBRL 274.70"
+  ]
+ }
+}

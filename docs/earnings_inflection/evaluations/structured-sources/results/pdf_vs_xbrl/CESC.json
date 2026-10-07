@@ -1,0 +1,185 @@
+{
+ "symbol": "CESC",
+ "xbrl_filings": 47,
+ "xbrl_validated_figures": 692,
+ "pdf_results_filings": 32,
+ "scored_pdf_filings": 24,
+ "score": {
+  "pdftotext": {
+   "agree": 280,
+   "agree_unit_unread": 7,
+   "disagree": 55,
+   "missing": 372
+  },
+  "pdfplumber": {
+   "agree": 309,
+   "agree_unit_unread": 0,
+   "disagree": 65,
+   "missing": 340
+  }
+ },
+ "per_metric": {
+  "revenue": {
+   "pdftotext": {
+    "agree": 40,
+    "agree_unit_unread": 0,
+    "disagree": 3,
+    "missing": 41
+   },
+   "pdfplumber": {
+    "agree": 45,
+    "agree_unit_unread": 0,
+    "disagree": 6,
+    "missing": 33
+   }
+  },
+  "other_income": {
+   "pdftotext": {
+    "agree": 8,
+    "agree_unit_unread": 0,
+    "disagree": 34,
+    "missing": 42
+   },
+   "pdfplumber": {
+    "agree": 8,
+    "agree_unit_unread": 0,
+    "disagree": 35,
+    "missing": 41
+   }
+  },
+  "finance_cost": {
+   "pdftotext": {
+    "agree": 38,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 46
+   },
+   "pdfplumber": {
+    "agree": 45,
+    "agree_unit_unread": 0,
+    "disagree": 2,
+    "missing": 37
+   }
+  },
+  "depreciation": {
+   "pdftotext": {
+    "agree": 42,
+    "agree_unit_unread": 0,
+    "disagree": 7,
+    "missing": 35
+   },
+   "pdfplumber": {
+    "agree": 43,
+    "agree_unit_unread": 0,
+    "disagree": 7,
+    "missing": 34
+   }
+  },
+  "total_expenses": {
+   "pdftotext": {
+    "agree": 36,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 48
+   },
+   "pdfplumber": {
+    "agree": 37,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 47
+   }
+  },
+  "pbt": {
+   "pdftotext": {
+    "agree": 40,
+    "agree_unit_unread": 0,
+    "disagree": 7,
+    "missing": 37
+   },
+   "pdfplumber": {
+    "agree": 40,
+    "agree_unit_unread": 0,
+    "disagree": 7,
+    "missing": 37
+   }
+  },
+  "tax": {
+   "pdftotext": {
+    "agree": 38,
+    "agree_unit_unread": 0,
+    "disagree": 4,
+    "missing": 42
+   },
+   "pdfplumber": {
+    "agree": 39,
+    "agree_unit_unread": 0,
+    "disagree": 2,
+    "missing": 43
+   }
+  },
+  "pat": {
+   "pdftotext": {
+    "agree": 38,
+    "agree_unit_unread": 7,
+    "disagree": 0,
+    "missing": 39
+   },
+   "pdfplumber": {
+    "agree": 40,
+    "agree_unit_unread": 0,
+    "disagree": 6,
+    "missing": 38
+   }
+  },
+  "pat_attributable": {
+   "pdftotext": {
+    "agree": 0,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 42
+   },
+   "pdfplumber": {
+    "agree": 12,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 30
+   }
+  }
+ },
+ "examples": {
+  "pdftotext": [
+   "nse138960 other_income Q 2020-12-31 standalone: [28.0] vs XBRL 142.00",
+   "nse138960 tax Q 2020-12-31 standalone: [38.0] vs XBRL 26.00",
+   "nse138960 other_income 9M 2020-12-31 standalone: [76.0] vs XBRL 416.00",
+   "nse138960 tax 9M 2020-12-31 standalone: [115.0] vs XBRL 17.00",
+   "nse145608 other_income Q 2021-09-30 consolidated: [40.0] vs XBRL 66.00",
+   "nse145608 other_income H 2021-09-30 consolidated: [69.0] vs XBRL 196.00",
+   "nse145608 other_income Q 2021-09-30 standalone: [32.0] vs XBRL 127.00",
+   "nse145608 other_income H 2021-09-30 standalone: [46.0] vs XBRL 236.00",
+   "nse105139274 other_income Q 2021-09-30 consolidated: [40.0] vs XBRL 66.00",
+   "nse105139274 other_income H 2021-09-30 consolidated: [69.0] vs XBRL 196.00",
+   "nse105139274 other_income Q 2021-09-30 standalone: [32.0] vs XBRL 127.00",
+   "nse105139274 other_income H 2021-09-30 standalone: [46.0] vs XBRL 236.00",
+   "nse146465 other_income Q 2021-12-31 standalone: [58.0] vs XBRL 259.00",
+   "nse146465 other_income 9M 2021-12-31 standalone: [104.0] vs XBRL 495.00",
+   "nse5119572 other_income Q 2022-09-30 consolidated: [64.0] vs XBRL 421.00"
+  ],
+  "pdfplumber": [
+   "nse138960 other_income Q 2020-12-31 standalone: [28.0] vs XBRL 142.00",
+   "nse138960 other_income 9M 2020-12-31 standalone: [76.0] vs XBRL 416.00",
+   "nse143703 other_income Q 2021-06-30 standalone: [14.0] vs XBRL 109.00",
+   "nse145608 other_income Q 2021-09-30 consolidated: [40.0] vs XBRL 66.00",
+   "nse145608 other_income H 2021-09-30 consolidated: [69.0] vs XBRL 196.00",
+   "nse145608 other_income Q 2021-09-30 standalone: [32.0] vs XBRL 127.00",
+   "nse145608 other_income H 2021-09-30 standalone: [46.0] vs XBRL 236.00",
+   "nse105139274 other_income Q 2021-09-30 consolidated: [40.0] vs XBRL 66.00",
+   "nse105139274 other_income H 2021-09-30 consolidated: [69.0] vs XBRL 196.00",
+   "nse105139274 other_income Q 2021-09-30 standalone: [32.0] vs XBRL 127.00",
+   "nse105139274 other_income H 2021-09-30 standalone: [46.0] vs XBRL 236.00",
+   "nse146465 other_income Q 2021-12-31 standalone: [58.0] vs XBRL 259.00",
+   "nse146465 other_income 9M 2021-12-31 standalone: [104.0] vs XBRL 495.00",
+   "nse5119572 other_income Q 2022-09-30 consolidated: [64.0] vs XBRL 421.00",
+   "nse5119572 other_income H 2022-09-30 consolidated: [108.0] vs XBRL 612.00"
+  ]
+ }
+}

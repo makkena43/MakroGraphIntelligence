@@ -1,0 +1,185 @@
+{
+ "symbol": "SWSOLAR",
+ "xbrl_filings": 43,
+ "xbrl_validated_figures": 639,
+ "pdf_results_filings": 45,
+ "scored_pdf_filings": 32,
+ "score": {
+  "pdftotext": {
+   "agree": 373,
+   "agree_unit_unread": 136,
+   "disagree": 35,
+   "missing": 378
+  },
+  "pdfplumber": {
+   "agree": 303,
+   "agree_unit_unread": 126,
+   "disagree": 29,
+   "missing": 464
+  }
+ },
+ "per_metric": {
+  "revenue": {
+   "pdftotext": {
+    "agree": 56,
+    "agree_unit_unread": 20,
+    "disagree": 0,
+    "missing": 32
+   },
+   "pdfplumber": {
+    "agree": 46,
+    "agree_unit_unread": 20,
+    "disagree": 0,
+    "missing": 42
+   }
+  },
+  "other_income": {
+   "pdftotext": {
+    "agree": 56,
+    "agree_unit_unread": 18,
+    "disagree": 2,
+    "missing": 32
+   },
+   "pdfplumber": {
+    "agree": 46,
+    "agree_unit_unread": 18,
+    "disagree": 2,
+    "missing": 42
+   }
+  },
+  "finance_cost": {
+   "pdftotext": {
+    "agree": 56,
+    "agree_unit_unread": 19,
+    "disagree": 2,
+    "missing": 31
+   },
+   "pdfplumber": {
+    "agree": 46,
+    "agree_unit_unread": 18,
+    "disagree": 3,
+    "missing": 41
+   }
+  },
+  "depreciation": {
+   "pdftotext": {
+    "agree": 56,
+    "agree_unit_unread": 23,
+    "disagree": 2,
+    "missing": 27
+   },
+   "pdfplumber": {
+    "agree": 46,
+    "agree_unit_unread": 18,
+    "disagree": 3,
+    "missing": 41
+   }
+  },
+  "total_expenses": {
+   "pdftotext": {
+    "agree": 56,
+    "agree_unit_unread": 16,
+    "disagree": 0,
+    "missing": 36
+   },
+   "pdfplumber": {
+    "agree": 46,
+    "agree_unit_unread": 16,
+    "disagree": 0,
+    "missing": 46
+   }
+  },
+  "pbt": {
+   "pdftotext": {
+    "agree": 26,
+    "agree_unit_unread": 4,
+    "disagree": 0,
+    "missing": 78
+   },
+   "pdfplumber": {
+    "agree": 26,
+    "agree_unit_unread": 4,
+    "disagree": 0,
+    "missing": 78
+   }
+  },
+  "tax": {
+   "pdftotext": {
+    "agree": 25,
+    "agree_unit_unread": 16,
+    "disagree": 27,
+    "missing": 40
+   },
+   "pdfplumber": {
+    "agree": 23,
+    "agree_unit_unread": 16,
+    "disagree": 19,
+    "missing": 50
+   }
+  },
+  "pat": {
+   "pdftotext": {
+    "agree": 24,
+    "agree_unit_unread": 6,
+    "disagree": 2,
+    "missing": 76
+   },
+   "pdfplumber": {
+    "agree": 24,
+    "agree_unit_unread": 6,
+    "disagree": 2,
+    "missing": 76
+   }
+  },
+  "pat_attributable": {
+   "pdftotext": {
+    "agree": 18,
+    "agree_unit_unread": 14,
+    "disagree": 0,
+    "missing": 26
+   },
+   "pdfplumber": {
+    "agree": 0,
+    "agree_unit_unread": 10,
+    "disagree": 0,
+    "missing": 48
+   }
+  }
+ },
+ "examples": {
+  "pdftotext": [
+   "nse105404269 tax Q 2022-12-31 consolidated: [5.08] vs XBRL 4.01",
+   "nse105404269 tax 9M 2022-12-31 consolidated: [1.74] vs XBRL -7.37",
+   "nse150557 tax Q 2022-12-31 consolidated: [5.08] vs XBRL 4.01",
+   "nse150557 tax 9M 2022-12-31 consolidated: [1.74] vs XBRL -7.37",
+   "nse105473995 tax FY 2023-03-31 standalone: [6.0] vs XBRL 8.05",
+   "nse105473995 tax FY 2023-03-31 consolidated: [4.31] vs XBRL -3.78",
+   "nse152469 tax FY 2023-03-31 standalone: [6.0] vs XBRL 8.05",
+   "nse152469 tax FY 2023-03-31 consolidated: [4.31] vs XBRL -3.78",
+   "nse156784 tax H 2023-09-30 consolidated: [1.49] vs XBRL 4.55",
+   "nse105650650 tax H 2023-09-30 consolidated: [1.49] vs XBRL 4.55",
+   "nse106115677 tax 9M 2024-12-31 standalone: [31.5] vs XBRL 32.39",
+   "nse106115677 tax Q 2024-12-31 consolidated: [18.02] vs XBRL 23.95",
+   "nse106115677 tax 9M 2024-12-31 consolidated: [30.43] vs XBRL 45.28",
+   "nse168324 tax 9M 2024-12-31 standalone: [31.5] vs XBRL 32.39",
+   "nse168324 tax Q 2024-12-31 consolidated: [18.02] vs XBRL 23.95"
+  ],
+  "pdfplumber": [
+   "nse105404269 tax Q 2022-12-31 consolidated: [5.08] vs XBRL 4.01",
+   "nse105404269 tax 9M 2022-12-31 consolidated: [1.74] vs XBRL -7.37",
+   "nse150557 tax Q 2022-12-31 consolidated: [5.08] vs XBRL 4.01",
+   "nse150557 tax 9M 2022-12-31 consolidated: [1.74] vs XBRL -7.37",
+   "nse156784 tax H 2023-09-30 consolidated: [1.49] vs XBRL 4.55",
+   "nse105650650 tax H 2023-09-30 consolidated: [1.49] vs XBRL 4.55",
+   "nse106115677 tax 9M 2024-12-31 standalone: [31.5] vs XBRL 32.39",
+   "nse106115677 tax Q 2024-12-31 consolidated: [18.02] vs XBRL 23.95",
+   "nse106115677 tax 9M 2024-12-31 consolidated: [30.43] vs XBRL 45.28",
+   "nse168324 tax 9M 2024-12-31 standalone: [31.5] vs XBRL 32.39",
+   "nse168324 tax Q 2024-12-31 consolidated: [18.02] vs XBRL 23.95",
+   "nse168324 tax 9M 2024-12-31 consolidated: [30.43] vs XBRL 45.28",
+   "nse106116065 tax 9M 2024-12-31 standalone: [31.5] vs XBRL 32.39",
+   "nse106116065 tax Q 2024-12-31 consolidated: [18.02] vs XBRL 23.95",
+   "nse106116065 tax 9M 2024-12-31 consolidated: [30.43] vs XBRL 45.28"
+  ]
+ }
+}

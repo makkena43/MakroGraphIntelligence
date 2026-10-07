@@ -1,0 +1,174 @@
+{
+ "symbol": "HGINFRA",
+ "xbrl_filings": 48,
+ "xbrl_validated_figures": 677,
+ "pdf_results_filings": 36,
+ "scored_pdf_filings": 32,
+ "score": {
+  "pdftotext": {
+   "agree": 538,
+   "agree_unit_unread": 2,
+   "disagree": 9,
+   "missing": 375
+  },
+  "pdfplumber": {
+   "agree": 538,
+   "agree_unit_unread": 2,
+   "disagree": 10,
+   "missing": 374
+  }
+ },
+ "per_metric": {
+  "revenue": {
+   "pdftotext": {
+    "agree": 67,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 47
+   },
+   "pdfplumber": {
+    "agree": 69,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 45
+   }
+  },
+  "other_income": {
+   "pdftotext": {
+    "agree": 70,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 44
+   },
+   "pdfplumber": {
+    "agree": 72,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 42
+   }
+  },
+  "finance_cost": {
+   "pdftotext": {
+    "agree": 69,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 45
+   },
+   "pdfplumber": {
+    "agree": 67,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 47
+   }
+  },
+  "depreciation": {
+   "pdftotext": {
+    "agree": 62,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 52
+   },
+   "pdfplumber": {
+    "agree": 62,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 52
+   }
+  },
+  "total_expenses": {
+   "pdftotext": {
+    "agree": 70,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 44
+   },
+   "pdfplumber": {
+    "agree": 64,
+    "agree_unit_unread": 0,
+    "disagree": 2,
+    "missing": 48
+   }
+  },
+  "pbt": {
+   "pdftotext": {
+    "agree": 71,
+    "agree_unit_unread": 0,
+    "disagree": 2,
+    "missing": 41
+   },
+   "pdfplumber": {
+    "agree": 73,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 41
+   }
+  },
+  "tax": {
+   "pdftotext": {
+    "agree": 58,
+    "agree_unit_unread": 0,
+    "disagree": 5,
+    "missing": 51
+   },
+   "pdfplumber": {
+    "agree": 58,
+    "agree_unit_unread": 0,
+    "disagree": 6,
+    "missing": 50
+   }
+  },
+  "pat": {
+   "pdftotext": {
+    "agree": 71,
+    "agree_unit_unread": 2,
+    "disagree": 2,
+    "missing": 39
+   },
+   "pdfplumber": {
+    "agree": 73,
+    "agree_unit_unread": 2,
+    "disagree": 2,
+    "missing": 37
+   }
+  },
+  "pat_attributable": {
+   "pdftotext": {
+    "agree": 0,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 12
+   },
+   "pdfplumber": {
+    "agree": 0,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 12
+   }
+  }
+ },
+ "examples": {
+  "pdftotext": [
+   "nse139154 pbt Q 2020-12-31 consolidated: [85.626] vs XBRL 88.82",
+   "nse139154 pat Q 2020-12-31 consolidated: [65.547] vs XBRL 67.76",
+   "nse139154 pbt 9M 2020-12-31 consolidated: [149.699] vs XBRL 165.48",
+   "nse139154 pat 9M 2020-12-31 consolidated: [113.301] vs XBRL 125.54",
+   "nse143262 tax Q 2021-06-30 consolidated: [0.456] vs XBRL 32.12",
+   "nse105492304 tax Q 2023-03-31 standalone: [58.731] vs XBRL 52.75",
+   "nse105492304 tax FY 2023-03-31 standalone: [156.698] vs XBRL 147.35",
+   "nse152926 tax Q 2023-03-31 standalone: [58.731] vs XBRL 52.75",
+   "nse152926 tax FY 2023-03-31 standalone: [156.698] vs XBRL 147.35"
+  ],
+  "pdfplumber": [
+   "nse141076 pat Q 2021-03-31 consolidated: [146.511] vs XBRL 111.11",
+   "nse141076 pat FY 2021-03-31 consolidated: [311.994] vs XBRL 236.65",
+   "nse143262 tax Q 2021-06-30 consolidated: [0.456] vs XBRL 32.12",
+   "nse149223 total_expenses FY 2022-03-31 consolidated: [3244127514623119.0] vs XBRL 3244.13",
+   "nse149223 total_expenses FY 2022-03-31 standalone: [3168365454636117.5] vs XBRL 3168.36",
+   "nse149223 tax FY 2022-03-31 standalone: [1.363] vs XBRL 115.88",
+   "nse105492304 tax Q 2023-03-31 standalone: [58.731] vs XBRL 52.75",
+   "nse105492304 tax FY 2023-03-31 standalone: [156.698] vs XBRL 147.35",
+   "nse152926 tax Q 2023-03-31 standalone: [58.731] vs XBRL 52.75",
+   "nse152926 tax FY 2023-03-31 standalone: [156.698] vs XBRL 147.35"
+  ]
+ }
+}

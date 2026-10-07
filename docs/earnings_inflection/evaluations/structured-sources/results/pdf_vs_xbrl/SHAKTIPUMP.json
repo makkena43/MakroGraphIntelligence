@@ -1,0 +1,149 @@
+{
+ "symbol": "SHAKTIPUMP",
+ "xbrl_filings": 45,
+ "xbrl_validated_figures": 624,
+ "pdf_results_filings": 43,
+ "scored_pdf_filings": 28,
+ "score": {
+  "pdftotext": {
+   "agree": 111,
+   "agree_unit_unread": 0,
+   "disagree": 3,
+   "missing": 638
+  },
+  "pdfplumber": {
+   "agree": 113,
+   "agree_unit_unread": 0,
+   "disagree": 5,
+   "missing": 634
+  }
+ },
+ "per_metric": {
+  "revenue": {
+   "pdftotext": {
+    "agree": 14,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 80
+   },
+   "pdfplumber": {
+    "agree": 14,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 80
+   }
+  },
+  "other_income": {
+   "pdftotext": {
+    "agree": 14,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 80
+   },
+   "pdfplumber": {
+    "agree": 14,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 80
+   }
+  },
+  "finance_cost": {
+   "pdftotext": {
+    "agree": 12,
+    "agree_unit_unread": 0,
+    "disagree": 2,
+    "missing": 80
+   },
+   "pdfplumber": {
+    "agree": 12,
+    "agree_unit_unread": 0,
+    "disagree": 2,
+    "missing": 80
+   }
+  },
+  "depreciation": {
+   "pdftotext": {
+    "agree": 15,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 79
+   },
+   "pdfplumber": {
+    "agree": 15,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 79
+   }
+  },
+  "total_expenses": {
+   "pdftotext": {
+    "agree": 14,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 80
+   },
+   "pdfplumber": {
+    "agree": 14,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 80
+   }
+  },
+  "pbt": {
+   "pdftotext": {
+    "agree": 15,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 79
+   },
+   "pdfplumber": {
+    "agree": 15,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 79
+   }
+  },
+  "tax": {
+   "pdftotext": {
+    "agree": 13,
+    "agree_unit_unread": 0,
+    "disagree": 1,
+    "missing": 80
+   },
+   "pdfplumber": {
+    "agree": 15,
+    "agree_unit_unread": 0,
+    "disagree": 3,
+    "missing": 76
+   }
+  },
+  "pat": {
+   "pdftotext": {
+    "agree": 14,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 80
+   },
+   "pdfplumber": {
+    "agree": 14,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 80
+   }
+  }
+ },
+ "examples": {
+  "pdftotext": [
+   "nse166076 finance_cost H 2024-09-30 consolidated: [17.68] vs XBRL 19.56",
+   "nse166076 tax Q 2024-09-30 standalone: [29.71] vs XBRL 32.22",
+   "nse166076 finance_cost H 2024-09-30 standalone: [16.55] vs XBRL 18.23"
+  ],
+  "pdfplumber": [
+   "nse105487612 tax FY 2023-03-31 standalone: [6.9183] vs XBRL 6.12",
+   "nse152736 tax FY 2023-03-31 standalone: [6.9183] vs XBRL 6.12",
+   "nse166076 finance_cost H 2024-09-30 consolidated: [17.68] vs XBRL 19.56",
+   "nse166076 tax Q 2024-09-30 standalone: [29.71] vs XBRL 32.22",
+   "nse166076 finance_cost H 2024-09-30 standalone: [16.55] vs XBRL 18.23"
+  ]
+ }
+}

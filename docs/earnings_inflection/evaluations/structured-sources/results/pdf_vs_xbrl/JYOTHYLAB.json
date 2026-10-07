@@ -1,0 +1,171 @@
+{
+ "symbol": "JYOTHYLAB",
+ "xbrl_filings": 47,
+ "xbrl_validated_figures": 687,
+ "pdf_results_filings": 32,
+ "scored_pdf_filings": 27,
+ "score": {
+  "pdftotext": {
+   "agree": 114,
+   "agree_unit_unread": 0,
+   "disagree": 8,
+   "missing": 702
+  },
+  "pdfplumber": {
+   "agree": 42,
+   "agree_unit_unread": 0,
+   "disagree": 8,
+   "missing": 774
+  }
+ },
+ "per_metric": {
+  "revenue": {
+   "pdftotext": {
+    "agree": 12,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 85
+   },
+   "pdfplumber": {
+    "agree": 8,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 89
+   }
+  },
+  "other_income": {
+   "pdftotext": {
+    "agree": 19,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 78
+   },
+   "pdfplumber": {
+    "agree": 11,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 86
+   }
+  },
+  "finance_cost": {
+   "pdftotext": {
+    "agree": 11,
+    "agree_unit_unread": 0,
+    "disagree": 2,
+    "missing": 84
+   },
+   "pdfplumber": {
+    "agree": 0,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 97
+   }
+  },
+  "depreciation": {
+   "pdftotext": {
+    "agree": 9,
+    "agree_unit_unread": 0,
+    "disagree": 3,
+    "missing": 85
+   },
+   "pdfplumber": {
+    "agree": 0,
+    "agree_unit_unread": 0,
+    "disagree": 4,
+    "missing": 93
+   }
+  },
+  "total_expenses": {
+   "pdftotext": {
+    "agree": 12,
+    "agree_unit_unread": 0,
+    "disagree": 1,
+    "missing": 84
+   },
+   "pdfplumber": {
+    "agree": 0,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 97
+   }
+  },
+  "pbt": {
+   "pdftotext": {
+    "agree": 29,
+    "agree_unit_unread": 0,
+    "disagree": 2,
+    "missing": 66
+   },
+   "pdfplumber": {
+    "agree": 22,
+    "agree_unit_unread": 0,
+    "disagree": 4,
+    "missing": 71
+   }
+  },
+  "tax": {
+   "pdftotext": {
+    "agree": 13,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 84
+   },
+   "pdfplumber": {
+    "agree": 1,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 96
+   }
+  },
+  "pat": {
+   "pdftotext": {
+    "agree": 9,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 88
+   },
+   "pdfplumber": {
+    "agree": 0,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 97
+   }
+  },
+  "pat_attributable": {
+   "pdftotext": {
+    "agree": 0,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 48
+   },
+   "pdfplumber": {
+    "agree": 0,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 48
+   }
+  }
+ },
+ "examples": {
+  "pdftotext": [
+   "nse149268 total_expenses Q 2022-03-31 standalone: [493.32] vs XBRL 498.32",
+   "nse161783 depreciation FY 2024-03-31 standalone: [27.9] vs XBRL 49.95",
+   "nse167055 finance_cost Q 2024-09-30 standalone: [2.79] vs XBRL 1.40",
+   "nse167055 pbt Q 2024-09-30 standalone: [268.09] vs XBRL 135.59",
+   "nse167055 depreciation H 2024-09-30 standalone: [14.65] vs XBRL 27.29",
+   "nse106054727 finance_cost Q 2024-09-30 standalone: [2.79] vs XBRL 1.40",
+   "nse106054727 pbt Q 2024-09-30 standalone: [268.09] vs XBRL 135.59",
+   "nse106054727 depreciation H 2024-09-30 standalone: [14.65] vs XBRL 27.29"
+  ],
+  "pdfplumber": [
+   "nse141197 depreciation Q 2021-03-31 standalone: [30.98] vs XBRL 20.04",
+   "nse141197 pbt Q 2021-03-31 standalone: [223.41] vs XBRL 29.79",
+   "nse141197 depreciation FY 2021-03-31 standalone: [35.11] vs XBRL 77.91",
+   "nse141197 pbt FY 2021-03-31 standalone: [234.63] vs XBRL 223.41",
+   "nse5119064 depreciation Q 2022-09-30 standalone: [13.81] vs XBRL 11.21",
+   "nse5119064 pbt Q 2022-09-30 standalone: [141.48] vs XBRL 80.31",
+   "nse5119064 depreciation H 2022-09-30 standalone: [15.67] vs XBRL 22.54",
+   "nse5119064 pbt H 2022-09-30 standalone: [133.03] vs XBRL 141.48"
+  ]
+ }
+}
