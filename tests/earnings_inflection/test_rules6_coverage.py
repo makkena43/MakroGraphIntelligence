@@ -79,3 +79,28 @@ def test_a_table_that_fails_its_own_identity_is_not_used_at_all():
     rows, issues = parse_results_tables(doc, chunk_document(doc))
     assert not [r for r in rows if r.metric in (Metric.REVENUE, Metric.PBT)]
     assert any("figures are not used" in i for i in issues)
+
+
+PRICOL = """                                                       Statement of Audited Financial Results for the Quarter and Year Ended 31st March, 2024
+                                                                                                                                              (Rs. in Lakhs)
+                                                              Standalone
+                                                                                                                       Consolidated
+            Particulars                                For the Three Months Ended       For the Year Ended       For the Three Months Ended       For the Year Ended
+                                                  31-Mar-2024  31-Dec-2023  31-Mar-2023  31-Mar-2024  31-Mar-2023  31-Mar-2024  31-Dec-2023  31-Mar-2023  31-Mar-2024  31-Mar-2023
+ 1. Income
+   (a) Revenue from Operations                     56,269.01    55,322.33    50,113.79  2,19,175.34  1,87,191.81    56,621.24    55,719.10    50,968.55  2,20,816.89  1,90,283.12
+   (b) Other Operating Revenue                      1,795.20     1,539.51     1,379.88     6,361.34     5,572.95     1,795.20     1,539.51     1,379.88     6,361.34     5,572.95
+   (c) Other Income                                   317.05       118.28       192.58     1,047.35       402.36       435.34       193.51       188.66     1,315.83       458.53
+   Total Income                                    58,381.26    56,980.12    51,686.25  2,26,584.03  1,93,167.12    58,851.78    57,452.12    52,537.09  2,28,494.06  1,96,314.60
+"""
+
+
+def test_side_by_side_scope_labels_on_their_own_lines_and_other_operating_revenue():
+    # Pricol (pdfplumber layout of its scanned statement): "Standalone" over the left half, "Consolidated"
+    # one line lower over the right half; revenue printed as (a) + (b) other operating revenue
+    doc = SourceDocument(doc_id="d", source_name="t", ticker="PRICOLLTD", text=PRICOL, published_at=datetime(2024, 5, 15))
+    rows, issues = parse_results_tables(doc, chunk_document(doc))
+    q = {(r.scope.value, round(r.value, 2)) for r in rows if r.metric == Metric.REVENUE
+         and r.period_end == date(2024, 3, 31) and r.period_type == "Q"}
+    assert q == {("standalone", 580.64), ("consolidated", 584.16)}               # lakh -> crore
+    assert not any("rows mis-read" in i for i in issues)
