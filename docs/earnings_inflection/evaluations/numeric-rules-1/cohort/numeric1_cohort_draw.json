@@ -1,0 +1,801 @@
+{
+ "seed": "ei-numeric1-cohort-2026-10-07|",
+ "universe": 505,
+ "eligible": 421,
+ "selected": [
+  {
+   "symbol": "CENTUM",
+   "name": "Centum Electronics Ltd.",
+   "industry": "Capital Goods",
+   "index": "ind_niftymicrocap250_list.csv",
+   "rank_hash": "01f83aa2c42c",
+   "h1_2021_announcements": 30
+  },
+  {
+   "symbol": "POLYMED",
+   "name": "Poly Medicure Ltd.",
+   "industry": "Healthcare",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "04bee1e6e642",
+   "h1_2021_announcements": 22
+  },
+  {
+   "symbol": "PGHL",
+   "name": "Procter & Gamble Health Ltd.",
+   "industry": "Healthcare",
+   "index": "ind_niftymicrocap250_list.csv",
+   "rank_hash": "04f9b43504c1",
+   "h1_2021_announcements": 21
+  },
+  {
+   "symbol": "QUESS",
+   "name": "Quess Corp Ltd.",
+   "industry": "Services",
+   "index": "ind_niftymicrocap250_list.csv",
+   "rank_hash": "053f610fdc49",
+   "h1_2021_announcements": 44
+  },
+  {
+   "symbol": "EMBDL",
+   "name": "Embassy Developments Ltd.",
+   "industry": "Realty",
+   "index": "ind_niftymicrocap250_list.csv",
+   "rank_hash": "068462461201",
+   "h1_2021_announcements": 18
+  },
+  {
+   "symbol": "WEBELSOLAR",
+   "name": "Websol Energy System Ltd.",
+   "industry": "Capital Goods",
+   "index": "ind_niftymicrocap250_list.csv",
+   "rank_hash": "068dc593233f",
+   "h1_2021_announcements": 25
+  },
+  {
+   "symbol": "ENGINERSIN",
+   "name": "Engineers India Ltd.",
+   "industry": "Construction",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "06d99db0b1e9",
+   "h1_2021_announcements": 35
+  },
+  {
+   "symbol": "MMTC",
+   "name": "MMTC Ltd.",
+   "industry": "Services",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "08f28bb28d2a",
+   "h1_2021_announcements": 11
+  },
+  {
+   "symbol": "CIEINDIA",
+   "name": "CIE Automotive India Ltd.",
+   "industry": "Automobile and Auto Components",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "098660ac3565",
+   "h1_2021_announcements": 37
+  },
+  {
+   "symbol": "RELAXO",
+   "name": "Relaxo Footwears Ltd.",
+   "industry": "Consumer Durables",
+   "index": "ind_niftymicrocap250_list.csv",
+   "rank_hash": "0a490baaf2e9",
+   "h1_2021_announcements": 26
+  },
+  {
+   "symbol": "GRAPHITE",
+   "name": "Graphite India Ltd.",
+   "industry": "Capital Goods",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "0b0f6a55197b",
+   "h1_2021_announcements": 33
+  },
+  {
+   "symbol": "LTFOODS",
+   "name": "LT Foods Ltd.",
+   "industry": "Fast Moving Consumer Goods",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "0b33c8a580d5",
+   "h1_2021_announcements": 36
+  },
+  {
+   "symbol": "RAMCOCEM",
+   "name": "The Ramco Cements Ltd.",
+   "industry": "Construction Materials",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "0bb27acf57fd",
+   "h1_2021_announcements": 37
+  },
+  {
+   "symbol": "ABREL",
+   "name": "Aditya Birla Real Estate Ltd.",
+   "industry": "Realty",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "0e6f16021ab4",
+   "h1_2021_announcements": 53
+  },
+  {
+   "symbol": "MRPL",
+   "name": "Mangalore Refinery & Petrochemicals Ltd.",
+   "industry": "Oil Gas & Consumable Fuels",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "0e9cabda7709",
+   "h1_2021_announcements": 50
+  },
+  {
+   "symbol": "DBREALTY",
+   "name": "VALOR ESTATE Ltd.",
+   "industry": "Realty",
+   "index": "ind_niftymicrocap250_list.csv",
+   "rank_hash": "102610cf7476",
+   "h1_2021_announcements": 24
+  },
+  {
+   "symbol": "DEEPAKNTR",
+   "name": "Deepak Nitrite Ltd.",
+   "industry": "Chemicals",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "1241b51b873b",
+   "h1_2021_announcements": 37
+  },
+  {
+   "symbol": "FIEMIND",
+   "name": "Fiem Industries Ltd",
+   "industry": "Automobile and Auto Components",
+   "index": "ind_niftymicrocap250_list.csv",
+   "rank_hash": "1305f65de018",
+   "h1_2021_announcements": 21
+  },
+  {
+   "symbol": "PCBL",
+   "name": "PCBL Chemical Ltd.",
+   "industry": "Chemicals",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "14aa5c7456f4",
+   "h1_2021_announcements": 51
+  },
+  {
+   "symbol": "GUJALKALI",
+   "name": "Gujarat Alkalies & Chemicals Ltd.",
+   "industry": "Chemicals",
+   "index": "ind_niftymicrocap250_list.csv",
+   "rank_hash": "156b4a09106a",
+   "h1_2021_announcements": 50
+  },
+  {
+   "symbol": "CCL",
+   "name": "CCL Products (I) Ltd.",
+   "industry": "Fast Moving Consumer Goods",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "16f6ef8b49ff",
+   "h1_2021_announcements": 24
+  },
+  {
+   "symbol": "WELSPUNLIV",
+   "name": "Welspun Living Ltd.",
+   "industry": "Textiles",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "19b4af29b4a6",
+   "h1_2021_announcements": 53
+  },
+  {
+   "symbol": "BALRAMCHIN",
+   "name": "Balrampur Chini Mills Ltd.",
+   "industry": "Fast Moving Consumer Goods",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "1b0d108ae5c1",
+   "h1_2021_announcements": 42
+  },
+  {
+   "symbol": "IRB",
+   "name": "IRB Infrastructure Developers Ltd.",
+   "industry": "Construction",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "1b765a6b7a4f",
+   "h1_2021_announcements": 39
+  },
+  {
+   "symbol": "ZENSARTECH",
+   "name": "Zensar Technolgies Ltd.",
+   "industry": "Information Technology",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "1c9a08c4823c",
+   "h1_2021_announcements": 73
+  },
+  {
+   "symbol": "INDIAMART",
+   "name": "Indiamart Intermesh Ltd.",
+   "industry": "Consumer Services",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "1db159adefd5",
+   "h1_2021_announcements": 86
+  },
+  {
+   "symbol": "JUBLPHARMA",
+   "name": "Jubilant Pharmova Ltd.",
+   "industry": "Healthcare",
+   "index": "ind_niftymicrocap250_list.csv",
+   "rank_hash": "201fed355366",
+   "h1_2021_announcements": 54
+  },
+  {
+   "symbol": "CERA",
+   "name": "Cera Sanitaryware Ltd",
+   "industry": "Consumer Durables",
+   "index": "ind_niftymicrocap250_list.csv",
+   "rank_hash": "213ef8fa6652",
+   "h1_2021_announcements": 42
+  },
+  {
+   "symbol": "RPOWER",
+   "name": "Reliance Power Ltd.",
+   "industry": "Power",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "224157f8d7db",
+   "h1_2021_announcements": 24
+  },
+  {
+   "symbol": "GABRIEL",
+   "name": "Gabriel India Ltd.",
+   "industry": "Automobile and Auto Components",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "237f6cfd0e6f",
+   "h1_2021_announcements": 22
+  }
+ ],
+ "log": [
+  [
+   "AADHARHFC",
+   "excluded: financial services"
+  ],
+  [
+   "AAVAS",
+   "excluded: financial services"
+  ],
+  [
+   "ABSLAMC",
+   "excluded: financial services"
+  ],
+  [
+   "AFFLE",
+   "excluded: development issuer"
+  ],
+  [
+   "ANANDRATHI",
+   "excluded: financial services"
+  ],
+  [
+   "ANGELONE",
+   "excluded: financial services"
+  ],
+  [
+   "APTUS",
+   "excluded: financial services"
+  ],
+  [
+   "BANDHANBNK",
+   "excluded: financial services"
+  ],
+  [
+   "BATAINDIA",
+   "excluded: development issuer"
+  ],
+  [
+   "CESC",
+   "excluded: development issuer"
+  ],
+  [
+   "CANFINHOME",
+   "excluded: financial services"
+  ],
+  [
+   "CANHLIFE",
+   "excluded: financial services"
+  ],
+  [
+   "CGCL",
+   "excluded: financial services"
+  ],
+  [
+   "CENTRALBK",
+   "excluded: financial services"
+  ],
+  [
+   "CDSL",
+   "excluded: financial services"
+  ],
+  [
+   "CHOICEIN",
+   "excluded: financial services"
+  ],
+  [
+   "CHOLAHLDNG",
+   "excluded: financial services"
+  ],
+  [
+   "CUB",
+   "excluded: financial services"
+  ],
+  [
+   "CAMS",
+   "excluded: financial services"
+  ],
+  [
+   "CREDITACC",
+   "excluded: financial services"
+  ],
+  [
+   "DEEPAKFERT",
+   "excluded: development issuer"
+  ],
+  [
+   "FIVESTAR",
+   "excluded: financial services"
+  ],
+  [
+   "HBLENGINE",
+   "excluded: development issuer"
+  ],
+  [
+   "HOMEFIRST",
+   "excluded: financial services"
+  ],
+  [
+   "IDBI",
+   "excluded: financial services"
+  ],
+  [
+   "IFCI",
+   "excluded: financial services"
+  ],
+  [
+   "IIFL",
+   "excluded: financial services"
+  ],
+  [
+   "IEX",
+   "excluded: financial services"
+  ],
+  [
+   "JMFINANCIL",
+   "excluded: financial services"
+  ],
+  [
+   "J&KBANK",
+   "excluded: financial services"
+  ],
+  [
+   "KARURVYSYA",
+   "excluded: financial services"
+  ],
+  [
+   "KFINTECH",
+   "excluded: financial services"
+  ],
+  [
+   "MANAPPURAM",
+   "excluded: financial services"
+  ],
+  [
+   "NUVAMA",
+   "excluded: financial services"
+  ],
+  [
+   "OLECTRA",
+   "excluded: development issuer"
+  ],
+  [
+   "PNBHOUSING",
+   "excluded: financial services"
+  ],
+  [
+   "PINELABS",
+   "excluded: financial services"
+  ],
+  [
+   "POONAWALLA",
+   "excluded: financial services"
+  ],
+  [
+   "RBLBANK",
+   "excluded: financial services"
+  ],
+  [
+   "SAMMAANCAP",
+   "excluded: financial services"
+  ],
+  [
+   "STARHEALTH",
+   "excluded: financial services"
+  ],
+  [
+   "TATACHEM",
+   "excluded: development issuer"
+  ],
+  [
+   "NIACL",
+   "excluded: financial services"
+  ],
+  [
+   "TARIL",
+   "excluded: development issuer"
+  ],
+  [
+   "UCOBANK",
+   "excluded: financial services"
+  ],
+  [
+   "UTIAMC",
+   "excluded: financial services"
+  ],
+  [
+   "AURIONPRO",
+   "excluded: development issuer"
+  ],
+  [
+   "CCAVENUE",
+   "excluded: financial services"
+  ],
+  [
+   "BORORENEW",
+   "excluded: development issuer"
+  ],
+  [
+   "CSBBANK",
+   "excluded: financial services"
+  ],
+  [
+   "CRAMC",
+   "excluded: financial services"
+  ],
+  [
+   "DCBBANK",
+   "excluded: financial services"
+  ],
+  [
+   "EDELWEISS",
+   "excluded: financial services"
+  ],
+  [
+   "EQUITASBNK",
+   "excluded: financial services"
+  ],
+  [
+   "FEDFINA",
+   "excluded: financial services"
+  ],
+  [
+   "GENUSPOWER",
+   "excluded: development issuer"
+  ],
+  [
+   "GOLDIAM",
+   "excluded: development issuer"
+  ],
+  [
+   "GPPL",
+   "excluded: development issuer"
+  ],
+  [
+   "HGINFRA",
+   "excluded: development issuer"
+  ],
+  [
+   "IIFLCAPS",
+   "excluded: financial services"
+  ],
+  [
+   "JSFB",
+   "excluded: financial services"
+  ],
+  [
+   "JYOTHYLAB",
+   "excluded: development issuer"
+  ],
+  [
+   "KTKBANK",
+   "excluded: financial services"
+  ],
+  [
+   "LUMAXIND",
+   "excluded: development issuer"
+  ],
+  [
+   "NIVABUPA",
+   "excluded: financial services"
+  ],
+  [
+   "NORTHARC",
+   "excluded: financial services"
+  ],
+  [
+   "KISSHT",
+   "excluded: financial services"
+  ],
+  [
+   "PAISALO",
+   "excluded: financial services"
+  ],
+  [
+   "PGIL",
+   "excluded: development issuer"
+  ],
+  [
+   "PRICOLLTD",
+   "excluded: development issuer"
+  ],
+  [
+   "RAIN",
+   "excluded: development issuer"
+  ],
+  [
+   "REFEX",
+   "excluded: development issuer"
+  ],
+  [
+   "RELIGARE",
+   "excluded: financial services"
+  ],
+  [
+   "RBA",
+   "excluded: development issuer"
+  ],
+  [
+   "SBFC",
+   "excluded: financial services"
+  ],
+  [
+   "SMLMAH",
+   "excluded: development issuer"
+  ],
+  [
+   "SHAILY",
+   "excluded: development issuer"
+  ],
+  [
+   "SHAKTIPUMP",
+   "excluded: development issuer"
+  ],
+  [
+   "SHAREINDIA",
+   "excluded: financial services"
+  ],
+  [
+   "SOUTHBANK",
+   "excluded: financial services"
+  ],
+  [
+   "SWSOLAR",
+   "excluded: development issuer"
+  ],
+  [
+   "SUPRIYA",
+   "excluded: development issuer"
+  ],
+  [
+   "TMB",
+   "excluded: financial services"
+  ],
+  [
+   "UJJIVANSFB",
+   "excluded: financial services"
+  ],
+  [
+   "SENORES",
+   "skipped: no announcement 2021-01-01..2021-06-30 (none)"
+  ],
+  [
+   "CENTUM",
+   "selected"
+  ],
+  [
+   "POLYMED",
+   "selected"
+  ],
+  [
+   "PGHL",
+   "selected"
+  ],
+  [
+   "QUESS",
+   "selected"
+  ],
+  [
+   "TENNIND",
+   "skipped: no announcement 2021-01-01..2021-06-30 (none)"
+  ],
+  [
+   "ACUTAAS",
+   "skipped: no announcement 2021-01-01..2021-06-30 (none)"
+  ],
+  [
+   "EMBDL",
+   "selected"
+  ],
+  [
+   "WEBELSOLAR",
+   "selected"
+  ],
+  [
+   "ENGINERSIN",
+   "selected"
+  ],
+  [
+   "MMTC",
+   "selected"
+  ],
+  [
+   "CIEINDIA",
+   "selected"
+  ],
+  [
+   "DUMMYTRVN",
+   "skipped: no announcement 2021-01-01..2021-06-30 (none)"
+  ],
+  [
+   "RELAXO",
+   "selected"
+  ],
+  [
+   "GRAPHITE",
+   "selected"
+  ],
+  [
+   "LTFOODS",
+   "selected"
+  ],
+  [
+   "IONEXCHANG",
+   "skipped: no announcement 2021-01-01..2021-06-30 (none)"
+  ],
+  [
+   "OSWALPUMPS",
+   "skipped: industry cap (Capital Goods)"
+  ],
+  [
+   "POWERICA",
+   "skipped: industry cap (Capital Goods)"
+  ],
+  [
+   "RAMCOCEM",
+   "selected"
+  ],
+  [
+   "WEWORK",
+   "skipped: no announcement 2021-01-01..2021-06-30 (none)"
+  ],
+  [
+   "ABREL",
+   "selected"
+  ],
+  [
+   "MRPL",
+   "selected"
+  ],
+  [
+   "DBREALTY",
+   "selected"
+  ],
+  [
+   "GRINDWELL",
+   "skipped: industry cap (Capital Goods)"
+  ],
+  [
+   "KPIGREEN",
+   "skipped: no announcement 2021-01-01..2021-06-30 (none)"
+  ],
+  [
+   "DEEPAKNTR",
+   "selected"
+  ],
+  [
+   "CLEANMAX",
+   "skipped: no announcement 2021-01-01..2021-06-30 (none)"
+  ],
+  [
+   "FIEMIND",
+   "selected"
+  ],
+  [
+   "PCBL",
+   "selected"
+  ],
+  [
+   "RATEGAIN",
+   "skipped: no announcement 2021-01-01..2021-06-30 (none)"
+  ],
+  [
+   "GUJALKALI",
+   "selected"
+  ],
+  [
+   "ELLEN",
+   "skipped: industry cap (Chemicals)"
+  ],
+  [
+   "CCL",
+   "selected"
+  ],
+  [
+   "HONASA",
+   "skipped: no announcement 2021-01-01..2021-06-30 (none)"
+  ],
+  [
+   "GREAVESCOT",
+   "skipped: industry cap (Capital Goods)"
+  ],
+  [
+   "TVSSCS",
+   "skipped: no announcement 2021-01-01..2021-06-30 (none)"
+  ],
+  [
+   "WELSPUNLIV",
+   "selected"
+  ],
+  [
+   "BALRAMCHIN",
+   "selected"
+  ],
+  [
+   "SUMICHEM",
+   "skipped: industry cap (Chemicals)"
+  ],
+  [
+   "IRB",
+   "selected"
+  ],
+  [
+   "ZENSARTECH",
+   "selected"
+  ],
+  [
+   "TBOTEK",
+   "skipped: no announcement 2021-01-01..2021-06-30 (none)"
+  ],
+  [
+   "SKYGOLD",
+   "skipped: no announcement 2021-01-01..2021-06-30 (none)"
+  ],
+  [
+   "INDIAMART",
+   "selected"
+  ],
+  [
+   "AXISCADES",
+   "skipped: industry cap (Capital Goods)"
+  ],
+  [
+   "JUBLPHARMA",
+   "selected"
+  ],
+  [
+   "SAGILITY",
+   "skipped: no announcement 2021-01-01..2021-06-30 (none)"
+  ],
+  [
+   "PWL",
+   "skipped: no announcement 2021-01-01..2021-06-30 (none)"
+  ],
+  [
+   "WOCKPHARMA",
+   "skipped: industry cap (Healthcare)"
+  ],
+  [
+   "CERA",
+   "selected"
+  ],
+  [
+   "RALLIS",
+   "skipped: industry cap (Chemicals)"
+  ],
+  [
+   "RPOWER",
+   "selected"
+  ],
+  [
+   "GABRIEL",
+   "selected"
+  ]
+ ]
+}
