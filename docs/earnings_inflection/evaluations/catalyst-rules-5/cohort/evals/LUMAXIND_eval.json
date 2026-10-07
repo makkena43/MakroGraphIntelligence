@@ -1,0 +1,224 @@
+{
+ "symbol": "LUMAXIND",
+ "rules_version": "catalyst-rules-5",
+ "fingerprint": "b253e4cca34d124d",
+ "coverage": {
+  "symbol": "LUMAXIND",
+  "announcements": 656,
+  "kept": 300,
+  "downloaded": 298,
+  "with_text": 301,
+  "download_failed": 2,
+  "skipped_no_text": 1,
+  "annual_reports": 4,
+  "annual_report_no_date": 1,
+  "annual_report_date_from_filename": 3,
+  "by_year": {
+   "2021": 40,
+   "2022": 100,
+   "2023": 59,
+   "2024": 56,
+   "2025": 46
+  },
+  "cadence": "Q",
+  "scope": "consolidated",
+  "periods_parsed": 19,
+  "first_period": "2020-03-31",
+  "last_period": "2025-06-30",
+  "credit_rating_filings": 6,
+  "snapshot_errors": []
+ },
+ "catalysts_total": 6,
+ "catalysts_by_kind": {
+  "executable_orders": 4,
+  "financing_cost": 1,
+  "utilization": 1
+ },
+ "alerts": [
+  {
+   "catalyst_id": "6781b8efe9a4",
+   "kind": "financing_cost",
+   "change": "debt_reduction: net debt (borrowings - cash) 2020-03-31: 18.4 -> 2021-03-31: -2.8",
+   "first_public": "2021-06-11",
+   "supported_at": "2021-08-06",
+   "verdict": "contradicted",
+   "final_stage": "contradicted",
+   "stages": [
+    [
+     "2021-08-31",
+     "execution_validating"
+    ],
+    [
+     "2022-08-31",
+     "delayed"
+    ],
+    [
+     "2022-11-30",
+     "contradicted"
+    ]
+   ],
+   "flagged_snapshots": 4,
+   "delivery": {
+    "from": "2021-03-31",
+    "to": "2022-03-31",
+    "ttm_revenue": [
+     null,
+     1751.311
+    ],
+    "ttm_parent_pat": [
+     null,
+     null
+    ],
+    "delivered": false,
+    "measurable": false
+   }
+  },
+  {
+   "catalyst_id": "bddef5a41fbf",
+   "kind": "utilization",
+   "change": "utilization: stated utilisation at company-level, 2021-10-28 -> 2022-03-15",
+   "first_public": "2022-05-24",
+   "supported_at": "2023-06-08",
+   "verdict": "executed_unconfirmable",
+   "final_stage": "execution_validating",
+   "stages": [
+    [
+     "2022-05-31",
+     "potential_catalyst"
+    ],
+    [
+     "2023-08-31",
+     "execution_validating"
+    ]
+   ],
+   "flagged_snapshots": 11,
+   "delivery": {
+    "from": "2022-12-31",
+    "to": "2024-03-31",
+    "ttm_revenue": [
+     2260.3691,
+     null
+    ],
+    "ttm_parent_pat": [
+     null,
+     null
+    ],
+    "delivered": false,
+    "measurable": false
+   }
+  },
+  {
+   "catalyst_id": "c7f38d5e46e7",
+   "kind": "executable_orders",
+   "change": "stated order book 1,000.0 -> 1,300.0 cr (+30%; disclosed 2022-11-25 -> 2023-06-08)",
+   "first_public": "2023-06-08",
+   "supported_at": "2023-08-09",
+   "verdict": "executed_unconfirmable",
+   "final_stage": "execution_validating",
+   "stages": [
+    [
+     "2023-08-31",
+     "execution_validating"
+    ]
+   ],
+   "flagged_snapshots": 11,
+   "delivery": {
+    "from": "2023-06-30",
+    "to": "2024-12-31",
+    "ttm_revenue": [
+     2425.0,
+     null
+    ],
+    "ttm_parent_pat": [
+     null,
+     null
+    ],
+    "delivered": false,
+    "measurable": false
+   }
+  },
+  {
+   "catalyst_id": "ba60d750ddc9",
+   "kind": "executable_orders",
+   "change": "stated order book 1,300.0 -> 2,200.0 cr (+69%; disclosed 2023-06-08 -> 2023-11-16)",
+   "first_public": "2023-11-16",
+   "supported_at": "2024-05-26",
+   "verdict": "executed_unconfirmable",
+   "final_stage": "execution_validating",
+   "stages": [
+    [
+     "2023-11-30",
+     "potential_catalyst"
+    ],
+    [
+     "2024-05-31",
+     "execution_validating"
+    ]
+   ],
+   "flagged_snapshots": 8,
+   "delivery": {
+    "from": "2023-12-31",
+    "to": "2025-03-31",
+    "ttm_revenue": [
+     null,
+     null
+    ],
+    "ttm_parent_pat": [
+     null,
+     null
+    ],
+    "delivered": false,
+    "measurable": false
+   }
+  },
+  {
+   "catalyst_id": "28d1ff095511",
+   "kind": "executable_orders",
+   "change": "stated order book 2,200.0 -> 2,900.0 cr (+32%; disclosed 2024-02-21 -> 2024-11-23)",
+   "first_public": "2024-11-23",
+   "supported_at": "2025-02-10",
+   "verdict": "open",
+   "final_stage": "execution_validating",
+   "stages": [
+    [
+     "2024-11-30",
+     "potential_catalyst"
+    ],
+    [
+     "2025-02-28",
+     "execution_validating"
+    ]
+   ],
+   "flagged_snapshots": 5,
+   "delivery": null
+  }
+ ],
+ "false_alerts": [
+  "6781b8efe9a4"
+ ],
+ "unresolved_alerts": [
+  "28d1ff095511"
+ ],
+ "prefix_defects": [],
+ "vanished_catalysts": [],
+ "inflections": [],
+ "workload": {
+  "alerts_per_year": 1.05,
+  "snapshots_in_flag_lane": 15,
+  "snapshots": 20,
+  "documents": 301
+ },
+ "timeline": {
+  "first_defensible_catalyst": "2021-08-06",
+  "first_any_catalyst": "2021-06-11",
+  "supported": 5,
+  "confirmed": 0,
+  "false_positives": 1,
+  "delayed": 0,
+  "executed_unconfirmable": 3,
+  "data_unavailable": 1,
+  "potential_only": 1,
+  "days_to_confirmed": [],
+  "rules_version": "catalyst-rules-5"
+ }
+}
