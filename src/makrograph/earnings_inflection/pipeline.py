@@ -22,6 +22,7 @@ from dataclasses import dataclass, field, replace
 from datetime import date, datetime, time, timezone
 from typing import Callable, Optional
 
+from .xbrl_results import is_xbrl_document, parse_xbrl_results, reconcile_with_xbrl
 from .assessments import (
     decide_status, financing_risks, limitations_for, next_checks, review_status_for, what_changed,
 )
@@ -276,6 +277,10 @@ class EarningsInflectionPipeline:
         coverage["garbled_text_docs"] = sum(1 for d in docs if d.full_text() and garbled_ratio(d.full_text()) > 0.3)
         coverage["superseded_or_duplicate"] = sum(1 for d in docs if d.superseded_by)
         docs.sort(key=lambda d: (d.available_at, d.doc_id))   # chronological
+        # XBRL results filings are structured data, not text: kept out of text extraction, and used only
+        # when enabled (``xbrl_results``; off by default, so existing runs are unchanged)
+        xbrl_docs = [d for d in docs if is_xbrl_document(d)]
+        docs = [d for d in docs if not is_xbrl_document(d)]
         docs_by_id = {d.doc_id: d for d in docs}
         company = (issuer.name if issuer and issuer.name else "") or next((d.company for d in docs if d.company), "") \
             or meta.get("name", "")
@@ -339,6 +344,15 @@ class EarningsInflectionPipeline:
             inferred, iss = infer_unstated_scales(unscaled, measurements)
             measurements += inferred
             issues += iss
+        if self.cfg.get("xbrl_results") and xbrl_docs:
+            n_xbrl = 0
+            for d in xbrl_docs:
+                rows, iss = parse_xbrl_results(d)
+                measurements += rows
+                issues += iss
+                n_xbrl += len(rows)
+            coverage["xbrl_filings"] = len(xbrl_docs)
+            coverage["xbrl_figures"] = n_xbrl
 
         # A later version of a filing replaces its numbers - but only the figures that the later
         # version actually provides (a re-filing whose text is unreadable must not erase them).
@@ -377,6 +391,11 @@ class EarningsInflectionPipeline:
         if inferred:
             coverage["scope_inferred"] = (f"{inferred} figure(s) without a stated scope treated as standalone: no "
                                           "consolidated statements filed by then")
+        if self.cfg.get("xbrl_results") and xbrl_docs:
+            # validated XBRL figures check the PDF-read ones public at or after them (point-in-time)
+            measurements, xstats = reconcile_with_xbrl(measurements)
+            coverage["xbrl_vs_pdf"] = {k: v for k, v in xstats.items() if k != "examples"}
+            coverage["xbrl_vs_pdf_examples"] = xstats["examples"]
         as_filed = list(measurements)          # kept for point-in-time series: a re-filing replaces
         measurements = [r for r in measurements if not superseded(r)]   # figures only from its own date
 
@@ -384,7 +403,7 @@ class EarningsInflectionPipeline:
         evidence = validate_evidence(evidence, docs_by_id, as_of)
         measurements, m_issues = validate_measurements(measurements, as_of)
         as_filed, _ = validate_measurements(as_filed, as_of)
-        recon = reconcile_structured(measurements)
+        recon = reconcile_structured([r for r in measurements if not r.evidence_id.startswith("xbrl:")])
         issues += m_issues + scope_conflicts(measurements)
         coverage["reconciliation"] = {st: sum(1 for r in recon if r.status == st)
                                       for st in (Integrity.VALIDATED, Integrity.DEFINITION_DIFFERENCE,
