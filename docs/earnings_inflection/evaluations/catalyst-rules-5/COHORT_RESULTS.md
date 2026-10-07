@@ -30,7 +30,7 @@ Pre-registered in `COHORT_PREREGISTRATION.md` before any data was fetched. Rules
    - **RAIN's two windows** are credited to the price alerts.
    - **JYOTHYLAB's** inflection (TTM owners' PAT 376 → 643 cr) is credited to an alert about an "others" segment moving from −0.3 to +1.1 cr. That is immaterial to a company of that size and unrelated to the earnings rise.
    - **The metric is too loose:** any alert before the window counts as a catch, whatever it is about.
-6. **Earnings delivery** was measurable for 14 alerts, and 7 delivered. 13 of the 14 measurable alerts are RAIN's, so this says little about the detector in general.
+6. **Earnings delivery** was measurable for 14 alerts, and 7 delivered. All 14 are RAIN's price alerts, so this says nothing about the detector in general.
 
 **Overall:** on a neutral sample, the rules are safe on dating, but they are not yet a credible early-detection tool. Precision suffers from price statements and immaterial catalysts; recall suffers from coverage gaps and from inflections that have no disclosed forward catalyst.
 
