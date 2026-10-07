@@ -162,3 +162,12 @@ def test_pipeline_uses_xbrl_only_when_enabled(tmp_path):
     before = EarningsInflectionPipeline({"xbrl_results": True}, FixtureRepository(fx))
     before.run(["RAIN"], "2022-02-24")                    # the XBRL was disseminated on 25 Feb at 20:56
     assert (Metric.REVENUE, "Q", date(2021, 12, 31)) not in before.last_series.points
+
+
+def test_integrated_filing_taxonomy_is_read_the_same_way():
+    # from the December 2024 quarter results are filed as SEBI integrated filings (in-capmkt), same elements
+    text = filing().replace('xmlns:in-bse-fin="http://www.bseindia.com/xbrl/fin/2020-03-31/in-bse-fin"',
+                            'xmlns:in-capmkt="http://www.sebi.gov.in/xbrl/2026-01-31/in-capmkt"').replace(
+        "in-bse-fin:", "in-capmkt:")
+    rows, _ = parse_xbrl_results(doc(text))
+    assert get(rows, Metric.REVENUE, "Q").value == 4026.054 and get(rows, Metric.REVENUE, "Q").integrity == "validated"
