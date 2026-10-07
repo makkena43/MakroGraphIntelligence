@@ -1783,6 +1783,9 @@ def _fill_order_value(chunks, evs: list[Evidence]) -> None:
     q, t = next(iter(values.values()))
     e = awards[0]
     e.quantity = Quantity(q.value, q.unit, f"{q.raw} (stated in: \"{t[:160]}\")")
+    if e.value_basis in (ValueBasis.UNQUANTIFIED, None):
+        e.value_basis = ValueBasis.CEILING if re.search(r"\bup\s*to\b|\bceiling\b|\bmaximum\b", t, re.I) \
+            else ValueBasis.FIRM               # "approximately Rs. 4,000 Crores" is the order's value, not a cap
     e.validation_issues = [i for i in e.validation_issues if "amount" not in i.lower()]
 
 

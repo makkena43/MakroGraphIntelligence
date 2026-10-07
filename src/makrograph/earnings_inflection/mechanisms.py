@@ -184,20 +184,90 @@ def utilization(series, evidence, p, end, as_of_date, th) -> MechanismResult:
 
 # --- 2. product / customer mix ----------------------------------------------------
 
+_SEG_TOTAL_NAME = re.compile(r"^(?:net\s+|gross\s+|total\s+)?(?:revenue|income|sales|turnover)\b|from\s+operations|"
+                             r"^total\b|^(?:net\s+)?income$", re.I)
+
+
+def _seg_key(name: str) -> str:
+    return re.sub(r"[^a-z]", "", name.lower())
+
+
+def segment_groups(series, p) -> dict[str, list[str]]:
+    """Reported segment names grouped into segments: company totals are not segments, and spellings
+    of one segment (scanned "insulator div sion", "c-bus" for "e-bus") are merged when they are
+    near-identical AND never reported side by side in the same period (then they are different)."""
+    import difflib
+    names = [n for n in series.segment_names() if not _SEG_TOTAL_NAME.search(n.strip())]
+    periods = {n: {k[3] for k in series.segments if k[0] == n and k[2] == p} for n in names}
+    def same(a, b) -> bool:
+        r = difflib.SequenceMatcher(None, _seg_key(a), _seg_key(b)).ratio()
+        shared = periods[a] & periods[b]
+        if not shared:
+            return r >= 0.88                         # one segment re-spelt across filings
+        if r < 0.93:
+            return False                             # reported side by side: different segments
+        for t in shared:                             # scanned copies of one table: same figures
+            va = series.segment(a, Metric.SEGMENT_REVENUE, t, p) or series.segment(a, Metric.SEGMENT_RESULT, t, p)
+            vb = series.segment(b, Metric.SEGMENT_REVENUE, t, p) or series.segment(b, Metric.SEGMENT_RESULT, t, p)
+            if va and vb and abs(va.value - vb.value) > 0.01 * max(abs(va.value), abs(vb.value), 1e-9):
+                return False
+        return True
+    groups: list[list[str]] = []
+    for n in sorted(names, key=lambda x: -len(periods[x])):
+        g = next((g for g in groups if all(same(n, m) for m in g)), None)
+        if g is None:
+            groups.append([n])
+        else:
+            g.append(n)
+    return {g[0]: g for g in groups}
+
+
+def _seg_value(series, names, metric, end, p):
+    vals = [series.segment(n, metric, end, p) for n in names]
+    vals = [v for v in vals if v is not None]
+    return vals[0] if vals else None
+
+
+def _segments_reconcile(series, p, t, groups) -> Optional[bool]:
+    """Reported segment revenues add up to the company's reported revenue for period ``t`` (5%).
+    None when no segment revenue is reported (nothing to check against)."""
+    company = series.get(Metric.REVENUE, t, p)
+    vals = [_seg_value(series, names, Metric.SEGMENT_REVENUE, t, p) for names in groups.values()]
+    tot = sum(v.value for v in vals if v is not None and v.value > 0)
+    if not tot:
+        return None
+    return bool(company and company.value > 0 and abs(tot - company.value) <= 0.05 * company.value)
+
+
 def _segment_mix(series, p, end):
-    """{segment: (share_now, share_ya, margin_now, margin_ya, rev_now)} for segments reported in both periods."""
+    """{segment: (share_now, share_ya, margin_now, margin_ya, rev_now)} for segments reported in both periods.
+    Shares are used only when the segment table reconciles: the same segments are reported in both
+    periods and their revenues add up to the company's reported revenue (within 5%) - otherwise a
+    mis-read or re-labelled table would show as a mix shift."""
     if end is None:
         return {}, None
     ya = _year_ago(end)
-    names = series.segment_names()
+    groups = segment_groups(series, p)
     rows = {}
-    for n in names:
-        rn, ry = series.segment(n, Metric.SEGMENT_REVENUE, end, p), series.segment(n, Metric.SEGMENT_REVENUE, ya, p)
-        xn, xy = series.segment(n, Metric.SEGMENT_RESULT, end, p), series.segment(n, Metric.SEGMENT_RESULT, ya, p)
+    present = {end: 0.0, ya: 0.0}
+    for n, names in groups.items():
+        rn, ry = (_seg_value(series, names, Metric.SEGMENT_REVENUE, end, p),
+                  _seg_value(series, names, Metric.SEGMENT_REVENUE, ya, p))
+        xn, xy = (_seg_value(series, names, Metric.SEGMENT_RESULT, end, p),
+                  _seg_value(series, names, Metric.SEGMENT_RESULT, ya, p))
+        for t, v in ((end, rn), (ya, ry)):
+            if v is not None and v.value > 0:
+                present[t] += v.value
         if rn and ry and xn and xy and rn.value > 0 and ry.value > 0:
             rows[n] = (rn.value, ry.value, xn.value, xy.value)
     if len(rows) < 2:
         return {}, None
+    for t, idx in ((end, 0), (ya, 1)):
+        company = series.get(Metric.REVENUE, t, p)
+        used = sum(v[idx] for v in rows.values())
+        if company is None or company.value <= 0 or abs(used - company.value) > 0.05 * company.value \
+                or abs(present[t] - used) > 0.05 * present[t]:
+            return {}, None          # segments do not reconcile with reported revenue: no mix reading
     tot_n, tot_y = sum(v[0] for v in rows.values()), sum(v[1] for v in rows.values())
     out = {n: (v[0] / tot_n * 100, v[1] / tot_y * 100, v[2] / v[0] * 100, v[3] / v[1] * 100, v[0])
            for n, v in rows.items()}
@@ -224,7 +294,8 @@ def product_mix(series, evidence, p, end, as_of_date, th) -> MechanismResult:
             if best is None or abs(shift) > abs(best[1]):
                 best = (n, shift, gap, contrib, sh_n, sh_y, m_n)
         r.source_doc_ids = sorted({d for k, pt in series.segments.items() for d in pt.doc_ids})
-        r.first_signal_at = _times(series.segment(n, Metric.SEGMENT_REVENUE, end, p) for n in mix)
+        groups = segment_groups(series, p)
+        r.first_signal_at = _times(_seg_value(series, groups[n], Metric.SEGMENT_REVENUE, end, p) for n in mix)
         r.attribution = "observed segment revenue and segment result (reported segment table)"
         r.confidence = "medium"
         if best is None:
@@ -519,8 +590,15 @@ def segment_turnaround(series, evidence, p, end, th) -> MechanismResult:
         return r
     ya = _year_ago(end)
     cands = []
-    for n in series.segment_names():
-        now, prior = series.segment(n, Metric.SEGMENT_RESULT, end, p), series.segment(n, Metric.SEGMENT_RESULT, ya, p)
+    groups = segment_groups(series, p)
+    checks = (_segments_reconcile(series, p, end, groups), _segments_reconcile(series, p, ya, groups))
+    if False in checks:
+        r.notes.append("segment table does not reconcile with reported revenue: segment results not used")
+        return r
+    unchecked = None in checks
+    for n, names in groups.items():
+        now, prior = (_seg_value(series, names, Metric.SEGMENT_RESULT, end, p),
+                      _seg_value(series, names, Metric.SEGMENT_RESULT, ya, p))
         if now is None or prior is None:
             continue
         cands.append((n, now.value, prior.value, now, prior))
@@ -530,8 +608,10 @@ def segment_turnaround(series, evidence, p, end, th) -> MechanismResult:
     pbt = series.get(Metric.PBT, end, p)
     turn = [c for c in cands if c[2] < 0 < c[1]]
     worse = [c for c in cands if c[2] > 0 > c[1]]
-    r.confidence = "medium"
+    r.confidence = "low" if unchecked else "medium"
     r.attribution = "observed segment result (reported segment table)"
+    if unchecked:
+        r.notes.append("segment revenue not reported: the segment table could not be reconciled")
     pick = max(turn, key=lambda c: c[1] - c[2]) if turn else (max(worse, key=lambda c: c[2] - c[1]) if worse else None)
     if pick is None:
         r.state = S.NO_MATERIAL_CHANGE
@@ -545,8 +625,8 @@ def segment_turnaround(series, evidence, p, end, th) -> MechanismResult:
     if turn:
         r.direction, r.state, r.durability = "positive", S.EMERGING, "one period of profit after a loss"
         prev = prev_period_end(end, p)
-        pn, py = series.segment(n, Metric.SEGMENT_RESULT, prev, p), series.segment(n, Metric.SEGMENT_RESULT,
-                                                                                    _year_ago(prev), p)
+        pn, py = (_seg_value(series, groups[n], Metric.SEGMENT_RESULT, prev, p),
+                  _seg_value(series, groups[n], Metric.SEGMENT_RESULT, _year_ago(prev), p))
         if pn and pn.value > 0 and py and py.value < 0:
             r.state, r.durability = S.CONFIRMED, "segment profitable in two consecutive periods after losses"
     else:
