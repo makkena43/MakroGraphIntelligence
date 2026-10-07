@@ -28,7 +28,7 @@ The process is the same as the case study:
 |---|---|---|
 | Catalyst dates changed in later snapshots | 0 | **0** |
 | Catalysts vanished | 1 (BORORENEW) | **0** |
-| Alerts (supported or better) | 28 | 31 |
+| Alerts (supported or better) | 28 | 33 |
 | Confirmed | 10 (one was the spurious Olectra alert) | 9 |
 | Executed but not confirmable | 10 | 11 |
 | Delayed / contradicted | 0 | 2 / 1 (Shakti order, SML volume / Borosil price) |
