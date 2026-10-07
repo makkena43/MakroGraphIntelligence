@@ -570,3 +570,18 @@ No threshold changed between rules-2 and rules-3; only rule logic changed. Earli
 | D3: an executed catalyst that cannot be confirmed expired to "delayed" | "Delayed" at window end only when the execution test was missed. Otherwise the catalyst stays "execution validating", with `confirmation_blocked` and the verdict `executed_unconfirmable`. | Re-run pending (see the evaluations folder) | `test_rules4_d3.py`: executed inflow stays validating with its blocker; a real miss is still delayed; nothing changes before the window ends; the evaluation counts the new verdict separately |
 
 Remaining D1 misses (11 of 38) are other layouts. D2 and D4–D7 remain open.
+
+## 14. catalyst-rules-5: defects D2 and D4–D11 (fingerprint b253e4cca34d124d)
+
+| Defect | Fix | Tests |
+|---|---|---|
+| D9: historical correctness | Scan and re-assessment times come from every figure's original filing time, not from the final series. | `test_point_in_time_catalysts.py` (a superseded presentation figure keeps the catalyst's date; fails on rules-4) |
+| D8 / D7: order value | A value stated after the award sentence, or in the annexure, is linked when the filing has one award and one value. "Approximately" is firm; "up to" is a ceiling. | `test_rules5_order_value.py` |
+| D10: segment tables | Spellings are merged and totals excluded. Segment revenues must reconcile with reported revenue within 5%. A segment result larger than its revenue marks the table as misread. | `test_rules5_segments.py` |
+| D4: data gaps | A gap never erases a contradicted or delayed verdict. | `test_rules5_stage_record.py` |
+| D5 / D6: order books | Restatements are merged. Readings below 10% of TTM revenue are rejected, and jumps above 4× need corroboration. | `test_rules5_order_books.py` |
+| D11: monthly volumes | Monthly sales updates are parsed, checked against the printed % change. New `volume_run_rate` catalyst, with spike and depressed-base guards. | `test_rules5_monthly_volumes.py` |
+| D2: unit lines | Scanned rupee signs, plural "Millions" and damaged scale words on unit lines are read. | `test_rules5_unit_lines.py` |
+| Scope | Statements without a stated scope are standalone until a consolidated statement title is filed. Inferred per figure, by its filing time. | `test_rules5_scope.py` |
+
+The development check on the ten issuers is in `evaluations/catalyst-rules-5/DEV_CHECK_RESULTS.md`: no catalyst dates changed and none vanished (one vanished under rules-4).
