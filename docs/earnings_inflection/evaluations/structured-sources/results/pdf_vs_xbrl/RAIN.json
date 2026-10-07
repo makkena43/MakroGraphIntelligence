@@ -1,0 +1,166 @@
+{
+ "symbol": "RAIN",
+ "xbrl_filings": 45,
+ "xbrl_validated_figures": 661,
+ "pdf_results_filings": 33,
+ "scored_pdf_filings": 26,
+ "score": {
+  "pdftotext": {
+   "agree": 258,
+   "agree_unit_unread": 29,
+   "disagree": 23,
+   "missing": 436
+  },
+  "pdfplumber": {
+   "agree": 249,
+   "agree_unit_unread": 25,
+   "disagree": 16,
+   "missing": 456
+  }
+ },
+ "per_metric": {
+  "revenue": {
+   "pdftotext": {
+    "agree": 25,
+    "agree_unit_unread": 0,
+    "disagree": 8,
+    "missing": 55
+   },
+   "pdfplumber": {
+    "agree": 25,
+    "agree_unit_unread": 0,
+    "disagree": 5,
+    "missing": 58
+   }
+  },
+  "other_income": {
+   "pdftotext": {
+    "agree": 29,
+    "agree_unit_unread": 0,
+    "disagree": 2,
+    "missing": 57
+   },
+   "pdfplumber": {
+    "agree": 28,
+    "agree_unit_unread": 0,
+    "disagree": 2,
+    "missing": 58
+   }
+  },
+  "finance_cost": {
+   "pdftotext": {
+    "agree": 37,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 51
+   },
+   "pdfplumber": {
+    "agree": 36,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 52
+   }
+  },
+  "depreciation": {
+   "pdftotext": {
+    "agree": 22,
+    "agree_unit_unread": 16,
+    "disagree": 2,
+    "missing": 48
+   },
+   "pdfplumber": {
+    "agree": 22,
+    "agree_unit_unread": 13,
+    "disagree": 2,
+    "missing": 51
+   }
+  },
+  "total_expenses": {
+   "pdftotext": {
+    "agree": 38,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 50
+   },
+   "pdfplumber": {
+    "agree": 37,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 51
+   }
+  },
+  "pbt": {
+   "pdftotext": {
+    "agree": 32,
+    "agree_unit_unread": 13,
+    "disagree": 7,
+    "missing": 36
+   },
+   "pdfplumber": {
+    "agree": 32,
+    "agree_unit_unread": 11,
+    "disagree": 3,
+    "missing": 42
+   }
+  },
+  "tax": {
+   "pdftotext": {
+    "agree": 34,
+    "agree_unit_unread": 0,
+    "disagree": 2,
+    "missing": 52
+   },
+   "pdfplumber": {
+    "agree": 33,
+    "agree_unit_unread": 0,
+    "disagree": 2,
+    "missing": 53
+   }
+  },
+  "pat": {
+   "pdftotext": {
+    "agree": 27,
+    "agree_unit_unread": 0,
+    "disagree": 2,
+    "missing": 59
+   },
+   "pdfplumber": {
+    "agree": 25,
+    "agree_unit_unread": 1,
+    "disagree": 2,
+    "missing": 60
+   }
+  },
+  "pat_attributable": {
+   "pdftotext": {
+    "agree": 14,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 28
+   },
+   "pdfplumber": {
+    "agree": 11,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 31
+   }
+  }
+ },
+ "examples": {
+  "pdftotext": [
+   "nse164396 tax Q 2024-06-30 consolidated: [48.812] vs XBRL 42.64",
+   "nse166575 other_income Q 2024-09-30 consolidated: [95.558] vs XBRL 98.86",
+   "nse166575 pat Q 2024-09-30 consolidated: [29.54] vs XBRL -154.94",
+   "nse106047733 other_income Q 2024-09-30 consolidated: [95.558] vs XBRL 98.86",
+   "nse106047733 pat Q 2024-09-30 consolidated: [29.54] vs XBRL -154.94"
+  ],
+  "pdfplumber": [
+   "nse140648 tax Q 2020-12-31 standalone: [1.492] vs XBRL 7.87",
+   "nse164396 tax Q 2024-06-30 consolidated: [48.812] vs XBRL 42.64",
+   "nse166575 other_income Q 2024-09-30 consolidated: [95.558] vs XBRL 98.86",
+   "nse166575 pat Q 2024-09-30 consolidated: [29.54] vs XBRL -154.94",
+   "nse106047733 other_income Q 2024-09-30 consolidated: [95.558] vs XBRL 98.86",
+   "nse106047733 pat Q 2024-09-30 consolidated: [29.54] vs XBRL -154.94"
+  ]
+ }
+}

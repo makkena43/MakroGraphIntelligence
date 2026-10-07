@@ -268,6 +268,18 @@ Catalysts older than their window plus 12 months are history: they are listed, b
 
 `evaluation.review_entries` dates returns from the confirmation date, never from the earlier watch-list date. `missed_candidates` separates data-coverage misses from detector misses.
 
+#### Structured results data (XBRL; opt-in)
+
+- `xbrl_results: true` in the pipeline config reads NSE results XBRL filings that are present in the source (`doc_type: xbrl_results`):
+  - `in-bse-fin` filings up to the December 2024 quarter;
+  - SEBI integrated filings (`in-capmkt`) from the March 2025 quarter.
+
+  It is off by default, and XBRL documents are never treated as text.
+- **Point-in-time:** each figure is dated at the exchange's dissemination time of its XBRL file.
+- **Arithmetic checks:** figures failing their statement's own arithmetic are unresolved (e.g. Rain's sign-flipped owners' profit). Validated XBRL figures reject disagreeing PDF-read figures published at or after them.
+- **Tools and measured coverage:** `evaluations/structured-sources/` holds `tools/fetch_xbrl.py` (read-only fetch into a fixture) and the measured coverage.
+- **PDF layout reading:** `PDFParser({"layout": "words"})` rebuilds page text from pdfplumber word positions (`parser/pdf_layout.py`). It is opt-in: it helps scanned and tilted PDFs, but it is not better overall (see `evaluations/structured-sources/RESULTS.md`).
+
 #### Catalyst rules (catalyst-rules-6; `FROZEN_RULES.md`, which also keeps the earlier versions)
 
 - **Knowability:**

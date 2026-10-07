@@ -1,0 +1,185 @@
+{
+ "symbol": "GENUSPOWER",
+ "xbrl_filings": 46,
+ "xbrl_validated_figures": 642,
+ "pdf_results_filings": 34,
+ "scored_pdf_filings": 24,
+ "score": {
+  "pdftotext": {
+   "agree": 273,
+   "agree_unit_unread": 0,
+   "disagree": 67,
+   "missing": 352
+  },
+  "pdfplumber": {
+   "agree": 271,
+   "agree_unit_unread": 0,
+   "disagree": 68,
+   "missing": 353
+  }
+ },
+ "per_metric": {
+  "revenue": {
+   "pdftotext": {
+    "agree": 0,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 86
+   },
+   "pdfplumber": {
+    "agree": 0,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 86
+   }
+  },
+  "other_income": {
+   "pdftotext": {
+    "agree": 40,
+    "agree_unit_unread": 0,
+    "disagree": 6,
+    "missing": 40
+   },
+   "pdfplumber": {
+    "agree": 40,
+    "agree_unit_unread": 0,
+    "disagree": 6,
+    "missing": 40
+   }
+  },
+  "finance_cost": {
+   "pdftotext": {
+    "agree": 28,
+    "agree_unit_unread": 0,
+    "disagree": 6,
+    "missing": 52
+   },
+   "pdfplumber": {
+    "agree": 32,
+    "agree_unit_unread": 0,
+    "disagree": 7,
+    "missing": 47
+   }
+  },
+  "depreciation": {
+   "pdftotext": {
+    "agree": 41,
+    "agree_unit_unread": 0,
+    "disagree": 8,
+    "missing": 37
+   },
+   "pdfplumber": {
+    "agree": 41,
+    "agree_unit_unread": 0,
+    "disagree": 9,
+    "missing": 36
+   }
+  },
+  "total_expenses": {
+   "pdftotext": {
+    "agree": 47,
+    "agree_unit_unread": 0,
+    "disagree": 6,
+    "missing": 33
+   },
+   "pdfplumber": {
+    "agree": 52,
+    "agree_unit_unread": 0,
+    "disagree": 6,
+    "missing": 28
+   }
+  },
+  "pbt": {
+   "pdftotext": {
+    "agree": 41,
+    "agree_unit_unread": 0,
+    "disagree": 7,
+    "missing": 38
+   },
+   "pdfplumber": {
+    "agree": 37,
+    "agree_unit_unread": 0,
+    "disagree": 9,
+    "missing": 40
+   }
+  },
+  "tax": {
+   "pdftotext": {
+    "agree": 40,
+    "agree_unit_unread": 0,
+    "disagree": 15,
+    "missing": 31
+   },
+   "pdfplumber": {
+    "agree": 39,
+    "agree_unit_unread": 0,
+    "disagree": 12,
+    "missing": 35
+   }
+  },
+  "pat": {
+   "pdftotext": {
+    "agree": 36,
+    "agree_unit_unread": 0,
+    "disagree": 19,
+    "missing": 31
+   },
+   "pdfplumber": {
+    "agree": 30,
+    "agree_unit_unread": 0,
+    "disagree": 19,
+    "missing": 37
+   }
+  },
+  "pat_attributable": {
+   "pdftotext": {
+    "agree": 0,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 4
+   },
+   "pdfplumber": {
+    "agree": 0,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 4
+   }
+  }
+ },
+ "examples": {
+  "pdftotext": [
+   "nse141510 pat Q 2021-03-31 consolidated: [28.6494] vs XBRL 28.35",
+   "nse141510 pat FY 2021-03-31 consolidated: [69.6985] vs XBRL 68.60",
+   "nse143049 pat Q 2021-06-30 consolidated: [24.0625] vs XBRL 23.82",
+   "nse145010 pat Q 2021-09-30 consolidated: [-2.2307] vs XBRL -2.49",
+   "nse145010 pat H 2021-09-30 consolidated: [21.8318] vs XBRL 21.32",
+   "nse146809 pat Q 2021-12-31 consolidated: [15.115] vs XBRL 14.77",
+   "nse146809 pat 9M 2021-12-31 consolidated: [36.9468] vs XBRL 36.09",
+   "nse148795 pat FY 2022-03-31 consolidated: [58.3869] vs XBRL 57.46",
+   "nse5069619 pat Q 2022-06-30 consolidated: [12.3007] vs XBRL 11.94",
+   "nse5116600 pat Q 2022-09-30 consolidated: [6.7431] vs XBRL 6.53",
+   "nse5116600 pat H 2022-09-30 consolidated: [19.0438] vs XBRL 18.47",
+   "nse151142 tax Q 2022-12-31 consolidated: [5.0785] vs XBRL 7.53",
+   "nse151142 tax 9M 2022-12-31 consolidated: [11.9787] vs XBRL 13.23",
+   "nse151142 tax Q 2022-12-31 standalone: [5.0785] vs XBRL 4.81",
+   "nse151142 tax 9M 2022-12-31 standalone: [11.9787] vs XBRL 10.21"
+  ],
+  "pdfplumber": [
+   "nse139067 tax Q 2020-12-31 consolidated: [10.2722] vs XBRL 9.61",
+   "nse139067 tax 9M 2020-12-31 consolidated: [20.136] vs XBRL 30.67",
+   "nse141510 pat Q 2021-03-31 consolidated: [28.6494] vs XBRL 28.35",
+   "nse141510 pat FY 2021-03-31 consolidated: [69.6985] vs XBRL 68.60",
+   "nse143049 pat Q 2021-06-30 consolidated: [24.0625] vs XBRL 23.82",
+   "nse145010 pat Q 2021-09-30 consolidated: [-2.2307] vs XBRL -2.49",
+   "nse145010 pat H 2021-09-30 consolidated: [21.8318] vs XBRL 21.32",
+   "nse146809 pat Q 2021-12-31 consolidated: [15.115] vs XBRL 14.77",
+   "nse146809 pat 9M 2021-12-31 consolidated: [36.9468] vs XBRL 36.09",
+   "nse5116600 finance_cost Q 2022-09-30 standalone: [11.5493] vs XBRL 5.82",
+   "nse5116600 depreciation Q 2022-09-30 standalone: [9.3961] vs XBRL 4.75",
+   "nse5116600 pat Q 2022-09-30 consolidated: [6.7431] vs XBRL 6.53",
+   "nse5116600 pat H 2022-09-30 consolidated: [19.0438] vs XBRL 18.47",
+   "nse151142 pat Q 2022-12-31 consolidated: [22.0113] vs XBRL 21.79",
+   "nse151142 pat 9M 2022-12-31 consolidated: [41.0552] vs XBRL 40.26"
+  ]
+ }
+}

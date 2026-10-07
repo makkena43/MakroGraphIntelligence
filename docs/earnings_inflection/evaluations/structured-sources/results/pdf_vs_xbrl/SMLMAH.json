@@ -1,0 +1,143 @@
+{
+ "symbol": "SMLMAH",
+ "xbrl_filings": 22,
+ "xbrl_validated_figures": 312,
+ "pdf_results_filings": 42,
+ "scored_pdf_filings": 29,
+ "score": {
+  "pdftotext": {
+   "agree": 13,
+   "agree_unit_unread": 0,
+   "disagree": 1,
+   "missing": 410
+  },
+  "pdfplumber": {
+   "agree": 15,
+   "agree_unit_unread": 0,
+   "disagree": 1,
+   "missing": 408
+  }
+ },
+ "per_metric": {
+  "revenue": {
+   "pdftotext": {
+    "agree": 2,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 51
+   },
+   "pdfplumber": {
+    "agree": 2,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 51
+   }
+  },
+  "other_income": {
+   "pdftotext": {
+    "agree": 2,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 51
+   },
+   "pdfplumber": {
+    "agree": 2,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 51
+   }
+  },
+  "finance_cost": {
+   "pdftotext": {
+    "agree": 2,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 51
+   },
+   "pdfplumber": {
+    "agree": 2,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 51
+   }
+  },
+  "depreciation": {
+   "pdftotext": {
+    "agree": 2,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 51
+   },
+   "pdfplumber": {
+    "agree": 2,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 51
+   }
+  },
+  "total_expenses": {
+   "pdftotext": {
+    "agree": 0,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 53
+   },
+   "pdfplumber": {
+    "agree": 2,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 51
+   }
+  },
+  "pbt": {
+   "pdftotext": {
+    "agree": 2,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 51
+   },
+   "pdfplumber": {
+    "agree": 2,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 51
+   }
+  },
+  "tax": {
+   "pdftotext": {
+    "agree": 1,
+    "agree_unit_unread": 0,
+    "disagree": 1,
+    "missing": 51
+   },
+   "pdfplumber": {
+    "agree": 1,
+    "agree_unit_unread": 0,
+    "disagree": 1,
+    "missing": 51
+   }
+  },
+  "pat": {
+   "pdftotext": {
+    "agree": 2,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 51
+   },
+   "pdfplumber": {
+    "agree": 2,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 51
+   }
+  }
+ },
+ "examples": {
+  "pdftotext": [
+   "nse106141499 tax 9M 2024-12-31 standalone: [22.83] vs XBRL 22.52"
+  ],
+  "pdfplumber": [
+   "nse106141499 tax 9M 2024-12-31 standalone: [22.83] vs XBRL 22.52"
+  ]
+ }
+}

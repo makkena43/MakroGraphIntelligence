@@ -1,0 +1,185 @@
+{
+ "symbol": "BORORENEW",
+ "xbrl_filings": 39,
+ "xbrl_validated_figures": 547,
+ "pdf_results_filings": 51,
+ "scored_pdf_filings": 34,
+ "score": {
+  "pdftotext": {
+   "agree": 334,
+   "agree_unit_unread": 0,
+   "disagree": 28,
+   "missing": 406
+  },
+  "pdfplumber": {
+   "agree": 425,
+   "agree_unit_unread": 0,
+   "disagree": 16,
+   "missing": 327
+  }
+ },
+ "per_metric": {
+  "revenue": {
+   "pdftotext": {
+    "agree": 47,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 45
+   },
+   "pdfplumber": {
+    "agree": 67,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 25
+   }
+  },
+  "other_income": {
+   "pdftotext": {
+    "agree": 37,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 55
+   },
+   "pdfplumber": {
+    "agree": 55,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 37
+   }
+  },
+  "finance_cost": {
+   "pdftotext": {
+    "agree": 37,
+    "agree_unit_unread": 0,
+    "disagree": 4,
+    "missing": 51
+   },
+   "pdfplumber": {
+    "agree": 55,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 37
+   }
+  },
+  "depreciation": {
+   "pdftotext": {
+    "agree": 35,
+    "agree_unit_unread": 0,
+    "disagree": 8,
+    "missing": 49
+   },
+   "pdfplumber": {
+    "agree": 55,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 37
+   }
+  },
+  "total_expenses": {
+   "pdftotext": {
+    "agree": 41,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 51
+   },
+   "pdfplumber": {
+    "agree": 49,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 43
+   }
+  },
+  "pbt": {
+   "pdftotext": {
+    "agree": 44,
+    "agree_unit_unread": 0,
+    "disagree": 11,
+    "missing": 37
+   },
+   "pdfplumber": {
+    "agree": 45,
+    "agree_unit_unread": 0,
+    "disagree": 11,
+    "missing": 36
+   }
+  },
+  "tax": {
+   "pdftotext": {
+    "agree": 40,
+    "agree_unit_unread": 0,
+    "disagree": 4,
+    "missing": 48
+   },
+   "pdfplumber": {
+    "agree": 57,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 35
+   }
+  },
+  "pat": {
+   "pdftotext": {
+    "agree": 35,
+    "agree_unit_unread": 0,
+    "disagree": 1,
+    "missing": 56
+   },
+   "pdfplumber": {
+    "agree": 24,
+    "agree_unit_unread": 0,
+    "disagree": 5,
+    "missing": 63
+   }
+  },
+  "pat_attributable": {
+   "pdftotext": {
+    "agree": 18,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 14
+   },
+   "pdfplumber": {
+    "agree": 18,
+    "agree_unit_unread": 0,
+    "disagree": 0,
+    "missing": 14
+   }
+  }
+ },
+ "examples": {
+  "pdftotext": [
+   "nse5073330 pat Q 2022-06-30 standalone: [40.2588] vs XBRL 30.11",
+   "nse155489 pbt Q 2023-06-30 consolidated: [-6.7508] vs XBRL -6.99",
+   "nse157484 tax Q 2023-09-30 consolidated: [-3.6884] vs XBRL -1.10",
+   "nse157484 tax H 2023-09-30 consolidated: [0.0244] vs XBRL 3.68",
+   "nse157484 finance_cost Q 2023-09-30 standalone: [15.2137] vs XBRL 7.76",
+   "nse157484 depreciation Q 2023-09-30 standalone: [56.3271] vs XBRL 25.74",
+   "nse157484 pbt Q 2023-09-30 standalone: [11.58] vs XBRL -6.90",
+   "nse105665924 tax Q 2023-09-30 consolidated: [-3.6884] vs XBRL -1.10",
+   "nse105665924 tax H 2023-09-30 consolidated: [0.0244] vs XBRL 3.68",
+   "nse105665924 finance_cost Q 2023-09-30 standalone: [15.2137] vs XBRL 7.76",
+   "nse105665924 depreciation Q 2023-09-30 standalone: [56.3271] vs XBRL 25.74",
+   "nse105665924 pbt Q 2023-09-30 standalone: [11.58] vs XBRL -6.90",
+   "nse105750624 pbt 9M 2023-12-31 consolidated: [4.4403] vs XBRL 3.86",
+   "nse159907 pbt 9M 2023-12-31 consolidated: [4.4403] vs XBRL 3.86",
+   "nse162638 depreciation Q 2024-03-31 consolidated: [131.7159] vs XBRL 33.58"
+  ],
+  "pdfplumber": [
+   "nse5073330 pat Q 2022-06-30 standalone: [40.2588] vs XBRL 30.11",
+   "nse155489 pbt Q 2023-06-30 consolidated: [-6.7508] vs XBRL -6.99",
+   "nse157484 pbt H 2023-09-30 consolidated: [22.6185] vs XBRL 21.91",
+   "nse105665924 pbt H 2023-09-30 consolidated: [22.6185] vs XBRL 21.91",
+   "nse105750624 pbt 9M 2023-12-31 consolidated: [4.4403] vs XBRL 3.86",
+   "nse159907 pbt 9M 2023-12-31 consolidated: [4.4403] vs XBRL 3.86",
+   "nse162638 pbt Q 2024-03-31 consolidated: [57.1694] vs XBRL -57.51",
+   "nse105863337 pbt Q 2024-03-31 consolidated: [57.1694] vs XBRL -57.51",
+   "nse164868 pbt Q 2024-06-30 consolidated: [15.5693] vs XBRL -15.32",
+   "nse105949931 pbt Q 2024-06-30 consolidated: [15.5693] vs XBRL -15.32",
+   "nse106053002 pat Q 2024-09-30 consolidated: [-8.2939] vs XBRL -13.13",
+   "nse106053002 pbt H 2024-09-30 consolidated: [23.8632] vs XBRL -23.70",
+   "nse106053002 pat H 2024-09-30 consolidated: [23.8632] vs XBRL -27.37",
+   "nse166893 pat Q 2024-09-30 consolidated: [-8.2939] vs XBRL -13.13",
+   "nse166893 pbt H 2024-09-30 consolidated: [23.8632] vs XBRL -23.70"
+  ]
+ }
+}
