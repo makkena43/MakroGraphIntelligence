@@ -44,7 +44,7 @@ from .thesis import (
     next_period_end_on_or_after, order_book_snapshots,
 )
 
-RULES_VERSION = "catalyst-rules-4"
+RULES_VERSION = "catalyst-rules-5"
 
 DEFAULT_CATALYST_THRESHOLDS = {
     "order_inflow_to_ttm_revenue": 0.25,     # binding, named, unrelated orders in 12 months / TTM revenue
