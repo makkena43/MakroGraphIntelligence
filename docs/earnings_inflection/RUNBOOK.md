@@ -268,13 +268,13 @@ Catalysts older than their window plus 12 months are history: they are listed, b
 
 `evaluation.review_entries` dates returns from the confirmation date, never from the earlier watch-list date. `missed_candidates` separates data-coverage misses from detector misses.
 
-#### Structured results data (XBRL; opt-in)
+#### Structured results data (XBRL; on by default)
 
 - `xbrl_results: true` in the pipeline config reads NSE results XBRL filings that are present in the source (`doc_type: xbrl_results`):
   - `in-bse-fin` filings up to the December 2024 quarter;
   - SEBI integrated filings (`in-capmkt`) from the March 2025 quarter.
 
-  It is off by default, and XBRL documents are never treated as text.
+  It is on by default (`xbrl_results: false` turns it off), and XBRL documents are never treated as text. A production source supplies XBRL only once an XBRL ingestion job exists; none is scheduled.
 - **Point-in-time:** each figure is dated at the exchange's dissemination time of its XBRL file.
 - **Arithmetic checks:** figures failing their statement's own arithmetic are unresolved (e.g. Rain's sign-flipped owners' profit). Validated XBRL figures reject disagreeing PDF-read figures published at or after them.
 - **Tools and measured coverage:** `evaluations/structured-sources/` holds `tools/fetch_xbrl.py` (read-only fetch into a fixture) and the measured coverage.

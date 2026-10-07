@@ -278,7 +278,7 @@ class EarningsInflectionPipeline:
         coverage["superseded_or_duplicate"] = sum(1 for d in docs if d.superseded_by)
         docs.sort(key=lambda d: (d.available_at, d.doc_id))   # chronological
         # XBRL results filings are structured data, not text: kept out of text extraction, and used only
-        # when enabled (``xbrl_results``; off by default, so existing runs are unchanged)
+        # unless disabled (``xbrl_results: false``)
         xbrl_docs = [d for d in docs if is_xbrl_document(d)]
         docs = [d for d in docs if not is_xbrl_document(d)]
         docs_by_id = {d.doc_id: d for d in docs}
@@ -344,7 +344,7 @@ class EarningsInflectionPipeline:
             inferred, iss = infer_unstated_scales(unscaled, measurements)
             measurements += inferred
             issues += iss
-        if self.cfg.get("xbrl_results") and xbrl_docs:
+        if self.cfg.get("xbrl_results", True) and xbrl_docs:
             n_xbrl = 0
             for d in xbrl_docs:
                 rows, iss = parse_xbrl_results(d)
@@ -391,7 +391,7 @@ class EarningsInflectionPipeline:
         if inferred:
             coverage["scope_inferred"] = (f"{inferred} figure(s) without a stated scope treated as standalone: no "
                                           "consolidated statements filed by then")
-        if self.cfg.get("xbrl_results") and xbrl_docs:
+        if self.cfg.get("xbrl_results", True) and xbrl_docs:
             # validated XBRL figures check the PDF-read ones public at or after them (point-in-time)
             measurements, xstats = reconcile_with_xbrl(measurements)
             coverage["xbrl_vs_pdf"] = {k: v for k, v in xstats.items() if k != "examples"}

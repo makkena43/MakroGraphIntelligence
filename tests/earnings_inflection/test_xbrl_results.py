@@ -135,7 +135,7 @@ def test_dissemination_time_dates_the_document():
     assert d.published_at.isoformat() == "2022-02-25T20:56:04+05:30" and d.doc_id == "xbrl_INDAS_1_2_3"
 
 
-def test_pipeline_uses_xbrl_only_when_enabled(tmp_path):
+def test_pipeline_uses_xbrl_unless_disabled(tmp_path):
     import json
     from makrograph.earnings_inflection.pipeline import EarningsInflectionPipeline
     from makrograph.earnings_inflection.source_repository import FixtureRepository
@@ -150,10 +150,10 @@ def test_pipeline_uses_xbrl_only_when_enabled(tmp_path):
         "doc_id": "pr1", "ticker": "RAIN", "doc_type": "announcement", "filing_type": "Press Release",
         "published_at": "2022-02-26T10:00:00+05:30",
         "text": "Rain Industries reported consolidated revenue growth driven by higher realisations in the quarter."}]}))
-    off = EarningsInflectionPipeline({}, FixtureRepository(fx))
+    off = EarningsInflectionPipeline({"xbrl_results": False}, FixtureRepository(fx))
     off.run(["RAIN"], "2022-03-31")
     assert (Metric.REVENUE, "Q", date(2021, 12, 31)) not in off.last_series.points
-    on = EarningsInflectionPipeline({"xbrl_results": True}, FixtureRepository(fx))
+    on = EarningsInflectionPipeline({}, FixtureRepository(fx))                      # on by default
     a = on.run(["RAIN"], "2022-03-31").assessments[0]
     p = on.last_series.points[(Metric.REVENUE, "Q", date(2021, 12, 31))]
     assert round(p.value, 3) == 4026.054 and on.last_series.scope == Scope.CONSOLIDATED
