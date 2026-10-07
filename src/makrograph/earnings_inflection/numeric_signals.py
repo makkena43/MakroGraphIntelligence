@@ -13,7 +13,9 @@ Signals for quarter E (all year on year against E one year earlier, so seasonali
   turned into a profit while EBITDA rose and is positive
 - ``finance_cost_relief``   finance cost down >= 25% where it was >= 10% of EBITDA a year earlier
 
-Guards: a quarter whose year-ago revenue is below 5 crore is not judged; a profit signal is not raised
+Guards: a quarter whose year-ago revenue is below 5 crore is not judged; a year-ago quarter more than 20%
+below the quarter two years earlier (a COVID-lockdown base) needs the signal to hold against two years
+earlier too; a profit signal is not raised
 when exceptional items are >= 25% of PBT or other income is >= 50% of PBT in that quarter.  Profit is
 the owners' share for a consolidated series when both quarters have it, otherwise profit after tax.
 The thresholds were set before any outcome was examined and are frozen per rules version.
@@ -43,6 +45,7 @@ DEFAULT_NUMERIC_THRESHOLDS = {
     "exceptional_max_share_of_pbt": 0.25,
     "other_income_max_share_of_pbt": 0.50,
     "max_quarter_age_days": 200,
+    "depressed_base_drop": 0.20,
 }
 
 
@@ -65,8 +68,8 @@ def _prev_q(d: date) -> date:
     return date(y, m, {3: 31, 6: 30, 9: 30, 12: 31}[m])
 
 
-def _year_ago(d: date) -> date:
-    return date(d.year - 1, d.month, d.day)
+def _year_ago(d: date, years: int = 1) -> date:
+    return date(d.year - years, d.month, d.day)
 
 
 def _val(series, metric: Metric, end: date) -> Optional[float]:
@@ -81,10 +84,27 @@ def _growth(cur: Optional[float], prev: Optional[float]) -> Optional[float]:
 
 
 def signals_for_quarter(series, end: date, known_at: datetime, th: Optional[dict] = None) -> list[NumericSignal]:
-    """Signals for quarter ``end`` on ``series`` (the series as public at ``known_at``)."""
+    """Signals for quarter ``end`` on ``series`` (the series as public at ``known_at``).
+
+    Depressed base: when the year-ago quarter's revenue is more than ``depressed_base_drop`` below the
+    quarter two years earlier (e.g. a COVID-lockdown quarter), a signal stands only if the same kind of
+    signal also holds against the quarter two years earlier."""
     th = {**DEFAULT_NUMERIC_THRESHOLDS, **(th or {})}
+    one = _signals_vs(series, end, known_at, th, 1)
+    r1, r2 = _val(series, Metric.REVENUE, _year_ago(end)), _val(series, Metric.REVENUE, _year_ago(end, 2))
+    if one and r1 is not None and r2 is not None and r2 > 0 and r1 < (1 - th["depressed_base_drop"]) * r2:
+        two = {x.kind for x in _signals_vs(series, end, known_at, th, 2)}
+        kept = [x for x in one if x.kind in two]
+        for x in kept:
+            x.values["depressed_base_checked"] = True
+            x.basis += " (year-ago base depressed; also holds against two years earlier)"
+        return kept
+    return one
+
+
+def _signals_vs(series, end: date, known_at: datetime, th: dict, years: int) -> list[NumericSignal]:
     scope = series.scope.value
-    ly = _year_ago(end)
+    ly = _year_ago(end, years)
     rev, rev_ly = _val(series, Metric.REVENUE, end), _val(series, Metric.REVENUE, ly)
     if rev is None or rev_ly is None or rev_ly < th["min_year_ago_revenue_cr"]:
         return []
@@ -99,7 +119,7 @@ def signals_for_quarter(series, end: date, known_at: datetime, th: Optional[dict
     prior, d = [], end
     for _ in range(4):
         d = _prev_q(d)
-        pg = _growth(_val(series, Metric.REVENUE, d), _val(series, Metric.REVENUE, _year_ago(d)))
+        pg = _growth(_val(series, Metric.REVENUE, d), _val(series, Metric.REVENUE, _year_ago(d, years)))
         if pg is not None:
             prior.append(pg)
     if g is not None and g >= th["rev_growth_min_pct"] and len(prior) >= 3 \

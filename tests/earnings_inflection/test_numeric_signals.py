@@ -92,3 +92,17 @@ def test_an_old_quarter_first_read_late_is_not_judged():
     times = sorted({r.available_at for r in late})
     out = detect_numeric_signals(lambda t: FinancialSeries.build("T", [r for r in late if r.available_at <= t]), times)
     assert all(s.period_end != ENDS[9] for s in out)
+
+
+def test_a_depressed_year_ago_base_needs_the_signal_to_hold_against_two_years_earlier():
+    # year-ago quarter halved (a lockdown), this quarter back to normal: +100% YoY but flat over two years
+    ends = [date(2019, 6, 30), date(2019, 9, 30), date(2019, 12, 31), date(2020, 3, 31), date(2020, 6, 30),
+            date(2020, 9, 30), date(2020, 12, 31), date(2021, 3, 31), date(2021, 6, 30)]
+    revs = [100, 100, 100, 100, 50, 100, 100, 100, 100]
+    rows = [r for e, v in zip(ends, revs) for r in quarter(e, float(v), v * 0.9)]
+    s = FinancialSeries.build("T", rows)
+    assert signals_for_quarter(s, ends[-1], published(ends[-1])) == []
+    # a real rise beyond the pre-lockdown level still signals
+    rows2 = [r for e, v in zip(ends, revs[:-1] + [150]) for r in quarter(e, float(v), v * 0.9 if v != 150 else 110.0)]
+    k = {x.kind for x in signals_for_quarter(FinancialSeries.build("T", rows2), ends[-1], published(ends[-1]))}
+    assert "operating_leverage" in k
