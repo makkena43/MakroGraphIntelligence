@@ -268,7 +268,7 @@ Catalysts older than their window plus 12 months are history: they are listed, b
 
 `evaluation.review_entries` dates returns from the confirmation date, never from the earlier watch-list date. `missed_candidates` separates data-coverage misses from detector misses.
 
-#### Catalyst rules (catalyst-rules-4; `FROZEN_RULES.md`, which also keeps the earlier versions)
+#### Catalyst rules (catalyst-rules-5; `FROZEN_RULES.md`, which also keeps the earlier versions)
 
 - **Knowability:**
   - Each catalyst records its first disclosure plus the dates materiality, execution, support, validation and confirmation became supportable.
@@ -280,6 +280,14 @@ Catalysts older than their window plus 12 months are history: they are listed, b
 - **Execution window (rules-4):** when the window ends without confirmation, the catalyst becomes "delayed" only if its execution test was missed.
   - If execution was verified but confirmation is impossible from the disclosures (for example, an order inflow without a backlog cannot be sized), it stays "execution validating".
   - `confirmation_blocked` names the reason, and the catalyst ages into history after the usual 12 months.
+- **Order books (rules-5):**
+  - Readings within 45 days and 10% of each other are one restatement.
+  - A reading below 10% of TTM revenue is not the order book.
+  - A jump above 4× needs a second filing at the new level.
+- **Order values (rules-5):** a value stated after the award sentence or in the SEBI annexure is linked when a filing has one award and one value.
+- **Monthly volumes (rules-5):** issuers' monthly unit-sales updates can seed a `volume_run_rate` catalyst, which is verified against reported revenue.
+- **Segment tables (rules-5):** they are used only when segment revenues reconcile with reported revenue within 5%.
+- **Data gaps (rules-5):** a gap never erases a contradicted or delayed verdict.
 - **Demand basis:**
   - *Issuer-disclosed binding demand:* firm, binding, customer named by the issuer, not related. This includes an order book a rating agency repeats. It gets lower confidence, and confirmation carries the review condition "confirm the customer and its independence from an attributable external source".
   - *Independently supported external demand:* an attributable external source confirms both the customer and that it is unrelated.

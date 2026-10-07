@@ -1,6 +1,6 @@
 # Frozen catalyst rules
 
-Current rules version **catalyst-rules-4** · fingerprint `8d896bb571e58393` (`evaluation.rules_fingerprint(DEFAULT_CATALYST_THRESHOLDS, RULES_VERSION)`).
+Current rules version **catalyst-rules-5** · fingerprint `b253e4cca34d124d` (`evaluation.rules_fingerprint(DEFAULT_CATALYST_THRESHOLDS, RULES_VERSION)`).
 
 Frozen before any further historical evaluation.
 - **Any change** to a threshold, test or stage rule needs a new rules version and a new fingerprint.
@@ -15,7 +15,8 @@ Frozen before any further historical evaluation.
 | catalyst-rules-1 | `f6fe4d677e763c50` | first frozen catalyst rules | `evaluations/catalyst-rules-1/` (INDOTECH replay 2020-06 to 2025-12) |
 | catalyst-rules-2 | `59c9ec2217ec6c4d` | review round 2: catalyst-driven lanes, project identity, knowability dates, linked cancellations, continuous monitoring, three earnings tiers, full ledger fingerprint | `evaluations/catalyst-rules-2/` (eight exported issuers, 2024-03-31) |
 | catalyst-rules-3 | `1b744b3fe6944180` | review round 3, with **no threshold changed** (only rule logic). See the list below. | `evaluations/catalyst-rules-3/` |
-| catalyst-rules-4 | `8d896bb571e58393` | defects D1 and D3 from the rules-3 cohort, with **no threshold changed**. See the list below. | none yet; needs a new pre-registered cohort |
+| catalyst-rules-4 | `8d896bb571e58393` | defects D1 and D3 from the rules-3 cohort, with **no threshold changed**. See the list below. | `evaluations/catalyst-rules-4/` (named-company case study; cohort development check) |
+| catalyst-rules-5 | `b253e4cca34d124d` | defects D2 and D4–D11 plus unstated scope. **Thresholds added** (book plausibility, restatement, monthly volume); existing ones unchanged. See the list below. | none yet; needs a new pre-registered cohort |
 
 **catalyst-rules-3 changes:**
 - **Historical state:** every input is rebuilt at each historical timestamp: event state, mechanisms, and figures as filed. Later failures are kept, and appending future disclosures does not change earlier assessments (prefix invariance).
@@ -35,14 +36,36 @@ Frozen before any further historical evaluation.
   - Its evaluation verdict is `executed_unconfirmable`, counted neither as confirmed nor as a false alert.
   - The confirmation test is unchanged.
 
+**catalyst-rules-5 changes:**
+- **D9 (historical correctness):** re-assessment and mechanism-scan times come from every figure's original filing time, so a figure later superseded (a presentation figure replaced by the annual report) no longer re-dates or removes a catalyst.
+- **D8 / D7 (order value):** an order value stated in the sentence after the award, or in the SEBI annexure, is attached when the filing has exactly one unquantified award and exactly one value.
+  - "Approximately ₹X crore" is treated as firm; "up to" is a ceiling.
+- **D10 (segment tables):**
+  - Segment spellings are merged, and company totals are not segments.
+  - Mix and turnaround readings require segment revenues to reconcile with reported revenue within 5%. A turnaround with no segment revenue reported is kept at low confidence.
+- **D4 (data gaps):** a data gap never erases a contradicted or delayed verdict.
+- **D5 (restatements):** order-book readings within 45 days and 10% of each other are one catalyst.
+- **D6 (plausibility):** a book below 10% of TTM revenue is not the order book, and a jump above 4× needs a second filing at the new level.
+- **D11 (monthly volumes):** monthly unit sales become a VOLUME catalyst (`volume_run_rate`).
+  - Trigger: three months up at least 25% year on year, with two of the three months individually up as much, in two consecutive windows.
+  - A depressed year-ago base must also be beaten against two years earlier.
+  - It is verified against reported revenue.
+- **D2 (unit lines):** scanned unit lines are read, including the rupee sign scanned as ¥ or Z, plural "Millions", and damaged scale words on lines that read as unit lines.
+- **Scope:** statements without a stated scope are standalone when no consolidated statements had been filed by that figure's filing time.
+
 Results under rules-3 are not re-scored. The seven rules-3 cohort issuers exposed D1 and D3, so re-running rules-4 on them is a development check, not an evaluation.
 
-The thresholds are identical in versions 2, 3 and 4:
+The thresholds of versions 2–4 are unchanged in version 5; version 5 adds the D5, D6 and D11 thresholds:
 
 | Threshold | Value |
 |---|---|
 | `order_inflow_to_ttm_revenue` | 0.25 |
 | `order_book_growth_pct` | 30.0 |
+| `book_min_share_of_ttm_revenue` | 0.1 |
+| `book_max_uncorroborated_multiple` | 4.0 |
+| `book_restatement_days` | 45 |
+| `book_restatement_pct` | 10.0 |
+| `volume_growth_pct` | 25.0 |
 | `capacity_expansion_pct` | 20.0 |
 | `materiality_share_of_ttm_ebitda` | 0.15 |
 | `default_order_horizon_months` | 12 |
