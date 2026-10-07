@@ -1,0 +1,72 @@
+{
+ "symbol": "AFFLE",
+ "rules_version": "catalyst-rules-6",
+ "fingerprint": "76b4dd78c36b9506",
+ "coverage": {
+  "symbol": "AFFLE",
+  "announcements": 631,
+  "kept": 530,
+  "downloaded": 523,
+  "with_text": 527,
+  "download_failed": 7,
+  "skipped_no_text": 1,
+  "annual_reports": 5,
+  "annual_report_date_from_filename": 3,
+  "by_year": {
+   "2021": 100,
+   "2022": 107,
+   "2023": 105,
+   "2024": 104,
+   "2025": 111
+  },
+  "cadence": "Q",
+  "scope": "standalone",
+  "periods_parsed": 15,
+  "first_period": "2020-03-31",
+  "last_period": "2025-09-30",
+  "credit_rating_filings": 0,
+  "snapshot_errors": []
+ },
+ "catalysts_total": 1,
+ "catalysts_by_kind": {
+  "product_mix": 1
+ },
+ "alerts": [],
+ "false_alerts": [],
+ "unresolved_alerts": [],
+ "prefix_defects": [],
+ "vanished_catalysts": [],
+ "inflections": [
+  {
+   "from": "2021-06-30",
+   "to": "2024-06-30",
+   "ttm_parent_pat": [
+    39.581,
+    88.54299999999999
+   ],
+   "end_published": "2024-08-03",
+   "alert_before": [],
+   "timing_only": [],
+   "missed": true
+  }
+ ],
+ "workload": {
+  "alerts_per_year": 0.0,
+  "snapshots_in_flag_lane": 0,
+  "snapshots": 20,
+  "documents": 527
+ },
+ "timeline": {
+  "first_defensible_catalyst": null,
+  "first_any_catalyst": "2021-11-29",
+  "supported": 0,
+  "confirmed": 0,
+  "false_positives": 0,
+  "delayed": 0,
+  "executed_unconfirmable": 0,
+  "data_unavailable": 1,
+  "potential_only": 1,
+  "days_to_confirmed": [],
+  "rules_version": "catalyst-rules-6"
+ }
+}

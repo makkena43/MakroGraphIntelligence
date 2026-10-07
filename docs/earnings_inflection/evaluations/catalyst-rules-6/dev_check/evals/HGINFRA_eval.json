@@ -1,0 +1,100 @@
+{
+ "symbol": "HGINFRA",
+ "rules_version": "catalyst-rules-6",
+ "fingerprint": "76b4dd78c36b9506",
+ "coverage": {
+  "symbol": "HGINFRA",
+  "announcements": 527,
+  "kept": 391,
+  "downloaded": 390,
+  "with_text": 395,
+  "download_failed": 1,
+  "annual_reports": 5,
+  "annual_report_date_from_filename": 3,
+  "by_year": {
+   "2021": 50,
+   "2022": 67,
+   "2023": 75,
+   "2024": 110,
+   "2025": 93
+  },
+  "cadence": "Q",
+  "scope": "consolidated",
+  "periods_parsed": 22,
+  "first_period": "2020-03-31",
+  "last_period": "2025-09-30",
+  "credit_rating_filings": 8,
+  "snapshot_errors": []
+ },
+ "catalysts_total": 2,
+ "catalysts_by_kind": {
+  "executable_orders": 2
+ },
+ "alerts": [
+  {
+   "catalyst_id": "a065c98018f3",
+   "kind": "executable_orders",
+   "change": "issuer-disclosed binding orders 1,580.2 cr in 12 months = 0.38x TTM revenue known then",
+   "first_public": "2023-03-22",
+   "supported_at": "2023-05-10",
+   "verdict": "contradicted",
+   "contribution_when_flagged": "potentially_material_unresolved",
+   "final_stage": "contradicted",
+   "stages": [
+    [
+     "2023-05-31",
+     "execution_validating"
+    ],
+    [
+     "2024-05-31",
+     "delayed"
+    ],
+    [
+     "2025-02-28",
+     "contradicted"
+    ]
+   ],
+   "flagged_snapshots": 4,
+   "delivery": {
+    "from": "2023-03-31",
+    "to": "2024-03-31",
+    "ttm_revenue": [
+     4622.008,
+     5378.478999999999
+    ],
+    "ttm_parent_pat": [
+     null,
+     null
+    ],
+    "delivered": false,
+    "measurable": false
+   }
+  }
+ ],
+ "false_alerts": [
+  "a065c98018f3"
+ ],
+ "unresolved_alerts": [],
+ "prefix_defects": [],
+ "vanished_catalysts": [],
+ "inflections": [],
+ "workload": {
+  "alerts_per_year": 0.21,
+  "snapshots_in_flag_lane": 4,
+  "snapshots": 20,
+  "documents": 395
+ },
+ "timeline": {
+  "first_defensible_catalyst": "2023-05-10",
+  "first_any_catalyst": "2023-03-22",
+  "supported": 1,
+  "confirmed": 0,
+  "false_positives": 1,
+  "delayed": 0,
+  "executed_unconfirmable": 0,
+  "data_unavailable": 0,
+  "potential_only": 1,
+  "days_to_confirmed": [],
+  "rules_version": "catalyst-rules-6"
+ }
+}

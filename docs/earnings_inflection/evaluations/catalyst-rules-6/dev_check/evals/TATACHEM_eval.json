@@ -1,0 +1,60 @@
+{
+ "symbol": "TATACHEM",
+ "rules_version": "catalyst-rules-6",
+ "fingerprint": "76b4dd78c36b9506",
+ "coverage": {
+  "symbol": "TATACHEM",
+  "announcements": 872,
+  "kept": 416,
+  "downloaded": 403,
+  "with_text": 408,
+  "download_failed": 13,
+  "annual_reports": 5,
+  "annual_report_date_from_filename": 3,
+  "by_year": {
+   "2021": 42,
+   "2022": 162,
+   "2023": 66,
+   "2024": 77,
+   "2025": 61
+  },
+  "cadence": "Q",
+  "scope": "consolidated",
+  "periods_parsed": 16,
+  "first_period": "2019-12-31",
+  "last_period": "2025-09-30",
+  "credit_rating_filings": 18,
+  "snapshot_errors": []
+ },
+ "catalysts_total": 3,
+ "catalysts_by_kind": {
+  "capacity_or_bottleneck": 1,
+  "product_mix": 1,
+  "utilization": 1
+ },
+ "alerts": [],
+ "false_alerts": [],
+ "unresolved_alerts": [],
+ "prefix_defects": [],
+ "vanished_catalysts": [],
+ "inflections": [],
+ "workload": {
+  "alerts_per_year": 0.0,
+  "snapshots_in_flag_lane": 0,
+  "snapshots": 20,
+  "documents": 408
+ },
+ "timeline": {
+  "first_defensible_catalyst": null,
+  "first_any_catalyst": "2022-02-10",
+  "supported": 0,
+  "confirmed": 0,
+  "false_positives": 0,
+  "delayed": 0,
+  "executed_unconfirmable": 0,
+  "data_unavailable": 1,
+  "potential_only": 3,
+  "days_to_confirmed": [],
+  "rules_version": "catalyst-rules-6"
+ }
+}

@@ -1,0 +1,934 @@
+{
+ "rows": [
+  {
+   "symbol": "PRICOLLTD",
+   "5": {
+    "catalysts": 1,
+    "alerts": 0,
+    "verdicts": {},
+    "false": 0,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [],
+    "coverage": {
+     "scope": "consolidated",
+     "revenue": 15,
+     "ebitda": 15,
+     "pat": 15,
+     "pat_attributable": 0
+    },
+    "alert_list": []
+   },
+   "6": {
+    "catalysts": 1,
+    "alerts": 0,
+    "verdicts": {},
+    "false": 0,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [],
+    "coverage": {
+     "scope": "consolidated",
+     "revenue": 15,
+     "ebitda": 17,
+     "pat": 15,
+     "pat_attributable": 0
+    },
+    "alert_list": []
+   }
+  },
+  {
+   "symbol": "RAIN",
+   "5": {
+    "catalysts": 18,
+    "alerts": 16,
+    "verdicts": {
+     "contradicted": 5,
+     "executed_unconfirmable": 10,
+     "open": 1
+    },
+    "false": 5,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [
+     {
+      "from": "2021-09-30",
+      "to": "2024-03-31",
+      "pat": [
+       27.976,
+       50.643
+      ],
+      "missed": false,
+      "credited": [
+       "e78bc8c82285",
+       "6c725c4732cd",
+       "187931b3680e",
+       "26e4a1540c14",
+       "36a63d760db3",
+       "9553464439f1",
+       "80160218c9e2",
+       "cdc4e334efdb"
+      ],
+      "timing_only": null
+     },
+     {
+      "from": "2024-06-30",
+      "to": "2025-06-30",
+      "pat": [
+       12.097000000000001,
+       43.221999999999994
+      ],
+      "missed": false,
+      "credited": [
+       "9ad4c99a3687",
+       "3220e10f2fe0",
+       "441328d87514",
+       "c128deb0d94c",
+       "df734e97e210",
+       "13dd26fbdc81",
+       "fe90e2357d49"
+      ],
+      "timing_only": null
+     }
+    ],
+    "coverage": {
+     "scope": "standalone",
+     "revenue": 24,
+     "ebitda": 22,
+     "pat": 24,
+     "pat_attributable": 0
+    },
+    "alert_list": [
+     {
+      "kind": "contract_pricing",
+      "first_public": "2021-04-29",
+      "supported_at": "2023-05-09",
+      "verdict": "contradicted",
+      "contribution_when_flagged": null,
+      "change": "issuer states (2021-04-29): \"Further, the average blended realisation increased by ~12.0% due to changes in th",
+      "delivered": true
+     },
+     {
+      "kind": "contract_pricing",
+      "first_public": "2021-07-31",
+      "supported_at": "2022-11-03",
+      "verdict": "contradicted",
+      "contribution_when_flagged": null,
+      "change": "issuer states (2021-07-31): \"Further, the average blended realisation increased by ~36.3% driven by changes in",
+      "delivered": false
+     },
+     {
+      "kind": "contract_pricing",
+      "first_public": "2021-10-30",
+      "supported_at": "2022-11-03",
+      "verdict": "contradicted",
+      "contribution_when_flagged": null,
+      "change": "issuer states (2021-10-30): \"During Q3 CY21, the average blended realisation increased by ~23.4% primarily due",
+      "delivered": false
+     },
+     {
+      "kind": "contract_pricing",
+      "first_public": "2022-02-25",
+      "supported_at": "2022-11-03",
+      "verdict": "contradicted",
+      "contribution_when_flagged": null,
+      "change": "issuer states (2022-02-25): \"During Q4 CY21, the average blended realisation increased by ~39.7% primarily due",
+      "delivered": false
+     },
+     {
+      "kind": "contract_pricing",
+      "first_public": "2022-05-04",
+      "supported_at": "2022-07-29",
+      "verdict": "executed_unconfirmable",
+      "contribution_when_flagged": null,
+      "change": "issuer states (2022-05-04): \"Further, the average blended realisation increased by ~63.0% driven by higher dem",
+      "delivered": true
+     },
+     {
+      "kind": "contract_pricing",
+      "first_public": "2022-07-29",
+      "supported_at": "2023-05-09",
+      "verdict": "contradicted",
+      "contribution_when_flagged": null,
+      "change": "issuer states (2022-07-29): \"Further, the average blended realisation increased by ~78.0% driven by higher dem",
+      "delivered": true
+     },
+     {
+      "kind": "contract_pricing",
+      "first_public": "2022-11-03",
+      "supported_at": "2023-05-09",
+      "verdict": "executed_unconfirmable",
+      "contribution_when_flagged": null,
+      "change": "issuer states (2022-11-03): \"During Q3 CY22, the average blended realisation increased by ~54.9% primarily due",
+      "delivered": true
+     },
+     {
+      "kind": "contract_pricing",
+      "first_public": "2023-02-27",
+      "supported_at": "2023-05-09",
+      "verdict": "executed_unconfirmable",
+      "contribution_when_flagged": null,
+      "change": "issuer states (2023-02-27): \"During Q4 CY22, the average blended realisation increased by ~33% primarily due t",
+      "delivered": true
+     },
+     {
+      "kind": "contract_pricing",
+      "first_public": "2023-05-09",
+      "supported_at": "2024-08-06",
+      "verdict": "executed_unconfirmable",
+      "contribution_when_flagged": null,
+      "change": "issuer states (2023-05-09): \"During Q1 CY23, the average blended realisation increased by ~28.7% on account of",
+      "delivered": true
+     },
+     {
+      "kind": "contract_pricing",
+      "first_public": "2023-05-16",
+      "supported_at": "2024-08-06",
+      "verdict": "executed_unconfirmable",
+      "contribution_when_flagged": null,
+      "change": "issuer states (2023-05-16): \"The average blended realisation increased by ~28.7%, driven by market quotations,",
+      "delivered": true
+     },
+     {
+      "kind": "contract_pricing",
+      "first_public": "2024-02-24",
+      "supported_at": "2024-11-06",
+      "verdict": "executed_unconfirmable",
+      "contribution_when_flagged": null,
+      "change": "issuer states (2024-02-24): \"During Q4 CY23, realisations decreased by 15.4% due to fall in commodity prices a",
+      "delivered": false
+     },
+     {
+      "kind": "contract_pricing",
+      "first_public": "2024-05-09",
+      "supported_at": "2024-11-06",
+      "verdict": "executed_unconfirmable",
+      "contribution_when_flagged": null,
+      "change": "issuer states (2024-05-09): \"During Q1 CY24, realisations decreased by 4.5% due to fall in commodity prices of",
+      "delivered": false
+     },
+     {
+      "kind": "contract_pricing",
+      "first_public": "2024-05-10",
+      "supported_at": "2024-11-06",
+      "verdict": "executed_unconfirmable",
+      "contribution_when_flagged": null,
+      "change": "issuer states (2024-05-10): \"During First Quarter CY24, realizations decreased by 4.5% due to fall in commodit",
+      "delivered": false
+     },
+     {
+      "kind": "contract_pricing",
+      "first_public": "2024-08-06",
+      "supported_at": "2024-11-06",
+      "verdict": "executed_unconfirmable",
+      "contribution_when_flagged": null,
+      "change": "issuer states (2024-08-06): \"During Q2 of 2024, realisations decreased by 16.1%, due to fall in commodity pric",
+      "delivered": false
+     },
+     {
+      "kind": "contract_pricing",
+      "first_public": "2024-11-06",
+      "supported_at": "2025-11-06",
+      "verdict": "executed_unconfirmable",
+      "contribution_when_flagged": null,
+      "change": "issuer states (2024-11-06): \"During Q3 2024, average realisations decreased by 9.5% due to fall in commodity p",
+      "delivered": null
+     },
+     {
+      "kind": "contract_pricing",
+      "first_public": "2025-02-25",
+      "supported_at": "2025-08-06",
+      "verdict": "open",
+      "contribution_when_flagged": null,
+      "change": "issuer states (2025-02-25): \"During Q4 2024, average blended realisation decreased by 3.6% due to fall in comm",
+      "delivered": null
+     }
+    ]
+   },
+   "6": {
+    "catalysts": 2,
+    "alerts": 1,
+    "verdicts": {
+     "contradicted": 1
+    },
+    "false": 1,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [
+     {
+      "from": "2021-09-30",
+      "to": "2024-03-31",
+      "pat": [
+       27.976,
+       50.643
+      ],
+      "missed": true,
+      "credited": [],
+      "timing_only": [
+       "e78bc8c82285"
+      ]
+     },
+     {
+      "from": "2024-06-30",
+      "to": "2025-06-30",
+      "pat": [
+       12.097000000000001,
+       43.221999999999994
+      ],
+      "missed": true,
+      "credited": [],
+      "timing_only": []
+     }
+    ],
+    "coverage": {
+     "scope": "standalone",
+     "revenue": 24,
+     "ebitda": 22,
+     "pat": 24,
+     "pat_attributable": 0
+    },
+    "alert_list": [
+     {
+      "kind": "contract_pricing",
+      "first_public": "2021-04-29",
+      "supported_at": "2023-05-09",
+      "verdict": "contradicted",
+      "contribution_when_flagged": "potentially_material_unresolved",
+      "change": "issuer states (2021-04-29): \"Further, the average blended realisation increased by ~12.0% due to changes in th",
+      "delivered": true
+     }
+    ]
+   }
+  },
+  {
+   "symbol": "TATACHEM",
+   "5": {
+    "catalysts": 2,
+    "alerts": 0,
+    "verdicts": {},
+    "false": 0,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [],
+    "coverage": {
+     "scope": "consolidated",
+     "revenue": 5,
+     "ebitda": 0,
+     "pat": 2,
+     "pat_attributable": 0
+    },
+    "alert_list": []
+   },
+   "6": {
+    "catalysts": 3,
+    "alerts": 0,
+    "verdicts": {},
+    "false": 0,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [],
+    "coverage": {
+     "scope": "consolidated",
+     "revenue": 16,
+     "ebitda": 14,
+     "pat": 11,
+     "pat_attributable": 12
+    },
+    "alert_list": []
+   }
+  },
+  {
+   "symbol": "BATAINDIA",
+   "5": {
+    "catalysts": 2,
+    "alerts": 0,
+    "verdicts": {},
+    "false": 0,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [],
+    "coverage": {
+     "scope": "standalone",
+     "revenue": 6,
+     "ebitda": 6,
+     "pat": 9,
+     "pat_attributable": 0
+    },
+    "alert_list": []
+   },
+   "6": {
+    "catalysts": 1,
+    "alerts": 0,
+    "verdicts": {},
+    "false": 0,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [],
+    "coverage": {
+     "scope": "standalone",
+     "revenue": 19,
+     "ebitda": 11,
+     "pat": 9,
+     "pat_attributable": 0
+    },
+    "alert_list": []
+   }
+  },
+  {
+   "symbol": "CESC",
+   "5": {
+    "catalysts": 0,
+    "alerts": 0,
+    "verdicts": {},
+    "false": 0,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [],
+    "coverage": {
+     "scope": "consolidated",
+     "revenue": 10,
+     "ebitda": 0,
+     "pat": 13,
+     "pat_attributable": 0
+    },
+    "alert_list": []
+   },
+   "6": {
+    "catalysts": 1,
+    "alerts": 0,
+    "verdicts": {},
+    "false": 0,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [],
+    "coverage": {
+     "scope": "consolidated",
+     "revenue": 15,
+     "ebitda": 8,
+     "pat": 19,
+     "pat_attributable": 0
+    },
+    "alert_list": []
+   }
+  },
+  {
+   "symbol": "AURIONPRO",
+   "5": {
+    "catalysts": 6,
+    "alerts": 3,
+    "verdicts": {
+     "executed_unconfirmable": 2,
+     "delayed": 1
+    },
+    "false": 1,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [],
+    "coverage": {
+     "scope": "consolidated",
+     "revenue": 20,
+     "ebitda": 19,
+     "pat": 13,
+     "pat_attributable": 18
+    },
+    "alert_list": [
+     {
+      "kind": "executable_orders",
+      "first_public": "2024-02-05",
+      "supported_at": "2024-05-14",
+      "verdict": "executed_unconfirmable",
+      "contribution_when_flagged": null,
+      "change": "stated order book 200.0 -> 900.0 cr (+350%; disclosed 2023-08-02 -> 2024-02-05)",
+      "delivered": false
+     },
+     {
+      "kind": "executable_orders",
+      "first_public": "2024-02-08",
+      "supported_at": "2024-05-14",
+      "verdict": "executed_unconfirmable",
+      "contribution_when_flagged": null,
+      "change": "stated order book 200.0 -> 800.0 cr (+300%; disclosed 2023-08-02 -> 2024-02-08)",
+      "delivered": false
+     },
+     {
+      "kind": "product_mix",
+      "first_public": "2025-07-22",
+      "supported_at": "2025-07-22",
+      "verdict": "delayed",
+      "contribution_when_flagged": null,
+      "change": "product_customer_mix: sale of software services: share of segment revenue 69.2% -> 75.0% (margin gap 62.2 pp v",
+      "delivered": null
+     }
+    ]
+   },
+   "6": {
+    "catalysts": 4,
+    "alerts": 1,
+    "verdicts": {
+     "delayed": 1
+    },
+    "false": 1,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [],
+    "coverage": {
+     "scope": "consolidated",
+     "revenue": 21,
+     "ebitda": 20,
+     "pat": 12,
+     "pat_attributable": 18
+    },
+    "alert_list": [
+     {
+      "kind": "product_mix",
+      "first_public": "2025-07-22",
+      "supported_at": "2025-07-22",
+      "verdict": "delayed",
+      "contribution_when_flagged": "estimated",
+      "change": "product_customer_mix: sale of software services: share of segment revenue 69.2% -> 75.0% (margin gap 62.2 pp v",
+      "delivered": null
+     }
+    ]
+   }
+  },
+  {
+   "symbol": "HGINFRA",
+   "5": {
+    "catalysts": 2,
+    "alerts": 1,
+    "verdicts": {
+     "contradicted": 1
+    },
+    "false": 1,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [],
+    "coverage": {
+     "scope": "consolidated",
+     "revenue": 21,
+     "ebitda": 20,
+     "pat": 20,
+     "pat_attributable": 3
+    },
+    "alert_list": [
+     {
+      "kind": "executable_orders",
+      "first_public": "2023-03-22",
+      "supported_at": "2023-05-10",
+      "verdict": "contradicted",
+      "contribution_when_flagged": null,
+      "change": "issuer-disclosed binding orders 1,580.2 cr in 12 months = 0.40x TTM revenue known then",
+      "delivered": false
+     }
+    ]
+   },
+   "6": {
+    "catalysts": 2,
+    "alerts": 1,
+    "verdicts": {
+     "contradicted": 1
+    },
+    "false": 1,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [],
+    "coverage": {
+     "scope": "consolidated",
+     "revenue": 22,
+     "ebitda": 21,
+     "pat": 23,
+     "pat_attributable": 3
+    },
+    "alert_list": [
+     {
+      "kind": "executable_orders",
+      "first_public": "2023-03-22",
+      "supported_at": "2023-05-10",
+      "verdict": "contradicted",
+      "contribution_when_flagged": "potentially_material_unresolved",
+      "change": "issuer-disclosed binding orders 1,580.2 cr in 12 months = 0.38x TTM revenue known then",
+      "delivered": false
+     }
+    ]
+   }
+  },
+  {
+   "symbol": "GPPL",
+   "5": {
+    "catalysts": 0,
+    "alerts": 0,
+    "verdicts": {},
+    "false": 0,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [],
+    "coverage": {
+     "scope": "consolidated",
+     "revenue": 22,
+     "ebitda": 22,
+     "pat": 3,
+     "pat_attributable": 0
+    },
+    "alert_list": []
+   },
+   "6": {
+    "catalysts": 0,
+    "alerts": 0,
+    "verdicts": {},
+    "false": 0,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [],
+    "coverage": {
+     "scope": "consolidated",
+     "revenue": 22,
+     "ebitda": 22,
+     "pat": 3,
+     "pat_attributable": 0
+    },
+    "alert_list": []
+   }
+  },
+  {
+   "symbol": "AFFLE",
+   "5": {
+    "catalysts": 1,
+    "alerts": 0,
+    "verdicts": {},
+    "false": 0,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [
+     {
+      "from": "2021-06-30",
+      "to": "2024-06-30",
+      "pat": [
+       39.581,
+       88.54299999999999
+      ],
+      "missed": true,
+      "credited": [],
+      "timing_only": null
+     }
+    ],
+    "coverage": {
+     "scope": "standalone",
+     "revenue": 15,
+     "ebitda": 12,
+     "pat": 21,
+     "pat_attributable": 2
+    },
+    "alert_list": []
+   },
+   "6": {
+    "catalysts": 1,
+    "alerts": 0,
+    "verdicts": {},
+    "false": 0,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [
+     {
+      "from": "2021-06-30",
+      "to": "2024-06-30",
+      "pat": [
+       39.581,
+       88.54299999999999
+      ],
+      "missed": true,
+      "credited": [],
+      "timing_only": []
+     }
+    ],
+    "coverage": {
+     "scope": "standalone",
+     "revenue": 15,
+     "ebitda": 12,
+     "pat": 21,
+     "pat_attributable": 2
+    },
+    "alert_list": []
+   }
+  },
+  {
+   "symbol": "RBA",
+   "5": {
+    "catalysts": 2,
+    "alerts": 1,
+    "verdicts": {
+     "delayed": 1
+    },
+    "false": 1,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [],
+    "coverage": {
+     "scope": "consolidated",
+     "revenue": 17,
+     "ebitda": 17,
+     "pat": 16,
+     "pat_attributable": 9
+    },
+    "alert_list": [
+     {
+      "kind": "product_mix",
+      "first_public": "2023-05-17",
+      "supported_at": "2023-05-17",
+      "verdict": "delayed",
+      "contribution_when_flagged": null,
+      "change": "product_customer_mix: india: share of segment revenue 67.2% -> 72.1% (margin gap 18.9 pp vs other segments, ye",
+      "delivered": false
+     }
+    ]
+   },
+   "6": {
+    "catalysts": 2,
+    "alerts": 1,
+    "verdicts": {
+     "delayed": 1
+    },
+    "false": 1,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [],
+    "coverage": {
+     "scope": "consolidated",
+     "revenue": 17,
+     "ebitda": 17,
+     "pat": 16,
+     "pat_attributable": 9
+    },
+    "alert_list": [
+     {
+      "kind": "product_mix",
+      "first_public": "2023-05-17",
+      "supported_at": "2023-05-17",
+      "verdict": "delayed",
+      "contribution_when_flagged": "estimated",
+      "change": "product_customer_mix: india: share of segment revenue 67.2% -> 72.1% (margin gap 18.9 pp vs other segments, ye",
+      "delivered": false
+     }
+    ]
+   }
+  },
+  {
+   "symbol": "LUMAXIND",
+   "5": {
+    "catalysts": 6,
+    "alerts": 5,
+    "verdicts": {
+     "contradicted": 1,
+     "executed_unconfirmable": 3,
+     "open": 1
+    },
+    "false": 1,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [],
+    "coverage": {
+     "scope": "consolidated",
+     "revenue": 19,
+     "ebitda": 19,
+     "pat": 16,
+     "pat_attributable": 0
+    },
+    "alert_list": [
+     {
+      "kind": "financing_cost",
+      "first_public": "2021-06-11",
+      "supported_at": "2021-08-06",
+      "verdict": "contradicted",
+      "contribution_when_flagged": null,
+      "change": "debt_reduction: net debt (borrowings - cash) 2020-03-31: 18.4 -> 2021-03-31: -2.8",
+      "delivered": false
+     },
+     {
+      "kind": "utilization",
+      "first_public": "2022-05-24",
+      "supported_at": "2023-06-08",
+      "verdict": "executed_unconfirmable",
+      "contribution_when_flagged": null,
+      "change": "utilization: stated utilisation at company-level, 2021-10-28 -> 2022-03-15",
+      "delivered": false
+     },
+     {
+      "kind": "executable_orders",
+      "first_public": "2023-06-08",
+      "supported_at": "2023-08-09",
+      "verdict": "executed_unconfirmable",
+      "contribution_when_flagged": null,
+      "change": "stated order book 1,000.0 -> 1,300.0 cr (+30%; disclosed 2022-11-25 -> 2023-06-08)",
+      "delivered": false
+     },
+     {
+      "kind": "executable_orders",
+      "first_public": "2023-11-16",
+      "supported_at": "2024-05-26",
+      "verdict": "executed_unconfirmable",
+      "contribution_when_flagged": null,
+      "change": "stated order book 1,300.0 -> 2,200.0 cr (+69%; disclosed 2023-06-08 -> 2023-11-16)",
+      "delivered": false
+     },
+     {
+      "kind": "executable_orders",
+      "first_public": "2024-11-23",
+      "supported_at": "2025-02-10",
+      "verdict": "open",
+      "contribution_when_flagged": null,
+      "change": "stated order book 2,200.0 -> 2,900.0 cr (+32%; disclosed 2024-02-21 -> 2024-11-23)",
+      "delivered": null
+     }
+    ]
+   },
+   "6": {
+    "catalysts": 6,
+    "alerts": 2,
+    "verdicts": {
+     "contradicted": 1,
+     "executed_unconfirmable": 1
+    },
+    "false": 1,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [],
+    "coverage": {
+     "scope": "consolidated",
+     "revenue": 19,
+     "ebitda": 19,
+     "pat": 18,
+     "pat_attributable": 0
+    },
+    "alert_list": [
+     {
+      "kind": "financing_cost",
+      "first_public": "2021-06-11",
+      "supported_at": "2021-08-06",
+      "verdict": "contradicted",
+      "contribution_when_flagged": "potentially_material_unresolved",
+      "change": "debt_reduction: net debt (borrowings - cash) 2020-03-31: 18.4 -> 2021-03-31: -2.8",
+      "delivered": false
+     },
+     {
+      "kind": "utilization",
+      "first_public": "2022-05-24",
+      "supported_at": "2023-06-08",
+      "verdict": "executed_unconfirmable",
+      "contribution_when_flagged": "potentially_material_unresolved",
+      "change": "utilization: stated utilisation at company-level, 2021-10-28 -> 2022-03-15",
+      "delivered": false
+     }
+    ]
+   }
+  },
+  {
+   "symbol": "JYOTHYLAB",
+   "5": {
+    "catalysts": 2,
+    "alerts": 1,
+    "verdicts": {
+     "contradicted": 1
+    },
+    "false": 1,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [
+     {
+      "from": "2024-09-30",
+      "to": "2025-09-30",
+      "pat": [
+       375.86,
+       643.13
+      ],
+      "missed": false,
+      "credited": [
+       "4c1e29ded920"
+      ],
+      "timing_only": null
+     }
+    ],
+    "coverage": {
+     "scope": "standalone",
+     "revenue": 13,
+     "ebitda": 13,
+     "pat": 14,
+     "pat_attributable": 2
+    },
+    "alert_list": [
+     {
+      "kind": "segment_turnaround",
+      "first_public": "2025-05-12",
+      "supported_at": "2025-08-12",
+      "verdict": "contradicted",
+      "contribution_when_flagged": null,
+      "change": "segment_turnaround: others: segment result -0.3 -> 1.1 cr vs year-ago period",
+      "delivered": null
+     }
+    ]
+   },
+   "6": {
+    "catalysts": 2,
+    "alerts": 0,
+    "verdicts": {},
+    "false": 0,
+    "datechg": 0,
+    "vanished": 0,
+    "inflections": [
+     {
+      "from": "2024-09-30",
+      "to": "2025-09-30",
+      "pat": [
+       375.86,
+       643.13
+      ],
+      "missed": true,
+      "credited": [],
+      "timing_only": []
+     }
+    ],
+    "coverage": {
+     "scope": "standalone",
+     "revenue": 13,
+     "ebitda": 13,
+     "pat": 14,
+     "pat_attributable": 2
+    },
+    "alert_list": []
+   }
+  }
+ ],
+ "summary": {
+  "5": {
+   "alerts": 27,
+   "false": 10,
+   "infl": 4,
+   "caught": 3,
+   "caught_timing": 3,
+   "datechg": 0,
+   "vanished": 0,
+   "cats": 42
+  },
+  "6": {
+   "alerts": 6,
+   "false": 5,
+   "infl": 4,
+   "caught": 0,
+   "caught_timing": 1,
+   "datechg": 0,
+   "vanished": 0,
+   "cats": 25
+  }
+ },
+ "verdicts": {
+  "5": {
+   "contradicted": 8,
+   "executed_unconfirmable": 15,
+   "open": 2,
+   "delayed": 2
+  },
+  "6": {
+   "contradicted": 3,
+   "delayed": 2,
+   "executed_unconfirmable": 1
+  }
+ }
+}
