@@ -1,0 +1,19 @@
+                                                              Regd. Office: Bombay House, 24 Homi Mody Street, Mumbai - 400 001
+                                               Statement of Consolidated Financial Results for the quarter and nine months ended 31 December, 2020
+                                                                                                                                                                                       ( in crore)
+Particulars                                                                                          Quarter          Quarter          Quarter       Nine months     Nine months        Year
+                                                                                                     ended            ended            ended            ended           ended          ended
+                                                                                                       31               30               31               31              31             31
+                                                                                                   December,        September,      December,        December,       December,         March,
+                                                                                                      2020             2020             2019             2020            2019           2020
+                                                                                                   (Unaudited)      (Unaudited)     (Unaudited)      (Unaudited)     (Unaudited)      (Audited)
+                                                                                                                                     (note 2(a))                      (note 2(a))
+ 1  Income
+    a) Revenue from operations (note 6)                                                                 2606.08          2609.35         2623.36         7563.59          7978.66       10356.75
+    b) Other income                                                                                       42.70            68.55           58.62          169.91           235.57         311.12
+    Total income (1a + 1b)                                                                              2648.78          2677.90         2681.98         7733.50          8214.23       10667.87
+ 2 Expenses
+    a) Cost of materials consumed                                                                        515.51           572.70          518.25         1552.67          1447.19        1844.23
+    b) Purchases of stock-in-trade                                                                         72.44          111.45            49.95         236.58           175.22         252.44
+    c) Changes in inventories of finished goods, work-in-progress and stock-in-trade                      (56.88)          36.64           (52.54)         53.36            (14.17)      (128.27)
+    d) Employee benefits expense (note 5 (a))                                                            355.68           352.28          353.87         1044.69          1036.11        1375.37
