@@ -301,6 +301,7 @@ class CatalystKind(str, Enum):
     CONTRACT_PRICING = "contract_pricing"
     FINANCING_COST = "financing_cost"
     SEGMENT_TURNAROUND = "segment_turnaround"
+    VOLUME = "volume_run_rate"              # monthly unit sales disclosed by the issuer (rules-5 D11)
 
 
 class ResearchStage(str, Enum):
@@ -672,6 +673,8 @@ class Evidence:
     # who is speaking: "" = the issuer / its filing; "rating_agency" = a credit-rating rationale
     # (corroborating context: an agency repeating management's plan is not proof of execution)
     source_role: str = ""
+    # monthly business update (rules-5 D11): units in the same month a year earlier; quantity = this month
+    prior_year_value: Optional[float] = None
 
     @property
     def usable(self) -> bool:

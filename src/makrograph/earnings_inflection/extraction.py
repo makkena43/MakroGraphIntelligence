@@ -1981,3 +1981,62 @@ class ConstrainedLLMExtractor:
                     counterparty_named=bool(it.get("counterparty")), extractor="llm",
                 ))
         return out, rejected
+
+
+# --- monthly business updates (rules-5 D11) ---------------------------------------------------
+_MONTHS = {m: i for i, m in enumerate(["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov",
+                                       "dec"], start=1)}
+_MONTH_OF = re.compile(r"\bmonth\s+of\s+([A-Za-z]{3,9})[\s,'\-]*(\d{4}|\d{2})\b", re.I)
+_TOTAL_ROW = re.compile(r"^\W{0,4}(?:[A-Za-z|]\s+)?(?:grand\s+)?total\b(.*)$", re.I)   # "I Total": scanned border
+_TOKEN = re.compile(r"\(?-?\d[\d,]*(?:\.\d+)?\)?\s*%|\d[\d,]*")
+
+
+def parse_monthly_volumes(doc: SourceDocument) -> list[Evidence]:
+    """Unit sales from a monthly business update ("sales figure for the month of October 2021": a table of
+    this month vs the same month last year, % change, and year to date).  The current / prior-year
+    pair is taken from the Total row only when the printed % change confirms it, so scanning damage
+    ("743 1") is never read as a different number."""
+    import calendar
+    text = doc.full_text() or ""
+    head = text[:6000]
+    m = _MONTH_OF.search(head) or _MONTH_OF.search(doc.title or "")
+    if not m or not re.search(r"\bsales?\b|\bdespatch|\bdispatch|\bvolumes?\b", head, re.I):
+        return []
+    mon = _MONTHS.get(m.group(1)[:3].lower())
+    if mon is None:
+        return []
+    year = int(m.group(2)) + (2000 if len(m.group(2)) == 2 else 0)
+    for line in text.split("\n"):
+        tm = _TOTAL_ROW.match(line.strip())
+        if not tm:
+            continue
+        toks = _TOKEN.findall(tm.group(1))
+        pct_i = next((i for i, t in enumerate(toks) if "%" in t), None)
+        if pct_i is None or pct_i < 2:
+            continue
+        pct_s = toks[pct_i].replace("%", "").replace(",", "").strip()
+        neg = pct_s.startswith("(") or pct_s.startswith("-")
+        try:
+            pct = float(pct_s.strip("()-")) * (-1 if neg else 1)
+        except ValueError:
+            continue
+        nums = [float(t.replace(",", "")) for t in toks[:pct_i]]
+        pair = None
+        for gap in range(1, len(nums)):                      # prefer adjacent numbers
+            for i in range(len(nums) - gap):
+                cur, prev = nums[i], nums[i + gap]
+                if prev > 0 and abs((cur / prev - 1) * 100 - pct) <= max(1.5, abs(pct) * 0.03):
+                    pair = (cur, prev)
+                    break
+            if pair:
+                break
+        if not pair:
+            continue
+        end = date(year, mon, calendar.monthrange(year, mon)[1])
+        quote = re.sub(r"\s+", " ", line).strip()[:200]
+        return [Evidence(evidence_id=_evidence_id(doc.doc_id, quote, Metric.VOLUME), doc_id=doc.doc_id,
+                         ticker=doc.ticker, metric=Metric.VOLUME, tier=EvidenceTier.REALIZED_EXECUTION,
+                         modality=Modality.REALIZED, quote=quote,               # verbatim Total row
+                         available_at=doc.available_at, quantity=Quantity(pair[0], Unit.UNITS, quote),
+                         period_label=end.isoformat(), prior_year_value=pair[1], segment="monthly sales")]
+    return []
