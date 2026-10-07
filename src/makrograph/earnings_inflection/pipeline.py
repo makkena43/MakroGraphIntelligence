@@ -40,7 +40,9 @@ from .rating_rationale import parse_rationale, rationale_history
 from .valuation import Security, valuation_context
 from .earnings_bridge import build_bridge
 from .event_resolution import resolve_events
-from .extraction import extract_sentence_evidence, garbled_ratio, infer_unstated_scales, parse_results_tables
+from .extraction import (
+    extract_sentence_evidence, garbled_ratio, infer_unstated_scales, parse_monthly_volumes, parse_results_tables,
+)
 from .llm import CallableClient, LLMEvidenceExtractor, build_client
 from .llm import PROMPT_VERSION as LLM_PROMPT_VERSION
 from .llm import SCHEMA_VERSION as LLM_SCHEMA_VERSION
@@ -317,6 +319,7 @@ class EarningsInflectionPipeline:
                 measurements += rows
                 issues += iss
             det = extract_sentence_evidence(d, chunks)
+            det += parse_monthly_volumes(d)              # monthly business updates (unit sales)
             if d.kind == DocumentKind.CREDIT_RATING_RATIONALE:
                 for e in det:
                     e.source_role = "rating_agency"       # corroborating context, not issuer execution proof

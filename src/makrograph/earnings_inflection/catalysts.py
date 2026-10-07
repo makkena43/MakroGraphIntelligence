@@ -53,6 +53,7 @@ DEFAULT_CATALYST_THRESHOLDS = {
     "book_max_uncorroborated_multiple": 4.0, # rules-5 D6: a bigger jump needs a second filing at the new level
     "book_restatement_days": 45,             # rules-5 D5: the same book restated within this many days ...
     "book_restatement_pct": 10.0,            # ... and within this % is one catalyst
+    "volume_growth_pct": 25.0,               # rules-5 D11: 3-month unit sales vs a year earlier, two windows running
     "capacity_expansion_pct": 20.0,
     "materiality_share_of_ttm_ebitda": 0.15, # base incremental EBITDA / TTM EBITDA for "material"
     "default_order_horizon_months": 12,      # used only when no execution period is disclosed (labelled)
@@ -377,6 +378,66 @@ def _capacity_seeds(evidence, rationales, th) -> list[Seed]:
                             facts=[f"\"{e.quote[:220]}\""] if done else [],
                             expectations=[] if done else [f"\"{e.quote[:220]}\""],
                             q={"bottleneck": True, "project": project_identity(e.quote, {})}, completed=done))
+    return out
+
+
+def _volume_seeds(evidence, th) -> list[Seed]:
+    """Monthly unit sales (issuer's monthly business updates): three months' sales up at least
+    ``volume_growth_pct`` on the same months a year earlier, with at least two of the three months
+    individually up as much, in two consecutive windows.  Dated when
+    the second window's last month was published - usually weeks before the quarter's results.
+    A year-ago base that was itself depressed (down 20%+ on two years earlier, e.g. a lockdown) must
+    be beaten against two years earlier too.  Each run of qualifying windows is one catalyst."""
+    months = {}
+    for e in evidence:
+        if e.metric == Metric.VOLUME and e.prior_year_value and e.quantity and e.period_label and e.available_at \
+                and e.segment == "monthly sales":
+            months.setdefault(date.fromisoformat(e.period_label), e)
+    ends = sorted(months)
+
+    def window(m):
+        if m not in months:
+            return None
+        i = ends.index(m)
+        w = ends[max(0, i - 2): i + 1]
+        if len(w) < 3 or (w[-1].year * 12 + w[-1].month) - (w[0].year * 12 + w[0].month) != 2:
+            return None
+        cur, prev = sum(months[x].quantity.value for x in w), sum(months[x].prior_year_value for x in w)
+        if not prev:
+            return None
+        g = (cur / prev - 1) * 100
+        strong = sum(1 for x in w if months[x].prior_year_value
+                     and (months[x].quantity.value / months[x].prior_year_value - 1) * 100 >= th["volume_growth_pct"])
+        if strong < 2:
+            return min(g, th["volume_growth_pct"] - 0.01)      # one spike month never makes a run
+        ya = [x.replace(year=x.year - 1) if not (x.month == 2 and x.day == 29) else x.replace(year=x.year - 1, day=28)
+              for x in w]
+        if all(y in months for y in ya):                     # the year-ago months' own prior-year values
+            two = sum(months[y].prior_year_value for y in ya)
+            if two and (prev / two - 1) * 100 <= -20:          # depressed base
+                g = min(g, (cur / two - 1) * 100)
+        return g
+    out, run_start, prev_ok = [], None, False
+    for m in ends:
+        before = m.replace(day=1) - timedelta(days=1)
+        g_now, g_prev = window(m), window(before)
+        ok = g_now is not None and g_now >= th["volume_growth_pct"]
+        if not ok:
+            run_start, prev_ok = None, False
+            continue
+        if run_start is None:
+            run_start = m
+        if prev_ok and g_prev is not None and g_prev >= th["volume_growth_pct"]:
+            e = months[m]
+            used = [months[x] for x in ends if x <= m][-4:]
+            out.append(Seed(CatalystKind.VOLUME, e.available_at,
+                            f"monthly unit sales: 3 months to {m:%b %Y} up {g_now:.0f}% YoY (previous window "
+                            f"{g_prev:+.0f}%), issuer's monthly business updates", f"volume:{run_start:%Y-%m}",
+                            sorted({x.doc_id for x in used}), [x.evidence_id for x in used],
+                            facts=[f"{date.fromisoformat(x.period_label):%b %Y}: {x.quantity.value:,.0f} units vs "
+                                   f"{x.prior_year_value:,.0f} a year earlier (\"{x.quote[:120]}\")" for x in used[-3:]],
+                            q={"volume_growth_pct": round(g_now, 1), "volume_month": m.isoformat()}))
+        prev_ok = True
     return out
 
 
@@ -712,6 +773,9 @@ def _build(ticker: str, s: Seed, series: FinancialSeries, evidence: list[Evidenc
         chain.append(ChainLink("demand", "supported" if basis else "unsupported",
                                "; ".join(basis) or "no order book, utilisation or order evidence: added capacity may "
                                                     "only add depreciation"))
+    elif s.kind == CatalystKind.VOLUME:
+        c.demand_basis = ISSUER_DISCLOSED
+        chain.append(ChainLink("demand", "supported", f"realised unit sales ({s.change})", list(s.doc_ids)))
     elif s.kind == CatalystKind.CUSTOMER_APPROVAL:
         chain.append(ChainLink("demand", "unknown", "an approval is not an order; volumes and prices not disclosed"))
     else:
@@ -903,6 +967,8 @@ def _contribution(s, c, series, p, ttm_rev, ttm_ebitda, m_base, margins, chain, 
                                                 "effect",
                  CatalystKind.CUSTOMER_APPROVAL: "volumes and pricing under the approval not disclosed",
                  CatalystKind.UTILIZATION: "utilisation change stated; the revenue and margin effect is not quantified",
+                 CatalystKind.VOLUME: "unit sales are up; price per unit and mix decide revenue and margin (not disclosed "
+                                      "monthly)",
                  CatalystKind.FINANCING_COST: "rating upgrade: the change in borrowing cost is not disclosed"}.get(
         s.kind, "inputs for a magnitude are not disclosed")
     return out
@@ -1242,13 +1308,14 @@ def _milestones(s, c, series, p, evidence, events, as_of, th):
         ms.append(m)
         inv += ["repeated one-off or restructuring costs", "segment scope changed"]
     else:   # utilisation, customer approval
-        m = CatalystMilestone("Is it reaching revenue?" if s.kind == CatalystKind.UTILIZATION else
+        util_like = s.kind in (CatalystKind.UTILIZATION, CatalystKind.VOLUME)
+        m = CatalystMilestone("Is it reaching revenue?" if util_like else
                               "Do first orders from the approving customer follow?",
                               f"revenue growth >= {th['revenue_test_growth_pct']:.0f}% YoY over the relevant periods"
-                              if s.kind == CatalystKind.UTILIZATION else "an order from the customer after the approval",
+                              if util_like else "an order from the customer after the approval",
                               relevant_from=next_period_end_on_or_after(_d(s.at) + timedelta(days=1), p),
                               due_by=_add_months(_d(s.at), 12))
-        if s.kind == CatalystKind.UTILIZATION:
+        if util_like:
             _judge_series(m, periods(_d(s.at)), as_of, lambda ends: _cum_growth(series, Metric.REVENUE, ends, p),
                           lambda v: v >= th["revenue_test_growth_pct"], lambda v: v >= 0, "revenue YoY %", n)
         else:
@@ -1493,6 +1560,7 @@ def build_catalyst(ticker: str, s: Seed, series: FinancialSeries, evidence: list
 def _seeds_at(t: datetime, series, evidence, events, rationales, mechanisms, p, th) -> list[Seed]:
     """Every seed derivable from what was public at ``t`` (inputs already cut at ``t``)."""
     return (_order_seeds(series, evidence, events, rationales, p, t.date(), th) + _capacity_seeds(evidence, rationales, th)
+            + _volume_seeds(evidence, th)
             + _other_seeds(series, evidence, mechanisms, rationales, t.date(), th, now=t))
 
 
