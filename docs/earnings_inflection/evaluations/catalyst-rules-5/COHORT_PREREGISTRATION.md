@@ -44,3 +44,30 @@ The ranked list, every skip and its reason, and the final 12 are committed **bef
   - date stability (prefix invariance);
   - review workload.
 - **Not done:** no prices, no returns, and no investment labels.
+
+## Draw result (committed before any filing was fetched)
+
+The universe has 505 constituents. 433 are eligible: 72 were excluded as financial services or development issuers.
+
+The script is `cohort/draw_cohort.py`; the downloaded index lists and the full log are in `cohort/r5cohort_draw.json`.
+
+| # | NSE symbol | Company | Index industry |
+|---|---|---|---|
+| 1 | PRICOLLTD | Pricol Ltd. | Automobile and Auto Components |
+| 2 | RAIN | Rain Industries Ltd | Chemicals |
+| 3 | TATACHEM | Tata Chemicals Ltd. | Chemicals |
+| 4 | BATAINDIA | Bata India Ltd. | Consumer Durables |
+| 5 | CESC | CESC Ltd. | Power |
+| 6 | AURIONPRO | Aurionpro Solution Ltd. | Information Technology |
+| 7 | HGINFRA | H.G. Infra Engineering Ltd. | Construction |
+| 8 | GPPL | Gujarat Pipavav Port Ltd. | Services |
+| 9 | AFFLE | Affle 3i Ltd. | Information Technology |
+| 10 | RBA | Restaurant Brands Asia Ltd. | Consumer Services |
+| 11 | LUMAXIND | Lumax Industries Ltd. | Automobile and Auto Components |
+| 12 | JYOTHYLAB | Jyothy Labs Ltd. | Fast Moving Consumer Goods |
+
+**Skipped during the walk:**
+- VISL, KIRLPNU, CMSINFO, CMPDI and SHADOWFAX had no NSE announcements in H1 2021. A re-check found none in 2021 and none in H1 2022 either, except CMSINFO, which was listed in December 2021.
+- MAPMYINDIA was skipped by the industry cap (Information Technology).
+
+The sample spans 10 industries. It is not targeted at industrial order or capacity stories, which is intended: the detector should be quiet where nothing changes.

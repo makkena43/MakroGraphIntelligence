@@ -1,0 +1,465 @@
+{
+ "seed": "ei-rules5-cohort-2026-10-07|",
+ "universe": 505,
+ "eligible": 433,
+ "selected": [
+  {
+   "symbol": "PRICOLLTD",
+   "name": "Pricol Ltd.",
+   "industry": "Automobile and Auto Components",
+   "index": "ind_niftymicrocap250_list.csv",
+   "rank_hash": "00256f07daf1",
+   "h1_2021_announcements": 49
+  },
+  {
+   "symbol": "RAIN",
+   "name": "Rain Industries Ltd",
+   "industry": "Chemicals",
+   "index": "ind_niftymicrocap250_list.csv",
+   "rank_hash": "0142dd08971a",
+   "h1_2021_announcements": 33
+  },
+  {
+   "symbol": "TATACHEM",
+   "name": "Tata Chemicals Ltd.",
+   "industry": "Chemicals",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "01aff5142d34",
+   "h1_2021_announcements": 88
+  },
+  {
+   "symbol": "BATAINDIA",
+   "name": "Bata India Ltd.",
+   "industry": "Consumer Durables",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "023f75786d53",
+   "h1_2021_announcements": 52
+  },
+  {
+   "symbol": "CESC",
+   "name": "CESC Ltd.",
+   "industry": "Power",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "0279675a7db8",
+   "h1_2021_announcements": 50
+  },
+  {
+   "symbol": "AURIONPRO",
+   "name": "Aurionpro Solution Ltd.",
+   "industry": "Information Technology",
+   "index": "ind_niftymicrocap250_list.csv",
+   "rank_hash": "02ecb9ade92f",
+   "h1_2021_announcements": 22
+  },
+  {
+   "symbol": "HGINFRA",
+   "name": "H.G. Infra Engineering Ltd.",
+   "industry": "Construction",
+   "index": "ind_niftymicrocap250_list.csv",
+   "rank_hash": "034feca6f9d1",
+   "h1_2021_announcements": 26
+  },
+  {
+   "symbol": "GPPL",
+   "name": "Gujarat Pipavav Port Ltd.",
+   "industry": "Services",
+   "index": "ind_niftymicrocap250_list.csv",
+   "rank_hash": "03b666274d60",
+   "h1_2021_announcements": 27
+  },
+  {
+   "symbol": "AFFLE",
+   "name": "Affle 3i Ltd.",
+   "industry": "Information Technology",
+   "index": "ind_niftysmallcap250list.csv",
+   "rank_hash": "05578d93f2cd",
+   "h1_2021_announcements": 64
+  },
+  {
+   "symbol": "RBA",
+   "name": "Restaurant Brands Asia Ltd.",
+   "industry": "Consumer Services",
+   "index": "ind_niftymicrocap250_list.csv",
+   "rank_hash": "08beef360719",
+   "h1_2021_announcements": 32
+  },
+  {
+   "symbol": "LUMAXIND",
+   "name": "Lumax Industries Ltd.",
+   "industry": "Automobile and Auto Components",
+   "index": "ind_niftymicrocap250_list.csv",
+   "rank_hash": "08cf84137eba",
+   "h1_2021_announcements": 51
+  },
+  {
+   "symbol": "JYOTHYLAB",
+   "name": "Jyothy Labs Ltd.",
+   "industry": "Fast Moving Consumer Goods",
+   "index": "ind_niftymicrocap250_list.csv",
+   "rank_hash": "099154b018b1",
+   "h1_2021_announcements": 27
+  }
+ ],
+ "log": [
+  [
+   "AADHARHFC",
+   "excluded: financial services"
+  ],
+  [
+   "AAVAS",
+   "excluded: financial services"
+  ],
+  [
+   "ABSLAMC",
+   "excluded: financial services"
+  ],
+  [
+   "ANANDRATHI",
+   "excluded: financial services"
+  ],
+  [
+   "ANGELONE",
+   "excluded: financial services"
+  ],
+  [
+   "APTUS",
+   "excluded: financial services"
+  ],
+  [
+   "BANDHANBNK",
+   "excluded: financial services"
+  ],
+  [
+   "CANFINHOME",
+   "excluded: financial services"
+  ],
+  [
+   "CANHLIFE",
+   "excluded: financial services"
+  ],
+  [
+   "CGCL",
+   "excluded: financial services"
+  ],
+  [
+   "CENTRALBK",
+   "excluded: financial services"
+  ],
+  [
+   "CDSL",
+   "excluded: financial services"
+  ],
+  [
+   "CHOICEIN",
+   "excluded: financial services"
+  ],
+  [
+   "CHOLAHLDNG",
+   "excluded: financial services"
+  ],
+  [
+   "CUB",
+   "excluded: financial services"
+  ],
+  [
+   "CAMS",
+   "excluded: financial services"
+  ],
+  [
+   "CREDITACC",
+   "excluded: financial services"
+  ],
+  [
+   "DEEPAKFERT",
+   "excluded: development issuer"
+  ],
+  [
+   "FIVESTAR",
+   "excluded: financial services"
+  ],
+  [
+   "HBLENGINE",
+   "excluded: development issuer"
+  ],
+  [
+   "HOMEFIRST",
+   "excluded: financial services"
+  ],
+  [
+   "IDBI",
+   "excluded: financial services"
+  ],
+  [
+   "IFCI",
+   "excluded: financial services"
+  ],
+  [
+   "IIFL",
+   "excluded: financial services"
+  ],
+  [
+   "IEX",
+   "excluded: financial services"
+  ],
+  [
+   "JMFINANCIL",
+   "excluded: financial services"
+  ],
+  [
+   "J&KBANK",
+   "excluded: financial services"
+  ],
+  [
+   "KARURVYSYA",
+   "excluded: financial services"
+  ],
+  [
+   "KFINTECH",
+   "excluded: financial services"
+  ],
+  [
+   "MANAPPURAM",
+   "excluded: financial services"
+  ],
+  [
+   "NUVAMA",
+   "excluded: financial services"
+  ],
+  [
+   "OLECTRA",
+   "excluded: development issuer"
+  ],
+  [
+   "PNBHOUSING",
+   "excluded: financial services"
+  ],
+  [
+   "PINELABS",
+   "excluded: financial services"
+  ],
+  [
+   "POONAWALLA",
+   "excluded: financial services"
+  ],
+  [
+   "RBLBANK",
+   "excluded: financial services"
+  ],
+  [
+   "SAMMAANCAP",
+   "excluded: financial services"
+  ],
+  [
+   "STARHEALTH",
+   "excluded: financial services"
+  ],
+  [
+   "NIACL",
+   "excluded: financial services"
+  ],
+  [
+   "TARIL",
+   "excluded: development issuer"
+  ],
+  [
+   "UCOBANK",
+   "excluded: financial services"
+  ],
+  [
+   "UTIAMC",
+   "excluded: financial services"
+  ],
+  [
+   "CCAVENUE",
+   "excluded: financial services"
+  ],
+  [
+   "BORORENEW",
+   "excluded: development issuer"
+  ],
+  [
+   "CSBBANK",
+   "excluded: financial services"
+  ],
+  [
+   "CRAMC",
+   "excluded: financial services"
+  ],
+  [
+   "DCBBANK",
+   "excluded: financial services"
+  ],
+  [
+   "EDELWEISS",
+   "excluded: financial services"
+  ],
+  [
+   "EQUITASBNK",
+   "excluded: financial services"
+  ],
+  [
+   "FEDFINA",
+   "excluded: financial services"
+  ],
+  [
+   "GENUSPOWER",
+   "excluded: development issuer"
+  ],
+  [
+   "GOLDIAM",
+   "excluded: development issuer"
+  ],
+  [
+   "IIFLCAPS",
+   "excluded: financial services"
+  ],
+  [
+   "JSFB",
+   "excluded: financial services"
+  ],
+  [
+   "KTKBANK",
+   "excluded: financial services"
+  ],
+  [
+   "NIVABUPA",
+   "excluded: financial services"
+  ],
+  [
+   "NORTHARC",
+   "excluded: financial services"
+  ],
+  [
+   "KISSHT",
+   "excluded: financial services"
+  ],
+  [
+   "PAISALO",
+   "excluded: financial services"
+  ],
+  [
+   "PGIL",
+   "excluded: development issuer"
+  ],
+  [
+   "REFEX",
+   "excluded: development issuer"
+  ],
+  [
+   "RELIGARE",
+   "excluded: financial services"
+  ],
+  [
+   "SBFC",
+   "excluded: financial services"
+  ],
+  [
+   "SMLMAH",
+   "excluded: development issuer"
+  ],
+  [
+   "SHAILY",
+   "excluded: development issuer"
+  ],
+  [
+   "SHAKTIPUMP",
+   "excluded: development issuer"
+  ],
+  [
+   "SHAREINDIA",
+   "excluded: financial services"
+  ],
+  [
+   "SOUTHBANK",
+   "excluded: financial services"
+  ],
+  [
+   "SWSOLAR",
+   "excluded: development issuer"
+  ],
+  [
+   "SUPRIYA",
+   "excluded: development issuer"
+  ],
+  [
+   "TMB",
+   "excluded: financial services"
+  ],
+  [
+   "UJJIVANSFB",
+   "excluded: financial services"
+  ],
+  [
+   "PRICOLLTD",
+   "selected"
+  ],
+  [
+   "VISL",
+   "skipped: no announcement 2021-01-01..2021-06-30 (none)"
+  ],
+  [
+   "KIRLPNU",
+   "skipped: no announcement 2021-01-01..2021-06-30 (none)"
+  ],
+  [
+   "RAIN",
+   "selected"
+  ],
+  [
+   "TATACHEM",
+   "selected"
+  ],
+  [
+   "BATAINDIA",
+   "selected"
+  ],
+  [
+   "CESC",
+   "selected"
+  ],
+  [
+   "AURIONPRO",
+   "selected"
+  ],
+  [
+   "HGINFRA",
+   "selected"
+  ],
+  [
+   "CMSINFO",
+   "skipped: no announcement 2021-01-01..2021-06-30 (none)"
+  ],
+  [
+   "GPPL",
+   "selected"
+  ],
+  [
+   "CMPDI",
+   "skipped: no announcement 2021-01-01..2021-06-30 (none)"
+  ],
+  [
+   "AFFLE",
+   "selected"
+  ],
+  [
+   "MAPMYINDIA",
+   "skipped: industry cap (Information Technology)"
+  ],
+  [
+   "SHADOWFAX",
+   "skipped: no announcement 2021-01-01..2021-06-30 (none)"
+  ],
+  [
+   "RBA",
+   "selected"
+  ],
+  [
+   "LUMAXIND",
+   "selected"
+  ],
+  [
+   "JYOTHYLAB",
+   "selected"
+  ]
+ ]
+}
