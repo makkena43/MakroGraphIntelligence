@@ -366,7 +366,8 @@ class EarningsInflectionPipeline:
         _CONS = re.compile(r"statement\s+of\s+(?:un-?\s*audited\s+|audited\s+)?consolidated|consolidated\s+(?:un-?\s*audited\s+|"
                            r"audited\s+)?financial\s+results\s+for\s+the", re.I)
         cons_times = [d.available_at for d in docs if d.available_at and _CONS.search(d.full_text() or "")]
-        cons_times += [r.available_at for r in measurements if r.scope == Scope.CONSOLIDATED and r.available_at]
+        # (figures tagged "consolidated" are not used as the cut-off: annual-report boilerplate and an open
+        # offer quoting the acquirer's statements are tagged that way without being this issuer's statements)
         first_cons = min(cons_times, default=None)
         inferred = 0
         for i, r in enumerate(measurements):
