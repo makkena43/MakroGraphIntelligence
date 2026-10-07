@@ -55,7 +55,7 @@ Frozen before any further historical evaluation.
 - **Scope:** statements without a stated scope are standalone when no consolidated statements had been filed by that figure's filing time.
 
 **catalyst-rules-6 changes** (defects found by the pre-registered rules-5 cohort):
-- **D12 (price statements):** a price catalyst reads its direction from the sentence itself ("realisations decreased by 15.4%" is never a rise, whatever the evidence's tag). Quarterly restatements of the same direction are one catalyst; a run ends at an opposite statement or after 200 days without one.
+- **D12 (price statements):** a price catalyst reads its direction from the sentence itself ("realisations decreased by 15.4%" is never a rise, whatever the evidence's tag). Quarterly restatements of the same direction are one catalyst; a run ends at an opposite statement or after 200 days without one. Price runs and input-cost runs are separate: a rising input cost stated in the same sentence as a price rise does not end the price run.
 - **D13 (materiality):** a catalyst whose change is immaterial (below the 15%-of-TTM-EBITDA materiality share) is capped at "potential": a research note, never an alert. Contradictions are still reported.
   - The evaluation credits an alert with an earnings inflection only if it was flagged inside the window, was not immaterial when flagged, and its own verdict was not contradicted, delayed or data-unavailable (`evaluation.inflection_credit`). Timing alone no longer counts; the timing-only list is kept for comparison.
 - **D14 (results coverage):** statements the rules-5 parser could not read are read:
@@ -64,6 +64,7 @@ Frozen before any further historical evaluation.
   - lower-case letter enumerators ("a Revenue from operations");
   - quarter-end dates whose separators were lost in scanning ("30 092021"; only the four quarter-end day/month pairs);
   - an untitled statement takes the scope of the auditor's review report on it.
+  - a table that fails its own identity (revenue + other income ≠ total income) is not used at all; previously only its revenue and other income were dropped.
   - Still not read, by design: scanned text layers with split digits ("32 13") or damaged decimals ("4.407" for 4,407), and unit lines whose glyph reads as a letter ("(t In crore)").
 - **D15 (order-book readings):** an amount added to or retired from the book, or a book "and pipeline", is not a book reading; nor is a past level that the same sentence updates ("was hovering around Rs. 800 Cr, and … has expanded to Rs. 900 Cr"). Readings within 10 days are one catalyst however much they differ, and the conflicting reading is recorded in the catalyst's facts.
 
