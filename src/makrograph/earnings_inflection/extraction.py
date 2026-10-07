@@ -1743,9 +1743,47 @@ def extract_sentence_evidence(doc: SourceDocument, chunks: list[Chunk]) -> list[
                 continue
             seen.add(ev.evidence_id)
             out.append(ev)
+    _fill_order_value(chunks, out)
     _enrich_single_order_disclosure(doc, out)
     out += _mechanism_evidence(doc, chunks, seen)
     return out
+
+
+_ORDER_VALUE_CUE = re.compile(r"\b(?:total\s+)?(?:amount|value|size|consideration|worth)\b", re.I)
+_ORDER_NOUN = re.compile(r"\b(?:work\s+orders?|orders?|contracts?|LoA|letter\s+of\s+award|supply|award|buses|pumps)\b",
+                         re.I)
+# the announcing sentence itself ("has received its first work order", "bagging of order for 2,400 buses"),
+# not annexure lines such as "awarded by domestic / international entity"
+_AWARD_VERB = re.compile(r"\b(?:received|receives|bagged|bags|secured|won|receipt\s+of|bagging\s+of|bagging)\b"
+                         r".{0,120}\b(?:orders?|contracts?|letter\s+of\s+(?:award|intent)|LoA|LoI)\b", re.I)
+
+
+def _fill_order_value(chunks, evs: list[Evidence]) -> None:
+    """An award announced in one sentence with its value in another ("Received its first work order
+    ... for 7,781 pumps. The total amount of the work order is for around Rs. 358 Crores", or the SEBI
+    annexure's "Broad consideration or size of the order(s): ... approximately Rs. 10,000 Crores").
+    When a document announces one unquantified award and states exactly one order value, the value
+    belongs to that award; with several awards or several values nothing is linked."""
+    awards = [e for e in evs if e.metric == Metric.ORDER_WIN and e.quantity is None
+              and e.event_stage in (EventStage.BINDING_ORDER, EventStage.PREFERRED_BIDDER)
+              and _AWARD_VERB.search(e.quote)]
+    if not awards or any(e.metric == Metric.ORDER_WIN and e.quantity is not None for e in evs):
+        return
+    values: dict = {}
+    for c in chunks:
+        for snt in sentences(c):
+            t = re.sub(r"\s+", " ", snt).strip()
+            if _ORDER_VALUE_CUE.search(t) and _ORDER_NOUN.search(t):
+                q = parse_inr(t)
+                if q is not None and q.unit == Unit.INR_CRORE and q.value > 0:
+                    values.setdefault(round(q.value, 2), (q, t))
+    distinct_awards = {re.sub(r"\W+", " ", e.quote.lower())[:160] for e in awards}
+    if len(values) != 1 or len(distinct_awards) != 1:
+        return
+    q, t = next(iter(values.values()))
+    e = awards[0]
+    e.quantity = Quantity(q.value, q.unit, f"{q.raw} (stated in: \"{t[:160]}\")")
+    e.validation_issues = [i for i in e.validation_issues if "amount" not in i.lower()]
 
 
 # --- mechanism statements (WP5) -------------------------------------------
