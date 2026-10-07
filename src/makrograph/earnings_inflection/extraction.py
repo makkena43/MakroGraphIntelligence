@@ -851,11 +851,13 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk],
             checks = [abs((r or 0) + (o or 0) - t) <= max(0.02, 0.005 * abs(t))
                       for r, o, t in zip(rv, oi, total_income) if t is not None and r is not None]
             if checks and sum(checks) < len(checks) / 2:
+                # rules-6: rows that fail the statement's own identity are misaligned, and so may be the
+                # rest of the table (RBA, Oct-24: profit rows shifted by a column); none of it is used
                 issues.append(f"{doc.doc_id}:p{c.page}: revenue + other income != total income in "
                               f"{len(checks) - sum(checks)} of {len(checks)} columns (rows mis-read); "
-                              "revenue and other income not used")
-                found.pop(Metric.REVENUE)
-                found.pop(Metric.OTHER_INCOME)
+                              "the table's figures are not used")
+                found.clear()
+                tax_parts.clear()
         if tax_parts and Metric.TAX not in found:
             summed = [None if all(p[i] is None for p in tax_parts) else sum(p[i] or 0.0 for p in tax_parts)
                       for i in range(n)]

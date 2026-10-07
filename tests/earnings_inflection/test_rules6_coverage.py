@@ -65,3 +65,17 @@ def test_an_untitled_statement_takes_the_scope_of_the_review_report_before_it():
     q = {(r.scope.value, r.value) for r in rows if r.metric == Metric.REVENUE and r.period_end == date(2021, 9, 30)
          and r.period_type == "Q"}
     assert q == {("standalone", 2091.0), ("consolidated", 3494.0)}
+
+
+def test_a_table_that_fails_its_own_identity_is_not_used_at_all():
+    # revenue + other income != total income: the rows are misaligned, so profit rows are not trusted either
+    text = ("Statement of Consolidated Financial Results          (Rs. in crore)\n"
+            "Particulars          30.09.2024   30.06.2024   30.09.2023   31.03.2024\n"
+            "Revenue from operations   632.43   601.10   560.20   2450.00\n"
+            "Other income                9.30     4.10     3.00     20.00\n"
+            "Total income              700.00   650.00   600.00   2600.00\n"
+            "Profit before tax         -65.45   -60.17   -50.00   -200.00\n")
+    doc = SourceDocument(doc_id="d", source_name="t", ticker="RBA", text=text, published_at=datetime(2024, 10, 28))
+    rows, issues = parse_results_tables(doc, chunk_document(doc))
+    assert not [r for r in rows if r.metric in (Metric.REVENUE, Metric.PBT)]
+    assert any("figures are not used" in i for i in issues)
