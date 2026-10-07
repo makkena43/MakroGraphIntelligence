@@ -296,7 +296,7 @@ def _cell_value(s: str) -> float:
     return -v if neg else v
 
 
-_SCALE_WORD = r"(crores?|cr|lakhs?|lacs?|million|mn|thousands?)"
+_SCALE_WORD = r"(crores?|cr|lakhs?|lacs?|millions?|mn|thousands?)"
 _SCALE_PATTERNS = [
     re.compile(rf"(?:rs\.?|inr|₹|rupees|amounts?|figures)[^\n]{{0,30}}?\b{_SCALE_WORD}\b", re.I),
     re.compile(rf"\(\s*in\s+{_SCALE_WORD}\b", re.I),
@@ -304,6 +304,9 @@ _SCALE_PATTERNS = [
     re.compile(rf"\((?:rs\.?|inr|₹|amounts?)\s*in\s*{_SCALE_WORD}\b", re.I),
     # unit in a highlights-table label: "Revenues (in Rs Cr)", "PAT (in RsCr)", "(₹ Mn)"
     re.compile(rf"\(\s*(?:in\s*)?(?:rs\.?|inr|₹)\s*{_SCALE_WORD}\b", re.I),
+    # a unit line opening with the rupee sign in whatever form the scan left ("¥ In Crore (except per
+    # share data)", "` in Lakhs"): a currency glyph then "in <scale>" at the start of its own line
+    re.compile(rf"^\s*(?:[^\w\s(]{{1,3}}|[Z₹])\s*in\s+{_SCALE_WORD}\b", re.I | re.M),   # "Z In Crore" too
 ]
 
 
@@ -335,18 +338,40 @@ def _label_scale(label: str) -> Optional[float]:
     return _table_scale(label, "") if "(" in label else None
 
 
+# a unit line with a scanned scale word ("in [acs, unless otherwise", "Amount in" MilHons unless otherwise
+# stated"): only lines that read as a unit line ("... unless / except otherwise ...") are tried
+_DAMAGED_UNIT = re.compile(r"\bin\W{0,3}\s*([A-Za-z\[\]|!]{3,9})\W{0,3}\s*(?:unless|except)\b", re.I)
+_UNIT_FORMS = {"lacs": "lakhs", "lakhs": "lakhs", "lakh": "lakhs", "crores": "crores", "crore": "crores",
+               "millions": "millions", "million": "millions"}
+
+
+def _damaged_unit_word(src: str) -> Optional[str]:
+    import difflib
+    m = _DAMAGED_UNIT.search(src)
+    if not m:
+        return None
+    tok = m.group(1).lower().replace("[", "l").replace("|", "l").replace("!", "l").replace("h", "li")
+    best = max(_UNIT_FORMS, key=lambda w: difflib.SequenceMatcher(None, tok, w).ratio())
+    return _UNIT_FORMS[best] if difflib.SequenceMatcher(None, tok, best).ratio() >= 0.75 else None
+
+
 def _table_scale(header: str, page_text: str) -> Optional[float]:
     for src in (header, page_text):
+        found = None
         for pat in _SCALE_PATTERNS:
             m = pat.search(src)
-            if not m:
-                continue
-            w = m.group(1).lower()
+            if m:
+                found = m.group(1)
+                break
+        if found is None:
+            found = _damaged_unit_word(src)
+        if found is not None:
+            w = found.lower()
             if w.startswith("crore") or w == "cr":
                 return 1.0
             if w.startswith(("lakh", "lac")):
                 return 0.01
-            if w in ("million", "mn"):
+            if w in ("million", "millions", "mn"):
                 return 0.1
             if w.startswith("thousand"):
                 return 0.0001
