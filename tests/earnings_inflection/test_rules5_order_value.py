@@ -5,7 +5,7 @@ Wording is verbatim from Shakti Pumps' and Olectra Greentech's Regulation 30 fil
 from datetime import datetime
 
 from makrograph.earnings_inflection.chunking import chunk_document
-from makrograph.earnings_inflection.contracts import IST, EventStage, Metric, SourceDocument
+from makrograph.earnings_inflection.contracts import IST, EventStage, Metric, SourceDocument, ValueBasis
 from makrograph.earnings_inflection.extraction import extract_sentence_evidence
 
 SHAKTI = ("Dear Sir/Madam, Pursuant to regulation 30 of SEBI (Listing Obligations and Disclosure Requirements) "
@@ -29,7 +29,7 @@ def test_value_in_the_following_sentence_belongs_to_the_award():
     o = [e for e in orders(SHAKTI) if e.quantity is not None]
     assert len(o) == 1 and o[0].quantity.value == 358.0
     assert "total amount of the work order" in o[0].quantity.raw          # where the value came from
-    assert o[0].event_stage == EventStage.BINDING_ORDER
+    assert o[0].event_stage == EventStage.BINDING_ORDER and o[0].value_basis == ValueBasis.FIRM
 
 
 def test_value_of_supply_sentence_and_execution_period():
@@ -46,3 +46,8 @@ def test_two_awards_with_one_value_are_not_linked():
     o = orders(SHAKTI.replace("Kindly take", "The Company has also received a work order from UP Agriculture "
                                             "Department. Kindly take"))
     assert all(e.quantity is None for e in o)
+
+
+def test_an_up_to_value_is_a_ceiling():
+    o = [e for e in orders(SHAKTI.replace("is for around", "is up to")) if e.quantity is not None]
+    assert len(o) == 1 and o[0].value_basis == ValueBasis.CEILING
