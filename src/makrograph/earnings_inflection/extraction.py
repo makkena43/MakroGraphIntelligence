@@ -163,7 +163,7 @@ _MONTHS = {m: i for i, m in enumerate(
 # the remaining text.
 _ENUMERATOR = re.compile(
     r"^\s*(?:(?:\(?(?:[ivxlIVXL]{1,5}|\d{1,2}|[a-zA-Z])\s*[.):]|(?:[ivxlIVXL]{1,5}|\d{1,2})\s|"
-    r"[A-Z]\s+(?=[A-Z][a-z]))\s*|"     # SEBI layout letter column: "A      Revenue from operations"
+    r"[A-Za-z]\s+(?=[A-Z][a-z]))\s*|"     # SEBI layout letter column: "A      Revenue from operations", "a Revenue"
     r"(?:less|add)\s*:\s*|[-–•*]\s*)+")
 
 
@@ -307,6 +307,8 @@ _SCALE_PATTERNS = [
     # a unit line opening with the rupee sign in whatever form the scan left ("¥ In Crore (except per
     # share data)", "` in Lakhs"): a currency glyph then "in <scale>" at the start of its own line
     re.compile(rf"^\s*(?:[^\w\s(]{{1,3}}|[Z₹])\s*in\s+{_SCALE_WORD}\b", re.I | re.M),   # "Z In Crore" too
+    # the same glyph inside the brackets: "(` in crore)" (rules-6 D14, Tata Chemicals)
+    re.compile(rf"\(\s*[^\w\s(]{{1,3}}\s*in\s+{_SCALE_WORD}\b", re.I),
 ]
 
 
@@ -409,6 +411,10 @@ def _title_scope(text: str) -> Scope:
     return Scope.UNKNOWN
 
 
+_REVIEWED_STATEMENT = re.compile(r"accompanying\s+statement\s+of\s+(?:[a-z\-]+\s+){0,3}?(standalone|consolidated)"
+                                 r"\s+financial\s+results", re.I)
+
+
 def _resolve_scope(c: Chunk, page_texts: list[str]) -> Scope:
     # A statement title inside the table's own header / first rows wins: text extracted
     # without page breaks puts standalone and consolidated statements on one "page".
@@ -433,6 +439,13 @@ def _resolve_scope(c: Chunk, page_texts: list[str]) -> Scope:
         sc = _scope_from(page_texts[c.page - 2][-800:])
         if sc != Scope.UNKNOWN:
             return sc
+    # an untitled statement right after the auditor's review report on it ("We have reviewed the accompanying
+    # statement of unaudited standalone financial results", CESC): the nearest such report on this page
+    # (above the table) or the two pages before it (rules-6 D14)
+    above = "\n".join(page_texts[max(0, c.page - 3):c.page - 1]) + "\n" + (page[:pos] if pos > 0 else "")
+    reviewed = _REVIEWED_STATEMENT.findall(above)
+    if reviewed:
+        return Scope.CONSOLIDATED if reviewed[-1].lower() == "consolidated" else Scope.STANDALONE
     # whole document: only if every statement title names the same scope
     scopes = {_scope_from(l) for pt in page_texts for l in _SCOPE_TITLE.findall(pt)} - {Scope.UNKNOWN}
     return scopes.pop() if len(scopes) == 1 else Scope.UNKNOWN
@@ -606,7 +619,11 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk],
         # lines just before this chunk on the same page: a period-header line can be cut off
         # into its own chunk by a long "(Unaudited) (Audited)" line in between
         before = prev_tail if prev_page == c.page else []
-        prev_tail = ([l for l in c.header.split("\n") if l.strip()] + [l for l in c.text.split("\n") if l.strip()])[-8:]
+        tail = [l for l in c.header.split("\n") if l.strip()] + [l for l in c.text.split("\n") if l.strip()]
+        # a header stacked one word per line ("Quarter / ended / 31 / December, / 2020") can be cut into
+        # several chunks: a chunk without amounts carries the lines before it (rules-6 D14)
+        carry = before if before and not _row_widths([l for l in c.text.split("\n") if l.strip()]) else []
+        prev_tail = (carry + tail)[-8:]
         prev_page = c.page
         if c.kind != "table":
             between += len(c.text.strip())
@@ -1077,9 +1094,17 @@ def _yr(y: str) -> int:
     return 2000 + n if n < 100 else n
 
 
+# quarter-end dates whose separators the scan lost: "30 092021", "30092020", "31 .03.2021" (rules-6 D14, CESC).
+# Only the four quarter-end day/month pairs are read, so other digit runs are never taken for dates.
+_COMPACT_QUARTER_END = re.compile(r"(?<![\d.])(3[01])\s?\.?\s?(03|06|09|12)\s?\.?\s?(20\d{2})(?![\d.])")
+_QUARTER_ENDS = {("31", "03"), ("30", "06"), ("30", "09"), ("31", "12")}
+
+
 def _column_tokens(line: str) -> list[tuple[date, Optional[str]]]:
     """Ordered (period_end, explicit_type) tokens found in a header line."""
     out: list[tuple[date, Optional[str]]] = []
+    line = _COMPACT_QUARTER_END.sub(lambda m: f"{m.group(1)}.{m.group(2)}.{m.group(3)}"
+                                    if (m.group(1), m.group(2)) in _QUARTER_ENDS else m.group(0), line)
     for m in _COL_TOKEN.finditer(line):
         try:
             if m.group("lab"):

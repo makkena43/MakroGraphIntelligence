@@ -207,6 +207,12 @@ _BOOK_AMOUNT = re.compile(r"order\s*book\b[^.;:\u2013\u2014]{0,40}?(?:rs\.?|inr|
                           r"(crores?|cr\b|lakhs?|lacs?)", re.I)
 
 
+_BOOK_NOT_LEVEL = re.compile(r"\b(?:we|added|adding|retired|retiring|executed|executing|won|booked|received|"
+                             r"inflows?|pipeline|had\s+been|used\s+to)\b", re.I)
+_BOOK_UPDATED_TO = re.compile(r"\b(?:expanded|increased|grown|grew|rose|risen|jumped|reached|moved)\s+to\s+"
+                              r"(?:rs\.?|inr|\u20b9)\s*~?\s*[\d,]+", re.I)
+
+
 def order_book_snapshots(evidence: list[Evidence]) -> list[Evidence]:
     """Stated outstanding order books, one per filing, whose amount is the one written right
     after "order book" (a sentence can also carry revenue / operating income)."""
@@ -216,6 +222,11 @@ def order_book_snapshots(evidence: list[Evidence]) -> list[Evidence]:
                     key=lambda x: (x.available_at, x.evidence_id)):
         m = _BOOK_AMOUNT.search(x.quote)
         if not m or x.doc_id in seen:
+            continue
+        # rules-6 D15: an amount added to or retired from the book ("... from that order book in Q1, we
+        # added ... INR 200 Cr"), and a past level the sentence then updates ("our order book was hovering
+        # around Rs. 800 Cr, and in this quarter it has expanded to Rs. 900 Cr"), are not the book
+        if _BOOK_NOT_LEVEL.search(m.group(0)) or _BOOK_UPDATED_TO.search(x.quote[m.end():]):
             continue
         v = float(m.group(1).replace(",", "")) * (0.01 if m.group(2).lower().startswith(("l", "la")) else 1.0)
         if abs(v - x.quantity.value) > 0.01 * max(v, 1e-9):

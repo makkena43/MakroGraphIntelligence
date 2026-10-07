@@ -44,7 +44,7 @@ from .thesis import (
     next_period_end_on_or_after, order_book_snapshots,
 )
 
-RULES_VERSION = "catalyst-rules-5"
+RULES_VERSION = "catalyst-rules-6"
 
 DEFAULT_CATALYST_THRESHOLDS = {
     "order_inflow_to_ttm_revenue": 0.25,     # binding, named, unrelated orders in 12 months / TTM revenue
@@ -53,6 +53,7 @@ DEFAULT_CATALYST_THRESHOLDS = {
     "book_max_uncorroborated_multiple": 4.0, # rules-5 D6: a bigger jump needs a second filing at the new level
     "book_restatement_days": 45,             # rules-5 D5: the same book restated within this many days ...
     "book_restatement_pct": 10.0,            # ... and within this % is one catalyst
+    "book_conflict_days": 10,                # rules-6 D15: readings this close are one book even if they differ
     "volume_growth_pct": 25.0,               # rules-5 D11: 3-month unit sales vs a year earlier, two windows running
     "capacity_expansion_pct": 20.0,
     "materiality_share_of_ttm_ebitda": 0.15, # base incremental EBITDA / TTM EBITDA for "material"
@@ -1686,8 +1687,15 @@ def detect_catalysts(ticker: str, series: FinancialSeries, evidence: list[Eviden
             if dup is None and x.kind == CatalystKind.ORDERS and x.q.get("book"):
                 # D5: the same order book restated a few days later (another filing, rounding) is one catalyst
                 dup = next((y for y in seeds if y.kind == CatalystKind.ORDERS and y.q.get("book")
-                            and abs((x.at - y.at).days) <= th["book_restatement_days"]
-                            and abs(x.q["book"] / y.q["book"] - 1) * 100 <= th["book_restatement_pct"]), None)
+                            and (abs((x.at - y.at).days) <= th["book_restatement_days"]
+                                 and abs(x.q["book"] / y.q["book"] - 1) * 100 <= th["book_restatement_pct"]
+                                 # rules-6 D15: two readings days apart are one book, however they differ
+                                 or abs((x.at - y.at).days) <= th["book_conflict_days"])), None)
+                if dup is not None and abs(x.q["book"] / dup.q["book"] - 1) * 100 > th["book_restatement_pct"]:
+                    note = (f"{_d(x.at)}: a conflicting order-book reading of {x.q['book']:,.0f} cr "
+                            f"(this catalyst rests on {dup.q['book']:,.0f} cr)")
+                    if note not in dup.facts:
+                        dup.facts.append(note)
             if dup is not None:                        # the same change restated: one catalyst
                 last_seen[id(dup)] = t
                 if t > dup.at:
