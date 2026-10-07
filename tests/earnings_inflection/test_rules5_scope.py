@@ -49,3 +49,20 @@ def test_annual_report_boilerplate_is_not_a_consolidated_statement(tmp_path):
     pipe = EarningsInflectionPipeline({}, FixtureRepository(tmp_path / "fx"))
     pipe.run(["QUIETCO"], "2024-08-15")
     assert pipe.last_series.scope == Scope.STANDALONE          # SML Isuzu's BRSR wording (rules-5 first cut: unknown)
+
+
+def test_stray_consolidated_figures_do_not_block_the_inference(tmp_path):
+    """SML: annual-report pages and an open offer quoting the acquirer's statements were tagged
+    consolidated; only an actual consolidated statement title ends the standalone inference."""
+    pipe = fixture(tmp_path)
+    data_path = next((tmp_path / "fx").glob("*.json"))
+    data = json.loads(data_path.read_text())
+    data["documents"].append({"doc_id": "OFFER", "ticker": "QUIETCO", "source_name": "nse", "doc_type": "announcement",
+                              "filing_type": "General Updates", "title": "Letter of offer", "company": "Quiet Co Limited",
+                              "published_at": "2023-01-10T18:00:00+05:30",
+                              "text": "The key financial information of the Acquirer as extracted from its consolidated "
+                                      "audited financial statements is given below."})
+    data_path.write_text(json.dumps(data))
+    pipe = EarningsInflectionPipeline({}, FixtureRepository(tmp_path / "fx"))
+    pipe.run(["QUIETCO"], "2024-08-15")
+    assert pipe.last_series.scope == Scope.STANDALONE
