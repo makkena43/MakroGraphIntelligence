@@ -469,8 +469,12 @@ def _price_seeds(evidence) -> list[Seed]:
     never a positive catalyst (rules-5 seeded "realisations decreased by 15.4%").  Quarterly
     restatements of the same direction are one run: a new catalyst only after the run ends (an
     opposite statement, or no statement for 200 days)."""
-    stmts = []
-    for metric, term, want in ((Metric.PRICING, _PRICE_TERM, 1), (Metric.INPUT_COST, _COST_TERM, -1)):
+    out = []
+    # price runs and cost runs are separate: "realisation increased ... driven by increased raw material
+    # prices" is a price rise, and its rising input cost does not end the price run (rules-6, Rain)
+    for metric, term, want, prefix in ((Metric.PRICING, _PRICE_TERM, 1, "price"),
+                                       (Metric.INPUT_COST, _COST_TERM, -1, "cost")):
+        stmts = []
         for at, text, docs, ev in (_leading_statements(evidence, metric, +1)
                                    + _leading_statements(evidence, metric, -1)):
             if not _PRICE_CHANGE.search(text):
@@ -478,17 +482,17 @@ def _price_seeds(evidence) -> list[Seed]:
             d = _stated_direction(text, term)
             if d:
                 stmts.append((at, d == want, text, docs, ev))
-    out, run_start, last = [], None, None
-    for at, favourable, text, docs, ev in sorted(stmts, key=lambda x: x[0]):
-        if not favourable:
-            run_start = None
-        else:
-            if run_start is None or (last and (at - last).days > 200):
-                run_start = at
-            pct = re.search(r"(\d+(?:\.\d+)?)\s*%", text)
-            out.append(Seed(CatalystKind.CONTRACT_PRICING, at, text, f"price:{_d(run_start)}", docs, ev,
-                            facts=[text], q={"pct": float(pct.group(1)) if pct else None}))
-        last = at
+        run_start, last = None, None
+        for at, favourable, text, docs, ev in sorted(stmts, key=lambda x: (x[0], x[1])):
+            if not favourable:
+                run_start = None
+            else:
+                if run_start is None or (last and (at - last).days > 200):
+                    run_start = at
+                pct = re.search(r"(\d+(?:\.\d+)?)\s*%", text)
+                out.append(Seed(CatalystKind.CONTRACT_PRICING, at, text, f"{prefix}:{_d(run_start)}", docs, ev,
+                                facts=[text], q={"pct": float(pct.group(1)) if pct else None}))
+            last = at
     return out
 
 

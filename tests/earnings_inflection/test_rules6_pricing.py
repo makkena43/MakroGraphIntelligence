@@ -39,3 +39,15 @@ def test_a_new_rise_after_a_decline_is_a_new_catalyst():
     later = [("During Q1 CY25, the average blended realisation increased by ~12% on prices.", date(2025, 5, 9))]
     seeds = _price_seeds([ev(q, d, +1) for q, d in UP + DOWN + later])
     assert {s.key for s in seeds} == {"price:2021-07-31", "price:2025-05-09"}
+
+
+def test_a_rising_input_cost_does_not_end_a_price_run():
+    # Rain, 2021-10-30: one sentence is both a price rise and (read as INPUT_COST) a rising cost
+    both = ("The average blended realisation increased by ~61.5% driven by increased raw material prices and higher "
+            "market quotations.")
+    later = "During Q4 CY21, the average blended realisation increased by ~39.7% on prices."
+    ev_ = [ev(UP[0][0], UP[0][1], +1), ev(both, date(2021, 10, 30), +1), ev(later, date(2022, 2, 25), +1)]
+    cost = stmt(Metric.INPUT_COST, both, date(2021, 10, 30))
+    cost.quantity, cost.direction = Quantity(61.5, Unit.PERCENT, ""), +1
+    keys = {s.key for s in _price_seeds(ev_ + [cost]) if s.key.startswith("price:")}
+    assert keys == {"price:2021-07-31"}
