@@ -69,6 +69,9 @@ class PDFParser:
         self.fallback_engine = config.get("fallback_engine", "pymupdf")
         self.max_pages = config.get("max_pages", 500)
         self.extract_tables = config.get("extract_tables", True)
+        # "plain": pdfplumber extract_text() (default, unchanged); "words": column-aligned text rebuilt from
+        # word positions (pdf_layout), which keeps results-table columns and whole numbers.  Opt-in.
+        self.layout = config.get("layout", "plain")
         self.output_dir = Path(config.get("output_dir", "data/parsed"))
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -80,8 +83,10 @@ class PDFParser:
                 return __import__(mod).__version__
             except Exception:
                 return "na"
+        from .pdf_layout import LAYOUT_VERSION
+        layout = f"/layout-{LAYOUT_VERSION}" if self.layout == "words" else ""
         return (f"pdfparser-mg2/{self.primary_engine}-{ver('pdfplumber')}/{self.fallback_engine}-"
-                f"{ver('pymupdf') if self.fallback_engine == 'pymupdf' else 'na'}/max{self.max_pages}")
+                f"{ver('pymupdf') if self.fallback_engine == 'pymupdf' else 'na'}/max{self.max_pages}{layout}")
 
     def parse(self, pdf_path: Path) -> ParseResult:
         """Parse a PDF file, trying primary engine then fallback."""
@@ -151,7 +156,11 @@ class PDFParser:
                         logger.info(f"Reached max pages ({self.max_pages}), stopping")
                         break
 
-                    text = page.extract_text()
+                    if self.layout == "words":
+                        from .pdf_layout import words_to_text
+                        text = words_to_text(page.extract_words(x_tolerance=1.5, y_tolerance=2))
+                    else:
+                        text = page.extract_text()
                     pages_text.append(text or "")
 
                     if self.extract_tables:
