@@ -44,3 +44,11 @@ def test_segment_turnaround_needs_a_reconciling_table_when_revenue_is_reported()
                  fm(Metric.SEGMENT_RESULT, d, res, segment="pumps")]
     m, _, _ = mech(rows, name=Mechanism.SEGMENT_TURNAROUND)
     assert m.state == MechanismState.INSUFFICIENT_DATA and any("reconcile" in n for n in m.notes)
+
+
+def test_a_segment_result_larger_than_its_revenue_is_a_misread():
+    rows = [r for r in seg_rows(40, 30) if not (r.segment == "specialty" and r.period_end == QE[-1]
+                                                and r.metric == Metric.SEGMENT_RESULT)]
+    rows.append(fm(Metric.SEGMENT_RESULT, QE[-1], 500.0, segment="specialty"))       # GMM: "1269 pp margin gap"
+    m, _, _ = mech(rows, name=Mechanism.PRODUCT_MIX)
+    assert m.state == MechanismState.INSUFFICIENT_DATA

@@ -361,7 +361,10 @@ class EarningsInflectionPipeline:
         # an issuer that files no consolidated statements: statements that do not name their scope are
         # standalone (rules-5).  Per figure, from filings public by that figure's own filing time, so a
         # company that starts consolidating later never changes what was inferred earlier.
-        _CONS = re.compile(r"consolidated\s+(?:un-?audited\s+|audited\s+)?(?:financial\s+)?(?:results|statements)", re.I)
+        # an actual consolidated statement title - not annual-report boilerplate ("... part of its consolidated
+        # financial statements") or an acquirer's statements quoted in an open-offer letter
+        _CONS = re.compile(r"statement\s+of\s+(?:un-?\s*audited\s+|audited\s+)?consolidated|consolidated\s+(?:un-?\s*audited\s+|"
+                           r"audited\s+)?financial\s+results\s+for\s+the", re.I)
         cons_times = [d.available_at for d in docs if d.available_at and _CONS.search(d.full_text() or "")]
         cons_times += [r.available_at for r in measurements if r.scope == Scope.CONSOLIDATED and r.available_at]
         first_cons = min(cons_times, default=None)
