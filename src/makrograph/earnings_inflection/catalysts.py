@@ -441,6 +441,56 @@ def _volume_seeds(evidence, th) -> list[Seed]:
     return out
 
 
+_PRICE_TERM = re.compile(r"\b(?:price|prices|pricing|realis\w*|realiz\w*|ASPs?|NSRs?|NSPs?|tariffs?)\b", re.I)
+_COST_TERM = re.compile(r"\b(?:raw[- ]material|input|commodity|gas|coal|power\s+and\s+fuel|freight)\s+(?:costs?|prices?)\b",
+                        re.I)
+_UP = re.compile(r"\b(?:increas|ris|rose|up\b|hike|improv|grew|grow|higher|firm)\w*", re.I)
+_DOWN = re.compile(r"\b(?:decreas|declin|fell|fall|lower|soften|reduc|eas|drop|down\b|cut|weak)\w*", re.I)
+
+
+def _stated_direction(quote: str, term: re.Pattern) -> int:
+    """+1 / -1 from the change verb that follows the price (or cost) term in the sentence; 0 when absent
+    or contradictory.  Read from the sentence itself, not from a direction tag."""
+    m = term.search(quote)
+    if not m:
+        return 0
+    tail = quote[m.end(): m.end() + 70]
+    up, down = _UP.search(tail), _DOWN.search(tail)
+    if up and (not down or up.start() < down.start()):
+        return 1
+    if down and (not up or down.start() < up.start()):
+        return -1
+    return 0
+
+
+def _price_seeds(evidence) -> list[Seed]:
+    """Realised price increases (or input-cost decreases), stated with their size.  A price DECREASE is
+    never a positive catalyst (rules-5 seeded "realisations decreased by 15.4%").  Quarterly
+    restatements of the same direction are one run: a new catalyst only after the run ends (an
+    opposite statement, or no statement for 200 days)."""
+    stmts = []
+    for metric, term, want in ((Metric.PRICING, _PRICE_TERM, 1), (Metric.INPUT_COST, _COST_TERM, -1)):
+        for at, text, docs, ev in (_leading_statements(evidence, metric, +1)
+                                   + _leading_statements(evidence, metric, -1)):
+            if not _PRICE_CHANGE.search(text):
+                continue            # a percentage near a price word is not yet a stated price / cost change
+            d = _stated_direction(text, term)
+            if d:
+                stmts.append((at, d == want, text, docs, ev))
+    out, run_start, last = [], None, None
+    for at, favourable, text, docs, ev in sorted(stmts, key=lambda x: x[0]):
+        if not favourable:
+            run_start = None
+        else:
+            if run_start is None or (last and (at - last).days > 200):
+                run_start = at
+            pct = re.search(r"(\d+(?:\.\d+)?)\s*%", text)
+            out.append(Seed(CatalystKind.CONTRACT_PRICING, at, text, f"price:{_d(run_start)}", docs, ev,
+                            facts=[text], q={"pct": float(pct.group(1)) if pct else None}))
+        last = at
+    return out
+
+
 def _other_seeds(series, evidence, mechanisms, rationales, as_of, th, now: Optional[datetime] = None) -> list[Seed]:
     """``now``: the scan time.  A mechanism first detected at ``now`` is dated ``now`` - never back-
     dated to the period it describes, which was not yet recognisable as a change then."""
@@ -448,13 +498,7 @@ def _other_seeds(series, evidence, mechanisms, rationales, as_of, th, now: Optio
     at_or = lambda t: max(t, now) if (now is not None and t is not None) else t  # noqa: E731
     for at, text, docs, ev in _leading_mix(evidence):
         out.append(Seed(CatalystKind.PRODUCT_MIX, at, text, f"mix:{_d(at)}", docs, ev, facts=[text]))
-    for at, text, docs, ev in (_leading_statements(evidence, Metric.PRICING, +1)
-                               + _leading_statements(evidence, Metric.INPUT_COST, -1)):
-        if not _PRICE_CHANGE.search(text):
-            continue            # a percentage near a price word is not yet a stated price / cost change
-        pct = re.search(r"(\d+(?:\.\d+)?)\s*%", text)
-        out.append(Seed(CatalystKind.CONTRACT_PRICING, at, text, f"price:{_d(at)}", docs, ev, facts=[text],
-                        q={"pct": float(pct.group(1)) if pct else None}))
+    out += _price_seeds(evidence)
     for e in evidence:
         if e.usable and e.modality == Modality.REALIZED and e.available_at and _APPROVAL.search(e.quote):
             out.append(Seed(CatalystKind.CUSTOMER_APPROVAL, e.available_at,
