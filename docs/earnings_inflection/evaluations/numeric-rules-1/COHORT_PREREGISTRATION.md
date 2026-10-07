@@ -57,3 +57,44 @@ Profit series: owners' share of profit where the chosen scope is consolidated an
 9. **Catalyst-rules-6 comparison:** alerts, verdicts, false alerts and inflection credit under the rules-6 rule.
 
 **Not done:** no prices, no returns, no investment labels. Signals are research leads, not recommendations.
+
+## Draw result (committed before any filing was fetched)
+
+Universe 505 constituents; 421 eligible after the financial-services and development-issuer exclusions. Script `cohort/draw_cohort.py`; full log in `cohort/numeric1_cohort_draw.json`.
+
+| # | NSE symbol | Company | Index industry |
+|---|---|---|---|
+| 1 | CENTUM | Centum Electronics Ltd. | Capital Goods |
+| 2 | POLYMED | Poly Medicure Ltd. | Healthcare |
+| 3 | PGHL | Procter & Gamble Health Ltd. | Healthcare |
+| 4 | QUESS | Quess Corp Ltd. | Services |
+| 5 | EMBDL | Embassy Developments Ltd. | Realty |
+| 6 | WEBELSOLAR | Websol Energy System Ltd. | Capital Goods |
+| 7 | ENGINERSIN | Engineers India Ltd. | Construction |
+| 8 | MMTC | MMTC Ltd. | Services |
+| 9 | CIEINDIA | CIE Automotive India Ltd. | Automobile and Auto Components |
+| 10 | RELAXO | Relaxo Footwears Ltd. | Consumer Durables |
+| 11 | GRAPHITE | Graphite India Ltd. | Capital Goods |
+| 12 | LTFOODS | LT Foods Ltd. | Fast Moving Consumer Goods |
+| 13 | RAMCOCEM | The Ramco Cements Ltd. | Construction Materials |
+| 14 | ABREL | Aditya Birla Real Estate Ltd. | Realty |
+| 15 | MRPL | Mangalore Refinery & Petrochemicals Ltd. | Oil Gas & Consumable Fuels |
+| 16 | DBREALTY | VALOR ESTATE Ltd. | Realty |
+| 17 | DEEPAKNTR | Deepak Nitrite Ltd. | Chemicals |
+| 18 | FIEMIND | Fiem Industries Ltd | Automobile and Auto Components |
+| 19 | PCBL | PCBL Chemical Ltd. | Chemicals |
+| 20 | GUJALKALI | Gujarat Alkalies & Chemicals Ltd. | Chemicals |
+| 21 | CCL | CCL Products (I) Ltd. | Fast Moving Consumer Goods |
+| 22 | WELSPUNLIV | Welspun Living Ltd. | Textiles |
+| 23 | BALRAMCHIN | Balrampur Chini Mills Ltd. | Fast Moving Consumer Goods |
+| 24 | IRB | IRB Infrastructure Developers Ltd. | Construction |
+| 25 | ZENSARTECH | Zensar Technolgies Ltd. | Information Technology |
+| 26 | INDIAMART | Indiamart Intermesh Ltd. | Consumer Services |
+| 27 | JUBLPHARMA | Jubilant Pharmova Ltd. | Healthcare |
+| 28 | CERA | Cera Sanitaryware Ltd | Consumer Durables |
+| 29 | RPOWER | Reliance Power Ltd. | Power |
+| 30 | GABRIEL | Gabriel India Ltd. | Automobile and Auto Components |
+
+Skipped during the walk: no NSE announcement in H1 2021: SENORES, TENNIND, ACUTAAS, DUMMYTRVN, IONEXCHANG, WEWORK, KPIGREEN, CLEANMAX, RATEGAIN, HONASA, TVSSCS, TBOTEK, SKYGOLD, SAGILITY, PWL; industry cap: OSWALPUMPS, POWERICA, GRINDWELL, ELLEN, GREAVESCOT, SUMICHEM, AXISCADES, WOCKPHARMA, RALLIS.
+
+The cohort spans 15 industries.
