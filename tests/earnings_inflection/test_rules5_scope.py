@@ -34,3 +34,18 @@ def test_figures_filed_before_consolidation_began_stay_standalone(tmp_path):
     assert pipe.last_series.scope == Scope.STANDALONE           # what was knowable then
     pipe.run(["QUIETCO"], "2024-08-15")
     assert pipe.last_series.scope != Scope.UNKNOWN
+
+
+def test_annual_report_boilerplate_is_not_a_consolidated_statement(tmp_path):
+    fx_pipe = fixture(tmp_path)
+    data_path = next((tmp_path / "fx").glob("*.json"))
+    data = json.loads(data_path.read_text())
+    data["documents"].append({"doc_id": "AR", "ticker": "QUIETCO", "source_name": "nse", "doc_type": "announcement",
+                              "filing_type": "Annual Report", "title": "Annual Report", "company": "Quiet Co Limited",
+                              "published_at": "2023-08-22T18:00:00+05:30",
+                              "text": "Reporting boundary: standalone basis (i.e. for the entity and all the entities "
+                                      "which form a part of its consolidated financial statements, taken together)."})
+    data_path.write_text(json.dumps(data))
+    pipe = EarningsInflectionPipeline({}, FixtureRepository(tmp_path / "fx"))
+    pipe.run(["QUIETCO"], "2024-08-15")
+    assert pipe.last_series.scope == Scope.STANDALONE          # SML Isuzu's BRSR wording (rules-5 first cut: unknown)

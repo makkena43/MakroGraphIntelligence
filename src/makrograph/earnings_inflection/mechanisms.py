@@ -259,6 +259,8 @@ def _segment_mix(series, p, end):
             if v is not None and v.value > 0:
                 present[t] += v.value
         if rn and ry and xn and xy and rn.value > 0 and ry.value > 0:
+            if abs(xn.value) > rn.value or abs(xy.value) > ry.value:
+                return {}, None      # a segment result larger than its revenue: the table is misread
             rows[n] = (rn.value, ry.value, xn.value, xy.value)
     if len(rows) < 2:
         return {}, None
