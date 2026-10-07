@@ -1,7 +1,8 @@
 """Results figures from the exchange's XBRL filings (NSE ``corporates-financial-results``).
 
-Listed Indian companies file each results statement twice: as a PDF and as XBRL in the
-exchange's ``in-bse-fin`` taxonomy.  The XBRL carries tagged values in rupees with explicit
+Listed Indian companies file each results statement twice: as a PDF and as XBRL, in the
+exchange's ``in-bse-fin`` taxonomy and, from the December 2024 quarter, in SEBI's integrated-filing
+``in-capmkt`` taxonomy (same element names).  The XBRL carries tagged values in rupees with explicit
 period dates and scope, so nothing is read from page layout and no unit is inferred.
 
 - Each filing holds the current period only (the quarter, and the year to date); comparatives
@@ -130,13 +131,13 @@ def parse_xbrl_results(doc: SourceDocument) -> tuple[list[FinancialMeasurement],
             measures = [(m.text or "").strip() for m in el.iter() if _local(m.tag)[1] == "measure"]
             units[el.get("id", "")] = "/".join(measures)
         else:
-            if fin_ns is None and ns.endswith("/in-bse-fin"):
+            if fin_ns is None and (ns.endswith("/in-bse-fin") or ns.endswith("/in-capmkt")):
                 fin_ns = ns
             if ns == fin_ns:
                 facts.append((name, el.get("contextRef", ""), el.get("unitRef"), (el.text or "").strip()))
 
     if fin_ns is None:
-        return [], [f"{doc.doc_id}: no in-bse-fin facts; not a results XBRL file"]
+        return [], [f"{doc.doc_id}: no in-bse-fin / in-capmkt facts; not a results XBRL file"]
 
     def first(tag: str) -> Optional[str]:
         return next((v for n, _, _, v in facts if n == tag and v), None)
