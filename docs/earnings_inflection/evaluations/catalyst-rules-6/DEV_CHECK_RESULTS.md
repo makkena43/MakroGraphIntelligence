@@ -42,14 +42,14 @@ The files in `dev_check/` are:
   - 5 of the 6 remaining alerts were later contradicted or delayed.
   - None of the 4 earnings inflections is caught once credit needs a non-immaterial alert whose own verdict did not fail.
   - The rules-5 "catches" were artefacts: Jyothy Labs' was a 1.4 cr segment swing, and Rain's were price statements that ended contradicted.
-- **Inflections, and why each is missed:**
+**Inflections, and why each is missed:**
 
-  | Issuer | Window | Owners' profit, TTM | Why missed |
-  |---|---|---|---|
-  | AFFLE | 2021-06 → 2024-06 | 39.6 → 88.5 cr | no catalyst type covers organic software growth |
-  | RAIN | 2021-09 → 2024-03 | 28.0 → 50.6 cr | the only alert in the window, a price rise, ended **contradicted** |
-  | RAIN | 2024-06 → 2025-06 | 12.1 → 43.2 cr | nothing flagged |
-  | JYOTHYLAB | 2024-09 → 2025-09 | 375.9 → 643.1 cr | nothing flagged |
+| Issuer | Window | Owners' profit, TTM | Why missed |
+|---|---|---|---|
+| AFFLE | 2021-06 → 2024-06 | 39.6 → 88.5 cr | no catalyst type covers organic software growth |
+| RAIN | 2021-09 → 2024-03 | 28.0 → 50.6 cr | the only alert in the window, a price rise, ended **contradicted** |
+| RAIN | 2024-06 → 2025-06 | 12.1 → 43.2 cr | nothing flagged |
+| JYOTHYLAB | 2024-09 → 2025-09 | 375.9 → 643.1 cr | nothing flagged |
 
 ## Per issuer
 
