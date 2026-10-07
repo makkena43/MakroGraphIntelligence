@@ -542,6 +542,8 @@ def _expand_change_columns(header_lines: list[str], resolved: list) -> list:
 
 
 _TOTAL_INCOME = re.compile(r"total\s*income\b", re.I)
+# a revenue line printed in two parts: "(a) Revenue from operations" / "(b) Other operating revenue"
+_OTHER_OPERATING = re.compile(r"other\s+operating\s+(?:revenues?|income)\b", re.I)
 _SECTION_HEADING = re.compile(r"(?:income|expenses|expenditure)", re.I)
 
 
@@ -696,6 +698,16 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk],
                            and not _TITLE_LINE.search(l)]
             head = group_lines[-1] if group_lines else ""
             ci, si = head.find("consolidated"), head.find("standalone")
+            if ci < 0 or si < 0:
+                # the two group labels on lines of their own ("Standalone" over the left half, "Consolidated"
+                # over the right half, one line lower): their columns give the order
+                near = [l.lower() for l in above.split("\n")[-14:] if not _TITLE_LINE.search(l)]
+                lone_s = [l.find("standalone") for l in near
+                          if "standalone" in l and "consolidated" not in l and len(l.strip()) <= 30]
+                lone_c = [l.find("consolidated") for l in near
+                          if "consolidated" in l and "standalone" not in l and len(l.strip()) <= 30]
+                if lone_s and lone_c and abs(lone_s[-1] - lone_c[-1]) >= 10:
+                    ci, si = lone_c[-1], lone_s[-1]
             if ci >= 0 and si >= 0:
                 first, second = ((Scope.CONSOLIDATED, Scope.STANDALONE) if ci < si
                                  else (Scope.STANDALONE, Scope.CONSOLIDATED))
@@ -727,6 +739,7 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk],
                 _segment_row(hl, [], seg_state, n)
         last_values_only = False
         total_income = None
+        other_operating = None
         displaced = False
         lines, reoriented = _reorient_split_rows(lines)
         if reoriented:
@@ -784,6 +797,10 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk],
                     and not _COMPREHENSIVE.search(label) and len(cells) in (n, n + 1)):
                 ti_cells = _integer_table_cells(cells[-n:]) if conv == 0 else cells[-n:]
                 total_income = [(_cell_value(x) if _CELL.fullmatch(x) else None) for x in ti_cells]
+            if (_OTHER_OPERATING.match(_strip_enumerator(label)) and other_operating is None
+                    and len(cells) in (n, n + 1)):
+                oo_cells = _integer_table_cells(cells[-n:]) if conv == 0 else cells[-n:]
+                other_operating = [(_cell_value(x) if _CELL.fullmatch(x) else None) for x in oo_cells]
             is_tax_part = bool(_TAX_PARTS.match(_strip_enumerator(label)))
             # Join a wrapped label only when this line has no enumerator of its own:
             # "(1) Current tax" under "VIII Tax expense" is a sub-row, not a continuation.
@@ -850,6 +867,16 @@ def parse_results_tables(doc: SourceDocument, chunks: list[Chunk],
             rv, oi = found[Metric.REVENUE][1], found[Metric.OTHER_INCOME][1]
             checks = [abs((r or 0) + (o or 0) - t) <= max(0.02, 0.005 * abs(t))
                       for r, o, t in zip(rv, oi, total_income) if t is not None and r is not None]
+            if checks and sum(checks) < len(checks) / 2 and other_operating:
+                # revenue from operations printed in two lines: under Ind AS it includes other operating
+                # revenue; used only when the sum makes the statement add up
+                both = [None if r is None else r + (o or 0) for r, o in zip(rv, other_operating)]
+                checks2 = [abs((r or 0) + (o or 0) - t) <= max(0.02, 0.005 * abs(t))
+                           for r, o, t in zip(both, oi, total_income) if t is not None and r is not None]
+                if checks2 and sum(checks2) >= len(checks2) / 2:
+                    found[Metric.REVENUE][0] += " + other operating revenue"
+                    found[Metric.REVENUE][1] = both
+                    checks = checks2
             if checks and sum(checks) < len(checks) / 2:
                 # rules-6: rows that fail the statement's own identity are misaligned, and so may be the
                 # rest of the table (RBA, Oct-24: profit rows shifted by a column); none of it is used
