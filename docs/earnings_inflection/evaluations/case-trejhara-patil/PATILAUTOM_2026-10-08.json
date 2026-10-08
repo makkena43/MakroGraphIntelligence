@@ -1,0 +1,90 @@
+{
+ "ticker": "PATILAUTOM",
+ "as_of": "2026-10-08",
+ "evidence_status": "EARLY_COMMITMENT_UNVERIFIED",
+ "status_rationale": [
+  "note: revenue_guidance unspecified guidance was revised down (not treated as contradiction; see guidance flags)",
+  "early-lane order evt-87327173caff: provisional (L1 / LoI / selected), not a firm order; customer not named: identity unverified",
+  "early-lane order evt-4dadfc763bb7: customer not named: identity unverified",
+  "early-lane order evt-05c967d1b9f6: provisional (L1 / LoI / selected), not a firm order; customer not named: identity unverified"
+ ],
+ "thesis_stage": "none",
+ "thesis_confidence": "low",
+ "thesis_earliest_defensible_at": null,
+ "stale": true,
+ "last_known_status": "EXECUTION_EMERGING",
+ "last_known_as_of": "2025-09-01",
+ "mechanisms": [],
+ "research_detected": "potential catalyst(s); economics or execution support incomplete",
+ "rules_version": "catalyst-rules-6",
+ "investment_review": "not_started",
+ "numeric_signals": [
+  {
+   "signal_id": "finance_cost_relief:2025-03-31",
+   "kind": "finance_cost_relief",
+   "period_end": "2025-03-31",
+   "known_at": "2025-09-01T18:00:37+05:30",
+   "scope": "consolidated",
+   "values": {
+    "finance_cost": 1.444,
+    "finance_cost_year_ago": 2.383,
+    "share_of_ebitda_year_ago": 0.192
+   },
+   "basis": "finance cost 2.4 -> 1.4 cr (19% of EBITDA a year earlier)"
+  }
+ ],
+ "catalysts": [
+  {
+   "catalyst_id": "3d9ee410f257",
+   "kind": "capacity_or_bottleneck",
+   "stage": "potential_catalyst",
+   "first_public_at": "2025-11-21T19:36:02+05:30",
+   "operating_change": "planned capacity 2304 -> 3454 units (+50%), stated by the issuer",
+   "demand_basis": "",
+   "confidence": "low",
+   "confirmation_blocked": "",
+   "contribution": "potentially_material_unresolved",
+   "base_crore": null,
+   "share_of_ttm_ebitda": null,
+   "window": [
+    null,
+    null
+   ],
+   "milestones": [
+    {
+     "question": "Commissioned and producing commercially?",
+     "status": "pending",
+     "observed": "",
+     "observed_at": null,
+     "timetable": "",
+     "original_status": null
+    },
+    {
+     "question": "Is the new output reaching revenue?",
+     "status": "not_yet_relevant",
+     "observed": "",
+     "observed_at": null,
+     "timetable": "",
+     "original_status": null
+    }
+   ],
+   "stage_reasons": [
+    "announced change; support incomplete (demand: unsupported; deliverable_capacity: unknown; revenue_conversion: unknown; recurring_profit: unknown; cash_requirements: unknown; magnitude: potentially material unresolved)",
+    "waiting: Commissioned and producing commercially?"
+   ],
+   "initial_stage": "potential_catalyst",
+   "materiality_supported_at": null,
+   "execution_supported_at": null,
+   "supported_at": null,
+   "validating_at": null,
+   "confirmed_at": null,
+   "upgrades": [],
+   "stage_history": [
+    [
+     "2025-11-21T19:36:02+05:30",
+     "potential_catalyst"
+    ]
+   ]
+  }
+ ]
+}
