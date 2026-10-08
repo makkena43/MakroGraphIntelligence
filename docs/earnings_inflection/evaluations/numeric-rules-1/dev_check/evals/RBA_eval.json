@@ -1,0 +1,262 @@
+{
+ "symbol": "RBA",
+ "rules_version": "catalyst-rules-6",
+ "fingerprint": "76b4dd78c36b9506",
+ "coverage": {
+  "symbol": "RBA",
+  "announcements": 417,
+  "kept": 301,
+  "downloaded": 295,
+  "with_text": 299,
+  "download_failed": 7,
+  "annual_reports": 4,
+  "annual_report_date_from_filename": 3,
+  "by_year": {
+   "2021": 50,
+   "2022": 71,
+   "2023": 53,
+   "2024": 58,
+   "2025": 67
+  },
+  "cadence": "Q",
+  "scope": "consolidated",
+  "periods_parsed": 19,
+  "first_period": "2021-03-31",
+  "last_period": "2025-09-30",
+  "credit_rating_filings": 6,
+  "snapshot_errors": []
+ },
+ "catalysts_total": 3,
+ "catalysts_by_kind": {
+  "customer_approval": 1,
+  "financing_cost": 1,
+  "product_mix": 1
+ },
+ "alerts": [
+  {
+   "catalyst_id": "b30a0ed195a6",
+   "kind": "product_mix",
+   "change": "product_customer_mix: india: share of segment revenue 67.2% -> 72.1% (margin gap 18.9 pp vs other segments, year-ago margins; before unallocable costs)",
+   "first_public": "2023-05-17",
+   "supported_at": "2023-05-17",
+   "verdict": "delayed",
+   "contribution_when_flagged": "estimated",
+   "final_stage": "delayed",
+   "stages": [
+    [
+     "2023-05-31",
+     "supported_prospective_inflection"
+    ],
+    [
+     "2023-11-30",
+     "delayed"
+    ]
+   ],
+   "flagged_snapshots": 2,
+   "delivery": {
+    "from": "2023-03-31",
+    "to": "2024-03-31",
+    "ttm_revenue": [
+     2054.279,
+     2437.058
+    ],
+    "ttm_parent_pat": [
+     -221.233,
+     -217.943
+    ],
+    "delivered": false,
+    "measurable": false
+   }
+  }
+ ],
+ "false_alerts": [
+  "b30a0ed195a6"
+ ],
+ "unresolved_alerts": [],
+ "prefix_defects": [],
+ "vanished_catalysts": [],
+ "inflections": [],
+ "numeric": {
+  "rules_version": "numeric-rules-1",
+  "thresholds": {
+   "min_year_ago_revenue_cr": 5.0,
+   "rev_growth_min_pct": 20.0,
+   "rev_accel_pp": 10.0,
+   "lev_margin_gain_pp": 3.0,
+   "lev_rev_growth_min_pct": 10.0,
+   "profit_growth_min_pct": 50.0,
+   "profit_ebitda_growth_min_pct": 25.0,
+   "fin_cost_drop_pct": 25.0,
+   "fin_cost_min_share_of_ebitda": 0.1,
+   "exceptional_max_share_of_pbt": 0.25,
+   "other_income_max_share_of_pbt": 0.5,
+   "max_quarter_age_days": 200,
+   "depressed_base_drop": 0.2
+  },
+  "signals": [
+   {
+    "signal_id": "operating_leverage:2021-06-30",
+    "kind": "operating_leverage",
+    "period_end": "2021-06-30",
+    "known_at": "2021-08-13T15:45:23+05:30",
+    "scope": "standalone",
+    "values": {
+     "ebitda_margin_pct": 1.025,
+     "ebitda_margin_year_ago_pct": -75.457,
+     "revenue_growth_pct": 288.914
+    },
+    "basis": "EBITDA margin -75.5% -> 1.0% with revenue +289%"
+   },
+   {
+    "signal_id": "revenue_acceleration:2021-09-30",
+    "kind": "revenue_acceleration",
+    "period_end": "2021-09-30",
+    "known_at": "2021-11-12T20:54:05+05:30",
+    "scope": "standalone",
+    "values": {
+     "revenue_growth_pct": 153.743,
+     "prior_median_growth_pct": -28.4
+    },
+    "basis": "revenue +154% YoY vs a median of -28% over the previous four quarters"
+   },
+   {
+    "signal_id": "operating_leverage:2023-09-30",
+    "kind": "operating_leverage",
+    "period_end": "2023-09-30",
+    "known_at": "2023-11-08T14:33:18+05:30",
+    "scope": "consolidated",
+    "values": {
+     "ebitda_margin_pct": 9.001,
+     "ebitda_margin_year_ago_pct": 4.791,
+     "revenue_growth_pct": 19.082
+    },
+    "basis": "EBITDA margin 4.8% -> 9.0% with revenue +19%"
+   },
+   {
+    "signal_id": "operating_leverage:2023-12-31",
+    "kind": "operating_leverage",
+    "period_end": "2023-12-31",
+    "known_at": "2024-01-29T16:27:43+05:30",
+    "scope": "consolidated",
+    "values": {
+     "ebitda_margin_pct": 11.313,
+     "ebitda_margin_year_ago_pct": 5.646,
+     "revenue_growth_pct": 14.798
+    },
+    "basis": "EBITDA margin 5.6% -> 11.3% with revenue +15%"
+   },
+   {
+    "signal_id": "finance_cost_relief:2025-03-31",
+    "kind": "finance_cost_relief",
+    "period_end": "2025-03-31",
+    "known_at": "2025-05-19T17:15:33+05:30",
+    "scope": "consolidated",
+    "values": {
+     "finance_cost": -45.704,
+     "finance_cost_year_ago": 47.281,
+     "share_of_ebitda_year_ago": 0.683
+    },
+    "basis": "finance cost 47.3 -> -45.7 cr (68% of EBITDA a year earlier)"
+   },
+   {
+    "signal_id": "finance_cost_relief:2025-06-30",
+    "kind": "finance_cost_relief",
+    "period_end": "2025-06-30",
+    "known_at": "2025-07-31T16:13:06+05:30",
+    "scope": "consolidated",
+    "values": {
+     "finance_cost": -46.802,
+     "finance_cost_year_ago": 37.438,
+     "share_of_ebitda_year_ago": 0.593
+    },
+    "basis": "finance cost 37.4 -> -46.8 cr (59% of EBITDA a year earlier)"
+   }
+  ],
+  "episodes": [
+   {
+    "quarters": [
+     "2021-06-30",
+     "2021-09-30"
+    ],
+    "first_known_at": "2021-08-13",
+    "kinds": [
+     "operating_leverage",
+     "revenue_acceleration"
+    ],
+    "outcome": "not_measurable",
+    "ttm_profit": [
+     null,
+     null,
+     -213.471,
+     -235.154,
+     -221.292
+    ]
+   },
+   {
+    "quarters": [
+     "2023-09-30",
+     "2023-12-31"
+    ],
+    "first_known_at": "2023-11-08",
+    "kinds": [
+     "operating_leverage"
+    ],
+    "outcome": "not_delivered",
+    "ttm_profit": [
+     -220.287,
+     -206.051,
+     -217.943,
+     -216.826,
+     -230.969
+    ]
+   },
+   {
+    "quarters": [
+     "2025-03-31",
+     "2025-06-30"
+    ],
+    "first_known_at": "2025-05-19",
+    "kinds": [
+     "finance_cost_relief"
+    ],
+    "outcome": "open",
+    "ttm_profit": [
+     -216.202,
+     -208.78000000000003,
+     -207.20600000000002
+    ]
+   }
+  ],
+  "prefix_defects": [],
+  "vanished": [],
+  "base_rate": {
+   "quarters": 12,
+   "followed_by_25pct": 0
+  },
+  "signals_per_year": 1.26,
+  "episodes_per_year": 0.63
+ },
+ "series_scope": "consolidated",
+ "xbrl": {},
+ "workload": {
+  "alerts_per_year": 0.21,
+  "snapshots_in_flag_lane": 2,
+  "snapshots": 20,
+  "documents": 299
+ },
+ "timeline": {
+  "first_defensible_catalyst": "2023-05-17",
+  "first_any_catalyst": "2022-01-24",
+  "supported": 1,
+  "confirmed": 0,
+  "false_positives": 0,
+  "delayed": 1,
+  "executed_unconfirmable": 0,
+  "data_unavailable": 0,
+  "potential_only": 2,
+  "days_to_confirmed": [
+   175
+  ],
+  "rules_version": "catalyst-rules-6"
+ }
+}

@@ -1,0 +1,25 @@
+sym scope periods signals episodes deliv notdeliv open nm | infl caught leads | base | cat_alerts false
+AFFLE consolidated 24 19 2 1 1 0 0 1 1 [527] 10 17 0 0
+AURIONPRO consolidated 27 17 4 2 1 1 0 0 0 [] 14 20 1 0
+BATAINDIA consolidated 26 1 1 0 1 0 0 1 1 [280] 7 19 0 0
+BORORENEW consolidated 17 21 4 0 1 1 2 0 0 [] 0 7 3 0
+CESC consolidated 26 2 2 0 1 1 0 0 0 [] 0 19 0 0
+GENUSPOWER consolidated 25 26 3 2 0 0 1 2 2 [371, 1091] 12 18 14 1
+GMMPFAUDLR consolidated 27 13 3 0 2 1 0 1 1 [650] 5 19 2 1
+GPPL consolidated 25 8 4 0 2 1 1 0 0 [] 1 14 0 0
+HBLENGINE consolidated 13 15 3 2 0 0 1 1 1 [1601] 8 8 2 0
+HGINFRA consolidated 27 8 2 2 0 0 0 2 1 [482] 13 20 1 1
+JYOTHYLAB standalone 26 9 2 1 1 0 0 1 1 [476] 7 19 0 0
+LUMAXIND consolidated 25 14 3 2 0 1 0 1 1 [733] 12 18 2 1
+OLECTRA consolidated 25 12 4 3 1 0 0 1 1 [1538] 17 18 1 0
+PRICOLLTD consolidated 26 15 4 2 1 1 0 1 1 [1014] 12 19 1 1
+RAIN consolidated 27 10 2 1 0 1 0 2 2 [184, 438] 11 20 0 0
+RBA consolidated 19 6 3 0 1 1 1 0 0 [] 0 12 1 1
+SHAKTIPUMP consolidated 26 23 3 2 1 0 0 2 2 [460, 716] 11 19 2 2
+SMLMAH standalone 26 10 3 0 1 1 1 1 1 [373] 3 15 3 2
+SWSOLAR consolidated 25 9 2 1 1 0 0 0 0 [] 4 18 14 1
+TARIL consolidated 25 16 3 3 0 0 0 2 2 [632, 579] 16 18 9 4
+TATACHEM consolidated 27 12 2 1 0 0 1 1 0 [] 5 16 0 0
+WAAREEENER consolidated 7 0 0 0 0 0 0 0 0 [] 0 0 0 0
+{"signals": 266, "episodes": 59, "delivered": 25, "not_delivered": 16, "open": 10, "nm": 8, "base_n": 353, "base_hit": 168, "infl": 20, "caught": 18, "defects": 0, "vanished": 0, "cat_alerts": 56, "cat_false": 15}
+precision 0.61 (25/41)  base rate 0.48 (168/353)  caught 18/20  median lead 553.0  defects 0 vanished 0

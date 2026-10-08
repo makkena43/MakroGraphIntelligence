@@ -1,0 +1,433 @@
+{
+ "symbol": "PRICOLLTD",
+ "rules_version": "catalyst-rules-6",
+ "fingerprint": "76b4dd78c36b9506",
+ "coverage": {
+  "symbol": "PRICOLLTD",
+  "announcements": 447,
+  "kept": 246,
+  "downloaded": 239,
+  "with_text": 241,
+  "download_failed": 7,
+  "skipped_no_text": 2,
+  "annual_reports": 4,
+  "annual_report_date_from_filename": 3,
+  "by_year": {
+   "2021": 42,
+   "2022": 53,
+   "2023": 56,
+   "2024": 49,
+   "2025": 41
+  },
+  "cadence": "Q",
+  "scope": "consolidated",
+  "periods_parsed": 26,
+  "first_period": "2019-06-30",
+  "last_period": "2025-09-30",
+  "credit_rating_filings": 14,
+  "snapshot_errors": []
+ },
+ "catalysts_total": 2,
+ "catalysts_by_kind": {
+  "capacity_or_bottleneck": 1,
+  "financing_cost": 1
+ },
+ "alerts": [
+  {
+   "catalyst_id": "43827059e581",
+   "kind": "financing_cost",
+   "change": "debt_reduction: net debt (borrowings - cash) 2020-03-31: 361.9 -> 2021-03-31: 164.6",
+   "first_public": "2021-07-24",
+   "supported_at": "2021-11-09",
+   "verdict": "contradicted",
+   "contribution_when_flagged": "potentially_material_unresolved",
+   "final_stage": "contradicted",
+   "stages": [
+    [
+     "2021-08-31",
+     "potential_catalyst"
+    ],
+    [
+     "2021-11-30",
+     "execution_validating"
+    ],
+    [
+     "2023-08-31",
+     "delayed"
+    ],
+    [
+     "2023-11-30",
+     "contradicted"
+    ]
+   ],
+   "flagged_snapshots": 7,
+   "delivery": {
+    "from": "2021-09-30",
+    "to": "2022-09-30",
+    "ttm_revenue": [
+     1631.478,
+     1756.6201
+    ],
+    "ttm_parent_pat": [
+     43.4409,
+     102.56439999999999
+    ],
+    "delivered": true,
+    "measurable": true
+   }
+  }
+ ],
+ "false_alerts": [
+  "43827059e581"
+ ],
+ "unresolved_alerts": [],
+ "prefix_defects": [],
+ "vanished_catalysts": [],
+ "inflections": [
+  {
+   "from": "2020-09-30",
+   "to": "2023-06-30",
+   "ttm_parent_pat": [
+    5.720999999999989,
+    136.0296
+   ],
+   "end_published": "2023-08-02",
+   "alert_before": [],
+   "timing_only": [
+    "43827059e581"
+   ],
+   "missed": true,
+   "numeric_caught": true,
+   "numeric_first_signal": "2020-10-22",
+   "numeric_lead_days": 1014,
+   "numeric_signal_kinds": [
+    "finance_cost_relief",
+    "operating_leverage",
+    "profit_step_up",
+    "revenue_acceleration"
+   ]
+  }
+ ],
+ "numeric": {
+  "rules_version": "numeric-rules-1",
+  "thresholds": {
+   "min_year_ago_revenue_cr": 5.0,
+   "rev_growth_min_pct": 20.0,
+   "rev_accel_pp": 10.0,
+   "lev_margin_gain_pp": 3.0,
+   "lev_rev_growth_min_pct": 10.0,
+   "profit_growth_min_pct": 50.0,
+   "profit_ebitda_growth_min_pct": 25.0,
+   "fin_cost_drop_pct": 25.0,
+   "fin_cost_min_share_of_ebitda": 0.1,
+   "exceptional_max_share_of_pbt": 0.25,
+   "other_income_max_share_of_pbt": 0.5,
+   "max_quarter_age_days": 200,
+   "depressed_base_drop": 0.2
+  },
+  "signals": [
+   {
+    "signal_id": "operating_leverage:2020-09-30",
+    "kind": "operating_leverage",
+    "period_end": "2020-09-30",
+    "known_at": "2020-10-22T18:20:11+05:30",
+    "scope": "standalone",
+    "values": {
+     "ebitda_margin_pct": 13.515,
+     "ebitda_margin_year_ago_pct": 5.169,
+     "revenue_growth_pct": 21.582
+    },
+    "basis": "EBITDA margin 5.2% -> 13.5% with revenue +22%"
+   },
+   {
+    "signal_id": "profit_step_up:2020-09-30",
+    "kind": "profit_step_up",
+    "period_end": "2020-09-30",
+    "known_at": "2020-10-22T18:20:11+05:30",
+    "scope": "standalone",
+    "values": {
+     "profit_metric": "pat",
+     "profit": 21.273,
+     "profit_year_ago": -17.902,
+     "turnaround": true,
+     "ebitda": 52.167,
+     "ebitda_year_ago": 16.412
+    },
+    "basis": "pat turned from -17.9 to 21.3 cr with EBITDA 16.4 -> 52.2 cr"
+   },
+   {
+    "signal_id": "operating_leverage:2020-12-31",
+    "kind": "operating_leverage",
+    "period_end": "2020-12-31",
+    "known_at": "2021-02-10T19:04:05+05:30",
+    "scope": "standalone",
+    "values": {
+     "ebitda_margin_pct": 14.322,
+     "ebitda_margin_year_ago_pct": 5.452,
+     "revenue_growth_pct": 58.866
+    },
+    "basis": "EBITDA margin 5.5% -> 14.3% with revenue +59%"
+   },
+   {
+    "signal_id": "profit_step_up:2020-12-31",
+    "kind": "profit_step_up",
+    "period_end": "2020-12-31",
+    "known_at": "2021-02-10T19:04:05+05:30",
+    "scope": "standalone",
+    "values": {
+     "profit_metric": "pat",
+     "profit": 19.345,
+     "profit_year_ago": -55.15,
+     "turnaround": true,
+     "ebitda": 65.102,
+     "ebitda_year_ago": 15.599
+    },
+    "basis": "pat turned from -55.1 to 19.3 cr with EBITDA 15.6 -> 65.1 cr"
+   },
+   {
+    "signal_id": "revenue_acceleration:2020-12-31",
+    "kind": "revenue_acceleration",
+    "period_end": "2020-12-31",
+    "known_at": "2021-02-10T19:04:05+05:30",
+    "scope": "standalone",
+    "values": {
+     "revenue_growth_pct": 58.866,
+     "prior_median_growth_pct": -15.937
+    },
+    "basis": "revenue +59% YoY vs a median of -16% over the previous four quarters"
+   },
+   {
+    "signal_id": "revenue_acceleration:2021-03-31",
+    "kind": "revenue_acceleration",
+    "period_end": "2021-03-31",
+    "known_at": "2021-05-26T17:51:02+05:30",
+    "scope": "standalone",
+    "values": {
+     "revenue_growth_pct": 50.205,
+     "prior_median_growth_pct": 2.822
+    },
+    "basis": "revenue +50% YoY vs a median of +3% over the previous four quarters"
+   },
+   {
+    "signal_id": "finance_cost_relief:2021-12-31",
+    "kind": "finance_cost_relief",
+    "period_end": "2021-12-31",
+    "known_at": "2022-02-09T18:50:11+05:30",
+    "scope": "standalone",
+    "values": {
+     "finance_cost": 5.389,
+     "finance_cost_year_ago": 11.452,
+     "share_of_ebitda_year_ago": 0.176
+    },
+    "basis": "finance cost 11.5 -> 5.4 cr (18% of EBITDA a year earlier)"
+   },
+   {
+    "signal_id": "finance_cost_relief:2022-03-31",
+    "kind": "finance_cost_relief",
+    "period_end": "2022-03-31",
+    "known_at": "2022-05-23T19:28:04+05:30",
+    "scope": "standalone",
+    "values": {
+     "finance_cost": 5.194,
+     "finance_cost_year_ago": 8.668,
+     "share_of_ebitda_year_ago": 0.153
+    },
+    "basis": "finance cost 8.7 -> 5.2 cr (15% of EBITDA a year earlier)"
+   },
+   {
+    "signal_id": "finance_cost_relief:2022-06-30",
+    "kind": "finance_cost_relief",
+    "period_end": "2022-06-30",
+    "known_at": "2022-08-04T17:15:33+05:30",
+    "scope": "consolidated",
+    "values": {
+     "finance_cost": 4.524,
+     "finance_cost_year_ago": 7.737,
+     "share_of_ebitda_year_ago": 0.23
+    },
+    "basis": "finance cost 7.7 -> 4.5 cr (23% of EBITDA a year earlier)"
+   },
+   {
+    "signal_id": "revenue_acceleration:2022-06-30",
+    "kind": "revenue_acceleration",
+    "period_end": "2022-06-30",
+    "known_at": "2022-08-04T17:15:33+05:30",
+    "scope": "consolidated",
+    "values": {
+     "revenue_growth_pct": 40.901,
+     "prior_median_growth_pct": -1.36
+    },
+    "basis": "revenue +41% YoY vs a median of -1% over the previous four quarters"
+   },
+   {
+    "signal_id": "finance_cost_relief:2022-09-30",
+    "kind": "finance_cost_relief",
+    "period_end": "2022-09-30",
+    "known_at": "2022-11-09T17:00:34+05:30",
+    "scope": "standalone",
+    "values": {
+     "finance_cost": 4.539,
+     "finance_cost_year_ago": 8.607,
+     "share_of_ebitda_year_ago": 0.19
+    },
+    "basis": "finance cost 8.6 -> 4.5 cr (19% of EBITDA a year earlier)"
+   },
+   {
+    "signal_id": "revenue_acceleration:2022-09-30",
+    "kind": "revenue_acceleration",
+    "period_end": "2022-09-30",
+    "known_at": "2022-11-09T17:00:34+05:30",
+    "scope": "standalone",
+    "values": {
+     "revenue_growth_pct": 27.728,
+     "prior_median_growth_pct": -4.781
+    },
+    "basis": "revenue +28% YoY vs a median of -5% over the previous four quarters"
+   },
+   {
+    "signal_id": "revenue_acceleration:2023-03-31",
+    "kind": "revenue_acceleration",
+    "period_end": "2023-03-31",
+    "known_at": "2023-05-11T14:40:03+05:30",
+    "scope": "standalone",
+    "values": {
+     "revenue_growth_pct": 30.752,
+     "prior_median_growth_pct": 16.766
+    },
+    "basis": "revenue +31% YoY vs a median of +17% over the previous four quarters"
+   },
+   {
+    "signal_id": "profit_step_up:2024-03-31",
+    "kind": "profit_step_up",
+    "period_end": "2024-03-31",
+    "known_at": "2024-05-15T19:13:21+05:30",
+    "scope": "standalone",
+    "values": {
+     "profit_metric": "pat",
+     "profit": 43.471,
+     "profit_year_ago": 27.137,
+     "profit_growth_pct": 60.192,
+     "ebitda_growth_pct": 29.822
+    },
+    "basis": "pat 27.1 -> 43.5 cr (+60%), EBITDA +30%"
+   },
+   {
+    "signal_id": "revenue_acceleration:2025-06-30",
+    "kind": "revenue_acceleration",
+    "period_end": "2025-06-30",
+    "known_at": "2025-07-31T16:51:17+05:30",
+    "scope": "consolidated",
+    "values": {
+     "revenue_growth_pct": 44.426,
+     "prior_median_growth_pct": 17.244
+    },
+    "basis": "revenue +44% YoY vs a median of +17% over the previous four quarters"
+   }
+  ],
+  "episodes": [
+   {
+    "quarters": [
+     "2020-09-30",
+     "2020-12-31",
+     "2021-03-31"
+    ],
+    "first_known_at": "2020-10-22",
+    "kinds": [
+     "operating_leverage",
+     "profit_step_up",
+     "revenue_acceleration"
+    ],
+    "outcome": "delivered",
+    "ttm_profit": [
+     5.720999999999989,
+     61.413799999999995,
+     41.49759999999999,
+     78.2898,
+     43.4409
+    ]
+   },
+   {
+    "quarters": [
+     "2021-12-31",
+     "2022-03-31",
+     "2022-06-30",
+     "2022-09-30",
+     "2023-03-31"
+    ],
+    "first_known_at": "2022-02-09",
+    "kinds": [
+     "finance_cost_relief",
+     "revenue_acceleration"
+    ],
+    "outcome": "delivered",
+    "ttm_profit": [
+     39.360200000000006,
+     55.0537,
+     69.705,
+     102.56439999999999,
+     111.9789
+    ]
+   },
+   {
+    "quarters": [
+     "2024-03-31"
+    ],
+    "first_known_at": "2024-05-15",
+    "kinds": [
+     "profit_step_up"
+    ],
+    "outcome": "not_delivered",
+    "ttm_profit": [
+     140.6115,
+     154.2341,
+     166.14979999999997,
+     173.58329999999998,
+     167.0299
+    ]
+   },
+   {
+    "quarters": [
+     "2025-06-30"
+    ],
+    "first_known_at": "2025-07-31",
+    "kinds": [
+     "revenue_acceleration"
+    ],
+    "outcome": "open",
+    "ttm_profit": [
+     171.3631,
+     190.28279999999998
+    ]
+   }
+  ],
+  "prefix_defects": [],
+  "vanished": [],
+  "base_rate": {
+   "quarters": 19,
+   "followed_by_25pct": 12
+  },
+  "signals_per_year": 3.16,
+  "episodes_per_year": 0.84
+ },
+ "series_scope": "consolidated",
+ "xbrl": {},
+ "workload": {
+  "alerts_per_year": 0.21,
+  "snapshots_in_flag_lane": 7,
+  "snapshots": 20,
+  "documents": 241
+ },
+ "timeline": {
+  "first_defensible_catalyst": "2021-11-09",
+  "first_any_catalyst": "2021-07-24",
+  "supported": 1,
+  "confirmed": 0,
+  "false_positives": 1,
+  "delayed": 0,
+  "executed_unconfirmable": 0,
+  "data_unavailable": 0,
+  "potential_only": 1,
+  "days_to_confirmed": [],
+  "rules_version": "catalyst-rules-6"
+ }
+}
