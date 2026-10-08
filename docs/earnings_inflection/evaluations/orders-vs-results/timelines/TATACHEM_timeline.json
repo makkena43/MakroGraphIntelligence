@@ -1,0 +1,595 @@
+{
+ "symbol": "TATACHEM",
+ "scope": "consolidated",
+ "quarters": 27,
+ "inflections": [],
+ "document_signals": [],
+ "ttm_path": [
+  [
+   "2019-03-31",
+   null,
+   null,
+   "2019-05-07"
+  ],
+  [
+   "2019-06-30",
+   null,
+   null,
+   "2019-08-08"
+  ],
+  [
+   "2019-09-30",
+   null,
+   null,
+   "2019-10-30"
+  ],
+  [
+   "2019-12-31",
+   11360.2,
+   1237.3,
+   "2020-02-03"
+  ],
+  [
+   "2020-03-31",
+   10978.9,
+   7250.0,
+   "2020-06-04"
+  ],
+  [
+   "2020-06-30",
+   10430.1,
+   7023.6,
+   "2020-07-31"
+  ],
+  [
+   "2020-09-30",
+   9956.0,
+   6739.0,
+   "2020-10-29"
+  ],
+  [
+   "2020-12-31",
+   9941.7,
+   6666.1,
+   "2021-01-28"
+  ],
+  [
+   "2021-03-31",
+   10199.8,
+   256.4,
+   "2021-05-03"
+  ],
+  [
+   "2021-06-30",
+   10828.9,
+   531.0,
+   "2021-08-05"
+  ],
+  [
+   "2021-09-30",
+   11242.2,
+   681.7,
+   "2021-10-28"
+  ],
+  [
+   "2022-03-31",
+   null,
+   null,
+   "2022-04-29"
+  ],
+  [
+   "2022-06-30",
+   null,
+   null,
+   "2022-08-09"
+  ],
+  [
+   "2022-09-30",
+   null,
+   null,
+   "2022-10-27"
+  ],
+  [
+   "2022-12-31",
+   15862.7,
+   2046.2,
+   "2023-02-01"
+  ],
+  [
+   "2023-03-31",
+   16789.0,
+   2317.0,
+   "2023-05-03"
+  ],
+  [
+   "2023-06-30",
+   17012.0,
+   2260.0,
+   "2023-08-07"
+  ],
+  [
+   "2023-09-30",
+   16771.0,
+   2060.0,
+   "2023-11-11"
+  ],
+  [
+   "2023-12-31",
+   16353.0,
+   1827.0,
+   "2024-02-05"
+  ],
+  [
+   "2024-03-31",
+   15421.0,
+   268.0,
+   "2024-04-29"
+  ],
+  [
+   "2024-06-30",
+   14992.0,
+   -114.0,
+   "2024-08-05"
+  ],
+  [
+   "2024-09-30",
+   14993.0,
+   -348.0,
+   "2024-10-17"
+  ],
+  [
+   "2024-12-31",
+   14853.0,
+   -559.0,
+   "2025-02-03"
+  ],
+  [
+   "2025-03-31",
+   14887.0,
+   235.0,
+   "2025-05-07"
+  ],
+  [
+   "2025-06-30",
+   14817.0,
+   337.0,
+   "2025-07-25"
+  ],
+  [
+   "2025-09-30",
+   14695.0,
+   220.0,
+   "2025-11-01"
+  ],
+  [
+   "2025-12-31",
+   14655.0,
+   180.0,
+   "2026-02-02"
+  ]
+ ],
+ "orders": [],
+ "books": [],
+ "timeline": [
+  {
+   "date": "2021-01-31",
+   "ttm_revenue": 9941.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-02-28",
+   "ttm_revenue": 9941.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-03-31",
+   "ttm_revenue": 9941.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-04-30",
+   "ttm_revenue": 9941.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-05-31",
+   "ttm_revenue": 10199.8,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-06-30",
+   "ttm_revenue": 10199.8,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-07-31",
+   "ttm_revenue": 10199.8,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-08-31",
+   "ttm_revenue": 10828.9,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-09-30",
+   "ttm_revenue": 10828.9,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-10-31",
+   "ttm_revenue": 11242.2,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-11-30",
+   "ttm_revenue": 11242.2,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-12-31",
+   "ttm_revenue": 11242.2,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-01-31",
+   "ttm_revenue": 11242.2,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-02-28",
+   "ttm_revenue": 11242.2,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-03-31",
+   "ttm_revenue": 11242.2,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-04-30",
+   "ttm_revenue": 11242.2,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-05-31",
+   "ttm_revenue": 11242.2,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-06-30",
+   "ttm_revenue": 11242.2,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-07-31",
+   "ttm_revenue": 11242.2,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-08-31",
+   "ttm_revenue": 11242.2,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-09-30",
+   "ttm_revenue": 11242.2,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-10-31",
+   "ttm_revenue": 11242.2,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-11-30",
+   "ttm_revenue": 11242.2,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-12-31",
+   "ttm_revenue": 11242.2,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-01-31",
+   "ttm_revenue": 11242.2,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-02-28",
+   "ttm_revenue": 15862.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-03-31",
+   "ttm_revenue": 15862.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-04-30",
+   "ttm_revenue": 15862.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-05-31",
+   "ttm_revenue": 16789.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-06-30",
+   "ttm_revenue": 16789.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-07-31",
+   "ttm_revenue": 16789.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-08-31",
+   "ttm_revenue": 17012.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-09-30",
+   "ttm_revenue": 17012.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-10-31",
+   "ttm_revenue": 17012.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-11-30",
+   "ttm_revenue": 16771.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-12-31",
+   "ttm_revenue": 16771.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-01-31",
+   "ttm_revenue": 16771.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-02-29",
+   "ttm_revenue": 16353.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-03-31",
+   "ttm_revenue": 16353.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-04-30",
+   "ttm_revenue": 15421.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-05-31",
+   "ttm_revenue": 15421.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-06-30",
+   "ttm_revenue": 15421.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-07-31",
+   "ttm_revenue": 15421.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-08-31",
+   "ttm_revenue": 14992.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-09-30",
+   "ttm_revenue": 14992.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-10-31",
+   "ttm_revenue": 14993.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-11-30",
+   "ttm_revenue": 14993.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-12-31",
+   "ttm_revenue": 14993.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-01-31",
+   "ttm_revenue": 14993.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-02-28",
+   "ttm_revenue": 14853.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-03-31",
+   "ttm_revenue": 14853.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-04-30",
+   "ttm_revenue": 14853.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-05-31",
+   "ttm_revenue": 14887.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-06-30",
+   "ttm_revenue": 14887.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-07-31",
+   "ttm_revenue": 14817.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-08-31",
+   "ttm_revenue": 14817.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-09-30",
+   "ttm_revenue": 14817.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-10-31",
+   "ttm_revenue": 14817.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-11-30",
+   "ttm_revenue": 14695.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-12-31",
+   "ttm_revenue": 14695.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  }
+ ]
+}

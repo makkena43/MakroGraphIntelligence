@@ -1,0 +1,1086 @@
+{
+ "symbol": "LUMAXIND",
+ "scope": "standalone",
+ "quarters": 27,
+ "inflections": [
+  {
+   "quarter": "2021-09-30",
+   "published": "2021-11-12",
+   "ttm_profit_year_ago": 19.6,
+   "ttm_profit": 41.5,
+   "document_signal": null,
+   "lead_days": null
+  },
+  {
+   "quarter": "2022-12-31",
+   "published": "2023-02-09",
+   "ttm_profit_year_ago": 32.5,
+   "ttm_profit": 87.7,
+   "document_signal": null,
+   "lead_days": null
+  }
+ ],
+ "document_signals": [],
+ "ttm_path": [
+  [
+   "2019-03-31",
+   null,
+   null,
+   "2019-05-15"
+  ],
+  [
+   "2019-09-30",
+   null,
+   null,
+   "2019-11-13"
+  ],
+  [
+   "2019-12-31",
+   null,
+   null,
+   "2020-02-01"
+  ],
+  [
+   "2020-03-31",
+   null,
+   null,
+   "2020-06-19"
+  ],
+  [
+   "2020-06-30",
+   1277.6,
+   30.1,
+   "2020-08-12"
+  ],
+  [
+   "2020-09-30",
+   1245.9,
+   19.6,
+   "2020-11-10"
+  ],
+  [
+   "2020-12-31",
+   1308.9,
+   17.0,
+   "2021-02-11"
+  ],
+  [
+   "2021-03-31",
+   1426.0,
+   17.0,
+   "2021-06-16"
+  ],
+  [
+   "2021-06-30",
+   1662.0,
+   36.0,
+   "2021-08-06"
+  ],
+  [
+   "2021-09-30",
+   1717.3,
+   41.5,
+   "2021-11-12"
+  ],
+  [
+   "2021-12-31",
+   1706.3,
+   32.5,
+   "2022-02-11"
+  ],
+  [
+   "2022-03-31",
+   1751.3,
+   35.4,
+   "2022-05-24"
+  ],
+  [
+   "2022-06-30",
+   1949.2,
+   60.0,
+   "2022-08-10"
+  ],
+  [
+   "2022-09-30",
+   2116.7,
+   70.6,
+   "2022-11-11"
+  ],
+  [
+   "2022-12-31",
+   2260.8,
+   87.7,
+   "2023-02-09"
+  ],
+  [
+   "2023-03-31",
+   2319.5,
+   70.6,
+   "2023-05-27"
+  ],
+  [
+   "2023-06-30",
+   2426.0,
+   70.3,
+   "2023-08-09"
+  ],
+  [
+   "2023-09-30",
+   2449.7,
+   61.6,
+   "2023-11-09"
+  ],
+  [
+   "2023-12-31",
+   2502.0,
+   76.2,
+   "2024-02-09"
+  ],
+  [
+   "2024-03-31",
+   2636.6,
+   86.1,
+   "2024-05-24"
+  ],
+  [
+   "2024-06-30",
+   2784.0,
+   91.2,
+   "2024-08-08"
+  ],
+  [
+   "2024-09-30",
+   2952.0,
+   88.2,
+   "2024-11-12"
+  ],
+  [
+   "2024-12-31",
+   3207.4,
+   74.0,
+   "2025-02-10"
+  ],
+  [
+   "2025-03-31",
+   3388.1,
+   91.5,
+   "2025-05-27"
+  ],
+  [
+   "2025-06-30",
+   3544.8,
+   97.0,
+   "2025-08-06"
+  ],
+  [
+   "2025-09-30",
+   3741.6,
+   109.8,
+   "2025-11-07"
+  ],
+  [
+   "2025-12-31",
+   3907.2,
+   170.7,
+   "2026-02-10"
+  ]
+ ],
+ "orders": [
+  {
+   "date": "2021-08-07",
+   "role": "order_value",
+   "crore": 250.0,
+   "doc": "nse105026798",
+   "type": "Press Release",
+   "quote": "Business & Customer Update The Company has made following new launches during the quarter: Category Customer Name Model Product High Mount Stop Lamp, Passenger Vehicle M&M XUV 700 Roof Lamp & other Lamps Commercial Vehic"
+  },
+  {
+   "date": "2021-10-28",
+   "role": "order_value",
+   "crore": 250.0,
+   "doc": "nse105124348",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Company has secured new orders worth Rs. 250 Crores from OEMs for their upcoming model as well as localization of lamps of existing models."
+  }
+ ],
+ "books": [
+  {
+   "date": "2022-05-31",
+   "role": "book_level",
+   "crore": 800.0,
+   "doc": "nse5040717",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "The company holds a strong order book of Rs. 800 crore and we are looking forward to an improved and sustained performance in the coming fiscal."
+  },
+  {
+   "date": "2022-05-31",
+   "role": "book_level",
+   "crore": 800.0,
+   "doc": "nse5040717",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "Ashutosh Tiwari: And just one more question, when we highlight orderbook of Rs. 800 crores, what does that exactly mean?"
+  },
+  {
+   "date": "2022-08-22",
+   "role": "book_level",
+   "crore": 1000.0,
+   "doc": "nse5080415",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "Aashin: And sir, this Rs. 1,000 crore order book, when would it go into production?"
+  },
+  {
+   "date": "2022-08-22",
+   "role": "book_level",
+   "crore": 1000.0,
+   "doc": "nse5080415",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "I mentioned that Page 7 of 16 Lumax Industries Limited August 16, 2022 there is a Rs. 1,000 crore order book which the company enjoys."
+  },
+  {
+   "date": "2022-08-22",
+   "role": "book_level",
+   "crore": 1000.0,
+   "doc": "nse5080415",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "I'm asking in your order book of Rs. 1,000 crore, you mentioned 30% is from EVs."
+  },
+  {
+   "date": "2022-11-25",
+   "role": "book_level",
+   "crore": 1000.0,
+   "doc": "nse5125565",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "You can actually see most of the vehicles have launched now recently have some element of LED, vis-\u00c3 -vis, also our INR 1,000 crores order book has almost all product developments into LED and in all segments as well."
+  },
+  {
+   "date": "2023-02-17",
+   "role": "book_level",
+   "crore": 1000.0,
+   "doc": "nse105430896",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Ashutosh Tiwari: But still you're confident like -- INR 1,000 crores order book that you mentioned, what would be the share of LED over there?"
+  },
+  {
+   "date": "2023-02-17",
+   "role": "book_level",
+   "crore": 600.0,
+   "doc": "nse105430896",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "This INR 600 crores is a part of the total order book of about INR 1,150 crores."
+  },
+  {
+   "date": "2023-02-17",
+   "role": "book_level",
+   "crore": 1000.0,
+   "doc": "nse105430896",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Anmol Jain: About the INR 1,000 crores order book, I would not be able to give you a customer-wise breakup."
+  },
+  {
+   "date": "2023-02-17",
+   "role": "book_level",
+   "crore": 1100.0,
+   "doc": "nse105430896",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "I think a good order book of about almost INR 1,100 crores plus, which we should be able to execute in 3 years."
+  },
+  {
+   "date": "2023-02-17",
+   "role": "book_level",
+   "crore": 475.0,
+   "doc": "nse105430896",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "And you mentioned INR 475 crores order book is for electric vehicles out of that INR 1,150 crores."
+  },
+  {
+   "date": "2023-02-17",
+   "role": "book_level",
+   "crore": 1000.0,
+   "doc": "nse105430896",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "However, we, as I mentioned, have a very strong order book, and we do not anticipate a very hefty investment after this Chakan facility to fulfill that INR 1,000 crores, INR 1,200 crores order book."
+  },
+  {
+   "date": "2023-02-17",
+   "role": "book_level",
+   "crore": 1200.0,
+   "doc": "nse105430896",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "However, we, as I mentioned, have a very strong order book, and we do not anticipate a very hefty investment after this Chakan facility to fulfill that INR 1,000 crores, INR 1,200 crores order book."
+  },
+  {
+   "date": "2023-02-17",
+   "role": "book_level",
+   "crore": 1150.0,
+   "doc": "nse105430896",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "And sir, the INR 1,150 crores of order book is from where -- is this expected to come on our production line?"
+  },
+  {
+   "date": "2023-06-08",
+   "role": "book_level",
+   "crore": 1300.0,
+   "doc": "nse105526534",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "I am happy to share that your company has a healthy confirmed order book of around INR1,300 crores. 85% to 90% of it is new business, and out of which, 40% is from the EV models."
+  },
+  {
+   "date": "2023-06-08",
+   "role": "book_level",
+   "crore": 1300.0,
+   "doc": "nse105526534",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "However, as I mentioned briefly earlier, the INR1,300 crores order book, we do envisage maybe perhaps an Page 8 of 16 Lumax Industries Limited June 01, 2023 investment, which will be giving us an asset turn of about 2.5x"
+  },
+  {
+   "date": "2023-06-08",
+   "role": "book_level",
+   "crore": 1300.0,
+   "doc": "nse105526534",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "We've also invested significant money in the R&D in the last few years, which is the result of why we are sitting on a INR1,300 crores order book today."
+  },
+  {
+   "date": "2023-06-08",
+   "role": "book_level",
+   "crore": 1300.0,
+   "doc": "nse105526534",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "And the 20%, 25% growth you're talking about, but the INR1,300 crores order book you would expect only 10% revenues to come in FY '24."
+  },
+  {
+   "date": "2023-08-18",
+   "role": "book_level",
+   "crore": 2000.0,
+   "doc": "nse105594026",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "This is also reflected in our strong order book of over INR2,000 crores that is currently on hand."
+  },
+  {
+   "date": "2023-08-18",
+   "role": "book_level",
+   "crore": 2200.0,
+   "doc": "nse105594026",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Page 5 of 17 Lumax Industries Limited August 11, 2023 Anmol Jain: So the current order book stands almost close to INR2,200 crores, out of which, I would say that almost 60% to 65% of this would be in the passenger car s"
+  },
+  {
+   "date": "2023-08-18",
+   "role": "book_level",
+   "crore": 2200.0,
+   "doc": "nse105594026",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Just wanted to know this INR2,200 crores of order book, how it will be spread over next three years means there's ballpark, where start executing from this year onwards and post this year, next year, how will you -- how "
+  },
+  {
+   "date": "2023-08-18",
+   "role": "book_level",
+   "crore": 2200.0,
+   "doc": "nse105594026",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Again, if I look at servicing this order book of almost INR2,200 crores, I do expect my current asset turns at about 1.6%, and it's even if I were to say that it will increase and get better to, let's say, 2.5%, there is"
+  },
+  {
+   "date": "2023-08-18",
+   "role": "book_level",
+   "crore": 2200.0,
+   "doc": "nse105594026",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "But on a per annum, we have a INR2,200 crores order book, and I already gave the bifurcation in how much will come in FY '24, '25 and '26."
+  },
+  {
+   "date": "2023-11-16",
+   "role": "book_level",
+   "crore": 2200.0,
+   "doc": "nse105677684",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "We actually on the last basically order book front, the company has had a healthy order book of Rs. 2,200 crores out of which 62% is new businesses and the EV contribution is 34% of the total order book."
+  },
+  {
+   "date": "2023-11-16",
+   "role": "book_level",
+   "crore": 2200.0,
+   "doc": "nse105677684",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Peak of that we are sitting on almost Rs. 2,200 crores of order book and almost 60% of that will get into SOP in FY25."
+  },
+  {
+   "date": "2023-11-16",
+   "role": "book_level",
+   "crore": 1300.0,
+   "doc": "nse105677684",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "I mean giving you the specific numbers we are looking at almost some Rs. 1,300 crores of order book which will get into FY25 and out of this approximately, I would say maybe Rs. 800 to Rs. 900 crores would be new orders "
+  },
+  {
+   "date": "2023-11-16",
+   "role": "book_level",
+   "crore": 2200.0,
+   "doc": "nse105677684",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "However, in the order book of Rs. 2,200 crores, which the company is sitting on, almost 35% is from EV models and they are more in the passenger vehicle space."
+  },
+  {
+   "date": "2023-11-16",
+   "role": "book_level",
+   "crore": 2200.0,
+   "doc": "nse105677684",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Dhiral Shah: Sir, as you are standing at the order book of Rs. 2,200 crores, so what is the execution timeline for this?"
+  },
+  {
+   "date": "2024-02-21",
+   "role": "book_level",
+   "crore": 2200.0,
+   "doc": "nse105766274",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Also, on the order book front, the company has a healthy order book of INR2,200 crores, out of which 64% is new business."
+  },
+  {
+   "date": "2024-02-21",
+   "role": "book_level",
+   "crore": 2200.0,
+   "doc": "nse105766274",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Anmol Jain: So INR2,200 crores is the order book, which is the new orders."
+  },
+  {
+   "date": "2024-02-21",
+   "role": "book_level",
+   "crore": 2200.0,
+   "doc": "nse105766274",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Jatin Chawla: My first question is this order book of INR2,200 crores."
+  },
+  {
+   "date": "2024-02-21",
+   "role": "book_level",
+   "crore": 1400.0,
+   "doc": "nse105766274",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "The order book, which we are trying to invest in that there is almost a INR1,400 crores to INR1,500 crores new orders in the order book."
+  },
+  {
+   "date": "2024-02-21",
+   "role": "book_level",
+   "crore": 1500.0,
+   "doc": "nse105766274",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "The order book, which we are trying to invest in that there is almost a INR1,400 crores to INR1,500 crores new orders in the order book."
+  },
+  {
+   "date": "2024-02-21",
+   "role": "book_level",
+   "crore": 2200.0,
+   "doc": "nse105766274",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So say our current order book is around INR2,200 crores, correct?"
+  },
+  {
+   "date": "2024-02-21",
+   "role": "book_level",
+   "crore": 1400.0,
+   "doc": "nse105766274",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "But I'm saying that on a INR1,400 crores, INR1,500 crores order book, you can do the math of 1:2.2, and it's about INR650 crores or somewhere around that is what we would be expected to add into the gross block."
+  },
+  {
+   "date": "2024-02-21",
+   "role": "book_level",
+   "crore": 1500.0,
+   "doc": "nse105766274",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "But I'm saying that on a INR1,400 crores, INR1,500 crores order book, you can do the math of 1:2.2, and it's about INR650 crores or somewhere around that is what we would be expected to add into the gross block."
+  },
+  {
+   "date": "2024-08-21",
+   "role": "book_level",
+   "crore": 2300.0,
+   "doc": "nse105960573",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Currently, we have a robust order book of approximately INR2,300 crores, with 88% dedicated to LED light."
+  },
+  {
+   "date": "2024-08-21",
+   "role": "book_level",
+   "crore": 2400.0,
+   "doc": "nse105960573",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Of course, most of the order book, as you -- as I mentioned, close to INR2,400 crores order book, which we are sitting at."
+  },
+  {
+   "date": "2024-08-21",
+   "role": "book_level",
+   "crore": 2400.0,
+   "doc": "nse105960573",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Anmol Jain: So I think right now, we're sitting on, as I said, the order book of INR2,400 crores, out of which almost INR1,700 crores to INR1,800 crores are new orders, not replacement orders, which would need additional"
+  },
+  {
+   "date": "2024-11-23",
+   "role": "book_level",
+   "crore": 2900.0,
+   "doc": "nse106067984",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Currently, we have a robust order book of approximately INR2,900 crores with 87% dedicated to LED lighting."
+  },
+  {
+   "date": "2024-11-23",
+   "role": "book_level",
+   "crore": 3000.0,
+   "doc": "nse106067984",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Coming to the order book, I think Deepak mentioned that there is an order book of almost close to INR3,000 crores."
+  },
+  {
+   "date": "2024-11-23",
+   "role": "book_level",
+   "crore": 3000.0,
+   "doc": "nse106067984",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "We've got almost close to INR350 crores of new orders from HMSI in the INR3,000 crore order book."
+  },
+  {
+   "date": "2025-02-19",
+   "role": "book_level",
+   "crore": 2600.0,
+   "doc": "nse106156475",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Looking ahead, I am pleased to report that we have a strong and healthy order book of INR2,600 crores, of this, a significant 33% is dedicated to electric vehicles, reflecting our growing commitment to the EV sector and "
+  },
+  {
+   "date": "2025-02-19",
+   "role": "book_level",
+   "crore": 2600.0,
+   "doc": "nse106156475",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "The INR2,600 crore order book, which we are sitting on, 15% of that has already realized in FY '25."
+  },
+  {
+   "date": "2025-02-19",
+   "role": "book_level",
+   "crore": 2600.0,
+   "doc": "nse106156475",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "And if I look at the order book of INR2,600 crores, I would say, almost close to 90% of that order book is with LED lighting."
+  },
+  {
+   "date": "2025-02-19",
+   "role": "book_level",
+   "crore": 2500.0,
+   "doc": "nse106156475",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "And again, I think anywhere between INR2,500 crores to INR3,000 crores order book which we would like to sustain going forward as well."
+  },
+  {
+   "date": "2025-02-19",
+   "role": "book_level",
+   "crore": 3000.0,
+   "doc": "nse106156475",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "And again, I think anywhere between INR2,500 crores to INR3,000 crores order book which we would like to sustain going forward as well."
+  },
+  {
+   "date": "2025-05-26",
+   "role": "book_level",
+   "crore": 2275.0,
+   "doc": "nse106249306",
+   "type": "Investor Presentation",
+   "quote": "Our order book remains healthy at Rs. 2,275 crores, with LED lighting comprising 88% of it."
+  },
+  {
+   "date": "2025-05-26",
+   "role": "book_level",
+   "crore": 2275.0,
+   "doc": "nse106249313",
+   "type": "Press Release",
+   "quote": "Our order book remains healthy at \u20b92,275 crores, with LED lighting comprising 88% of it."
+  },
+  {
+   "date": "2025-06-04",
+   "role": "book_level",
+   "crore": 2275.0,
+   "doc": "nse106262073",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Looking ahead, we are pleased to report a healthy order book of INR2,275 crores."
+  },
+  {
+   "date": "2025-06-04",
+   "role": "book_level",
+   "crore": 2200.0,
+   "doc": "nse106262073",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Saurabh Jain: So, from INR2,200 crores kind of order book which we have, like more than 50% is from Maruti?"
+  },
+  {
+   "date": "2025-08-18",
+   "role": "book_level",
+   "crore": 2000.0,
+   "doc": "nse106344261",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "With a healthy order book of almost INR2,000 crores as on date and focus on enhancing operational efficiencies, we are confidently moving forward on the path of a sustainable long- term value creation for all stakeholder"
+  },
+  {
+   "date": "2025-08-18",
+   "role": "book_level",
+   "crore": 70.0,
+   "doc": "nse106344261",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Almost I would think, close to about INR50 crores to INR70 crores out of this total order book would be of new models of HMSI."
+  },
+  {
+   "date": "2025-08-18",
+   "role": "book_level",
+   "crore": 1900.0,
+   "doc": "nse106344261",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "And sir, how much of this INR1,900 crores plus order book to flow in current fiscal?"
+  },
+  {
+   "date": "2025-11-15",
+   "role": "book_level",
+   "crore": 1800.0,
+   "doc": "nse106446662",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our order book remains healthy at over Rs. 1,800 crores providing strong revenue visibility for the coming quarters and reinforcing a confident outlook."
+  },
+  {
+   "date": "2025-11-15",
+   "role": "book_level",
+   "crore": 2000.0,
+   "doc": "nse106446662",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Sir, other question would be right now the order book, we have around Rs. 2,000 crores of order book, which is equivalent to six months of our revenue."
+  },
+  {
+   "date": "2025-11-15",
+   "role": "book_level",
+   "crore": 1800.0,
+   "doc": "nse106446662",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So, sir, on this order book, we have around Rs. 1,800 crores of order book for next three years, assuming current our trading revenue is around Rs. 3,700 crores."
+  }
+ ],
+ "timeline": [
+  {
+   "date": "2021-01-31",
+   "ttm_revenue": 1245.9,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-02-28",
+   "ttm_revenue": 1308.9,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-03-31",
+   "ttm_revenue": 1308.9,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-04-30",
+   "ttm_revenue": 1308.9,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-05-31",
+   "ttm_revenue": 1308.9,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-06-30",
+   "ttm_revenue": 1426.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-07-31",
+   "ttm_revenue": 1426.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-08-31",
+   "ttm_revenue": 1662.0,
+   "orders_12m": 250.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-09-30",
+   "ttm_revenue": 1662.0,
+   "orders_12m": 250.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-10-31",
+   "ttm_revenue": 1662.0,
+   "orders_12m": 500.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-11-30",
+   "ttm_revenue": 1717.3,
+   "orders_12m": 500.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-12-31",
+   "ttm_revenue": 1717.3,
+   "orders_12m": 500.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-01-31",
+   "ttm_revenue": 1717.3,
+   "orders_12m": 500.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-02-28",
+   "ttm_revenue": 1706.3,
+   "orders_12m": 500.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-03-31",
+   "ttm_revenue": 1706.3,
+   "orders_12m": 500.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-04-30",
+   "ttm_revenue": 1706.3,
+   "orders_12m": 500.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-05-31",
+   "ttm_revenue": 1751.3,
+   "orders_12m": 500.0,
+   "book": 800.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-06-30",
+   "ttm_revenue": 1751.3,
+   "orders_12m": 500.0,
+   "book": 800.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-07-31",
+   "ttm_revenue": 1751.3,
+   "orders_12m": 500.0,
+   "book": 800.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-08-31",
+   "ttm_revenue": 1949.2,
+   "orders_12m": 250.0,
+   "book": 1000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-09-30",
+   "ttm_revenue": 1949.2,
+   "orders_12m": 250.0,
+   "book": 1000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-10-31",
+   "ttm_revenue": 1949.2,
+   "orders_12m": 0,
+   "book": 1000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-11-30",
+   "ttm_revenue": 2116.7,
+   "orders_12m": 0,
+   "book": 1000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-12-31",
+   "ttm_revenue": 2116.7,
+   "orders_12m": 0,
+   "book": 1000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-01-31",
+   "ttm_revenue": 2116.7,
+   "orders_12m": 0,
+   "book": 1000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-02-28",
+   "ttm_revenue": 2260.8,
+   "orders_12m": 0,
+   "book": 1150.0,
+   "book_year_ago": 800.0
+  },
+  {
+   "date": "2023-03-31",
+   "ttm_revenue": 2260.8,
+   "orders_12m": 0,
+   "book": 1150.0,
+   "book_year_ago": 800.0
+  },
+  {
+   "date": "2023-04-30",
+   "ttm_revenue": 2260.8,
+   "orders_12m": 0,
+   "book": 1150.0,
+   "book_year_ago": 800.0
+  },
+  {
+   "date": "2023-05-31",
+   "ttm_revenue": 2319.5,
+   "orders_12m": 0,
+   "book": 1150.0,
+   "book_year_ago": 1000.0
+  },
+  {
+   "date": "2023-06-30",
+   "ttm_revenue": 2319.5,
+   "orders_12m": 0,
+   "book": 1300.0,
+   "book_year_ago": 1000.0
+  },
+  {
+   "date": "2023-07-31",
+   "ttm_revenue": 2319.5,
+   "orders_12m": 0,
+   "book": 1300.0,
+   "book_year_ago": 1000.0
+  },
+  {
+   "date": "2023-08-31",
+   "ttm_revenue": 2426.0,
+   "orders_12m": 0,
+   "book": 2200.0,
+   "book_year_ago": 1000.0
+  },
+  {
+   "date": "2023-09-30",
+   "ttm_revenue": 2426.0,
+   "orders_12m": 0,
+   "book": 2200.0,
+   "book_year_ago": 1000.0
+  },
+  {
+   "date": "2023-10-31",
+   "ttm_revenue": 2426.0,
+   "orders_12m": 0,
+   "book": 2200.0,
+   "book_year_ago": 1000.0
+  },
+  {
+   "date": "2023-11-30",
+   "ttm_revenue": 2449.7,
+   "orders_12m": 0,
+   "book": 2200.0,
+   "book_year_ago": 1150.0
+  },
+  {
+   "date": "2023-12-31",
+   "ttm_revenue": 2449.7,
+   "orders_12m": 0,
+   "book": 2200.0,
+   "book_year_ago": 1150.0
+  },
+  {
+   "date": "2024-01-31",
+   "ttm_revenue": 2449.7,
+   "orders_12m": 0,
+   "book": 2200.0,
+   "book_year_ago": 1150.0
+  },
+  {
+   "date": "2024-02-29",
+   "ttm_revenue": 2502.0,
+   "orders_12m": 0,
+   "book": 1500.0,
+   "book_year_ago": 1150.0
+  },
+  {
+   "date": "2024-03-31",
+   "ttm_revenue": 2502.0,
+   "orders_12m": 0,
+   "book": 1500.0,
+   "book_year_ago": 1300.0
+  },
+  {
+   "date": "2024-04-30",
+   "ttm_revenue": 2502.0,
+   "orders_12m": 0,
+   "book": 1500.0,
+   "book_year_ago": 1300.0
+  },
+  {
+   "date": "2024-05-31",
+   "ttm_revenue": 2636.6,
+   "orders_12m": 0,
+   "book": 1500.0,
+   "book_year_ago": 2200.0
+  },
+  {
+   "date": "2024-06-30",
+   "ttm_revenue": 2636.6,
+   "orders_12m": 0,
+   "book": 1500.0,
+   "book_year_ago": 2200.0
+  },
+  {
+   "date": "2024-07-31",
+   "ttm_revenue": 2636.6,
+   "orders_12m": 0,
+   "book": 1500.0,
+   "book_year_ago": 2200.0
+  },
+  {
+   "date": "2024-08-31",
+   "ttm_revenue": 2784.0,
+   "orders_12m": 0,
+   "book": 2400.0,
+   "book_year_ago": 2200.0
+  },
+  {
+   "date": "2024-09-30",
+   "ttm_revenue": 2784.0,
+   "orders_12m": 0,
+   "book": 2400.0,
+   "book_year_ago": 2200.0
+  },
+  {
+   "date": "2024-10-31",
+   "ttm_revenue": 2784.0,
+   "orders_12m": 0,
+   "book": 2400.0,
+   "book_year_ago": 2200.0
+  },
+  {
+   "date": "2024-11-30",
+   "ttm_revenue": 2952.0,
+   "orders_12m": 0,
+   "book": 3000.0,
+   "book_year_ago": 1500.0
+  },
+  {
+   "date": "2024-12-31",
+   "ttm_revenue": 2952.0,
+   "orders_12m": 0,
+   "book": 3000.0,
+   "book_year_ago": 1500.0
+  },
+  {
+   "date": "2025-01-31",
+   "ttm_revenue": 2952.0,
+   "orders_12m": 0,
+   "book": 3000.0,
+   "book_year_ago": 1500.0
+  },
+  {
+   "date": "2025-02-28",
+   "ttm_revenue": 3207.4,
+   "orders_12m": 0,
+   "book": 3000.0,
+   "book_year_ago": 1500.0
+  },
+  {
+   "date": "2025-03-31",
+   "ttm_revenue": 3207.4,
+   "orders_12m": 0,
+   "book": 3000.0,
+   "book_year_ago": 1500.0
+  },
+  {
+   "date": "2025-04-30",
+   "ttm_revenue": 3207.4,
+   "orders_12m": 0,
+   "book": 3000.0,
+   "book_year_ago": 1500.0
+  },
+  {
+   "date": "2025-05-31",
+   "ttm_revenue": 3388.1,
+   "orders_12m": 0,
+   "book": 2275.0,
+   "book_year_ago": 2400.0
+  },
+  {
+   "date": "2025-06-30",
+   "ttm_revenue": 3388.1,
+   "orders_12m": 0,
+   "book": 2200.0,
+   "book_year_ago": 2400.0
+  },
+  {
+   "date": "2025-07-31",
+   "ttm_revenue": 3388.1,
+   "orders_12m": 0,
+   "book": 2200.0,
+   "book_year_ago": 2400.0
+  },
+  {
+   "date": "2025-08-31",
+   "ttm_revenue": 3544.8,
+   "orders_12m": 0,
+   "book": 1900.0,
+   "book_year_ago": 3000.0
+  },
+  {
+   "date": "2025-09-30",
+   "ttm_revenue": 3544.8,
+   "orders_12m": 0,
+   "book": 1900.0,
+   "book_year_ago": 3000.0
+  },
+  {
+   "date": "2025-10-31",
+   "ttm_revenue": 3544.8,
+   "orders_12m": 0,
+   "book": 1900.0,
+   "book_year_ago": 3000.0
+  },
+  {
+   "date": "2025-11-30",
+   "ttm_revenue": 3741.6,
+   "orders_12m": 0,
+   "book": 1800.0,
+   "book_year_ago": 3000.0
+  },
+  {
+   "date": "2025-12-31",
+   "ttm_revenue": 3741.6,
+   "orders_12m": 0,
+   "book": 1800.0,
+   "book_year_ago": 3000.0
+  }
+ ]
+}

@@ -1,0 +1,920 @@
+{
+ "symbol": "SHAKTIPUMP",
+ "scope": "consolidated",
+ "quarters": 27,
+ "inflections": [
+  {
+   "quarter": "2021-09-30",
+   "published": "2021-10-20",
+   "ttm_profit_year_ago": 3.7,
+   "ttm_profit": 85.1,
+   "document_signal": null,
+   "lead_days": null
+  },
+  {
+   "quarter": "2024-03-31",
+   "published": "2024-04-27",
+   "ttm_profit_year_ago": 24.1,
+   "ttm_profit": 141.7,
+   "document_signal": {
+    "date": "2023-11-30",
+    "why": [
+     "orders announced in 12 months 801 cr = 1.0x TTM revenue"
+    ]
+   },
+   "lead_days": 149
+  },
+  {
+   "quarter": "2025-06-30",
+   "published": "2025-08-01",
+   "ttm_profit_year_ago": 233.4,
+   "ttm_profit": 412.5,
+   "document_signal": null,
+   "lead_days": null
+  }
+ ],
+ "document_signals": [
+  {
+   "date": "2023-11-30",
+   "why": [
+    "orders announced in 12 months 801 cr = 1.0x TTM revenue"
+   ]
+  },
+  {
+   "date": "2025-12-31",
+   "why": [
+    "orders announced in 12 months 3,344 cr = 1.3x TTM revenue"
+   ]
+  }
+ ],
+ "ttm_path": [
+  [
+   "2019-06-30",
+   null,
+   null,
+   "2019-08-12"
+  ],
+  [
+   "2019-09-30",
+   null,
+   null,
+   "2019-11-14"
+  ],
+  [
+   "2019-12-31",
+   null,
+   null,
+   "2020-02-15"
+  ],
+  [
+   "2020-03-31",
+   382.8,
+   -14.1,
+   "2020-06-30"
+  ],
+  [
+   "2020-06-30",
+   369.2,
+   -13.2,
+   "2020-08-06"
+  ],
+  [
+   "2020-09-30",
+   479.1,
+   3.7,
+   "2020-10-16"
+  ],
+  [
+   "2020-12-31",
+   702.5,
+   38.9,
+   "2021-01-18"
+  ],
+  [
+   "2021-03-31",
+   929.7,
+   75.6,
+   "2021-05-18"
+  ],
+  [
+   "2021-06-30",
+   993.8,
+   79.6,
+   "2021-07-22"
+  ],
+  [
+   "2021-09-30",
+   1161.7,
+   85.1,
+   "2021-10-20"
+  ],
+  [
+   "2021-12-31",
+   1113.7,
+   73.4,
+   "2022-01-19"
+  ],
+  [
+   "2022-03-31",
+   1178.5,
+   64.8,
+   "2022-05-03"
+  ],
+  [
+   "2022-06-30",
+   1276.7,
+   66.3,
+   "2022-07-15"
+  ],
+  [
+   "2022-09-30",
+   1124.0,
+   47.4,
+   "2022-11-12"
+  ],
+  [
+   "2022-12-31",
+   1169.6,
+   43.8,
+   "2023-01-21"
+  ],
+  [
+   "2023-03-31",
+   967.7,
+   24.1,
+   "2023-05-06"
+  ],
+  [
+   "2023-06-30",
+   826.3,
+   16.4,
+   "2023-08-16"
+  ],
+  [
+   "2023-09-30",
+   762.7,
+   20.4,
+   "2023-11-04"
+  ],
+  [
+   "2023-12-31",
+   944.1,
+   54.3,
+   "2024-01-25"
+  ],
+  [
+   "2024-03-31",
+   1370.7,
+   141.7,
+   "2024-04-27"
+  ],
+  [
+   "2024-06-30",
+   1825.2,
+   233.4,
+   "2024-07-20"
+  ],
+  [
+   "2024-09-30",
+   2307.0,
+   328.9,
+   "2024-10-26"
+  ],
+  [
+   "2024-12-31",
+   2460.2,
+   387.8,
+   "2025-01-25"
+  ],
+  [
+   "2025-03-31",
+   2516.2,
+   408.4,
+   "2025-05-09"
+  ],
+  [
+   "2025-06-30",
+   2571.2,
+   412.5,
+   "2025-08-01"
+  ],
+  [
+   "2025-09-30",
+   2602.9,
+   401.8,
+   "2025-11-07"
+  ],
+  [
+   "2025-12-31",
+   2505.2,
+   329.5,
+   "2026-02-13"
+  ]
+ ],
+ "orders": [
+  {
+   "date": "2023-08-30",
+   "role": "order_value",
+   "crore": 358.0,
+   "doc": "nse105603864",
+   "type": "Updates",
+   "quote": "The total amount of the work order is for around Rs. 358 Crores (inclusive of GST)."
+  },
+  {
+   "date": "2023-09-15",
+   "role": "order_value",
+   "crore": 293.0,
+   "doc": "nse105619185",
+   "type": "Updates",
+   "quote": "The total amount of the work order is for around Rs. 293 Crores (inclusive of GST)."
+  },
+  {
+   "date": "2023-10-07",
+   "role": "order_value",
+   "crore": 149.7,
+   "doc": "nse105638481",
+   "type": "Updates",
+   "quote": "Broad commercial consideration or Rs. 149.71 Crores (inclusive of GST) size of the order(s)/contract(s) 6."
+  },
+  {
+   "date": "2023-12-29",
+   "role": "order_value",
+   "crore": 258.0,
+   "doc": "nse105709469",
+   "type": "Updates",
+   "quote": "The total amount of the work order is for around Rs. 258 Crores (inclusive of GST)."
+  },
+  {
+   "date": "2024-01-27",
+   "role": "order_value",
+   "crore": 2250.0,
+   "doc": "nse105737058",
+   "type": "Investor Presentation",
+   "quote": "As on date, we have approximately Rs. 2,250 Crores worth of orders to be executed over the next 21 months, ensuring a sustained and strong growth momentum in the future."
+  },
+  {
+   "date": "2024-02-24",
+   "role": "order_value",
+   "crore": 84.3,
+   "doc": "nse105768827",
+   "type": "Updates",
+   "quote": "The total amount of the work order is for around Rs. 84.30 Crores (inclusive of GST)."
+  },
+  {
+   "date": "2024-03-13",
+   "role": "order_value",
+   "crore": 73.3,
+   "doc": "nse105782296",
+   "type": "Updates",
+   "quote": "The total amount of the work order is for around Rs. 73.32 Crores (inclusive of GST)."
+  },
+  {
+   "date": "2024-03-14",
+   "role": "order_value",
+   "crore": 93.0,
+   "doc": "nse105783868",
+   "type": "Updates",
+   "quote": "The total amount of the work order is for around Rs. 93 Crores (inclusive of GST)."
+  },
+  {
+   "date": "2024-04-27",
+   "role": "order_value",
+   "crore": 250.6,
+   "doc": "nse105827538",
+   "type": "Investor Presentation",
+   "quote": "Our impressive order book, amounting to ~Rs. 2,400 Crores as of 31st March 2024, has expanded with the recent addition of three new orders worth Rs. 250.62 Crores from Haryana and Maharashtra, secured since the beginning"
+  },
+  {
+   "date": "2024-07-16",
+   "role": "order_value",
+   "crore": 33.5,
+   "doc": "nse105915976",
+   "type": "Updates",
+   "quote": "The total amount of the order value is for around Rs. 33.47 Crores (inclusive of GST)."
+  },
+  {
+   "date": "2024-08-02",
+   "role": "order_value",
+   "crore": 558.2,
+   "doc": "nse105936239",
+   "type": "Updates",
+   "quote": "The total value of the work order is approximately Rs. 558.16 Crores (inclusive of GST) which is to be executed within 31st March 2025."
+  },
+  {
+   "date": "2024-08-10",
+   "role": "order_value",
+   "crore": 8.5,
+   "doc": "nse105948871",
+   "type": "Updates",
+   "quote": "The total amount of the order value is for around Rs. 8.50 Crores (inclusive of GST)."
+  },
+  {
+   "date": "2024-08-23",
+   "role": "order_value",
+   "crore": 9.4,
+   "doc": "nse105963313",
+   "type": "Updates",
+   "quote": "The total amount of the order value is for around Rs. 9.40 Crores (inclusive of GST)."
+  },
+  {
+   "date": "2024-12-11",
+   "role": "order_value",
+   "crore": 754.3,
+   "doc": "nse106082613",
+   "type": "General Updates",
+   "quote": "The total value of the 25000 pumps is around Rs. 754.30 Crores (inclusive of GST) which is to be executed within 60 days from the issuance of NTP/work order."
+  },
+  {
+   "date": "2025-03-01",
+   "role": "order_value",
+   "crore": 23.9,
+   "doc": "nse106163397",
+   "type": "Awarding of order(s)/contract(s)",
+   "quote": "The total amount of the work order is for around Rs. 23.91 Crores (inclusive of GST)."
+  },
+  {
+   "date": "2025-04-03",
+   "role": "order_value",
+   "crore": 12.4,
+   "doc": "nse106193041",
+   "type": "General Updates",
+   "quote": "The total amount of the work order is for around Rs. 12.42 Crores (inclusive of GST)."
+  },
+  {
+   "date": "2025-06-12",
+   "role": "order_value",
+   "crore": 114.6,
+   "doc": "nse106267700",
+   "type": "Awarding of order(s)/contract(s)",
+   "quote": "The total amount of the work order is for around Rs. 114.58 Crores (inclusive of GST)."
+  },
+  {
+   "date": "2025-08-12",
+   "role": "order_value",
+   "crore": 1037.0,
+   "doc": "nse106338116",
+   "type": "Awarding of order(s)/contract(s)",
+   "quote": "Broad commercial consideration or The total amount of the work order is size of the order(s)/contract(s) Rs. 1,037 Crores."
+  },
+  {
+   "date": "2025-08-28",
+   "role": "order_value",
+   "crore": 268.9,
+   "doc": "nse106354012",
+   "type": "General Updates",
+   "quote": "The total value of this order is approximately Rs. 268.88 Crores (inclusive of GST), reinforcing Shakti Pumps\u2019 leadership in delivering high-quality, sustainable water solutions at scale."
+  },
+  {
+   "date": "2025-12-11",
+   "role": "order_value",
+   "crore": 443.8,
+   "doc": "nse106465963",
+   "type": "Awarding of order(s)/contract(s)",
+   "quote": "The total value of the 16025 pumps is around Rs. 443.78 Crores (inclusive of GST) which is to be executed within 60 days from the issuance of work order/NTP."
+  },
+  {
+   "date": "2025-12-11",
+   "role": "order_value",
+   "crore": 407.5,
+   "doc": "nse106465963",
+   "type": "Awarding of order(s)/contract(s)",
+   "quote": "Broad commercial consideration or The total amount of the work order is size of the order(s)/contract(s) Rs. 407.51 Crores and with GST the amount is Rs. 443.78 Crores. 6."
+  },
+  {
+   "date": "2025-12-12",
+   "role": "order_value",
+   "crore": 24.0,
+   "doc": "nse106466887",
+   "type": "Bagging/Receiving of orders/contracts",
+   "quote": "The total amount of the order value is for around Rs. 23.98 Crores (inclusive of GST)."
+  },
+  {
+   "date": "2025-12-12",
+   "role": "order_value",
+   "crore": 71.2,
+   "doc": "nse106466959",
+   "type": "Bagging/Receiving of orders/contracts",
+   "quote": "Broad commercial consideration or The total amount of the work order is size of the order(s)/contract(s) Rs. 71.25 Crores (inclusive of GST) 6."
+  },
+  {
+   "date": "2025-12-23",
+   "role": "order_value",
+   "crore": 356.8,
+   "doc": "nse106474775",
+   "type": "Bagging/Receiving of orders/contracts",
+   "quote": "The total value of the 12,883 pumps is around Rs. 356.77 Crores (inclusive of GST) which is to be executed within 60 days from the issuance of work order/NTP."
+  },
+  {
+   "date": "2025-12-23",
+   "role": "order_value",
+   "crore": 327.6,
+   "doc": "nse106474775",
+   "type": "Bagging/Receiving of orders/contracts",
+   "quote": "Broad commercial consideration or The total amount of the work order is size of the order(s)/contract(s) Rs. 327.62 Crores and with GST the amount is Rs. 356.77 Crores. 6."
+  },
+  {
+   "date": "2025-12-24",
+   "role": "order_value",
+   "crore": 59.9,
+   "doc": "nse106476387",
+   "type": "Bagging/Receiving of orders/contracts",
+   "quote": "Broad commercial consideration or The total amount of the work order is size of the order(s)/contract(s) Rs. 59.88 Crores and with GST the amount is Rs. 65.20 Crores. 6."
+  },
+  {
+   "date": "2025-12-30",
+   "role": "order_value",
+   "crore": 21.0,
+   "doc": "nse106482417",
+   "type": "Bagging/Receiving of orders/contracts",
+   "quote": "The total amount of the order value is for around Rs. 21.00 Crores (inclusive of GST)."
+  },
+  {
+   "date": "2025-12-30",
+   "role": "order_value",
+   "crore": 19.3,
+   "doc": "nse106482417",
+   "type": "Bagging/Receiving of orders/contracts",
+   "quote": "Broad commercial consideration or size of The total amount of the work order is the order(s)/contract(s) Rs. 19.29 Crores and with GST the amount is Rs. 21.00 Crores. 6."
+  },
+  {
+   "date": "2025-12-31",
+   "role": "order_value",
+   "crore": 156.3,
+   "doc": "nse106483565",
+   "type": "Bagging/Receiving of orders/contracts",
+   "quote": "Broad commercial consideration or The total amount of the work order is size of the order(s)/contract(s) Rs. 156.34 Crores and with GST the amount is Rs. 170.25 Crores. 6."
+  }
+ ],
+ "books": [
+  {
+   "date": "2024-07-20",
+   "role": "book_level",
+   "crore": 2000.0,
+   "doc": "nse105921027",
+   "type": "Investor Presentation",
+   "quote": "We continue to maintain a healthy order book of approximately Rs. 2,000 Crores as on 30th June 2024, which is expected to be implemented in the next 15 months."
+  },
+  {
+   "date": "2024-07-20",
+   "role": "book_level",
+   "crore": 2000.0,
+   "doc": "nse105921028",
+   "type": "Press Release",
+   "quote": "We continue to maintain a healthy order book of approximately Rs. 2,000 Crores as on 30th June 2024, which is expected to be implemented in the next 15 months."
+  },
+  {
+   "date": "2025-01-25",
+   "role": "book_level",
+   "crore": 2070.0,
+   "doc": "nse106124889",
+   "type": "Press Release",
+   "quote": "The order inflow continued to gain momentum, resulting in a robust outstanding order book position of around Rs. 20,700 Mn (inclusive of GST) as on 31st December 2024, which is to be executed within a year."
+  },
+  {
+   "date": "2025-01-25",
+   "role": "book_level",
+   "crore": 2070.0,
+   "doc": "nse106125055",
+   "type": "Investor Presentation",
+   "quote": "The order inflow continued to gain momentum, resulting in a robust outstanding order book position of around Rs. 20,700 Mn (inclusive of GST) as on 31st December 2024, which is to be executed within a year."
+  },
+  {
+   "date": "2025-08-02",
+   "role": "book_level",
+   "crore": 1350.0,
+   "doc": "nse106322727",
+   "type": "Press Release",
+   "quote": "As of 1st August 2025, our order book stood at approximately Rs. 13,500 Mn, supported by steady inflows and active participation in tenders across states like Maharashtra, Madhya Pradesh, Rajasthan, Haryana, Punjab, Utta"
+  },
+  {
+   "date": "2025-08-02",
+   "role": "book_level",
+   "crore": 1350.0,
+   "doc": "nse106322995",
+   "type": "Investor Presentation",
+   "quote": "As of 1st August 2025, our order book stood at approximately Rs. 13,500 Mn, supported by steady inflows and active participation in tenders across states like Maharashtra, Madhya Pradesh, Rajasthan, Haryana, Punjab, Utta"
+  }
+ ],
+ "timeline": [
+  {
+   "date": "2021-01-31",
+   "ttm_revenue": 702.5,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-02-28",
+   "ttm_revenue": 702.5,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-03-31",
+   "ttm_revenue": 702.5,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-04-30",
+   "ttm_revenue": 702.5,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-05-31",
+   "ttm_revenue": 929.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-06-30",
+   "ttm_revenue": 929.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-07-31",
+   "ttm_revenue": 993.8,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-08-31",
+   "ttm_revenue": 993.8,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-09-30",
+   "ttm_revenue": 993.8,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-10-31",
+   "ttm_revenue": 1161.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-11-30",
+   "ttm_revenue": 1161.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-12-31",
+   "ttm_revenue": 1161.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-01-31",
+   "ttm_revenue": 1113.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-02-28",
+   "ttm_revenue": 1113.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-03-31",
+   "ttm_revenue": 1113.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-04-30",
+   "ttm_revenue": 1113.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-05-31",
+   "ttm_revenue": 1178.5,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-06-30",
+   "ttm_revenue": 1178.5,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-07-31",
+   "ttm_revenue": 1276.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-08-31",
+   "ttm_revenue": 1276.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-09-30",
+   "ttm_revenue": 1276.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-10-31",
+   "ttm_revenue": 1276.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-11-30",
+   "ttm_revenue": 1124.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-12-31",
+   "ttm_revenue": 1124.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-01-31",
+   "ttm_revenue": 1169.6,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-02-28",
+   "ttm_revenue": 1169.6,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-03-31",
+   "ttm_revenue": 1169.6,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-04-30",
+   "ttm_revenue": 1169.6,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-05-31",
+   "ttm_revenue": 967.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-06-30",
+   "ttm_revenue": 967.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-07-31",
+   "ttm_revenue": 967.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-08-31",
+   "ttm_revenue": 826.3,
+   "orders_12m": 358.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-09-30",
+   "ttm_revenue": 826.3,
+   "orders_12m": 651.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-10-31",
+   "ttm_revenue": 826.3,
+   "orders_12m": 800.7,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-11-30",
+   "ttm_revenue": 762.7,
+   "orders_12m": 800.7,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-12-31",
+   "ttm_revenue": 762.7,
+   "orders_12m": 1058.7,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-01-31",
+   "ttm_revenue": 944.1,
+   "orders_12m": 3308.7,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-02-29",
+   "ttm_revenue": 944.1,
+   "orders_12m": 3393.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-03-31",
+   "ttm_revenue": 944.1,
+   "orders_12m": 3559.3,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-04-30",
+   "ttm_revenue": 1370.7,
+   "orders_12m": 3809.9,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-05-31",
+   "ttm_revenue": 1370.7,
+   "orders_12m": 3809.9,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-06-30",
+   "ttm_revenue": 1370.7,
+   "orders_12m": 3809.9,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-07-31",
+   "ttm_revenue": 1825.2,
+   "orders_12m": 3843.4,
+   "book": 2000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-08-31",
+   "ttm_revenue": 1825.2,
+   "orders_12m": 4061.5,
+   "book": 2000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-09-30",
+   "ttm_revenue": 1825.2,
+   "orders_12m": 3768.5,
+   "book": 2000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-10-31",
+   "ttm_revenue": 2307.0,
+   "orders_12m": 3618.8,
+   "book": 2000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-11-30",
+   "ttm_revenue": 2307.0,
+   "orders_12m": 3618.8,
+   "book": 2000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-12-31",
+   "ttm_revenue": 2307.0,
+   "orders_12m": 4115.1,
+   "book": 2000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-01-31",
+   "ttm_revenue": 2460.2,
+   "orders_12m": 1865.1,
+   "book": 2070.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-02-28",
+   "ttm_revenue": 2460.2,
+   "orders_12m": 1780.8,
+   "book": 2070.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-03-31",
+   "ttm_revenue": 2460.2,
+   "orders_12m": 1638.4,
+   "book": 2070.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-04-30",
+   "ttm_revenue": 2460.2,
+   "orders_12m": 1400.2,
+   "book": 2070.0,
+   "book_year_ago": 2000.0
+  },
+  {
+   "date": "2025-05-31",
+   "ttm_revenue": 2516.2,
+   "orders_12m": 1400.2,
+   "book": 2070.0,
+   "book_year_ago": 2000.0
+  },
+  {
+   "date": "2025-06-30",
+   "ttm_revenue": 2516.2,
+   "orders_12m": 1514.8,
+   "book": 2070.0,
+   "book_year_ago": 2000.0
+  },
+  {
+   "date": "2025-07-31",
+   "ttm_revenue": 2516.2,
+   "orders_12m": 1481.3,
+   "book": 2070.0,
+   "book_year_ago": 2000.0
+  },
+  {
+   "date": "2025-08-31",
+   "ttm_revenue": 2571.2,
+   "orders_12m": 2211.1,
+   "book": 1350.0,
+   "book_year_ago": 2000.0
+  },
+  {
+   "date": "2025-09-30",
+   "ttm_revenue": 2571.2,
+   "orders_12m": 2211.1,
+   "book": 1350.0,
+   "book_year_ago": 2000.0
+  },
+  {
+   "date": "2025-10-31",
+   "ttm_revenue": 2571.2,
+   "orders_12m": 2211.1,
+   "book": 1350.0,
+   "book_year_ago": 2070.0
+  },
+  {
+   "date": "2025-11-30",
+   "ttm_revenue": 2602.9,
+   "orders_12m": 2211.1,
+   "book": 1350.0,
+   "book_year_ago": 2070.0
+  },
+  {
+   "date": "2025-12-31",
+   "ttm_revenue": 2602.9,
+   "orders_12m": 3344.2,
+   "book": 1350.0,
+   "book_year_ago": 2070.0
+  }
+ ]
+}

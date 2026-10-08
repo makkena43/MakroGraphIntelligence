@@ -1,0 +1,1382 @@
+{
+ "symbol": "SWSOLAR",
+ "scope": "consolidated",
+ "quarters": 26,
+ "inflections": [],
+ "document_signals": [
+  {
+   "date": "2021-06-30",
+   "why": [
+    "orders announced in 12 months 9,330 cr = 1.8x TTM revenue"
+   ]
+  }
+ ],
+ "ttm_path": [
+  [
+   "2019-09-30",
+   null,
+   null,
+   "2019-11-15"
+  ],
+  [
+   "2019-12-31",
+   null,
+   null,
+   "2020-02-13"
+  ],
+  [
+   "2020-03-31",
+   null,
+   null,
+   "2020-06-24"
+  ],
+  [
+   "2020-06-30",
+   5398.2,
+   278.3,
+   "2020-09-16"
+  ],
+  [
+   "2020-09-30",
+   5541.5,
+   221.7,
+   "2020-11-13"
+  ],
+  [
+   "2020-12-31",
+   5776.9,
+   193.7,
+   "2021-02-13"
+  ],
+  [
+   "2021-03-31",
+   5080.8,
+   -285.4,
+   "2021-06-30"
+  ],
+  [
+   "2021-06-30",
+   5207.5,
+   -377.9,
+   "2021-08-14"
+  ],
+  [
+   "2021-09-30",
+   5309.3,
+   -686.0,
+   "2021-11-13"
+  ],
+  [
+   "2021-12-31",
+   5492.4,
+   -1130.0,
+   "2022-02-14"
+  ],
+  [
+   "2022-03-31",
+   5198.9,
+   -909.5,
+   "2022-04-08"
+  ],
+  [
+   "2022-06-30",
+   5211.2,
+   -1187.2,
+   "2022-07-20"
+  ],
+  [
+   "2022-09-30",
+   4085.5,
+   -1199.6,
+   "2022-10-13"
+  ],
+  [
+   "2022-12-31",
+   2997.6,
+   -878.4,
+   "2023-01-19"
+  ],
+  [
+   "2023-03-31",
+   2015.0,
+   -1169.5,
+   "2023-04-21"
+  ],
+  [
+   "2023-06-30",
+   1323.0,
+   -911.1,
+   "2023-07-14"
+  ],
+  [
+   "2023-09-30",
+   1769.9,
+   -668.4,
+   "2023-10-21"
+  ],
+  [
+   "2023-12-31",
+   1945.8,
+   -630.8,
+   "2024-01-18"
+  ],
+  [
+   "2024-03-31",
+   3035.4,
+   -211.9,
+   "2024-04-21"
+  ],
+  [
+   "2024-06-30",
+   3435.5,
+   -112.3,
+   "2024-07-18"
+  ],
+  [
+   "2024-09-30",
+   3706.4,
+   -51.0,
+   "2024-10-15"
+  ],
+  [
+   "2024-12-31",
+   4960.8,
+   27.5,
+   "2025-01-16"
+  ],
+  [
+   "2025-03-31",
+   6301.9,
+   81.5,
+   "2025-04-28"
+  ],
+  [
+   "2025-06-30",
+   7148.4,
+   109.2,
+   "2025-07-17"
+  ],
+  [
+   "2025-09-30",
+   7866.5,
+   -371.0,
+   "2025-10-17"
+  ],
+  [
+   "2025-12-31",
+   8121.6,
+   -388.6,
+   "2026-01-15"
+  ]
+ ],
+ "orders": [
+  {
+   "date": "2021-06-04",
+   "role": "order_value",
+   "crore": 7300.0,
+   "doc": "nse104936911",
+   "type": "Credit Rating",
+   "quote": "It received new orders worth around INR73,000 million in FY21; previous year corresponding order inflows were around INR66,986 million."
+  },
+  {
+   "date": "2021-06-30",
+   "role": "order_value",
+   "crore": 2030.0,
+   "doc": "nse104975428",
+   "type": "Investor Presentation",
+   "quote": "This has resulted in re-rating of the order book by Rs 5,815 crores If the same policy were to have been adopted retrospectively, the orders booked in FY20 would have been Rs. 4,602 crore in comparison with which, the or"
+  },
+  {
+   "date": "2021-11-14",
+   "role": "order_value",
+   "crore": 1500.0,
+   "doc": "nse105143272",
+   "type": "Investor Presentation",
+   "quote": "The Company is in advanced stage of discussion with the customers and is confident of recovering the amount 5 Snapshot of first WTE order of ~Rs 1500 crore \u2713 Client is a leading developer of energy assets in UK and Europ"
+  },
+  {
+   "date": "2021-11-14",
+   "role": "order_value",
+   "crore": 1320.0,
+   "doc": "nse105143272",
+   "type": "Investor Presentation",
+   "quote": "The Company has also made a claim of Rs 94 crore towards prolongation cost, Interest on overdue payment etc. based on the contractual rights Matter under Related party NCLT - Related party receivables of Rs 166 crore - T"
+  },
+  {
+   "date": "2022-02-15",
+   "role": "order_value",
+   "crore": 168.0,
+   "doc": "nse105242723",
+   "type": "Investor Presentation",
+   "quote": "The Company has also made a claim of Rs 94 cr towards prolongation cost, Interest on overdue payment etc. based on the contractual rights \u25aa Related party receivables of Rs 168 cr - The Company has received Rs 168 cr Rs 6"
+  },
+  {
+   "date": "2022-02-15",
+   "role": "order_value",
+   "crore": 61.0,
+   "doc": "nse105242723",
+   "type": "Investor Presentation",
+   "quote": "The Company has also made a claim of Rs 94 cr towards prolongation cost, Interest on overdue payment etc. based on the contractual rights \u25aa Related party receivables of Rs 168 cr - The Company has received Rs 168 cr Rs 6"
+  },
+  {
+   "date": "2022-02-15",
+   "role": "order_value",
+   "crore": 1320.0,
+   "doc": "nse105242723",
+   "type": "Investor Presentation",
+   "quote": "The Company has also made a claim of Rs 94 cr towards prolongation cost, Interest on overdue payment etc. based on the contractual rights \u25aa Related party receivables of Rs 168 cr - The Company has received Rs 168 cr Rs 6"
+  },
+  {
+   "date": "2022-04-18",
+   "role": "order_value",
+   "crore": 2030.0,
+   "doc": "nse5019704",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "Just a couple of clarifications, so in terms of unexecuted order value movement you have mentioned that INR 2,030 crore of contract is now unviable."
+  },
+  {
+   "date": "2022-07-12",
+   "role": "order_value",
+   "crore": 243.3,
+   "doc": "nse5058239",
+   "type": "Outcome of Board Meeting",
+   "quote": "The Subsidiary has a filed a legal suit to claim the surety bond value of Rs 243.34 crore (USD 30.87 Million), which is submitted by the sub-contractor for performance of works."
+  },
+  {
+   "date": "2022-10-12",
+   "role": "order_value",
+   "crore": 2212.0,
+   "doc": "nse5103776",
+   "type": "Press Release",
+   "quote": " October 12, 2022 BSE Limited National Stock Exchange of India Limited Phiroze Jeejeebhoy Towers Exchange Plaza Dalal Street Bandra Kurla Complex Mumbai \u2013 400 001 Bandra (East), Mumbai \u2013 400 051 Scrip Code: 542760 Symbol"
+  },
+  {
+   "date": "2023-01-25",
+   "role": "order_value",
+   "crore": 30000.0,
+   "doc": "nse105409244",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So, can we do take an order of INR 30,000 crores or INR 40,000 crores in the year or we have to stop?"
+  },
+  {
+   "date": "2023-01-25",
+   "role": "order_value",
+   "crore": 40000.0,
+   "doc": "nse105409244",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So, can we do take an order of INR 30,000 crores or INR 40,000 crores in the year or we have to stop?"
+  },
+  {
+   "date": "2023-09-05",
+   "role": "order_value",
+   "crore": 1130.0,
+   "doc": "nse105610656",
+   "type": "Credit Rating",
+   "quote": "In addition, company has secured one large order of 600MW from Gujarat Industrial Power Company Limited amounting to INR11.3 billion in August 2023."
+  },
+  {
+   "date": "2023-09-29",
+   "role": "order_value",
+   "crore": 1535.0,
+   "doc": "nse105630481",
+   "type": "Press Release",
+   "quote": " September 29, 2023 BSE Limited National Stock Exchange of India Limited Phiroze Jeejeebhoy Towers Exchange Plaza Dalal Street Bandra Kurla Complex Mumbai \u2013 400 001 Bandra (East), Mumbai \u2013 400 051 Scrip Code: 542760 Symb"
+  },
+  {
+   "date": "2023-11-01",
+   "role": "order_value",
+   "crore": 2640.0,
+   "doc": "nse105661008",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "As stated earlier total EPC contract value of the projects won in Q2 FY2024 is approximately Rs.2640 Crores."
+  },
+  {
+   "date": "2024-07-26",
+   "role": "order_value",
+   "crore": 328.0,
+   "doc": "nse105926831",
+   "type": "Press Release",
+   "quote": " July 26, 2024 BSE Limited National Stock Exchange of India Limited Phiroze Jeejeebhoy Towers Exchange Plaza Dalal Street Bandra Kurla Complex Mumbai \u2013 400 001 Bandra (East), Mumbai \u2013 400 051 Scrip Code: 542760 Symbol: S"
+  },
+  {
+   "date": "2024-10-14",
+   "role": "order_value",
+   "crore": 2050.0,
+   "doc": "nse106022030",
+   "type": "Press Release",
+   "quote": "The company\u2019s strong commitment to excellence, innovation and customer satisfaction is reaffirmed by a strong order/ LOI inflow of around INR 2,050 crore in Q2 FY25, including an order of INR 823 crore received today."
+  },
+  {
+   "date": "2024-10-14",
+   "role": "order_value",
+   "crore": 823.0,
+   "doc": "nse106022030",
+   "type": "Press Release",
+   "quote": "The company\u2019s strong commitment to excellence, innovation and customer satisfaction is reaffirmed by a strong order/ LOI inflow of around INR 2,050 crore in Q2 FY25, including an order of INR 823 crore received today."
+  },
+  {
+   "date": "2024-12-02",
+   "role": "order_value",
+   "crore": 504.0,
+   "doc": "nse106074309",
+   "type": "Press Release",
+   "quote": " December 02, 2024 BSE Limited National Stock Exchange of India Limited Phiroze Jeejeebhoy Towers Exchange Plaza Dalal Street Bandra Kurla Complex Mumbai \u2013 400 001 Bandra (East), Mumbai \u2013 400 051 Scrip Code: 542760 Symbo"
+  },
+  {
+   "date": "2025-04-01",
+   "role": "order_value",
+   "crore": 1470.0,
+   "doc": "nse106190762",
+   "type": "Press Release",
+   "quote": "The cumulative order value of the three domestic projects combined is ~INR 1,470 crore including taxes and O&M."
+  },
+  {
+   "date": "2025-04-24",
+   "role": "order_value",
+   "crore": 8084.0,
+   "doc": "nse106210855",
+   "type": "Press Release",
+   "quote": "The unexecuted order value is ~INR 9,096 crore as of Mar 31, 2025, vis-\u00e0-vis ~INR 8,084 crore as of Mar 31, 2024."
+  },
+  {
+   "date": "2025-07-24",
+   "role": "order_value",
+   "crore": 813.0,
+   "doc": "nse106311002",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "We started this fiscal year by bagging our first turnkey orders when we were declared L1 for a 290-megawatt projects in Gujarat worth approximately INR813 crores from a leading PSU."
+  },
+  {
+   "date": "2025-07-28",
+   "role": "order_value",
+   "crore": 54.0,
+   "doc": "nseAR_06e4f4cdba",
+   "type": "Annual Report",
+   "quote": "The company renewable market. scaled up our business achieved an EBITDA of INR 276 crore in FY 2024-25, compared to INR 54 crore One of our key order wins in FY 2024-25 in India to leverage the in the previous year."
+  },
+  {
+   "date": "2025-07-28",
+   "role": "order_value",
+   "crore": 9096.0,
+   "doc": "nseAR_06e4f4cdba",
+   "type": "Annual Report",
+   "quote": "As on March 31, 2025, our unexecuted projects transitioning to the hybrid order value stood at INR 9,096 crore, model, a well-rounded offering, such We take huge pride in what our with India comprising 84.5% and as the o"
+  },
+  {
+   "date": "2025-09-09",
+   "role": "order_value",
+   "crore": 415.0,
+   "doc": "nse106369206",
+   "type": "Updates",
+   "quote": "Total value of the contract is approximately INR 415 crore including O&M and taxes."
+  },
+  {
+   "date": "2025-10-17",
+   "role": "order_value",
+   "crore": 1772.0,
+   "doc": "nse106411425",
+   "type": "Press Release",
+   "quote": "The total EPC value of the three new orders is approximately INR 1,772 crore, and total order inflows this fiscal is already touched INR 3,775 crore."
+  },
+  {
+   "date": "2025-10-26",
+   "role": "order_value",
+   "crore": 372.0,
+   "doc": "nse106416207",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "In addition to the PSU order wins, we also received an order from large private IPP for a 421-MWp BoS project in Rajasthan worth INR372 crores."
+  },
+  {
+   "date": "2025-11-27",
+   "role": "order_value",
+   "crore": 1313.0,
+   "doc": "nse106455496",
+   "type": "Press Release",
+   "quote": "The total value of the contract is approximately USD 147 million (~INR 1,313 crore)."
+  },
+  {
+   "date": "2025-12-01",
+   "role": "order_value",
+   "crore": 1381.0,
+   "doc": "nse106457796",
+   "type": "Press Release",
+   "quote": " December 01, 2025 BSE Limited National Stock Exchange of India Limited Phiroze Jeejeebhoy Towers Exchange Plaza Dalal Street Bandra Kurla Complex Mumbai \u2013 400 001 Bandra (East), Mumbai \u2013 400 051 Scrip Code: 542760 Symbo"
+  }
+ ],
+ "books": [
+  {
+   "date": "2021-02-13",
+   "role": "book_level",
+   "crore": 5815.0,
+   "doc": "nse104770007",
+   "type": "Investor Presentation",
+   "quote": "This has resulted in re-rating of the order book by Rs 5,815 crores."
+  },
+  {
+   "date": "2021-06-04",
+   "role": "book_level",
+   "crore": 9673.9,
+   "doc": "nse104936911",
+   "type": "Credit Rating",
+   "quote": "At end-9MFY21, SWSL had an unexecuted order book of about INR96,739 million (1.8x FY20 revenue)."
+  },
+  {
+   "date": "2021-06-30",
+   "role": "book_level",
+   "crore": 7936.0,
+   "doc": "nse104973825",
+   "type": "Press Release",
+   "quote": "We had robust order inflows of Rs. 7,936 crores for FY21 compared to restated orderbook of Rs. 4,602 crores for FY20."
+  },
+  {
+   "date": "2021-06-30",
+   "role": "book_level",
+   "crore": 4602.0,
+   "doc": "nse104973825",
+   "type": "Press Release",
+   "quote": "We had robust order inflows of Rs. 7,936 crores for FY21 compared to restated orderbook of Rs. 4,602 crores for FY20."
+  },
+  {
+   "date": "2021-06-30",
+   "role": "book_level",
+   "crore": 9348.0,
+   "doc": "nse104973825",
+   "type": "Press Release",
+   "quote": "Our unexecuted Order Book as on 29th June 2021 stands at Rs. 9,348 crore, which is executable over the period of next 12 to 15 months."
+  },
+  {
+   "date": "2021-06-30",
+   "role": "book_level",
+   "crore": 5815.0,
+   "doc": "nse104975428",
+   "type": "Investor Presentation",
+   "quote": "This has resulted in re-rating of the order book by Rs 5,815 crores If the same policy were to have been adopted retrospectively, the orders booked in FY20 would have been Rs. 4,602 crore in comparison with which, the or"
+  },
+  {
+   "date": "2021-07-02",
+   "role": "book_level",
+   "crore": 9674.0,
+   "doc": "nse104979617",
+   "type": "Credit Rating",
+   "quote": "The order book position stands at Rs.9,674 Cr as on February 2021, thereby prov iding healthy rev enue v isibility ov er the medium term."
+  },
+  {
+   "date": "2021-07-02",
+   "role": "book_level",
+   "crore": 35000.0,
+   "doc": "nse104979617",
+   "type": "Credit Rating",
+   "quote": "SPCPL on a standalone basis has an unexecuted order book of more than Rs.35,000 Cr."
+  },
+  {
+   "date": "2021-07-02",
+   "role": "book_level",
+   "crore": 9000.0,
+   "doc": "nse104979617",
+   "type": "Credit Rating",
+   "quote": "Further, the company has unexecuted order book position of more than Rs.9,000 Cr to be executed ov er the near to medium term."
+  },
+  {
+   "date": "2021-08-14",
+   "role": "book_level",
+   "crore": 8731.0,
+   "doc": "nse105037907",
+   "type": "Press Release",
+   "quote": "Our unexecuted Order Book as on 14th August 2021 stands at Rs. 8,731 crore, which is executable over the period of next 12 to 15 months."
+  },
+  {
+   "date": "2022-04-09",
+   "role": "book_level",
+   "crore": 719.0,
+   "doc": "nse5017263",
+   "type": "Investor Presentation",
+   "quote": "The entire order book of Rs. 719 crore in FY22 is from the domestic market."
+  },
+  {
+   "date": "2022-04-18",
+   "role": "book_level",
+   "crore": 719.0,
+   "doc": "nse5019704",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "The entire order book of INR 719 crore in FY \u201822 is from domestic market due to the sharp reduction in finalizations of orders globally."
+  },
+  {
+   "date": "2022-04-18",
+   "role": "book_level",
+   "crore": 3253.0,
+   "doc": "nse5019704",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "Our unexecuted order book as on March 31, 2022, stands at INR 3,253 crore, which is mostly executable over next 12 months."
+  },
+  {
+   "date": "2022-10-18",
+   "role": "book_level",
+   "crore": 2654.0,
+   "doc": "nse5105868",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "Our unexecuted order book as on September 30th stands at Rs.2,654 Crores with nearly 78% domestic EPC which is executable over the next 12 months."
+  },
+  {
+   "date": "2023-01-25",
+   "role": "book_level",
+   "crore": 2703.0,
+   "doc": "nse105409244",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Beginning with our order book, our unexecuted order book as on January 18, 2023 stands at INR 2,703 crores, with nearly 84% domestic EPC, which is executable over the next 18 months."
+  },
+  {
+   "date": "2023-01-25",
+   "role": "book_level",
+   "crore": 450.0,
+   "doc": "nse105409244",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So you mentioned that there is an international order backlog of INR 450 crores, which are yet to be executed."
+  },
+  {
+   "date": "2023-03-27",
+   "role": "book_level",
+   "crore": 4000.0,
+   "doc": "nse105454358",
+   "type": "Credit Rating",
+   "quote": "The unexecuted order book position stands at around ~Rs.4000 Cr. as on March 20, 2023, thereby providing healthy revenue visibility over the medium term."
+  },
+  {
+   "date": "2023-03-27",
+   "role": "book_level",
+   "crore": 4000.0,
+   "doc": "nse105454358",
+   "type": "Credit Rating",
+   "quote": "Further, the company has unexecuted order bookposition of around Rs. 4000 Cr. to be executed over the near to medium term."
+  },
+  {
+   "date": "2023-04-25",
+   "role": "book_level",
+   "crore": 4913.0,
+   "doc": "nse105477753",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our un-executed order book, as on March 31, 2023, stands at INR4,913 crores, with nearly 90% of the order book comprising domestic EPC projects, which are executable over the next 12-18 months."
+  },
+  {
+   "date": "2023-04-25",
+   "role": "book_level",
+   "crore": 4913.0,
+   "doc": "nse105477753",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Looking ahead, our FY\u201924 revenues are largely going to be driven by our current unexecuted order book of INR4,913 crores of which 90% are domestic EPC orders which have historically generated good margins as Amit earlier"
+  },
+  {
+   "date": "2023-04-25",
+   "role": "book_level",
+   "crore": 4900.0,
+   "doc": "nse105477753",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So this INR4,900 crores unexecuted order book has NTPC project as well, right?"
+  },
+  {
+   "date": "2023-04-25",
+   "role": "book_level",
+   "crore": 500.0,
+   "doc": "nse105477753",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "In our unexecuted order book, around INR500 crores are the legacy orders, which I believe is no more a profit-making order for the company."
+  },
+  {
+   "date": "2023-05-02",
+   "role": "book_level",
+   "crore": 4900.0,
+   "doc": "nse105484019",
+   "type": "Credit Rating",
+   "quote": "However, SWREL's order book improved to around INR49 billion at end-March 2023 from INR32.5 billion at end-March 2022."
+  },
+  {
+   "date": "2023-05-02",
+   "role": "book_level",
+   "crore": 3250.0,
+   "doc": "nse105484019",
+   "type": "Credit Rating",
+   "quote": "However, SWREL's order book improved to around INR49 billion at end-March 2023 from INR32.5 billion at end-March 2022."
+  },
+  {
+   "date": "2023-05-02",
+   "role": "book_level",
+   "crore": 3250.0,
+   "doc": "nse105484019",
+   "type": "Credit Rating",
+   "quote": "Gradual Improvement in Order Book: SWREL had an order book of INR32.5 billion at end-March 2022."
+  },
+  {
+   "date": "2023-05-02",
+   "role": "book_level",
+   "crore": 4900.0,
+   "doc": "nse105484019",
+   "type": "Credit Rating",
+   "quote": "During FY23, the order book improved to around INR49 billion, primarily on account of receipt of two major orders from NTPC Limited ('IND AAA'/Stable), which improves revenue visibility for FY24."
+  },
+  {
+   "date": "2023-07-18",
+   "role": "book_level",
+   "crore": 4902.0,
+   "doc": "nse105558788",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our unexecuted order book as on 30th June, 2023, stands at INR4,902 crores with nearly 90% of the order book comprising domestic EPC projects, which are executable over the next 12 to 18 months."
+  },
+  {
+   "date": "2023-07-18",
+   "role": "book_level",
+   "crore": 5000.0,
+   "doc": "nse105558788",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Amit Jain: We are striving for a much higher, like we're striving for this number, but as you know that we have an unexecuted order book of almost INR5,000 crores right now."
+  },
+  {
+   "date": "2023-07-18",
+   "role": "book_level",
+   "crore": 4900.0,
+   "doc": "nse105558788",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So my question was, the current EPC order book of INR4,900 crores we have, so what is order book in megawatt terms?"
+  },
+  {
+   "date": "2023-08-03",
+   "role": "book_level",
+   "crore": 4900.0,
+   "doc": "nse105575814",
+   "type": "Credit Rating",
+   "quote": "The order book remained at healthy levels of INR49 billion as on 30 June 2023 (FY23: INR49 billion)."
+  },
+  {
+   "date": "2023-08-30",
+   "role": "book_level",
+   "crore": 4500.0,
+   "doc": "nse105604100",
+   "type": "Credit Rating",
+   "quote": "The unexecuted order book position stands at around ~Rs.4500 Cr. as on June 2023, thereby providing healthy revenue https://connect.acuite.in/fcompany-details/STERLING_AND_WILSON_RENEWABLE_ENERGY_LIMITED_(_ERSTWHILE_STER"
+  },
+  {
+   "date": "2023-08-30",
+   "role": "book_level",
+   "crore": 4500.0,
+   "doc": "nse105604100",
+   "type": "Credit Rating",
+   "quote": "SWREL has an unexecuted order value of over ~Rs. 4,500 Cr which it expects to almost completely execute in FY2024."
+  },
+  {
+   "date": "2023-09-05",
+   "role": "book_level",
+   "crore": 4500.0,
+   "doc": "nse105610429",
+   "type": "Credit Rating",
+   "quote": "The unexecuted order book position stands at around ~Rs.4500 Cr. as on June 2023, thereby providing healthy revenue visibility over the medium term."
+  },
+  {
+   "date": "2023-09-05",
+   "role": "book_level",
+   "crore": 4500.0,
+   "doc": "nse105610429",
+   "type": "Credit Rating",
+   "quote": "SWREL has an unexecuted order value of over ~Rs. 4,500 Cr."
+  },
+  {
+   "date": "2023-09-05",
+   "role": "book_level",
+   "crore": 4900.0,
+   "doc": "nse105610656",
+   "type": "Credit Rating",
+   "quote": "The order book remained at healthy levels of INR49 billion as on 30 June 2023 (FY23: INR49 billion)."
+  },
+  {
+   "date": "2023-10-14",
+   "role": "book_level",
+   "crore": 4500.0,
+   "doc": "nse105644452",
+   "type": "Credit Rating",
+   "quote": "The unexecuted order book position stands at around ~Rs.4500 Cr. as on June 2023, thereby providing healthy revenue visibility over the medium term."
+  },
+  {
+   "date": "2023-10-14",
+   "role": "book_level",
+   "crore": 4500.0,
+   "doc": "nse105644452",
+   "type": "Credit Rating",
+   "quote": "SWREL has an unexecuted order value of over ~Rs. 4,500 Cr."
+  },
+  {
+   "date": "2024-01-18",
+   "role": "book_level",
+   "crore": 8750.0,
+   "doc": "nse105728799",
+   "type": "Press Release",
+   "quote": "Our unexecuted order book stands at INR 8,750 crore currently."
+  },
+  {
+   "date": "2024-01-24",
+   "role": "book_level",
+   "crore": 8750.0,
+   "doc": "nse105734394",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "With these new orders, our unexecuted order book as on 31st December 2023 has increased to approximately INR8,750 crores with nearly 87% of the order book comprising domestic EPC projects, which are executable over the n"
+  },
+  {
+   "date": "2024-01-24",
+   "role": "book_level",
+   "crore": 8000.0,
+   "doc": "nse105734394",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "And then on the order book, you talked about INR8,000 crores plus -- INR8,500 crores, I think you said."
+  },
+  {
+   "date": "2024-01-24",
+   "role": "book_level",
+   "crore": 8500.0,
+   "doc": "nse105734394",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "And then on the order book, you talked about INR8,000 crores plus -- INR8,500 crores, I think you said."
+  },
+  {
+   "date": "2024-01-24",
+   "role": "book_level",
+   "crore": 5527.0,
+   "doc": "nse105734394",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Amit Jain: 2024, as you have seen, we have already booked like INR5,527 crores of order book."
+  },
+  {
+   "date": "2024-04-09",
+   "role": "book_level",
+   "crore": 8863.0,
+   "doc": "nse105810743",
+   "type": "Credit Rating",
+   "quote": "Healthy order book expected to drive revenue growth in FY2025 SWREL has an unexecuted order value of over ~Rs. 8863 Cr. as on December 2023."
+  },
+  {
+   "date": "2024-04-25",
+   "role": "book_level",
+   "crore": 8084.0,
+   "doc": "nse105825025",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our un-executed order book stands at INR8,084 crores with approximately 85% constituting domestic orders."
+  },
+  {
+   "date": "2024-04-25",
+   "role": "book_level",
+   "crore": 8000.0,
+   "doc": "nse105825025",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "And as far as the order book is concerned, we are expecting close to order bookings of INR8,000 crores this year in FY'25 which we expect to close."
+  },
+  {
+   "date": "2024-04-25",
+   "role": "book_level",
+   "crore": 7000.0,
+   "doc": "nse105825025",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "INR7,000 crores from the unexecuted order book will be executed this year."
+  },
+  {
+   "date": "2024-07-24",
+   "role": "book_level",
+   "crore": 9396.0,
+   "doc": "nse105924778",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our unexecuted order book currently stands at INR9,396 crores with approximately 71% constituting domestic orders."
+  },
+  {
+   "date": "2024-07-24",
+   "role": "book_level",
+   "crore": 8000.0,
+   "doc": "nse105924778",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "We are positively going to meet both the guidance with respect to order book and revenue of INR8,000 crores plus within this financial years."
+  },
+  {
+   "date": "2024-10-14",
+   "role": "book_level",
+   "crore": 10500.0,
+   "doc": "nse106022030",
+   "type": "Press Release",
+   "quote": "SWREL continues its robust growth trajectory by attaining its highest-ever unexecuted order value of more than INR 10,500 crore."
+  },
+  {
+   "date": "2024-10-22",
+   "role": "book_level",
+   "crore": 10500.0,
+   "doc": "nse106030206",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our unexecuted order value now stands at over INR 10,500 crores, and it is the highest in the company's history."
+  },
+  {
+   "date": "2024-10-22",
+   "role": "book_level",
+   "crore": 10549.0,
+   "doc": "nse106030206",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our unexecuted order book currently stands at INR10,549 crores with approximately 78% constituting domestic orders, while our international UOV pertains to two projects in Europe and two projects in South Africa."
+  },
+  {
+   "date": "2024-10-22",
+   "role": "book_level",
+   "crore": 10549.0,
+   "doc": "nse106030206",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Page 4 of 19 Sterling and Wilson Renewable Energy Limited October 15, 2024 Our order book continues to grow rapidly, and we have achieved one of the highest unexecuted order value in the company history at INR10,549 cror"
+  },
+  {
+   "date": "2024-10-22",
+   "role": "book_level",
+   "crore": 8000.0,
+   "doc": "nse106030206",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Amit Jain: So, see, we expect to open FY26 after achieving INR8,000 crores of order book this year and achieving the revenue."
+  },
+  {
+   "date": "2024-10-22",
+   "role": "book_level",
+   "crore": 10000.0,
+   "doc": "nse106030206",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So you can expect that we'll be opening with order book also close to INR8,000 to INR10,000 crores and similar amount of order booking in that particular year."
+  },
+  {
+   "date": "2025-01-22",
+   "role": "book_level",
+   "crore": 10167.0,
+   "doc": "nse106121337",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our unexecuted order value now stands at over INR10,167 crores and continues to provide good P&L visibility for the forthcoming quarters."
+  },
+  {
+   "date": "2025-01-22",
+   "role": "book_level",
+   "crore": 10000.0,
+   "doc": "nse106121337",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Alisha Mahawla: In light of that, assuming that we close our order book at INR10,000 crores by the end of FY '25 and like you mentioned in the call that customer realignment and delays from the customer end, how should o"
+  },
+  {
+   "date": "2025-01-22",
+   "role": "book_level",
+   "crore": 10000.0,
+   "doc": "nse106121337",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So, when I say the INR10,000 crores order book -- fresh order booking next financial year, that would be, I mean, is spanned over 4 quarters, right?"
+  },
+  {
+   "date": "2025-04-24",
+   "role": "book_level",
+   "crore": 9096.0,
+   "doc": "nse106210855",
+   "type": "Press Release",
+   "quote": "The unexecuted order value is ~INR 9,096 crore as of Mar 31, 2025, vis-\u00e0-vis ~INR 8,084 crore as of Mar 31, 2024."
+  },
+  {
+   "date": "2025-05-02",
+   "role": "book_level",
+   "crore": 9096.0,
+   "doc": "nse106218858",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our unexecuted order value now stands at over Rs. 9,096 crores and continues to provide good P&L visibility for the forthcoming quarters."
+  },
+  {
+   "date": "2025-05-02",
+   "role": "book_level",
+   "crore": 9000.0,
+   "doc": "nse106218858",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Just thinking a bit differently, let's say, we close with the Rs. 9,000 crores order book now."
+  },
+  {
+   "date": "2025-07-24",
+   "role": "book_level",
+   "crore": 8348.0,
+   "doc": "nse106311002",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our unexecuted order book was approximately INR8,348 crores as of June 2025 and is expected to improve going forward with a pickup in domestic and international order inflows."
+  },
+  {
+   "date": "2025-07-24",
+   "role": "book_level",
+   "crore": 8000.0,
+   "doc": "nse106311002",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "In your order book of about INR8,000 crores order."
+  },
+  {
+   "date": "2025-07-28",
+   "role": "book_level",
+   "crore": 10100.0,
+   "doc": "nseAR_06e4f4cdba",
+   "type": "Annual Report",
+   "quote": "During the year, we achieved the highest unexecuted order value in our history of more than INR 10,100 crore."
+  },
+  {
+   "date": "2025-07-28",
+   "role": "book_level",
+   "crore": 9096.0,
+   "doc": "nseAR_06e4f4cdba",
+   "type": "Annual Report",
+   "quote": "These two turnkey project wins totalled US$ 140 million 14 Commenced the pilot project for solar plus battery energy storage systems for a private player at Jamnagar, Gujarat Unexecuted order value now stands at over 15 "
+  },
+  {
+   "date": "2025-07-28",
+   "role": "book_level",
+   "crore": 9096.0,
+   "doc": "nseAR_06e4f4cdba",
+   "type": "Annual Report",
+   "quote": "Internal and external risk factors are SWREL has an Unexecuted Order Value of INR 9,096 crore as keenly observed through clearly defined internal processes. of March 31, 2025, and a robust bid pipeline for FY 2025-26."
+  },
+  {
+   "date": "2025-10-17",
+   "role": "book_level",
+   "crore": 9287.0,
+   "doc": "nse106411106",
+   "type": "Press Release",
+   "quote": "The current unexecuted order value stands at INR 9,287 crore, providing execution and revenue visibility."
+  },
+  {
+   "date": "2025-10-26",
+   "role": "book_level",
+   "crore": 9000.0,
+   "doc": "nse106416207",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "If we have the order book of around INR9,000 crores in your books."
+  },
+  {
+   "date": "2025-10-26",
+   "role": "book_level",
+   "crore": 9300.0,
+   "doc": "nse106416207",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So the two L1 positions that you announced in Uttar Pradesh and Rajasthan, is it included in the order book of INR9,300 crores or it does not include?"
+  },
+  {
+   "date": "2025-10-26",
+   "role": "book_level",
+   "crore": 9300.0,
+   "doc": "nse106416207",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "And can you give the split of the order book, INR9,300 crores."
+  }
+ ],
+ "timeline": [
+  {
+   "date": "2021-01-31",
+   "ttm_revenue": 5541.5,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-02-28",
+   "ttm_revenue": 5776.9,
+   "orders_12m": 0,
+   "book": 5815.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-03-31",
+   "ttm_revenue": 5776.9,
+   "orders_12m": 0,
+   "book": 5815.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-04-30",
+   "ttm_revenue": 5776.9,
+   "orders_12m": 0,
+   "book": 5815.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-05-31",
+   "ttm_revenue": 5776.9,
+   "orders_12m": 0,
+   "book": 5815.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-06-30",
+   "ttm_revenue": 5080.8,
+   "orders_12m": 9330.0,
+   "book": 5815.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-07-31",
+   "ttm_revenue": 5080.8,
+   "orders_12m": 9330.0,
+   "book": 9000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-08-31",
+   "ttm_revenue": 5207.5,
+   "orders_12m": 9330.0,
+   "book": 8731.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-09-30",
+   "ttm_revenue": 5207.5,
+   "orders_12m": 9330.0,
+   "book": 8731.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-10-31",
+   "ttm_revenue": 5207.5,
+   "orders_12m": 9330.0,
+   "book": 8731.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-11-30",
+   "ttm_revenue": 5309.3,
+   "orders_12m": 12150.0,
+   "book": 8731.0,
+   "book_year_ago": 5815.0
+  },
+  {
+   "date": "2021-12-31",
+   "ttm_revenue": 5309.3,
+   "orders_12m": 12150.0,
+   "book": 8731.0,
+   "book_year_ago": 5815.0
+  },
+  {
+   "date": "2022-01-31",
+   "ttm_revenue": 5309.3,
+   "orders_12m": 12150.0,
+   "book": 8731.0,
+   "book_year_ago": 5815.0
+  },
+  {
+   "date": "2022-02-28",
+   "ttm_revenue": 5492.4,
+   "orders_12m": 13699.0,
+   "book": 8731.0,
+   "book_year_ago": 5815.0
+  },
+  {
+   "date": "2022-03-31",
+   "ttm_revenue": 5492.4,
+   "orders_12m": 13699.0,
+   "book": null,
+   "book_year_ago": 9000.0
+  },
+  {
+   "date": "2022-04-30",
+   "ttm_revenue": 5198.9,
+   "orders_12m": 15729.0,
+   "book": 3253.0,
+   "book_year_ago": 9000.0
+  },
+  {
+   "date": "2022-05-31",
+   "ttm_revenue": 5198.9,
+   "orders_12m": 15729.0,
+   "book": 3253.0,
+   "book_year_ago": 8731.0
+  },
+  {
+   "date": "2022-06-30",
+   "ttm_revenue": 5198.9,
+   "orders_12m": 6399.0,
+   "book": 3253.0,
+   "book_year_ago": 8731.0
+  },
+  {
+   "date": "2022-07-31",
+   "ttm_revenue": 5211.2,
+   "orders_12m": 6642.3,
+   "book": 3253.0,
+   "book_year_ago": 8731.0
+  },
+  {
+   "date": "2022-08-31",
+   "ttm_revenue": 5211.2,
+   "orders_12m": 6642.3,
+   "book": 3253.0,
+   "book_year_ago": 8731.0
+  },
+  {
+   "date": "2022-09-30",
+   "ttm_revenue": 5211.2,
+   "orders_12m": 6642.3,
+   "book": 3253.0,
+   "book_year_ago": 8731.0
+  },
+  {
+   "date": "2022-10-31",
+   "ttm_revenue": 4085.5,
+   "orders_12m": 8854.3,
+   "book": 2654.0,
+   "book_year_ago": 8731.0
+  },
+  {
+   "date": "2022-11-30",
+   "ttm_revenue": 4085.5,
+   "orders_12m": 6034.3,
+   "book": 2654.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-12-31",
+   "ttm_revenue": 4085.5,
+   "orders_12m": 6034.3,
+   "book": 2654.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-01-31",
+   "ttm_revenue": 2997.6,
+   "orders_12m": 76034.3,
+   "book": 450.0,
+   "book_year_ago": 3253.0
+  },
+  {
+   "date": "2023-02-28",
+   "ttm_revenue": 2997.6,
+   "orders_12m": 74485.3,
+   "book": 450.0,
+   "book_year_ago": 3253.0
+  },
+  {
+   "date": "2023-03-31",
+   "ttm_revenue": 2997.6,
+   "orders_12m": 74485.3,
+   "book": 4000.0,
+   "book_year_ago": 3253.0
+  },
+  {
+   "date": "2023-04-30",
+   "ttm_revenue": 2015.0,
+   "orders_12m": 72455.3,
+   "book": 500.0,
+   "book_year_ago": 3253.0
+  },
+  {
+   "date": "2023-05-31",
+   "ttm_revenue": 2015.0,
+   "orders_12m": 72455.3,
+   "book": 4900.0,
+   "book_year_ago": 3253.0
+  },
+  {
+   "date": "2023-06-30",
+   "ttm_revenue": 2015.0,
+   "orders_12m": 72455.3,
+   "book": 4900.0,
+   "book_year_ago": 3253.0
+  },
+  {
+   "date": "2023-07-31",
+   "ttm_revenue": 1323.0,
+   "orders_12m": 72212.0,
+   "book": 4900.0,
+   "book_year_ago": 2654.0
+  },
+  {
+   "date": "2023-08-31",
+   "ttm_revenue": 1323.0,
+   "orders_12m": 72212.0,
+   "book": 4500.0,
+   "book_year_ago": 2654.0
+  },
+  {
+   "date": "2023-09-30",
+   "ttm_revenue": 1323.0,
+   "orders_12m": 74877.0,
+   "book": 4900.0,
+   "book_year_ago": 2654.0
+  },
+  {
+   "date": "2023-10-31",
+   "ttm_revenue": 1769.9,
+   "orders_12m": 72665.0,
+   "book": 4500.0,
+   "book_year_ago": 450.0
+  },
+  {
+   "date": "2023-11-30",
+   "ttm_revenue": 1769.9,
+   "orders_12m": 75305.0,
+   "book": 4500.0,
+   "book_year_ago": 450.0
+  },
+  {
+   "date": "2023-12-31",
+   "ttm_revenue": 1769.9,
+   "orders_12m": 75305.0,
+   "book": 4500.0,
+   "book_year_ago": 4000.0
+  },
+  {
+   "date": "2024-01-31",
+   "ttm_revenue": 1945.8,
+   "orders_12m": 5305.0,
+   "book": 5527.0,
+   "book_year_ago": 4900.0
+  },
+  {
+   "date": "2024-02-29",
+   "ttm_revenue": 1945.8,
+   "orders_12m": 5305.0,
+   "book": 5527.0,
+   "book_year_ago": 4900.0
+  },
+  {
+   "date": "2024-03-31",
+   "ttm_revenue": 1945.8,
+   "orders_12m": 5305.0,
+   "book": 5527.0,
+   "book_year_ago": 4900.0
+  },
+  {
+   "date": "2024-04-30",
+   "ttm_revenue": 3035.4,
+   "orders_12m": 5305.0,
+   "book": 7000.0,
+   "book_year_ago": 4900.0
+  },
+  {
+   "date": "2024-05-31",
+   "ttm_revenue": 3035.4,
+   "orders_12m": 5305.0,
+   "book": 7000.0,
+   "book_year_ago": 4500.0
+  },
+  {
+   "date": "2024-06-30",
+   "ttm_revenue": 3035.4,
+   "orders_12m": 5305.0,
+   "book": 7000.0,
+   "book_year_ago": 4900.0
+  },
+  {
+   "date": "2024-07-31",
+   "ttm_revenue": 3435.5,
+   "orders_12m": 5633.0,
+   "book": 8000.0,
+   "book_year_ago": 4500.0
+  },
+  {
+   "date": "2024-08-31",
+   "ttm_revenue": 3435.5,
+   "orders_12m": 5633.0,
+   "book": 8000.0,
+   "book_year_ago": 4500.0
+  },
+  {
+   "date": "2024-09-30",
+   "ttm_revenue": 3435.5,
+   "orders_12m": 2968.0,
+   "book": 8000.0,
+   "book_year_ago": 4500.0
+  },
+  {
+   "date": "2024-10-31",
+   "ttm_revenue": 3706.4,
+   "orders_12m": 3201.0,
+   "book": 10000.0,
+   "book_year_ago": 5527.0
+  },
+  {
+   "date": "2024-11-30",
+   "ttm_revenue": 3706.4,
+   "orders_12m": 3201.0,
+   "book": 10000.0,
+   "book_year_ago": 5527.0
+  },
+  {
+   "date": "2024-12-31",
+   "ttm_revenue": 3706.4,
+   "orders_12m": 3705.0,
+   "book": 10000.0,
+   "book_year_ago": 5527.0
+  },
+  {
+   "date": "2025-01-31",
+   "ttm_revenue": 4960.8,
+   "orders_12m": 3705.0,
+   "book": 10000.0,
+   "book_year_ago": 7000.0
+  },
+  {
+   "date": "2025-02-28",
+   "ttm_revenue": 4960.8,
+   "orders_12m": 3705.0,
+   "book": 10000.0,
+   "book_year_ago": 7000.0
+  },
+  {
+   "date": "2025-03-31",
+   "ttm_revenue": 4960.8,
+   "orders_12m": 3705.0,
+   "book": 10000.0,
+   "book_year_ago": 7000.0
+  },
+  {
+   "date": "2025-04-30",
+   "ttm_revenue": 6301.9,
+   "orders_12m": 13259.0,
+   "book": 9096.0,
+   "book_year_ago": 8000.0
+  },
+  {
+   "date": "2025-05-31",
+   "ttm_revenue": 6301.9,
+   "orders_12m": 13259.0,
+   "book": 9000.0,
+   "book_year_ago": 8000.0
+  },
+  {
+   "date": "2025-06-30",
+   "ttm_revenue": 6301.9,
+   "orders_12m": 13259.0,
+   "book": 9000.0,
+   "book_year_ago": 8000.0
+  },
+  {
+   "date": "2025-07-31",
+   "ttm_revenue": 7148.4,
+   "orders_12m": 22894.0,
+   "book": 9096.0,
+   "book_year_ago": 10000.0
+  },
+  {
+   "date": "2025-08-31",
+   "ttm_revenue": 7148.4,
+   "orders_12m": 22894.0,
+   "book": 9096.0,
+   "book_year_ago": 10000.0
+  },
+  {
+   "date": "2025-09-30",
+   "ttm_revenue": 7148.4,
+   "orders_12m": 23309.0,
+   "book": 9096.0,
+   "book_year_ago": 10000.0
+  },
+  {
+   "date": "2025-10-31",
+   "ttm_revenue": 7866.5,
+   "orders_12m": 22580.0,
+   "book": 9300.0,
+   "book_year_ago": 10000.0
+  },
+  {
+   "date": "2025-11-30",
+   "ttm_revenue": 7866.5,
+   "orders_12m": 23893.0,
+   "book": 9300.0,
+   "book_year_ago": 10000.0
+  },
+  {
+   "date": "2025-12-31",
+   "ttm_revenue": 7866.5,
+   "orders_12m": 24770.0,
+   "book": 9300.0,
+   "book_year_ago": 10000.0
+  }
+ ]
+}

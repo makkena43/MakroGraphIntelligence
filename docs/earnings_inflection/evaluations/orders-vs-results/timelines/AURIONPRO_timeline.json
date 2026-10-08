@@ -1,0 +1,802 @@
+{
+ "symbol": "AURIONPRO",
+ "scope": "consolidated",
+ "quarters": 28,
+ "inflections": [],
+ "document_signals": [
+  {
+   "date": "2025-05-31",
+   "why": [
+    "orders announced in 12 months 1,600 cr = 1.4x TTM revenue"
+   ]
+  }
+ ],
+ "ttm_path": [
+  [
+   "2019-03-31",
+   null,
+   null,
+   "2019-05-09"
+  ],
+  [
+   "2019-06-30",
+   null,
+   null,
+   "2019-08-09"
+  ],
+  [
+   "2019-09-30",
+   null,
+   null,
+   "2019-11-13"
+  ],
+  [
+   "2019-12-31",
+   505.2,
+   36.5,
+   "2020-02-13"
+  ],
+  [
+   "2020-03-31",
+   455.0,
+   31.9,
+   "2020-06-30"
+  ],
+  [
+   "2020-06-30",
+   413.7,
+   26.8,
+   "2020-09-08"
+  ],
+  [
+   "2020-09-30",
+   378.6,
+   23.5,
+   "2020-11-07"
+  ],
+  [
+   "2020-12-31",
+   369.5,
+   26.4,
+   "2021-02-05"
+  ],
+  [
+   "2021-03-31",
+   376.6,
+   -121.9,
+   "2021-06-16"
+  ],
+  [
+   "2021-06-30",
+   416.4,
+   -111.9,
+   "2021-07-24"
+  ],
+  [
+   "2021-09-30",
+   450.2,
+   -99.5,
+   "2021-10-26"
+  ],
+  [
+   "2021-12-31",
+   477.7,
+   -90.2,
+   "2022-01-28"
+  ],
+  [
+   "2022-03-31",
+   505.0,
+   70.7,
+   "2022-05-18"
+  ],
+  [
+   "2022-06-30",
+   534.7,
+   80.0,
+   "2022-07-26"
+  ],
+  [
+   "2022-09-30",
+   567.2,
+   84.1,
+   "2022-11-01"
+  ],
+  [
+   "2022-12-31",
+   606.1,
+   91.2,
+   "2023-01-25"
+  ],
+  [
+   "2023-03-31",
+   659.3,
+   97.3,
+   "2023-05-17"
+  ],
+  [
+   "2023-06-30",
+   712.5,
+   105.6,
+   "2023-07-25"
+  ],
+  [
+   "2023-09-30",
+   769.0,
+   115.0,
+   "2023-10-26"
+  ],
+  [
+   "2023-12-31",
+   831.3,
+   127.6,
+   "2024-02-06"
+  ],
+  [
+   "2024-03-31",
+   887.5,
+   141.0,
+   "2024-05-15"
+  ],
+  [
+   "2024-06-30",
+   950.4,
+   152.6,
+   "2024-07-25"
+  ],
+  [
+   "2024-09-30",
+   1017.5,
+   164.5,
+   "2024-10-22"
+  ],
+  [
+   "2024-12-31",
+   1092.9,
+   174.3,
+   "2025-01-28"
+  ],
+  [
+   "2025-03-31",
+   1173.0,
+   186.2,
+   "2025-05-13"
+  ],
+  [
+   "2025-06-30",
+   1248.2,
+   194.1,
+   "2025-07-22"
+  ],
+  [
+   "2025-09-30",
+   1327.6,
+   203.3,
+   "2025-11-03"
+  ],
+  [
+   "2025-12-31",
+   1392.5,
+   198.1,
+   "2026-02-04"
+  ]
+ ],
+ "orders": [
+  {
+   "date": "2021-10-27",
+   "role": "order_value",
+   "crore": 10.0,
+   "doc": "nse105122706",
+   "type": "Press Release",
+   "quote": "The order is valued at US$ 1.3 Million (INR 10 crores appx.) and will be delivered in two phases by March 2022."
+  },
+  {
+   "date": "2022-03-25",
+   "role": "order_value",
+   "crore": 23.0,
+   "doc": "nse5010562",
+   "type": "Press Release",
+   "quote": "The contract is for a tenure of 12 months and is valued at US$ 3 Million (approximately INR 23 Crores) spread monthly over the tenure of the contract."
+  },
+  {
+   "date": "2022-09-01",
+   "role": "order_value",
+   "crore": 15.0,
+   "doc": "nse5085126",
+   "type": "Annual General Meeting",
+   "quote": "Ltd.in order to make an entry into the payment business, considering the regulatory requirement of minimum net-worth of INR 1500 lakhs for the aforesaid WOS, during the year, the Company had subscribed 1,80,00,000 compul"
+  },
+  {
+   "date": "2022-09-01",
+   "role": "order_value",
+   "crore": 18.0,
+   "doc": "nse5085126",
+   "type": "Annual General Meeting",
+   "quote": "Ltd.in order to make an entry into the payment business, considering the regulatory requirement of minimum net-worth of INR 1500 lakhs for the aforesaid WOS, during the year, the Company had subscribed 1,80,00,000 compul"
+  },
+  {
+   "date": "2022-12-26",
+   "role": "order_value",
+   "crore": 150.0,
+   "doc": "nse105385503",
+   "type": "Press Release",
+   "quote": "The order, valued at US $ 18 mn (close to INR 150 Crores), will be spread over three years commencing with the calendar year 2023."
+  },
+  {
+   "date": "2023-09-13",
+   "role": "order_value",
+   "crore": 140.0,
+   "doc": "nse105617988",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Ashish Rai: The total of the investments plus the outstanding payments is of the order of that Rs. 140 Cr number that we published."
+  },
+  {
+   "date": "2024-02-20",
+   "role": "order_value",
+   "crore": 10.0,
+   "doc": "nse105764533",
+   "type": "Press Release",
+   "quote": "These orders, valued at INR 10 crores, will include licencing and implementation within this quarter, followed by the annual maintenance and support."
+  },
+  {
+   "date": "2024-09-11",
+   "role": "order_value",
+   "crore": 200.0,
+   "doc": "nse105985085",
+   "type": "Press Release",
+   "quote": "The contract is a five-year deal valued at over INR 200 crores."
+  },
+  {
+   "date": "2025-05-20",
+   "role": "order_value",
+   "crore": 1400.0,
+   "doc": "nse106239906",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Given the whole, given the structure that you have provided us with, at one point in time, we have a very strong Rs. 1,400 Cr worth of orders in hand, which is a 40% growth on a YoY basis."
+  },
+  {
+   "date": "2025-11-03",
+   "role": "order_value",
+   "crore": 250.0,
+   "doc": "nse106425471",
+   "type": "Press Release",
+   "quote": "Technology Innovation Group \uf0b7 Aurionpro secured a landmark Rs. 250 crore contract from MMRDA to implement advanced Smart Transit and Automatic Fare Collection systems for Mumbai Metro Lines 4 and 4A, strengthening its le"
+  },
+  {
+   "date": "2025-12-23",
+   "role": "order_value",
+   "crore": 63.0,
+   "doc": "nse106474529",
+   "type": "Press Release",
+   "quote": "The order value of approximately INR 63 Crores is one of the largest engagements in Asia in 2025 among lending product vendors."
+  }
+ ],
+ "books": [
+  {
+   "date": "2023-01-24",
+   "role": "book_level",
+   "crore": 760.0,
+   "doc": "nse105407687",
+   "type": "Press Release",
+   "quote": "The quarter also saw a robust growth in pipeline and wins, including our largest win in US till date and the order book now stands at INR 760 Cr."
+  },
+  {
+   "date": "2023-02-02",
+   "role": "book_level",
+   "crore": 760.0,
+   "doc": "nse105415670",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "The signed order book now stands at Rs. 760 Cr, a very large part of which will be executed over the next four to six quarters."
+  },
+  {
+   "date": "2023-05-23",
+   "role": "book_level",
+   "crore": 820.0,
+   "doc": "nse105507620",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "We enter the year with a strong order book Aurionpro Solutions Ltd May 17 2023 of about Rs.820 crores."
+  },
+  {
+   "date": "2023-05-23",
+   "role": "book_level",
+   "crore": 820.0,
+   "doc": "nse105507620",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Ashish Rai: So order book, Rs.820 crores as it stood end of March, we believe at least about Rs.700 crores from it should be executable over the next four quarters."
+  },
+  {
+   "date": "2023-08-02",
+   "role": "book_level",
+   "crore": 800.0,
+   "doc": "nse105574428",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Mitul Mehta: Just wanted to get some sense on your order book, you highlighted that you have built a INR 800 crore + order book."
+  },
+  {
+   "date": "2023-08-02",
+   "role": "book_level",
+   "crore": 800.0,
+   "doc": "nse105574428",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Ashish Rai: So, look, we announced INR 800 crore + order book at the end of March basically, that is what it stood."
+  },
+  {
+   "date": "2023-10-31",
+   "role": "book_level",
+   "crore": 810.0,
+   "doc": "nse105659763",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Suraj Jain: I have couple of questions, and I just wanted to know regarding your recent order wins because in the presentation I can see the order book you have around Rs. 810 Cr, I just want to know any order wins in la"
+  },
+  {
+   "date": "2024-02-05",
+   "role": "book_level",
+   "crore": 900.0,
+   "doc": "nse105746726",
+   "type": "Press Release",
+   "quote": "Our order book now exceeds INR 900 crores and with the demand environment remaining exceptionally strong for our key offerings, we feel we are well positioned to sustain our strong growth trajectory in the upcoming quart"
+  },
+  {
+   "date": "2024-02-08",
+   "role": "book_level",
+   "crore": 900.0,
+   "doc": "nse105751694",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our order book now exceeds Rs. 900 Cr, demand and deal pipeline is the largest it's ever been."
+  },
+  {
+   "date": "2024-02-08",
+   "role": "book_level",
+   "crore": 900.0,
+   "doc": "nse105751694",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "You mentioned you have an order book of Rs. 900 Cr."
+  },
+  {
+   "date": "2024-02-08",
+   "role": "book_level",
+   "crore": 900.0,
+   "doc": "nse105751694",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So, the order book the split Rs. 900 Cr is roughly split 40% for Banking and FinTech and 60% for TIG."
+  },
+  {
+   "date": "2025-01-27",
+   "role": "book_level",
+   "crore": 1300.0,
+   "doc": "nse106126410",
+   "type": "Press Release",
+   "quote": "With a strong pipeline across segments, together with a favourable demand environment, and a healthy order book now exceeding \u20b91,300 crore, the outlook for FY25 and beyond remains highly optimistic."
+  },
+  {
+   "date": "2025-02-03",
+   "role": "book_level",
+   "crore": 250.0,
+   "doc": "nse106134596",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "The order book buildup was, typically, what happens to us from one quarter to the next is we roughly are at a pace of consuming about Rs. 250 Cr to 260 Cr from the order book, and we add, let's say, between Rs. 250 and 3"
+  }
+ ],
+ "timeline": [
+  {
+   "date": "2021-01-31",
+   "ttm_revenue": 378.6,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-02-28",
+   "ttm_revenue": 369.5,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-03-31",
+   "ttm_revenue": 369.5,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-04-30",
+   "ttm_revenue": 369.5,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-05-31",
+   "ttm_revenue": 369.5,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-06-30",
+   "ttm_revenue": 376.6,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-07-31",
+   "ttm_revenue": 416.4,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-08-31",
+   "ttm_revenue": 416.4,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-09-30",
+   "ttm_revenue": 416.4,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-10-31",
+   "ttm_revenue": 450.2,
+   "orders_12m": 10.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-11-30",
+   "ttm_revenue": 450.2,
+   "orders_12m": 10.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-12-31",
+   "ttm_revenue": 450.2,
+   "orders_12m": 10.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-01-31",
+   "ttm_revenue": 477.7,
+   "orders_12m": 10.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-02-28",
+   "ttm_revenue": 477.7,
+   "orders_12m": 10.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-03-31",
+   "ttm_revenue": 477.7,
+   "orders_12m": 33.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-04-30",
+   "ttm_revenue": 477.7,
+   "orders_12m": 33.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-05-31",
+   "ttm_revenue": 505.0,
+   "orders_12m": 33.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-06-30",
+   "ttm_revenue": 505.0,
+   "orders_12m": 33.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-07-31",
+   "ttm_revenue": 534.7,
+   "orders_12m": 33.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-08-31",
+   "ttm_revenue": 534.7,
+   "orders_12m": 33.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-09-30",
+   "ttm_revenue": 534.7,
+   "orders_12m": 66.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-10-31",
+   "ttm_revenue": 534.7,
+   "orders_12m": 56.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-11-30",
+   "ttm_revenue": 567.2,
+   "orders_12m": 56.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-12-31",
+   "ttm_revenue": 567.2,
+   "orders_12m": 206.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-01-31",
+   "ttm_revenue": 606.1,
+   "orders_12m": 206.0,
+   "book": 760.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-02-28",
+   "ttm_revenue": 606.1,
+   "orders_12m": 206.0,
+   "book": 760.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-03-31",
+   "ttm_revenue": 606.1,
+   "orders_12m": 183.0,
+   "book": 760.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-04-30",
+   "ttm_revenue": 606.1,
+   "orders_12m": 183.0,
+   "book": 760.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-05-31",
+   "ttm_revenue": 659.3,
+   "orders_12m": 183.0,
+   "book": 820.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-06-30",
+   "ttm_revenue": 659.3,
+   "orders_12m": 183.0,
+   "book": 820.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-07-31",
+   "ttm_revenue": 712.5,
+   "orders_12m": 183.0,
+   "book": 820.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-08-31",
+   "ttm_revenue": 712.5,
+   "orders_12m": 183.0,
+   "book": 800.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-09-30",
+   "ttm_revenue": 712.5,
+   "orders_12m": 290.0,
+   "book": 800.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-10-31",
+   "ttm_revenue": 769.0,
+   "orders_12m": 290.0,
+   "book": 810.0,
+   "book_year_ago": 760.0
+  },
+  {
+   "date": "2023-11-30",
+   "ttm_revenue": 769.0,
+   "orders_12m": 290.0,
+   "book": 810.0,
+   "book_year_ago": 760.0
+  },
+  {
+   "date": "2023-12-31",
+   "ttm_revenue": 769.0,
+   "orders_12m": 140.0,
+   "book": 810.0,
+   "book_year_ago": 760.0
+  },
+  {
+   "date": "2024-01-31",
+   "ttm_revenue": 769.0,
+   "orders_12m": 140.0,
+   "book": 810.0,
+   "book_year_ago": 760.0
+  },
+  {
+   "date": "2024-02-29",
+   "ttm_revenue": 831.3,
+   "orders_12m": 150.0,
+   "book": 900.0,
+   "book_year_ago": 820.0
+  },
+  {
+   "date": "2024-03-31",
+   "ttm_revenue": 831.3,
+   "orders_12m": 150.0,
+   "book": 900.0,
+   "book_year_ago": 820.0
+  },
+  {
+   "date": "2024-04-30",
+   "ttm_revenue": 831.3,
+   "orders_12m": 150.0,
+   "book": 900.0,
+   "book_year_ago": 800.0
+  },
+  {
+   "date": "2024-05-31",
+   "ttm_revenue": 887.5,
+   "orders_12m": 150.0,
+   "book": 900.0,
+   "book_year_ago": 800.0
+  },
+  {
+   "date": "2024-06-30",
+   "ttm_revenue": 887.5,
+   "orders_12m": 150.0,
+   "book": 900.0,
+   "book_year_ago": 800.0
+  },
+  {
+   "date": "2024-07-31",
+   "ttm_revenue": 950.4,
+   "orders_12m": 150.0,
+   "book": 900.0,
+   "book_year_ago": 810.0
+  },
+  {
+   "date": "2024-08-31",
+   "ttm_revenue": 950.4,
+   "orders_12m": 150.0,
+   "book": null,
+   "book_year_ago": 810.0
+  },
+  {
+   "date": "2024-09-30",
+   "ttm_revenue": 950.4,
+   "orders_12m": 210.0,
+   "book": null,
+   "book_year_ago": 810.0
+  },
+  {
+   "date": "2024-10-31",
+   "ttm_revenue": 1017.5,
+   "orders_12m": 210.0,
+   "book": null,
+   "book_year_ago": 810.0
+  },
+  {
+   "date": "2024-11-30",
+   "ttm_revenue": 1017.5,
+   "orders_12m": 210.0,
+   "book": null,
+   "book_year_ago": 900.0
+  },
+  {
+   "date": "2024-12-31",
+   "ttm_revenue": 1017.5,
+   "orders_12m": 210.0,
+   "book": null,
+   "book_year_ago": 900.0
+  },
+  {
+   "date": "2025-01-31",
+   "ttm_revenue": 1092.9,
+   "orders_12m": 210.0,
+   "book": 1300.0,
+   "book_year_ago": 900.0
+  },
+  {
+   "date": "2025-02-28",
+   "ttm_revenue": 1092.9,
+   "orders_12m": 200.0,
+   "book": 250.0,
+   "book_year_ago": 900.0
+  },
+  {
+   "date": "2025-03-31",
+   "ttm_revenue": 1092.9,
+   "orders_12m": 200.0,
+   "book": 250.0,
+   "book_year_ago": 900.0
+  },
+  {
+   "date": "2025-04-30",
+   "ttm_revenue": 1092.9,
+   "orders_12m": 200.0,
+   "book": 250.0,
+   "book_year_ago": 900.0
+  },
+  {
+   "date": "2025-05-31",
+   "ttm_revenue": 1173.0,
+   "orders_12m": 1600.0,
+   "book": 250.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-06-30",
+   "ttm_revenue": 1173.0,
+   "orders_12m": 1600.0,
+   "book": 250.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-07-31",
+   "ttm_revenue": 1248.2,
+   "orders_12m": 1600.0,
+   "book": 250.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-08-31",
+   "ttm_revenue": 1248.2,
+   "orders_12m": 1600.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-09-30",
+   "ttm_revenue": 1248.2,
+   "orders_12m": 1400.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-10-31",
+   "ttm_revenue": 1248.2,
+   "orders_12m": 1400.0,
+   "book": null,
+   "book_year_ago": 250.0
+  },
+  {
+   "date": "2025-11-30",
+   "ttm_revenue": 1327.6,
+   "orders_12m": 1650.0,
+   "book": null,
+   "book_year_ago": 250.0
+  },
+  {
+   "date": "2025-12-31",
+   "ttm_revenue": 1327.6,
+   "orders_12m": 1713.0,
+   "book": null,
+   "book_year_ago": 250.0
+  }
+ ]
+}

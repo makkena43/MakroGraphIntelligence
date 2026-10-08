@@ -1,0 +1,940 @@
+{
+ "symbol": "HGINFRA",
+ "scope": "consolidated",
+ "quarters": 28,
+ "inflections": [
+  {
+   "quarter": "2021-06-30",
+   "published": "2021-08-04",
+   "ttm_profit_year_ago": 148.6,
+   "ttm_profit": 317.7,
+   "document_signal": null,
+   "lead_days": null
+  }
+ ],
+ "document_signals": [],
+ "ttm_path": [
+  [
+   "2019-03-31",
+   null,
+   null,
+   "2019-06-26"
+  ],
+  [
+   "2019-06-30",
+   null,
+   null,
+   "2019-08-09"
+  ],
+  [
+   "2019-09-30",
+   null,
+   null,
+   "2019-11-09"
+  ],
+  [
+   "2019-12-31",
+   2167.1,
+   150.9,
+   "2020-01-28"
+  ],
+  [
+   "2020-03-31",
+   2217.1,
+   166.6,
+   "2020-06-25"
+  ],
+  [
+   "2020-06-30",
+   1996.8,
+   148.6,
+   "2020-08-14"
+  ],
+  [
+   "2020-09-30",
+   2000.8,
+   145.6,
+   "2020-11-09"
+  ],
+  [
+   "2020-12-31",
+   2180.1,
+   179.9,
+   "2021-01-27"
+  ],
+  [
+   "2021-03-31",
+   2602.3,
+   236.7,
+   "2021-05-13"
+  ],
+  [
+   "2021-06-30",
+   3231.8,
+   317.7,
+   "2021-08-04"
+  ],
+  [
+   "2021-09-30",
+   3530.0,
+   354.4,
+   "2021-11-09"
+  ],
+  [
+   "2021-12-31",
+   3730.7,
+   387.2,
+   "2022-02-04"
+  ],
+  [
+   "2022-03-31",
+   3739.1,
+   380.0,
+   "2022-05-24"
+  ],
+  [
+   "2022-06-30",
+   3903.6,
+   388.5,
+   "2022-08-02"
+  ],
+  [
+   "2022-09-30",
+   3917.7,
+   395.9,
+   "2022-11-10"
+  ],
+  [
+   "2022-12-31",
+   4151.3,
+   426.2,
+   "2023-02-09"
+  ],
+  [
+   "2023-03-31",
+   4622.0,
+   493.2,
+   "2023-05-11"
+  ],
+  [
+   "2023-06-30",
+   4867.3,
+   534.1,
+   "2023-08-01"
+  ],
+  [
+   "2023-09-30",
+   5026.1,
+   548.3,
+   "2023-11-08"
+  ],
+  [
+   "2023-12-31",
+   5205.6,
+   519.5,
+   "2024-02-03"
+  ],
+  [
+   "2024-03-31",
+   5378.5,
+   538.6,
+   "2024-05-09"
+  ],
+  [
+   "2024-06-30",
+   5555.4,
+   550.8,
+   "2024-08-06"
+  ],
+  [
+   "2024-09-30",
+   5503.2,
+   535.4,
+   "2024-11-12"
+  ],
+  [
+   "2024-12-31",
+   5403.6,
+   548.5,
+   "2025-02-06"
+  ],
+  [
+   "2025-03-31",
+   5056.2,
+   505.5,
+   "2025-05-21"
+  ],
+  [
+   "2025-06-30",
+   5010.3,
+   441.7,
+   "2025-08-13"
+  ],
+  [
+   "2025-09-30",
+   5012.4,
+   413.2,
+   "2025-11-12"
+  ],
+  [
+   "2025-12-31",
+   5168.8,
+   392.3,
+   "2026-02-12"
+  ]
+ ],
+ "orders": [
+  {
+   "date": "2023-05-24",
+   "role": "order_value",
+   "crore": 42.5,
+   "doc": "nse105508255",
+   "type": "Updates",
+   "quote": "Time period by which the | 1 Year order(s)/contract(s) is to be executed; ge Broad consideration or size of the | Rs.42.5Cr lorder(s)/contract(s); h."
+  },
+  {
+   "date": "2023-06-23",
+   "role": "order_value",
+   "crore": 243.1,
+   "doc": "nse105537315",
+   "type": "Updates",
+   "quote": "Broad consideration or size of the | Rs.243.11Cr order(s)/contract(s): h."
+  },
+  {
+   "date": "2023-06-23",
+   "role": "order_value",
+   "crore": 294.5,
+   "doc": "nse105537315",
+   "type": "Updates",
+   "quote": "Broad consideration or size of the | Rs.294.51 Cr order(s)/contract(s): is Whether the promoter promoter | Not Applicable group/group companies have any interest in the entity that awarded the order(s)/contract(s)?"
+  },
+  {
+   "date": "2023-07-01",
+   "role": "order_value",
+   "crore": 314.2,
+   "doc": "nse105544306",
+   "type": "Updates",
+   "quote": "Broad consideration or size of the | Rs.314.21 Cr order(s)/contract(s): h."
+  },
+  {
+   "date": "2023-08-04",
+   "role": "order_value",
+   "crore": 238.7,
+   "doc": "nse105577385",
+   "type": "Updates",
+   "quote": "Broad consideration or size of the Rs. 238.71 Cr order(s)/contract(s); h."
+  },
+  {
+   "date": "2023-09-05",
+   "role": "order_value",
+   "crore": 997.1,
+   "doc": "nse105610249",
+   "type": "Updates",
+   "quote": "Broad consideration or size of the|[Rs. 997.11 Cr order(s)/contract(s) h."
+  },
+  {
+   "date": "2023-10-09",
+   "role": "order_value",
+   "crore": 580.0,
+   "doc": "nse105639513",
+   "type": "Updates",
+   "quote": "Broad consideration or size of the Rs. 580.00 Cr. order(s)/contract(s) h."
+  },
+  {
+   "date": "2023-10-09",
+   "role": "order_value",
+   "crore": 522.0,
+   "doc": "nse105639539",
+   "type": "Updates",
+   "quote": "Broad consideration or size of the Rs. 522.02 Cr order(s)/contract(s) h."
+  },
+  {
+   "date": "2023-11-30",
+   "role": "order_value",
+   "crore": 1303.1,
+   "doc": "nse105686788",
+   "type": "Updates",
+   "quote": "Broad consideration or size of the INR 1,303.11 Cr. order(s)/contract(s) h."
+  },
+  {
+   "date": "2023-12-04",
+   "role": "order_value",
+   "crore": 36.2,
+   "doc": "nse105689019",
+   "type": "Updates",
+   "quote": "Broad consideration or size of the INR 36.20 Crores order(s)/contract(s) (Inclusive of GST) h."
+  },
+  {
+   "date": "2024-01-31",
+   "role": "order_value",
+   "crore": 447.1,
+   "doc": "nse105741579",
+   "type": "Updates",
+   "quote": "(c) Whether order(s) / contract(s) have been Domestic awarded by domestic/ international entity (d) Nature of order(s) / contract(s) EPC (e) Whether domestic or international Domestic (f) Time period by which the order(s"
+  },
+  {
+   "date": "2024-08-06",
+   "role": "order_value",
+   "crore": 408.5,
+   "doc": "nse105941145",
+   "type": "Investor Presentation",
+   "quote": "Ashram Corridor DMRC 55.8% 1,543 Kanpur Central Railway GOVT & NCR 8.1% 5,102 Dhule-Nardana Railway EPC PSU CR 1.9% 5,951 9% 11% Karanjaon Aurangabad RVNL Pk9 SCR 2.5% 3,695 28% Gaya-Son Nagar section ECR 2.1% 5,884 16% "
+  },
+  {
+   "date": "2025-02-06",
+   "role": "order_value",
+   "crore": 2195.7,
+   "doc": "nse106139986",
+   "type": "Bagging/Receiving of orders/contracts",
+   "quote": "Whether domestic or international Domestic f Time period by which the order(s)/contract(s) is to| 45 Months be executed g Broad consideration or size of the| Rs.2,195.68 crore. order(s)/contract(s) h."
+  },
+  {
+   "date": "2025-06-23",
+   "role": "order_value",
+   "crore": 117.8,
+   "doc": "nse106275763",
+   "type": "Bagging/Receiving of orders/contracts",
+   "quote": "(c) Whether order(s) / contract(s) have been Domestic awarded by domestic/ international entity (d) Nature of order(s) / contract(s) Item Rate (e) Whether domestic or international Domestic (f) Time period by which the 3"
+  },
+  {
+   "date": "2025-07-28",
+   "role": "order_value",
+   "crore": 1904.6,
+   "doc": "nseAR_13876e0c9a",
+   "type": "Annual Report",
+   "quote": "Converted to a public limited entity, marking a significant milestone in our corporate journey Received seven construction projects in Maharashtra by the Ministry of Road Transport and Highways (MoRTH), with a total cont"
+  },
+  {
+   "date": "2025-07-28",
+   "role": "order_value",
+   "crore": 414.0,
+   "doc": "nseAR_13876e0c9a",
+   "type": "Annual Report",
+   "quote": "Converted to a public limited entity, marking a significant milestone in our corporate journey Received seven construction projects in Maharashtra by the Ministry of Road Transport and Highways (MoRTH), with a total cont"
+  }
+ ],
+ "books": [
+  {
+   "date": "2021-01-27",
+   "role": "book_level",
+   "crore": 250.0,
+   "doc": "nse104736089",
+   "type": "Investor Presentation",
+   "quote": "Dausa What we were\u2026 An upcoming subcontractor with presence majorly in Rajasthan Experience in 2 states Revenue Rs 3,317mn 50%+ Revenue from Employees 600+ sub-contracting Gross Block Avg. ticket size Rs 500mn Rs 1,489mn"
+  },
+  {
+   "date": "2021-01-27",
+   "role": "book_level",
+   "crore": 1067.7,
+   "doc": "nse104736089",
+   "type": "Investor Presentation",
+   "quote": "Dausa What we were\u2026 An upcoming subcontractor with presence majorly in Rajasthan Experience in 2 states Revenue Rs 3,317mn 50%+ Revenue from Employees 600+ sub-contracting Gross Block Avg. ticket size Rs 500mn Rs 1,489mn"
+  },
+  {
+   "date": "2021-01-27",
+   "role": "book_level",
+   "crore": 689.8,
+   "doc": "nse104736089",
+   "type": "Investor Presentation",
+   "quote": "Infra Engineering Ltd. 11 What we are\u2026 A leading road infra developer with pan India presence Experience in 8 states Revenue Rs 21,961mn ~25% Revenue from Employees 2,300+ sub-contracting Gross Block Avg. ticket size Rs "
+  },
+  {
+   "date": "2021-01-27",
+   "role": "book_level",
+   "crore": 2000.0,
+   "doc": "nse104736089",
+   "type": "Investor Presentation",
+   "quote": "Infra Engineering Ltd. 11 What we are\u2026 A leading road infra developer with pan India presence Experience in 8 states Revenue Rs 21,961mn ~25% Revenue from Employees 2,300+ sub-contracting Gross Block Avg. ticket size Rs "
+  },
+  {
+   "date": "2021-01-27",
+   "role": "book_level",
+   "crore": 5971.0,
+   "doc": "nse104736089",
+   "type": "Investor Presentation",
+   "quote": "Infra Engineering Ltd. 11 What we are\u2026 A leading road infra developer with pan India presence Experience in 8 states Revenue Rs 21,961mn ~25% Revenue from Employees 2,300+ sub-contracting Gross Block Avg. ticket size Rs "
+  },
+  {
+   "date": "2021-05-12",
+   "role": "book_level",
+   "crore": 7040.1,
+   "doc": "nse141076",
+   "type": "Financial Result Updates",
+   "quote": "The Company currently has a strong order book in excess of Rs. 70,401 Million, leading to a clear visibility of revenue over the next 18-24 months."
+  },
+  {
+   "date": "2021-05-12",
+   "role": "book_level",
+   "crore": 7676.8,
+   "doc": "nse141076",
+   "type": "Financial Result Updates",
+   "quote": "The Group currently has a strong order book in excess of Rs. 76,768 Million, leading to a clear visibility of revenue over the next 18-24 months."
+  },
+  {
+   "date": "2021-08-04",
+   "role": "book_level",
+   "crore": 6143.8,
+   "doc": "nse143262",
+   "type": "Financial Result Updates",
+   "quote": "The Company currently has a strong order book in excess of Rs. 61,437.74 Million as on 30th June 2021, leading to a clear visibility of revenue over the next 18-24 months."
+  },
+  {
+   "date": "2021-08-04",
+   "role": "book_level",
+   "crore": 6871.3,
+   "doc": "nse143262",
+   "type": "Financial Result Updates",
+   "quote": "The Group currently has a strong order book in excess of Rs. 68,713.00 Million as on 30th June 2021, leading to a clear visibility of revenue over the next 18-24 months."
+  },
+  {
+   "date": "2021-08-14",
+   "role": "book_level",
+   "crore": 1933.3,
+   "doc": "nseAR_1848ef6100",
+   "type": "Annual Report",
+   "quote": "With 15% growth in revenues and strong margins - EBITDA margins expanding to 16.2% and PAT margins to 8.3%, we recorded an increase in our order book with an inflow of Rs 19,333 mn with the addition of 4 new orders durin"
+  },
+  {
+   "date": "2021-08-14",
+   "role": "book_level",
+   "crore": 7040.1,
+   "doc": "nseAR_1848ef6100",
+   "type": "Annual Report",
+   "quote": "The Company currently has a strong order book in excess of Rs. 70,401 Million, leading to a clear visibility of revenue over the next 18-24 months."
+  },
+  {
+   "date": "2021-08-14",
+   "role": "book_level",
+   "crore": 7676.8,
+   "doc": "nseAR_1848ef6100",
+   "type": "Annual Report",
+   "quote": "The Group currently has a strong order book in excess of Rs. 76,768 Million, leading to a clear visibility of revenue over the next 18-24 months."
+  },
+  {
+   "date": "2022-05-28",
+   "role": "book_level",
+   "crore": 7972.0,
+   "doc": "nse5038450",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "Harendra Singh: No-no, change of scope in that over Rs.95 crores which has been recognized for Q4, but otherwise, if you can see, Rs.7,972 crores of order balance is there."
+  },
+  {
+   "date": "2022-05-28",
+   "role": "book_level",
+   "crore": 120.0,
+   "doc": "nse5038450",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "So the significant revenue, it's not that a big number, but definitely, if you see the order balance, it is about Rs.120 crores from utility and recently almost it's 95 crores from COA which has recently been recognized."
+  },
+  {
+   "date": "2022-05-28",
+   "role": "book_level",
+   "crore": 8000.0,
+   "doc": "nse5038450",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "Vibhor Singhal: If I look at our order book let's say total order book of around Rs.8,000 crores and out of that almost Rs.4,000 crores is already under execution and around Rs.2,000 crores will be right back to packages"
+  },
+  {
+   "date": "2022-05-28",
+   "role": "book_level",
+   "crore": 6000.0,
+   "doc": "nse5038450",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "Vibhor Singhal: If I look at our order book let's say total order book of around Rs.8,000 crores and out of that almost Rs.4,000 crores is already under execution and around Rs.2,000 crores will be right back to packages"
+  },
+  {
+   "date": "2022-05-28",
+   "role": "book_level",
+   "crore": 1800.0,
+   "doc": "nse5038450",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "I know you have explained a lot, but just to clarify, you're saying that Rs.1,800 crores roughly is the order book of the old orders barring the new ones as such."
+  },
+  {
+   "date": "2022-05-28",
+   "role": "book_level",
+   "crore": 1000.0,
+   "doc": "nse5038450",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "So entire Rs.1,800 crores will get executed out of Raipur-Visakhapatnam one and Karala which has just started, you are expecting Rs.1,000 crores out of Rs.2,000 crores of order book, balance Rs.4,200 crores where you are"
+  },
+  {
+   "date": "2022-05-28",
+   "role": "book_level",
+   "crore": 4200.0,
+   "doc": "nse5038450",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "So entire Rs.1,800 crores will get executed out of Raipur-Visakhapatnam one and Karala which has just started, you are expecting Rs.1,000 crores out of Rs.2,000 crores of order book, balance Rs.4,200 crores where you are"
+  },
+  {
+   "date": "2022-05-28",
+   "role": "book_level",
+   "crore": 6000.0,
+   "doc": "nse5038450",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "Harendra Singh: Rs.6,000 crores of the total order balance, we would be doing some Rs.3,200 crores out of these projects."
+  },
+  {
+   "date": "2024-07-30",
+   "role": "book_level",
+   "crore": 12434.0,
+   "doc": "nseAR_3e0d21951a",
+   "type": "Annual Report",
+   "quote": "The Company's order book as of March 31, 2024, stands at \u20b9 1,24,340 million."
+  },
+  {
+   "date": "2024-07-30",
+   "role": "book_level",
+   "crore": 12434.0,
+   "doc": "nseAR_3e0d21951a",
+   "type": "Annual Report",
+   "quote": "Rewari - Ateli Mandi: Up-gradation of four lane of Rewari- Order book as on March 31, 2024, stood at \u20b91,24,340 Million Ateli Mandi section of NH-11 from km 11.780 to Rewari to and out of the total order book, 83% are gov"
+  },
+  {
+   "date": "2024-07-30",
+   "role": "book_level",
+   "crore": 12434.0,
+   "doc": "nse105931921",
+   "type": "Updates",
+   "quote": "The Company's order book as of March 31, 2024, stands at \u20b9 1,24,340 million."
+  },
+  {
+   "date": "2024-07-30",
+   "role": "book_level",
+   "crore": 12434.0,
+   "doc": "nse105931921",
+   "type": "Updates",
+   "quote": "Rewari - Ateli Mandi: Up-gradation of four lane of Rewari- Order book as on March 31, 2024, stood at \u20b91,24,340 Million Ateli Mandi section of NH-11 from km 11.780 to Rewari to and out of the total order book, 83% are gov"
+  },
+  {
+   "date": "2024-08-06",
+   "role": "book_level",
+   "crore": 15641.8,
+   "doc": "nse105941145",
+   "type": "Investor Presentation",
+   "quote": "Ashram Corridor DMRC 55.8% 1,543 Kanpur Central Railway GOVT & NCR 8.1% 5,102 Dhule-Nardana Railway EPC PSU CR 1.9% 5,951 9% 11% Karanjaon Aurangabad RVNL Pk9 SCR 2.5% 3,695 28% Gaya-Son Nagar section ECR 2.1% 5,884 16% "
+  }
+ ],
+ "timeline": [
+  {
+   "date": "2021-01-31",
+   "ttm_revenue": 2180.1,
+   "orders_12m": 0,
+   "book": 5971.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-02-28",
+   "ttm_revenue": 2180.1,
+   "orders_12m": 0,
+   "book": 5971.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-03-31",
+   "ttm_revenue": 2180.1,
+   "orders_12m": 0,
+   "book": 5971.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-04-30",
+   "ttm_revenue": 2180.1,
+   "orders_12m": 0,
+   "book": 5971.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-05-31",
+   "ttm_revenue": 2602.3,
+   "orders_12m": 0,
+   "book": 7676.8,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-06-30",
+   "ttm_revenue": 2602.3,
+   "orders_12m": 0,
+   "book": 7676.8,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-07-31",
+   "ttm_revenue": 2602.3,
+   "orders_12m": 0,
+   "book": 7676.8,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-08-31",
+   "ttm_revenue": 3231.8,
+   "orders_12m": 0,
+   "book": 7676.8,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-09-30",
+   "ttm_revenue": 3231.8,
+   "orders_12m": 0,
+   "book": 7676.8,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-10-31",
+   "ttm_revenue": 3231.8,
+   "orders_12m": 0,
+   "book": 7676.8,
+   "book_year_ago": 5971.0
+  },
+  {
+   "date": "2021-11-30",
+   "ttm_revenue": 3530.0,
+   "orders_12m": 0,
+   "book": 7676.8,
+   "book_year_ago": 5971.0
+  },
+  {
+   "date": "2021-12-31",
+   "ttm_revenue": 3530.0,
+   "orders_12m": 0,
+   "book": 7676.8,
+   "book_year_ago": 5971.0
+  },
+  {
+   "date": "2022-01-31",
+   "ttm_revenue": 3530.0,
+   "orders_12m": 0,
+   "book": 7676.8,
+   "book_year_ago": 5971.0
+  },
+  {
+   "date": "2022-02-28",
+   "ttm_revenue": 3730.7,
+   "orders_12m": 0,
+   "book": 7676.8,
+   "book_year_ago": 7676.8
+  },
+  {
+   "date": "2022-03-31",
+   "ttm_revenue": 3730.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": 7676.8
+  },
+  {
+   "date": "2022-04-30",
+   "ttm_revenue": 3730.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": 7676.8
+  },
+  {
+   "date": "2022-05-31",
+   "ttm_revenue": 3739.1,
+   "orders_12m": 0,
+   "book": 6000.0,
+   "book_year_ago": 7676.8
+  },
+  {
+   "date": "2022-06-30",
+   "ttm_revenue": 3739.1,
+   "orders_12m": 0,
+   "book": 6000.0,
+   "book_year_ago": 7676.8
+  },
+  {
+   "date": "2022-07-31",
+   "ttm_revenue": 3739.1,
+   "orders_12m": 0,
+   "book": 6000.0,
+   "book_year_ago": 7676.8
+  },
+  {
+   "date": "2022-08-31",
+   "ttm_revenue": 3903.6,
+   "orders_12m": 0,
+   "book": 6000.0,
+   "book_year_ago": 7676.8
+  },
+  {
+   "date": "2022-09-30",
+   "ttm_revenue": 3903.6,
+   "orders_12m": 0,
+   "book": 6000.0,
+   "book_year_ago": 7676.8
+  },
+  {
+   "date": "2022-10-31",
+   "ttm_revenue": 3903.6,
+   "orders_12m": 0,
+   "book": 6000.0,
+   "book_year_ago": 7676.8
+  },
+  {
+   "date": "2022-11-30",
+   "ttm_revenue": 3917.7,
+   "orders_12m": 0,
+   "book": 6000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-12-31",
+   "ttm_revenue": 3917.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-01-31",
+   "ttm_revenue": 3917.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-02-28",
+   "ttm_revenue": 4151.3,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": 6000.0
+  },
+  {
+   "date": "2023-03-31",
+   "ttm_revenue": 4151.3,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": 6000.0
+  },
+  {
+   "date": "2023-04-30",
+   "ttm_revenue": 4151.3,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": 6000.0
+  },
+  {
+   "date": "2023-05-31",
+   "ttm_revenue": 4622.0,
+   "orders_12m": 42.5,
+   "book": null,
+   "book_year_ago": 6000.0
+  },
+  {
+   "date": "2023-06-30",
+   "ttm_revenue": 4622.0,
+   "orders_12m": 580.1,
+   "book": null,
+   "book_year_ago": 6000.0
+  },
+  {
+   "date": "2023-07-31",
+   "ttm_revenue": 4622.0,
+   "orders_12m": 894.3,
+   "book": null,
+   "book_year_ago": 6000.0
+  },
+  {
+   "date": "2023-08-31",
+   "ttm_revenue": 4867.3,
+   "orders_12m": 1133.0,
+   "book": null,
+   "book_year_ago": 6000.0
+  },
+  {
+   "date": "2023-09-30",
+   "ttm_revenue": 4867.3,
+   "orders_12m": 2130.1,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-10-31",
+   "ttm_revenue": 4867.3,
+   "orders_12m": 3232.1,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-11-30",
+   "ttm_revenue": 5026.1,
+   "orders_12m": 4535.2,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-12-31",
+   "ttm_revenue": 5026.1,
+   "orders_12m": 4571.4,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-01-31",
+   "ttm_revenue": 5026.1,
+   "orders_12m": 5018.5,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-02-29",
+   "ttm_revenue": 5205.6,
+   "orders_12m": 5018.5,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-03-31",
+   "ttm_revenue": 5205.6,
+   "orders_12m": 5018.5,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-04-30",
+   "ttm_revenue": 5205.6,
+   "orders_12m": 5018.5,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-05-31",
+   "ttm_revenue": 5378.5,
+   "orders_12m": 4976.0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-06-30",
+   "ttm_revenue": 5378.5,
+   "orders_12m": 4124.2,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-07-31",
+   "ttm_revenue": 5378.5,
+   "orders_12m": 4124.2,
+   "book": 12434.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-08-31",
+   "ttm_revenue": 5555.4,
+   "orders_12m": 4294.0,
+   "book": 15641.8,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-09-30",
+   "ttm_revenue": 5555.4,
+   "orders_12m": 3296.9,
+   "book": 15641.8,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-10-31",
+   "ttm_revenue": 5555.4,
+   "orders_12m": 2194.9,
+   "book": 15641.8,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-11-30",
+   "ttm_revenue": 5503.2,
+   "orders_12m": 891.8,
+   "book": 15641.8,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-12-31",
+   "ttm_revenue": 5503.2,
+   "orders_12m": 855.6,
+   "book": 15641.8,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-01-31",
+   "ttm_revenue": 5503.2,
+   "orders_12m": 408.5,
+   "book": 15641.8,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-02-28",
+   "ttm_revenue": 5403.6,
+   "orders_12m": 2604.2,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-03-31",
+   "ttm_revenue": 5403.6,
+   "orders_12m": 2604.2,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-04-30",
+   "ttm_revenue": 5403.6,
+   "orders_12m": 2604.2,
+   "book": null,
+   "book_year_ago": 12434.0
+  },
+  {
+   "date": "2025-05-31",
+   "ttm_revenue": 5056.2,
+   "orders_12m": 2604.2,
+   "book": null,
+   "book_year_ago": 15641.8
+  },
+  {
+   "date": "2025-06-30",
+   "ttm_revenue": 5056.2,
+   "orders_12m": 2722.0,
+   "book": null,
+   "book_year_ago": 15641.8
+  },
+  {
+   "date": "2025-07-31",
+   "ttm_revenue": 5056.2,
+   "orders_12m": 5040.6,
+   "book": null,
+   "book_year_ago": 15641.8
+  },
+  {
+   "date": "2025-08-31",
+   "ttm_revenue": 5010.3,
+   "orders_12m": 4632.1,
+   "book": null,
+   "book_year_ago": 15641.8
+  },
+  {
+   "date": "2025-09-30",
+   "ttm_revenue": 5010.3,
+   "orders_12m": 4632.1,
+   "book": null,
+   "book_year_ago": 15641.8
+  },
+  {
+   "date": "2025-10-31",
+   "ttm_revenue": 5010.3,
+   "orders_12m": 4632.1,
+   "book": null,
+   "book_year_ago": 15641.8
+  },
+  {
+   "date": "2025-11-30",
+   "ttm_revenue": 5012.4,
+   "orders_12m": 4632.1,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-12-31",
+   "ttm_revenue": 5012.4,
+   "orders_12m": 4632.1,
+   "book": null,
+   "book_year_ago": null
+  }
+ ]
+}

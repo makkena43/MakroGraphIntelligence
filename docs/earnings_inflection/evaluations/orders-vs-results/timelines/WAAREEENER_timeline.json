@@ -1,0 +1,582 @@
+{
+ "symbol": "WAAREEENER",
+ "scope": "consolidated",
+ "quarters": 6,
+ "inflections": [],
+ "document_signals": [],
+ "ttm_path": [
+  [
+   "2024-09-30",
+   null,
+   null,
+   "2024-11-19"
+  ],
+  [
+   "2024-12-31",
+   null,
+   null,
+   "2025-01-30"
+  ],
+  [
+   "2025-03-31",
+   null,
+   null,
+   "2025-04-23"
+  ],
+  [
+   "2025-06-30",
+   15461.4,
+   2218.4,
+   "2025-07-28"
+  ],
+  [
+   "2025-09-30",
+   17952.7,
+   2699.3,
+   "2025-10-16"
+  ],
+  [
+   "2025-12-31",
+   22060.5,
+   3313.4,
+   "2026-01-21"
+  ]
+ ],
+ "orders": [],
+ "books": [
+  {
+   "date": "2025-02-06",
+   "role": "book_level",
+   "crore": 50000.0,
+   "doc": "nse106140724",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So whatever order book you are mentioning, INR50,000 crores, I think the prices of the selling price of the model are fixed?"
+  },
+  {
+   "date": "2025-03-19",
+   "role": "book_level",
+   "crore": 50000.0,
+   "doc": "nse106175783",
+   "type": "Credit Rating- Revision",
+   "quote": "Healthy order book position and diversified customer profile The company\u2019s order book continues to remain at elevated levels as reflected by an order book of ~26.5 GW approximating ~\u20b9 50,000 crore as on December 2024 end"
+  },
+  {
+   "date": "2025-03-19",
+   "role": "book_level",
+   "crore": 47000.0,
+   "doc": "nse106175783",
+   "type": "Credit Rating- Revision",
+   "quote": "Healthy order book position and diversified customer profile The company\u2019s order book continues to remain at elevated levels as reflected by an order book of ~26.5 GW approximating ~\u20b9 50,000 crore as on December 2024 end"
+  },
+  {
+   "date": "2025-03-19",
+   "role": "book_level",
+   "crore": 50000.0,
+   "doc": "nse106175845",
+   "type": "Credit Rating- Revision",
+   "quote": "Healthy order book position and diversified customer profile The company\u2019s order book continues to remain at elevated levels as reflected by an order book of ~26.5 GW approximating ~\u20b9 50,000 crore as on December 2024 end"
+  },
+  {
+   "date": "2025-03-19",
+   "role": "book_level",
+   "crore": 47000.0,
+   "doc": "nse106175845",
+   "type": "Credit Rating- Revision",
+   "quote": "Healthy order book position and diversified customer profile The company\u2019s order book continues to remain at elevated levels as reflected by an order book of ~26.5 GW approximating ~\u20b9 50,000 crore as on December 2024 end"
+  },
+  {
+   "date": "2025-04-30",
+   "role": "book_level",
+   "crore": 47000.0,
+   "doc": "nse106216513",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our order book remains robust at INR47,000 crores."
+  },
+  {
+   "date": "2025-04-30",
+   "role": "book_level",
+   "crore": 47000.0,
+   "doc": "nse106216513",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Amit Paithankar: So the good part for us in our business, as I was talking about in my opening commentary, is we have a INR47,000 crores of order book."
+  },
+  {
+   "date": "2025-04-30",
+   "role": "book_level",
+   "crore": 47000.0,
+   "doc": "nse106216513",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "On the top line, I have INR47,000 crores worth order book, which feeds all of my factories."
+  },
+  {
+   "date": "2025-07-28",
+   "role": "book_level",
+   "crore": 49000.0,
+   "doc": "nse106314676",
+   "type": "Press Release",
+   "quote": "On the demand side we have a robust order book of ~\u20b949,000 crore and a global pipeline of 100+ GW, re\ufb02ec ng posi ve market sen ments across key geographies."
+  },
+  {
+   "date": "2025-08-06",
+   "role": "book_level",
+   "crore": 49000.0,
+   "doc": "nse106327726",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our order book is actually 25 gigawatts, which is equivalent to INR49,000 crores which is equal to what, roughly $4 billion about $6 billion roughly of order book."
+  },
+  {
+   "date": "2025-10-28",
+   "role": "book_level",
+   "crore": 878.0,
+   "doc": "nse106417692",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "PAT has touched the highest mark of INR 878 crores, and our order book is strong at INR ~47,000 crores, and that's equivalent to ~24 gigawatts."
+  },
+  {
+   "date": "2025-10-28",
+   "role": "book_level",
+   "crore": 47000.0,
+   "doc": "nse106417692",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "PAT has touched the highest mark of INR 878 crores, and our order book is strong at INR ~47,000 crores, and that's equivalent to ~24 gigawatts."
+  },
+  {
+   "date": "2025-10-28",
+   "role": "book_level",
+   "crore": 24800.0,
+   "doc": "nse106417692",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "In INR 248 billion domestic order book and INR 222 billion export order book, if you can mention the advance that is sitting in the balance sheet, that will be helpful."
+  },
+  {
+   "date": "2025-10-28",
+   "role": "book_level",
+   "crore": 22200.0,
+   "doc": "nse106417692",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "In INR 248 billion domestic order book and INR 222 billion export order book, if you can mention the advance that is sitting in the balance sheet, that will be helpful."
+  }
+ ],
+ "timeline": [
+  {
+   "date": "2021-01-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-02-28",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-03-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-04-30",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-05-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-06-30",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-07-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-08-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-09-30",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-10-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-11-30",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-12-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-01-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-02-28",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-03-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-04-30",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-05-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-06-30",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-07-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-08-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-09-30",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-10-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-11-30",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-12-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-01-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-02-28",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-03-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-04-30",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-05-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-06-30",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-07-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-08-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-09-30",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-10-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-11-30",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-12-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-01-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-02-29",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-03-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-04-30",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-05-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-06-30",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-07-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-08-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-09-30",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-10-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-11-30",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-12-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-01-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-02-28",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": 50000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-03-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": 47000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-04-30",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": 47000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-05-31",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": 47000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-06-30",
+   "ttm_revenue": null,
+   "orders_12m": 0,
+   "book": 47000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-07-31",
+   "ttm_revenue": 15461.4,
+   "orders_12m": 0,
+   "book": 49000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-08-31",
+   "ttm_revenue": 15461.4,
+   "orders_12m": 0,
+   "book": 49000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-09-30",
+   "ttm_revenue": 15461.4,
+   "orders_12m": 0,
+   "book": 49000.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-10-31",
+   "ttm_revenue": 17952.7,
+   "orders_12m": 0,
+   "book": 22200.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-11-30",
+   "ttm_revenue": 17952.7,
+   "orders_12m": 0,
+   "book": 22200.0,
+   "book_year_ago": 50000.0
+  },
+  {
+   "date": "2025-12-31",
+   "ttm_revenue": 17952.7,
+   "orders_12m": 0,
+   "book": 22200.0,
+   "book_year_ago": 47000.0
+  }
+ ]
+}

@@ -1,0 +1,1773 @@
+{
+ "symbol": "GENUSPOWER",
+ "scope": "standalone",
+ "quarters": 27,
+ "inflections": [
+  {
+   "quarter": "2023-06-30",
+   "published": "2023-08-10",
+   "ttm_profit_year_ago": 26.4,
+   "ttm_profit": 53.6,
+   "document_signal": null,
+   "lead_days": null
+  },
+  {
+   "quarter": "2024-09-30",
+   "published": "2024-10-29",
+   "ttm_profit_year_ago": 54.4,
+   "ttm_profit": 145.5,
+   "document_signal": null,
+   "lead_days": null
+  }
+ ],
+ "document_signals": [
+  {
+   "date": "2021-01-31",
+   "why": [
+    "orders announced in 12 months 4,500 cr = 6.8x TTM revenue"
+   ]
+  }
+ ],
+ "ttm_path": [
+  [
+   "2019-03-31",
+   null,
+   null,
+   "2019-05-11"
+  ],
+  [
+   "2019-09-30",
+   null,
+   null,
+   "2019-10-23"
+  ],
+  [
+   "2019-12-31",
+   null,
+   null,
+   "2020-01-22"
+  ],
+  [
+   "2020-03-31",
+   null,
+   null,
+   "2020-06-10"
+  ],
+  [
+   "2020-06-30",
+   875.8,
+   70.2,
+   "2020-07-30"
+  ],
+  [
+   "2020-09-30",
+   765.5,
+   52.7,
+   "2020-10-23"
+  ],
+  [
+   "2020-12-31",
+   665.5,
+   43.7,
+   "2021-01-21"
+  ],
+  [
+   "2021-03-31",
+   607.8,
+   51.2,
+   "2021-05-28"
+  ],
+  [
+   "2021-06-30",
+   654.2,
+   54.6,
+   "2021-07-29"
+  ],
+  [
+   "2021-09-30",
+   666.9,
+   54.4,
+   "2021-10-29"
+  ],
+  [
+   "2021-12-31",
+   694.7,
+   44.7,
+   "2022-01-28"
+  ],
+  [
+   "2022-03-31",
+   685.1,
+   25.8,
+   "2022-05-12"
+  ],
+  [
+   "2022-06-30",
+   741.8,
+   26.4,
+   "2022-08-04"
+  ],
+  [
+   "2022-09-30",
+   782.6,
+   30.1,
+   "2022-11-11"
+  ],
+  [
+   "2022-12-31",
+   787.1,
+   33.5,
+   "2023-02-03"
+  ],
+  [
+   "2023-03-31",
+   808.4,
+   35.0,
+   "2023-05-23"
+  ],
+  [
+   "2023-06-30",
+   882.5,
+   53.6,
+   "2023-08-10"
+  ],
+  [
+   "2023-09-30",
+   922.8,
+   54.4,
+   "2023-11-11"
+  ],
+  [
+   "2023-12-31",
+   980.7,
+   56.3,
+   "2024-02-13"
+  ],
+  [
+   "2024-03-31",
+   1198.5,
+   75.2,
+   "2024-05-30"
+  ],
+  [
+   "2024-06-30",
+   1351.5,
+   98.3,
+   "2024-07-27"
+  ],
+  [
+   "2024-09-30",
+   1579.4,
+   145.5,
+   "2024-10-29"
+  ],
+  [
+   "2024-12-31",
+   1925.4,
+   200.2,
+   "2025-02-10"
+  ],
+  [
+   "2025-03-31",
+   2442.0,
+   298.2,
+   "2025-05-30"
+  ],
+  [
+   "2025-06-30",
+   2970.3,
+   384.3,
+   "2025-08-08"
+  ],
+  [
+   "2025-09-30",
+   3632.4,
+   474.2,
+   "2025-11-06"
+  ],
+  [
+   "2025-12-31",
+   4150.6,
+   553.6,
+   "2026-02-09"
+  ]
+ ],
+ "orders": [
+  {
+   "date": "2021-01-22",
+   "role": "order_value",
+   "crore": 4500.0,
+   "doc": "nse104730710",
+   "type": "Press Release",
+   "quote": "We have participated in tenders about worth Rs. 4,500 crore and expect healthy order inflows within Q4FY21."
+  },
+  {
+   "date": "2021-06-07",
+   "role": "order_value",
+   "crore": 10000.0,
+   "doc": "nse104939406",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "The next question was tenders worth Rs.10,000 Crores which are in the market, so what is the probability of Genus wining in these orders."
+  },
+  {
+   "date": "2021-08-20",
+   "role": "order_value",
+   "crore": 166.4,
+   "doc": "nseAR_9368653ef7",
+   "type": "Annual Report",
+   "quote": "As on March 31, 2021, manufacturing and offering \u2018metering and metering solutions\u2019 and the market value of these shares was Rs.16,641.75 lakhs and the book undertaking \u2018engineering, construction and contracts\u2019 on turnkey"
+  },
+  {
+   "date": "2022-01-29",
+   "role": "order_value",
+   "crore": 325.0,
+   "doc": "nse105222099",
+   "type": "Press Release",
+   "quote": "Higher raw material prices and lack of operating leverage due to lower capacity utilization resulted in lower operating margins \uf0b7 PAT stood at Rs. 8.2 crore, up by 25%, viz-a-viz Rs. 6.6 crore in Q2FY22 Key Business Upda"
+  },
+  {
+   "date": "2022-02-09",
+   "role": "order_value",
+   "crore": 600.0,
+   "doc": "nse105234960",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Otherwise also like EESL, they got an order of Rs. 600 Crores from Assam."
+  },
+  {
+   "date": "2022-02-09",
+   "role": "order_value",
+   "crore": 30.0,
+   "doc": "nse105234960",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Jitendra Agarwal: Currently we have orders worth of around Rs. 30 Crores for gas meters."
+  },
+  {
+   "date": "2022-05-13",
+   "role": "order_value",
+   "crore": 325.0,
+   "doc": "nse5028953",
+   "type": "Press Release",
+   "quote": "Higher raw material prices and lack of operating leverage due to lower capacity utilization resulted in lower operating margins \uf0b7 PAT stood at Rs. 11.0 crore, up by 34%, viz-a-viz Rs. 8.2 crore in Q3FY22 Key Business Upd"
+  },
+  {
+   "date": "2022-05-13",
+   "role": "order_value",
+   "crore": 828.6,
+   "doc": "nse5028953",
+   "type": "Press Release",
+   "quote": "The total order, worth Rs. 828.57 crore (net of tax), is the single largest order finalized by any state utility in India for AMISP o The impact of \u2018Reforms-Based, Result-Linked Power Distribution Sector Scheme\u2019 can be f"
+  },
+  {
+   "date": "2022-05-18",
+   "role": "order_value",
+   "crore": 26000.0,
+   "doc": "nse5031410",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "Anshuman Ashit: Okay and large order book that we have, so going forward you have mentioned us around Rs.26,000 Crores worth of orders will come in the next three to four months."
+  },
+  {
+   "date": "2022-05-18",
+   "role": "order_value",
+   "crore": 350.0,
+   "doc": "nse5031410",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "You will see, a project we have already done worth of Rs.350 Crores in Rajasthan very successfully, but that project was called as a capex order - where 70% was capex and 30% was FMS."
+  },
+  {
+   "date": "2022-08-10",
+   "role": "order_value",
+   "crore": 500.0,
+   "doc": "nse5075162",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "The other one is what we have to supply there are orders worth Rs.500 Crores which are purely supply orders of energy meters."
+  },
+  {
+   "date": "2022-08-12",
+   "role": "order_value",
+   "crore": 325.0,
+   "doc": "nse5076243",
+   "type": "Annual General Meeting",
+   "quote": "In December 2021, the Company received orders worth about \u2022 Class 0.2 ABT Meter, SAMASTH Rs. 325 crore across domestic and export geography."
+  },
+  {
+   "date": "2022-08-12",
+   "role": "order_value",
+   "crore": 828.6,
+   "doc": "nse5076243",
+   "type": "Annual General Meeting",
+   "quote": "This total order worth Rs. 828.57 crore (net of tax), is the single largest order finalized by any state utility in India for AMISP."
+  },
+  {
+   "date": "2022-11-14",
+   "role": "order_value",
+   "crore": 828.6,
+   "doc": "nse5118999",
+   "type": "Press Release",
+   "quote": "The total order, worth Rs. 828.57 crore (net of tax), is the single largest order finalized by any state utility in India for AMISP o Nearly all State Electricity Boards (SEBs) have issued requests and solicited bids for"
+  },
+  {
+   "date": "2022-11-18",
+   "role": "order_value",
+   "crore": 36000.0,
+   "doc": "nse5122480",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "One, you mentioned that there are INR 36,000 crore worth of orders where tenders have already been floated."
+  },
+  {
+   "date": "2022-11-18",
+   "role": "order_value",
+   "crore": 60000.0,
+   "doc": "nse5122480",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "And my final question, sir, these orders that are being -- this INR 60,000 crore worth of tenders that is in the market, these are fixed-price order or is there some bit of input prices?"
+  },
+  {
+   "date": "2023-02-03",
+   "role": "order_value",
+   "crore": 2420.3,
+   "doc": "nse151142",
+   "type": "Financial Result Updates",
+   "quote": "The joint statutory auditors have carried out a limited review on the unaudited standalone financial results and issued unqualified reports thereon. 2 The Company's Board has reviewed the total order book position of Rs."
+  },
+  {
+   "date": "2023-02-03",
+   "role": "order_value",
+   "crore": 2856.0,
+   "doc": "nse151142",
+   "type": "Financial Result Updates",
+   "quote": "The joint statutory auditors have carried out a limited review on the unaudited standalone financial results and issued unqualified reports thereon. 2 The Company's Board has reviewed the total order book position of Rs."
+  },
+  {
+   "date": "2023-02-06",
+   "role": "order_value",
+   "crore": 828.6,
+   "doc": "nse105418299",
+   "type": "Press Release",
+   "quote": "The total order, worth Rs. 828.57 crore (net of taxes), is the single largest order finalized by any state utility in India for AMISP o Many State Electricity Boards (SEBs) have issued requests and solicited bids for the"
+  },
+  {
+   "date": "2023-05-29",
+   "role": "order_value",
+   "crore": 2419.0,
+   "doc": "nse105515338",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "During this quarter, which ended on March 31, 2023, our wholly owned subsidiaries have received Letter of Awards worth about Rs. 2,419 crores net of taxes, for the appointment as Advanced Metering Infrastructure Service "
+  },
+  {
+   "date": "2023-05-29",
+   "role": "order_value",
+   "crore": 27000.0,
+   "doc": "nse105515338",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "But as I told in the opening remark also that then we have participated in Rs. 27,000 crores worth of orders and there will be many new more tenders will be coming."
+  },
+  {
+   "date": "2023-07-03",
+   "role": "order_value",
+   "crore": 2207.0,
+   "doc": "nse105545196",
+   "type": "Press Release",
+   "quote": "Jitendra Kumar Agarwal, Joint Managing Director, Genus Power Infrastructures Ltd. said, \u201cWe are delighted to announce that our company has won a significant order worth Rs. 2,207 crore."
+  },
+  {
+   "date": "2023-11-08",
+   "role": "order_value",
+   "crore": 15160.0,
+   "doc": "nse105668812",
+   "type": "Press Release",
+   "quote": "Jitendra Kumar Agarwal, Joint Managing Director, Genus Power Infrastructures Ltd. said, \u201cSince July 2023, our company has been on a remarkable winning streak, securing a total of six prestigious orders, worth about Rs. 1"
+  },
+  {
+   "date": "2023-11-17",
+   "role": "order_value",
+   "crore": 19000.0,
+   "doc": "nse105678434",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "We have already got an order of INR19,000 crores."
+  },
+  {
+   "date": "2024-02-15",
+   "role": "order_value",
+   "crore": 16185.0,
+   "doc": "nse105760581",
+   "type": "Press Release",
+   "quote": "The orders, totalling an approximate value of Rs. 16,185 crore (net of taxes), are for the installation of around 1.82 Crore Smart Prepaid Meters."
+  },
+  {
+   "date": "2024-02-21",
+   "role": "order_value",
+   "crore": 20000.0,
+   "doc": "nse105766027",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Milind Karmarkar: I just wanted to understand, we say that we have Rs. 20,000 crores worth orders and we also say that the stipulation is that this should be completed within 27 to 30 months."
+  },
+  {
+   "date": "2024-02-21",
+   "role": "order_value",
+   "crore": 9000.0,
+   "doc": "nse105766027",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Milind Karmarkar: Even if I do that, then about Rs. 9,000 crore worth orders are to be finished in 27 to 30 months."
+  },
+  {
+   "date": "2024-08-07",
+   "role": "order_value",
+   "crore": 11000.0,
+   "doc": "nse105943129",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Chandresh Malpani: And sir, secondly, we were L1 in about INR11,000 crores worth of orders in last quarter."
+  },
+  {
+   "date": "2024-08-17",
+   "role": "order_value",
+   "crore": 2925.5,
+   "doc": "nse105958056",
+   "type": "Press Release",
+   "quote": "BSE Code: 530343 NSE Symbol: GENUSPOWER Sub: Investor Release Dear Sir/Madam, We enclose herewith an Investor Release titled \u201cGenus Power Infrastructures wins orders worth Rs 2,925.52 cr (net of taxes)\u201d Thanking you, You"
+  },
+  {
+   "date": "2024-08-20",
+   "role": "order_value",
+   "crore": 3608.5,
+   "doc": "nse105959944",
+   "type": "Press Release",
+   "quote": "BSE Code: 530343 NSE Symbol: GENUSPOWER Sub: Press Release Dear Sir/Madam, We enclose herewith an Press Release titled \u201cGenus Power Infrastructures wins orders worth Rs 3,608.52 cr (net of taxes)\u201d Thanking you, Yours tru"
+  },
+  {
+   "date": "2024-08-28",
+   "role": "order_value",
+   "crore": 4469.0,
+   "doc": "nse105968550",
+   "type": "Press Release",
+   "quote": "BSE Code: 530343 NSE Symbol: GENUSPOWER Sub: Press Release Dear Sir/Madam, We enclose herewith a Press Release titled \u201cGenus Power Infrastructures wins orders worth Rs 4,469.04 cr (net of taxes)\u201d Thanking you, Yours trul"
+  },
+  {
+   "date": "2025-11-14",
+   "role": "order_value",
+   "crore": 127.0,
+   "doc": "nse106445635",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "In H1 FY26, the company had also received orders from different utilities of INR 127 crores, for approximately 9 lakh meters which are non-smart meters."
+  }
+ ],
+ "books": [
+  {
+   "date": "2021-01-21",
+   "role": "book_level",
+   "crore": 1005.3,
+   "doc": "nse139067",
+   "type": "Financial Result Updates",
+   "quote": "The Company's Board has reviewed the total order book position of Rs. 1,005.30 crores (net of taxes). 3 The World Health Organization (WHO) declared outbreak of Coronavirus Disease ({COVID-19) a global pandemic on March "
+  },
+  {
+   "date": "2021-01-21",
+   "role": "book_level",
+   "crore": 1005.3,
+   "doc": "nse139067",
+   "type": "Financial Result Updates",
+   "quote": "The joint statutory auditors have issued an unqualified report thereon. z The Company's Board has reviewed the total order book position of Rs. 1,005.30 crores (net of taxes). 3 The World Health Organization (WHO) declar"
+  },
+  {
+   "date": "2021-02-04",
+   "role": "book_level",
+   "crore": 1005.0,
+   "doc": "nse104751605",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "The current order book is Rs. 1,005 Crores which gives the healthy visibility of growth over next three to four quarters."
+  },
+  {
+   "date": "2021-02-04",
+   "role": "book_level",
+   "crore": 1005.0,
+   "doc": "nse104751605",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Jitendra Agarwal: In our outstanding order book, of Rs. 1,005 Crores orders we have in hand, smart meters constitute about Rs. 650 Crores."
+  },
+  {
+   "date": "2021-05-28",
+   "role": "book_level",
+   "crore": 930.5,
+   "doc": "nse141510",
+   "type": "Financial Result Updates",
+   "quote": "The potential future impact of the COVID-19 may be different from that estimated as at the date of approval of these financial results and the Group will continue to closely monitor any material changes in future economi"
+  },
+  {
+   "date": "2021-06-07",
+   "role": "book_level",
+   "crore": 931.0,
+   "doc": "nse104939406",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "The current order book is Rs.931 Crores which is good for at least the next two to three quarters."
+  },
+  {
+   "date": "2021-06-07",
+   "role": "book_level",
+   "crore": 55.0,
+   "doc": "nse104939406",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Last year Exports went down significantly because of the pandemic and as on date also we have an order book of Rs. 55 Crores in the exports division."
+  },
+  {
+   "date": "2021-06-07",
+   "role": "book_level",
+   "crore": 930.0,
+   "doc": "nse104939406",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "We are already sitting on an order book of Rs.930 Crores."
+  },
+  {
+   "date": "2021-06-07",
+   "role": "book_level",
+   "crore": 2000.0,
+   "doc": "nse104939406",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "But for a company like Genus to have an order book of Rs.2000 Crores or Rs.2500 Crores coming out of these tenders is not something which is impossible."
+  },
+  {
+   "date": "2021-06-07",
+   "role": "book_level",
+   "crore": 2500.0,
+   "doc": "nse104939406",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "But for a company like Genus to have an order book of Rs.2000 Crores or Rs.2500 Crores coming out of these tenders is not something which is impossible."
+  },
+  {
+   "date": "2021-06-07",
+   "role": "book_level",
+   "crore": 930.0,
+   "doc": "nse104939406",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our order book Rs.930 Crores and the orders are at old prices and there is no escalation clause in our business so there will be Page 9 of 14 Genus Power Infrastructures Limited May 31, 2021 impact of volumes also and th"
+  },
+  {
+   "date": "2021-06-07",
+   "role": "book_level",
+   "crore": 930.0,
+   "doc": "nse104939406",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Jitendra Agarwal: Our order book is Rs.930 Crores out of which Rs.534 Crores is from smart meter, Rs.345 Crores from the conventional meters and if you talk of the FMS, out of this Rs.930 Crores, Rs.151 Crores is from th"
+  },
+  {
+   "date": "2021-07-29",
+   "role": "book_level",
+   "crore": 977.9,
+   "doc": "nse143049",
+   "type": "Financial Result Updates",
+   "quote": "The Company's Board has reviewed the total order book position of Rs. 977.93 crores (net of taxes), Nous Segment information is presented in the Consolidated financial results as permitted under Ind AS 108 \"Operating Seg"
+  },
+  {
+   "date": "2021-07-29",
+   "role": "book_level",
+   "crore": 977.9,
+   "doc": "nse143049",
+   "type": "Financial Result Updates",
+   "quote": "The potential impact of the COVID -19 may be different from that estimated as at the date of approval of these financial results and the company will continue to clasely monitor any material changes in future economic co"
+  },
+  {
+   "date": "2021-08-05",
+   "role": "book_level",
+   "crore": 978.0,
+   "doc": "nse105023930",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our current order book stood at Rs. 978 Crores which gives us a visibility of growth over next two- three quarters."
+  },
+  {
+   "date": "2021-10-29",
+   "role": "book_level",
+   "crore": 882.2,
+   "doc": "nse145010",
+   "type": "Financial Result Updates",
+   "quote": "The joint statutory auditors have issued an unqualified report thereon. 2 The Company's Board has reviewed the total order book position of Rs. 882.17 crores (net of taxes). 3 The World Health Organization (WHO) declared"
+  },
+  {
+   "date": "2021-10-29",
+   "role": "book_level",
+   "crore": 882.2,
+   "doc": "nse145010",
+   "type": "Financial Result Updates",
+   "quote": "The joint statutory auditors have issued an unqualified report thereon. 2 The Company's Board has reviewed the total order book position of Rs. 882.17 crores (net of taxes). 3 The World Health Organization (WHO) declared"
+  },
+  {
+   "date": "2021-10-31",
+   "role": "book_level",
+   "crore": 882.0,
+   "doc": "nse105127587",
+   "type": "Press Release",
+   "quote": "We are in very good position to bag some of the tenders that have been floated and are expected to be awarded in short term o We expect many Detailed Project Reports (DPRs) are likely to submitted by SEBs towards the end"
+  },
+  {
+   "date": "2021-12-15",
+   "role": "book_level",
+   "crore": 1000.0,
+   "doc": "nse105174374",
+   "type": "Press Release",
+   "quote": "With these orders, the company has crossed Rs. 1,000cr orderbook."
+  },
+  {
+   "date": "2022-01-29",
+   "role": "book_level",
+   "crore": 1163.0,
+   "doc": "nse105222099",
+   "type": "Press Release",
+   "quote": "Based on the same we expect lot of tenders for smart meters to be floated by SEBs in coming three months o We anticipate robust order inflow starting from mid of February 2022 onwards o As on 31st December 2021, our orde"
+  },
+  {
+   "date": "2022-02-09",
+   "role": "book_level",
+   "crore": 1163.0,
+   "doc": "nse105234960",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "As on December 31, 2021, our order book stood at Rs. 1,163 Crores (net of taxes) which gives us a healthy visibility for growth over next three to four quarters."
+  },
+  {
+   "date": "2022-02-09",
+   "role": "book_level",
+   "crore": 900.0,
+   "doc": "nse105234960",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Kailash Agarwal: Here you will see that opening of 1st October, our order book was around Rs. 900 Crores now the opening for 1st January is around Rs. 1,161 Crores."
+  },
+  {
+   "date": "2022-02-09",
+   "role": "book_level",
+   "crore": 1163.0,
+   "doc": "nse105234960",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Rajiv Rupani: In the month of May you had told that the order book is Rs. 931 Crores and now our order book is Rs. 1163 Crores."
+  },
+  {
+   "date": "2022-05-12",
+   "role": "book_level",
+   "crore": 1079.6,
+   "doc": "nse148795",
+   "type": "Financial Result Updates",
+   "quote": "As the outbreak changes to future economic condition. 4 The Company's Board has reviewed the total order book position of Rs.1079.63 crores (net of taxes)."
+  },
+  {
+   "date": "2022-05-13",
+   "role": "book_level",
+   "crore": 19.1,
+   "doc": "nse5028953",
+   "type": "Press Release",
+   "quote": "However, we have secured our supply requirements for semiconductors for FY23 and thus expect a healthy rebound in revenue on back of robust orderbook and surge in order inflow \uf0b7 EBITDA stood at Rs. 19.1 crore, as against"
+  },
+  {
+   "date": "2022-05-18",
+   "role": "book_level",
+   "crore": 25000.0,
+   "doc": "nse5031410",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "Rajiv Rupani: Okay, but if that Rs.25,000 Crores order book, which is to be quoted in the next three, four months so if we get a good part of that order, then the new capex will be done accordingly?"
+  },
+  {
+   "date": "2022-05-18",
+   "role": "book_level",
+   "crore": 18.0,
+   "doc": "nse5031410",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "Jitendra Agarwal: Currently the order book is around Rs.18 Crores to Rs.20 Crores, not much and we are continuously quoting the tenders of the gas meters, we have been again very choosy on gas meters, we do not want to j"
+  },
+  {
+   "date": "2022-05-18",
+   "role": "book_level",
+   "crore": 20.0,
+   "doc": "nse5031410",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "Jitendra Agarwal: Currently the order book is around Rs.18 Crores to Rs.20 Crores, not much and we are continuously quoting the tenders of the gas meters, we have been again very choosy on gas meters, we do not want to j"
+  },
+  {
+   "date": "2022-05-18",
+   "role": "book_level",
+   "crore": 1900.0,
+   "doc": "nse5031410",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "Rajiv Rupani: Okay and my next question was that our current order book is about Rs.1,900 Crores, so out of that how much is conventional meters and how much is smart meters?"
+  },
+  {
+   "date": "2022-08-10",
+   "role": "book_level",
+   "crore": 1855.0,
+   "doc": "nse5075162",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "As on June 30, 2022 our order book stood at Rs.1,855 Crores (net of taxes)."
+  },
+  {
+   "date": "2022-08-10",
+   "role": "book_level",
+   "crore": 150.0,
+   "doc": "nse5075162",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "And there are orders where we have taken turnkey projects where we have to supply the meters related to projects like what we are doing in Tata Power - so those are the projects, which has got Rs.150 Crores order book wh"
+  },
+  {
+   "date": "2022-08-10",
+   "role": "book_level",
+   "crore": 1800.0,
+   "doc": "nse5075162",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "Because in quarter one at that time of quarter one also our order book was around Rs. 1800 Crores and after doing this 200 Crores our order book is still Rs.1800 Crores."
+  },
+  {
+   "date": "2022-08-10",
+   "role": "book_level",
+   "crore": 1800.0,
+   "doc": "nse5075162",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "Because in quarter one at that time of quarter one also our order book was around Rs. 1800 Crores and after doing this 200 Crores our order book is still Rs.1800 Crores."
+  },
+  {
+   "date": "2022-08-10",
+   "role": "book_level",
+   "crore": 1900.0,
+   "doc": "nse5075162",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "Harshit Dole: We have order book of approximately Rs.1900 Crores."
+  },
+  {
+   "date": "2022-08-12",
+   "role": "book_level",
+   "crore": 1079.6,
+   "doc": "nse5076243",
+   "type": "Annual General Meeting",
+   "quote": "In FY 22, the order inflow had remained flattish as the finalization of tender The Company continued to use effective cost control measures across the ordering was delayed by about 6 months due to COVID-19 led disruption"
+  },
+  {
+   "date": "2022-08-12",
+   "role": "book_level",
+   "crore": 1080.0,
+   "doc": "nse5076243",
+   "type": "Annual General Meeting",
+   "quote": "As on March 31 2022, the Company\u2019s order book \u2022 Common Meter Reading Instrument stood at Rs. 1,080 crore (net of tax). \u2022 GSM/GPRS Modem The impact of RDSS can be felt on ground as almost every State Electricity \u2022 Data Co"
+  },
+  {
+   "date": "2022-08-12",
+   "role": "book_level",
+   "crore": 1079.6,
+   "doc": "nseAR_1834d002b4",
+   "type": "Annual Report",
+   "quote": "In FY 22, the order inflow had remained flattish as the finalization of tender The Company continued to use effective cost control measures across the ordering was delayed by about 6 months due to COVID-19 led disruption"
+  },
+  {
+   "date": "2022-08-12",
+   "role": "book_level",
+   "crore": 1080.0,
+   "doc": "nseAR_1834d002b4",
+   "type": "Annual Report",
+   "quote": "As on March 31 2022, the Company\u2019s order book \u2022 Common Meter Reading Instrument stood at Rs. 1,080 crore (net of tax). \u2022 GSM/GPRS Modem The impact of RDSS can be felt on ground as almost every State Electricity \u2022 Data Co"
+  },
+  {
+   "date": "2022-11-14",
+   "role": "book_level",
+   "crore": 1761.0,
+   "doc": "nse5118999",
+   "type": "Press Release",
+   "quote": "The total order, worth Rs. 828.57 crore (net of tax), is the single largest order finalized by any state utility in India for AMISP o Nearly all State Electricity Boards (SEBs) have issued requests and solicited bids for"
+  },
+  {
+   "date": "2022-11-18",
+   "role": "book_level",
+   "crore": 1761.0,
+   "doc": "nse5122480",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "As on 30th September 2022, our order book stood at INR 1,761 crore (net of tax)."
+  },
+  {
+   "date": "2022-11-18",
+   "role": "book_level",
+   "crore": 1700.0,
+   "doc": "nse5122480",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "Jitendra Agarwal: So, our order book stands at INR 1,700 crore as we -- INR 1761 crore (net of tax)."
+  },
+  {
+   "date": "2022-11-18",
+   "role": "book_level",
+   "crore": 1761.0,
+   "doc": "nse5122480",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "Jitendra Agarwal: So, our order book stands at INR 1,700 crore as we -- INR 1761 crore (net of tax)."
+  },
+  {
+   "date": "2023-02-03",
+   "role": "book_level",
+   "crore": 1678.5,
+   "doc": "nse151142",
+   "type": "Financial Result Updates",
+   "quote": "The joint statutory auditors have carried out a limited review on the unaudited standalone financial results and issued unqualified reports thereon. 2 The Company's Board has reviewed the total order book position of Rs."
+  },
+  {
+   "date": "2023-02-03",
+   "role": "book_level",
+   "crore": 1678.5,
+   "doc": "nse151142",
+   "type": "Financial Result Updates",
+   "quote": "The joint statutory auditors have carried out a limited review on the unaudited consolidated financial results and issued unqualified reports thereon. 2 The Company's Board has reviewed the total order book position of R"
+  },
+  {
+   "date": "2023-02-06",
+   "role": "book_level",
+   "crore": 1678.0,
+   "doc": "nse105418299",
+   "type": "Press Release",
+   "quote": "The company anticipates robust order inflow in the coming quarters of FY24 o As on 31st December 2022, our order book stood at Rs. 1,678 crore (net of taxes) o The total order book value including LOA received subsequent"
+  },
+  {
+   "date": "2023-02-10",
+   "role": "book_level",
+   "crore": 4099.0,
+   "doc": "nse105424054",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "I'm glad to inform you that we have received a huge order inflow for installation of almost 30 lakh smart meters, prepaid meters, to be precise, 29.49 lakh smart prepaid meters, with the total -- now the total order book"
+  },
+  {
+   "date": "2023-02-10",
+   "role": "book_level",
+   "crore": 4099.0,
+   "doc": "nse105424054",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "As I earlier also told, that the total order book, after this order, stands at INR 4,099 crores (net of taxes)."
+  },
+  {
+   "date": "2023-02-10",
+   "role": "book_level",
+   "crore": 4000.0,
+   "doc": "nse105424054",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "What would be the order execution cycle of this order book, INR 4,000 crores order book?"
+  },
+  {
+   "date": "2023-05-29",
+   "role": "book_level",
+   "crore": 4115.0,
+   "doc": "nse105515338",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "The total order book value as on March 31, 2023, is Rs. 4,115 crores net of taxes."
+  },
+  {
+   "date": "2023-05-29",
+   "role": "book_level",
+   "crore": 4000.0,
+   "doc": "nse105515338",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Yatin: So, now of the Rs. 4,000 crores of order backlog, almost 80% is AMISP, right?"
+  },
+  {
+   "date": "2023-05-29",
+   "role": "book_level",
+   "crore": 4000.0,
+   "doc": "nse105515338",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So, basically, right now, our order book is say like Rs. 4000 crores."
+  },
+  {
+   "date": "2023-07-12",
+   "role": "book_level",
+   "crore": 6000.0,
+   "doc": "nse105553521",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Post this order inflow, our total order book stands at an excess of INR6,000 crores."
+  },
+  {
+   "date": "2023-07-12",
+   "role": "book_level",
+   "crore": 6000.0,
+   "doc": "nse105553521",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So having this Platform and INR6,000 crores order book, we see very good coming years in that."
+  },
+  {
+   "date": "2023-07-12",
+   "role": "book_level",
+   "crore": 30000.0,
+   "doc": "nse105553521",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Srijan Sinha: Ballpark, the total cost would be about 10,000 per meter which means INR30,000 crores of potential order book for the Platform?"
+  },
+  {
+   "date": "2023-08-08",
+   "role": "book_level",
+   "crore": 8200.0,
+   "doc": "nse105580824",
+   "type": "Press Release",
+   "quote": "Post this order inflow, our total order book stands at in excess of Rs. 8,200 crore (net of tax)."
+  },
+  {
+   "date": "2023-08-10",
+   "role": "book_level",
+   "crore": 6339.1,
+   "doc": "nse105584561",
+   "type": "Outcome of Board Meeting",
+   "quote": "The Company's Board has noted executable group order book position as on June 30, 2023 of Rs. 6,339.14 crores, net of taxes, which also includes the order book of wholly 2 owned subsidiaries amounting to Rs.4,627.85 cror"
+  },
+  {
+   "date": "2023-08-10",
+   "role": "book_level",
+   "crore": 6339.1,
+   "doc": "nse105584561",
+   "type": "Outcome of Board Meeting",
+   "quote": "The Company's Board has noted executable group order book position as on June 30, 2023 of Rs. 6,339.14 crores, net of taxes, which also includes the order book of 2 wholly owned subsidiaries amounting to Rs.4,627.85 cror"
+  },
+  {
+   "date": "2023-08-10",
+   "role": "book_level",
+   "crore": 6339.1,
+   "doc": "nse155848",
+   "type": "Financial Result Updates",
+   "quote": "The Company's Board has noted executable group order book position as on June 30, 2023 of Rs. 6,339.14 crores, net of taxes, which also includes the order book of wholly 2 owned subsidiaries amounting to Rs.4,627.85 cror"
+  },
+  {
+   "date": "2023-08-10",
+   "role": "book_level",
+   "crore": 6339.1,
+   "doc": "nse155848",
+   "type": "Financial Result Updates",
+   "quote": "The Company's Board has noted executable group order book position as on June 30, 2023 of Rs. 6,339.14 crores, net of taxes, which also includes the order book of 2 wholly owned subsidiaries amounting to Rs.4,627.85 cror"
+  },
+  {
+   "date": "2023-08-18",
+   "role": "book_level",
+   "crore": 8200.0,
+   "doc": "nse105593688",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our total order book stands in excess of INR8,200 crores, net of taxes."
+  },
+  {
+   "date": "2023-08-18",
+   "role": "book_level",
+   "crore": 8200.0,
+   "doc": "nse105593688",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "We would like to maintain the same statement that we will have a multi- fold jump\u2026 Kailash Agarwal: Here I would like to add that the company is sitting on an order book of INR8,200 crores, which we have to supply in the"
+  },
+  {
+   "date": "2023-08-18",
+   "role": "book_level",
+   "crore": 18000.0,
+   "doc": "nse105593688",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "And also, sir, so if I get my math right, once you execute INR18,000 crores of order book in the next two years, three years, and let us say, we make an EBITDA margin of 15% net of tax, we'll be left with somewhere aroun"
+  },
+  {
+   "date": "2023-08-31",
+   "role": "book_level",
+   "crore": 11000.0,
+   "doc": "nse105605406",
+   "type": "Press Release",
+   "quote": "Our total order book now stands at around Rs. 11,000 crore (net of taxes) \u2013 which signifies a landmark for our organization, instilling us with a resolute belief that it will act as a driving force for exponential growth"
+  },
+  {
+   "date": "2023-10-09",
+   "role": "book_level",
+   "crore": 14000.0,
+   "doc": "nse105639486",
+   "type": "Press Release",
+   "quote": "Our total order book now stands at over Rs. 14,000 crore (net of taxes) \u2013 which gives visibility into robust future revenue growth."
+  },
+  {
+   "date": "2023-10-23",
+   "role": "book_level",
+   "crore": 17000.0,
+   "doc": "nse105651273",
+   "type": "Press Release",
+   "quote": "Our total order book now stands at over Rs. 17,000 crore (net of taxes) \u2013 which gives visibility into robust future revenue growth."
+  },
+  {
+   "date": "2023-11-08",
+   "role": "book_level",
+   "crore": 19000.0,
+   "doc": "nse105668812",
+   "type": "Press Release",
+   "quote": "Our total order book now stands at over Rs. 19,000 crore (net of taxes) \u2013 which gives visibility into robust future revenue growth."
+  },
+  {
+   "date": "2023-11-09",
+   "role": "book_level",
+   "crore": 10768.7,
+   "doc": "nse158182",
+   "type": "Financial Result Updates",
+   "quote": "The joint statutory auditors have carried out a limited review on the unaudited standalone financial results and issued unqualified report thereon. 2 The Company\u2019s Board has noted executable group order book position as "
+  },
+  {
+   "date": "2023-11-09",
+   "role": "book_level",
+   "crore": 10768.7,
+   "doc": "nse158182",
+   "type": "Financial Result Updates",
+   "quote": "The joint statutory auditors have carried out a limited review on the unaudited consolidated financial results and issued unqualified report thereon. 2 The Company's Board has noted executable group order book position a"
+  },
+  {
+   "date": "2023-11-09",
+   "role": "book_level",
+   "crore": 10768.7,
+   "doc": "nse105671379",
+   "type": "Outcome of Board Meeting",
+   "quote": "The joint statutory auditors have carried out a limited review on the unaudited standalone financial results and issued unqualified report thereon. 2 The Company\u2019s Board has noted executable group order book position as "
+  },
+  {
+   "date": "2023-11-09",
+   "role": "book_level",
+   "crore": 10768.7,
+   "doc": "nse105671379",
+   "type": "Outcome of Board Meeting",
+   "quote": "The joint statutory auditors have carried out a limited review on the unaudited consolidated financial results and issued unqualified report thereon. 2 The Company's Board has noted executable group order book position a"
+  },
+  {
+   "date": "2023-11-10",
+   "role": "book_level",
+   "crore": 19000.0,
+   "doc": "nse105672908",
+   "type": "Press Release",
+   "quote": "The current total order book of our company has surpassed Rs. 19,000 crore (net of taxes), indicating a promising outlook for future revenue growth."
+  },
+  {
+   "date": "2023-11-10",
+   "role": "book_level",
+   "crore": 19000.0,
+   "doc": "nse105673256",
+   "type": "Investor Presentation",
+   "quote": "The current total order book of our company has surpassed Rs. 19,000 crore (net of taxes), indicating a promising outlook for future revenue growth."
+  },
+  {
+   "date": "2023-11-17",
+   "role": "book_level",
+   "crore": 19000.0,
+   "doc": "nse105678434",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "The present aggregate order book of our company stands in excess of INR19,000 crores (net of taxes), thereby reflecting a highly positive outlook for revenue growth in the forthcoming quarters."
+  },
+  {
+   "date": "2023-11-17",
+   "role": "book_level",
+   "crore": 0.7,
+   "doc": "nse105678434",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Then -- on requirement basis, our current order book itself is closer to INR70 lakhs, INR75 lakhs meters a year, right?"
+  },
+  {
+   "date": "2023-11-17",
+   "role": "book_level",
+   "crore": 0.8,
+   "doc": "nse105678434",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Then -- on requirement basis, our current order book itself is closer to INR70 lakhs, INR75 lakhs meters a year, right?"
+  },
+  {
+   "date": "2023-11-17",
+   "role": "book_level",
+   "crore": 19000.0,
+   "doc": "nse105678434",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Kailash Agarwal: Srijan basically, when we are sitting on an order book of INR19,000 crores, and we say that almost 70% will come to Genus, including maintenance and all."
+  },
+  {
+   "date": "2023-12-14",
+   "role": "book_level",
+   "crore": 20000.0,
+   "doc": "nse105697205",
+   "type": "Press Release",
+   "quote": "With the addition of the recent order, our total order book has now surpassed the significant milestone of Rs. 20,000 crore (net of taxes)."
+  },
+  {
+   "date": "2024-02-15",
+   "role": "book_level",
+   "crore": 20000.0,
+   "doc": "nse105760581",
+   "type": "Press Release",
+   "quote": "Our company's total order book now exceeds Rs. 20,000 crore (net of taxes), suggesting a positive outlook for future revenue growth."
+  },
+  {
+   "date": "2024-02-15",
+   "role": "book_level",
+   "crore": 20000.0,
+   "doc": "nse105760593",
+   "type": "Investor Presentation",
+   "quote": "Our company's total order book now exceeds Rs. 20,000 crore (net of taxes), suggesting a positive outlook for future revenue growth."
+  },
+  {
+   "date": "2024-02-21",
+   "role": "book_level",
+   "crore": 20000.0,
+   "doc": "nse105766027",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our total order book has surpassed Rs. 20,000 crores (net of taxes) indicating a promising outlook for future revenue growth."
+  },
+  {
+   "date": "2024-02-21",
+   "role": "book_level",
+   "crore": 20000.0,
+   "doc": "nse105766027",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "And when we say our order book of net Rs. 20,000 crores, we have already added those numbers."
+  },
+  {
+   "date": "2024-02-21",
+   "role": "book_level",
+   "crore": 20000.0,
+   "doc": "nse105766027",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "We have an order book of around Rs. 20,000 crores."
+  },
+  {
+   "date": "2024-05-30",
+   "role": "book_level",
+   "crore": 21000.0,
+   "doc": "nse105868619",
+   "type": "Press Release",
+   "quote": "The total order book of our company has surpassed Rs. 21,000 crore (net of taxes) as on 31st March 2024, indicating a promising outlook for future revenue growth."
+  },
+  {
+   "date": "2024-06-06",
+   "role": "book_level",
+   "crore": 21000.0,
+   "doc": "nse105875965",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our total order book, including all SPVs and GIC platform has surpassed INR 21,000 crores on date, indicating a promising outlook for future revenue growth."
+  },
+  {
+   "date": "2024-06-06",
+   "role": "book_level",
+   "crore": 21000.0,
+   "doc": "nse105875965",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Akash: My question is, if I were to segregate my INR21,000 crores order book, as of today."
+  },
+  {
+   "date": "2024-06-06",
+   "role": "book_level",
+   "crore": 21000.0,
+   "doc": "nse105875965",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Jitendra Agarwal: So, this INR21,000 crores is approximated the order book of the whole company."
+  },
+  {
+   "date": "2024-06-06",
+   "role": "book_level",
+   "crore": 1000.0,
+   "doc": "nse105875965",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Jitendra Agarwal: Currently, from different AMISP we have an order book of more than INR1,000 crores."
+  },
+  {
+   "date": "2024-06-06",
+   "role": "book_level",
+   "crore": 20000.0,
+   "doc": "nse105875965",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So if you take order book or let's say, we have done the order book of INR20,000 crores."
+  },
+  {
+   "date": "2024-08-07",
+   "role": "book_level",
+   "crore": 21458.0,
+   "doc": "nse105943129",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "As on 30th June 2024, our total order book, including all SPVs and GIC platform stands at about INR21,458 crores (net of taxes), and these concessions are for 8 years to 10 years."
+  },
+  {
+   "date": "2024-08-07",
+   "role": "book_level",
+   "crore": 21500.0,
+   "doc": "nse105943129",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Your order book is INR21,500 crores."
+  },
+  {
+   "date": "2024-08-07",
+   "role": "book_level",
+   "crore": 21000.0,
+   "doc": "nse105943129",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Tushar Sarda: So, my follow- up was if it's a INR21,000 crores order book, which has to be executed in two years, then -- and this year, you are guiding INR2,500 crores, so next year..."
+  },
+  {
+   "date": "2024-08-07",
+   "role": "book_level",
+   "crore": 21500.0,
+   "doc": "nse105943129",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Jitendra Agarwal: I want to correct it, sir, INR21,500 crores is the current order book."
+  },
+  {
+   "date": "2024-08-07",
+   "role": "book_level",
+   "crore": 19000.0,
+   "doc": "nse105943129",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "July 31, 2024 So basically, the whole order book and when we say the total order book of INR19,000 crores or INR20,000 crores, initially in next three to four years, it will come 60% to us only, which is 60% is for the i"
+  },
+  {
+   "date": "2024-08-07",
+   "role": "book_level",
+   "crore": 20000.0,
+   "doc": "nse105943129",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "July 31, 2024 So basically, the whole order book and when we say the total order book of INR19,000 crores or INR20,000 crores, initially in next three to four years, it will come 60% to us only, which is 60% is for the i"
+  },
+  {
+   "date": "2024-08-07",
+   "role": "book_level",
+   "crore": 19000.0,
+   "doc": "nse105943129",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "This is how you have to break this order book of INR19,000 crores."
+  },
+  {
+   "date": "2024-08-07",
+   "role": "book_level",
+   "crore": 19000.0,
+   "doc": "nse105943129",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "It is just way of understanding that total INR19,000 crores order book is transferred to the Platform."
+  },
+  {
+   "date": "2024-08-17",
+   "role": "book_level",
+   "crore": 24383.0,
+   "doc": "nse105958056",
+   "type": "Press Release",
+   "quote": "With these recent orders, our total order book, including all SPVs and the GIC Platform, exceeds Rs. 24,383 crore (net of taxes)."
+  },
+  {
+   "date": "2024-08-20",
+   "role": "book_level",
+   "crore": 28000.0,
+   "doc": "nse105959944",
+   "type": "Press Release",
+   "quote": "With these recent orders, our total order book, including all SPVs and the GIC Platform, stands at about Rs. 28,000 crore (net of taxes)."
+  },
+  {
+   "date": "2024-08-28",
+   "role": "book_level",
+   "crore": 32500.0,
+   "doc": "nse105968550",
+   "type": "Press Release",
+   "quote": "These achievements bring our total order book to about Rs. 32,500 crore (net of taxes)."
+  },
+  {
+   "date": "2024-10-30",
+   "role": "book_level",
+   "crore": 31776.0,
+   "doc": "nse106040076",
+   "type": "Press Release",
+   "quote": "This surge in PAT includes a one-time gain of Rs. 11 crore, recorded under other income, stemming from the resolution of an arbitration settlement related to a government project executed during 2007\u20132009. \uf0b7 Our total or"
+  },
+  {
+   "date": "2024-11-06",
+   "role": "book_level",
+   "crore": 31776.0,
+   "doc": "nse106046700",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "October 30, 2024 As on 30th September 2024, our total order book, including all SPVs and GIC platform, stands at about INR31,776 crores net of taxes, and these concessions are for eight to 10 years."
+  },
+  {
+   "date": "2024-11-06",
+   "role": "book_level",
+   "crore": 31000.0,
+   "doc": "nse106046700",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "And sir, given that we've got a very strong order book, almost INR31,000 crores, and I understand this is over a period of eight to 10 years."
+  },
+  {
+   "date": "2025-02-11",
+   "role": "book_level",
+   "crore": 31302.0,
+   "doc": "nse106145731",
+   "type": "Press Release",
+   "quote": "Our EBITDA margin improved significantly by 828 basis points y-o-y to 19.3% in Q3FY25, driven by the positive impact of operating leverage. \u2022 Profit After Tax, stood at Rs. 68.2 crore for Q3FY25, up by more than 5 times,"
+  },
+  {
+   "date": "2025-06-06",
+   "role": "book_level",
+   "crore": 30110.0,
+   "doc": "nse106263757",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "As on 31st March 2025, our order book stood at INR30,110 crores (net of taxes), covering projects across multiple SPVs and the GIC Platform."
+  },
+  {
+   "date": "2025-06-06",
+   "role": "book_level",
+   "crore": 30000.0,
+   "doc": "nse106263757",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Like our current order book is INR30,000 crores."
+  },
+  {
+   "date": "2025-06-06",
+   "role": "book_level",
+   "crore": 31000.0,
+   "doc": "nse106263757",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Sir, this INR31,000 crores that we have in terms of order book, how much it would be number of meters?"
+  },
+  {
+   "date": "2025-08-11",
+   "role": "book_level",
+   "crore": 29000.0,
+   "doc": "nse106334362",
+   "type": "Press Release",
+   "quote": "The current order book of over Rs. 29,000 crore (net of taxes), of which approximately 80% of AMISP revenues will accrue directly to the company over the project lifecycle, provides a blend of near-term scale-up and long"
+  },
+  {
+   "date": "2025-08-19",
+   "role": "book_level",
+   "crore": 29321.0,
+   "doc": "nse106345451",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our total order book as of June 30, 2025, stands at about Rs. 29,321 crores net of taxes across all SPVs and the GIC Platform."
+  },
+  {
+   "date": "2025-08-19",
+   "role": "book_level",
+   "crore": 29300.0,
+   "doc": "nse106345451",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Nikhil Abhyankar: Sir, in the note #4, you have mentioned that the order book is Rs. 29,300 crores and the order related to AMISP is Rs. 27,500 crores."
+  },
+  {
+   "date": "2025-08-19",
+   "role": "book_level",
+   "crore": 29000.0,
+   "doc": "nse106345451",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So, if you will break up like the total order book as on date is take a round figure of Rs. 29,000 crores."
+  },
+  {
+   "date": "2025-11-07",
+   "role": "book_level",
+   "crore": 28758.0,
+   "doc": "nse106431754",
+   "type": "Investor Presentation",
+   "quote": "Order book stood at Rs. 28,758 crore (net of taxes) as on 30th September 2025, providing strong 76 56 visibility for sustained revenue growth in the years 17.6% ahead. 15.5% 11.6% 12.9% Q2FY25 Q2FY26 Q2FY25 Q2FY26 *Net P"
+  },
+  {
+   "date": "2025-11-14",
+   "role": "book_level",
+   "crore": 28758.0,
+   "doc": "nse106445635",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "As on 30th September 2025, the company had a total order book of INR 28,758 crores (net of taxes) for about 3.6 crore meters for supply to utilities, other AMISPs and to the joint venture Platform."
+  }
+ ],
+ "timeline": [
+  {
+   "date": "2021-01-31",
+   "ttm_revenue": 665.5,
+   "orders_12m": 4500.0,
+   "book": 1005.3,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-02-28",
+   "ttm_revenue": 665.5,
+   "orders_12m": 4500.0,
+   "book": 1005.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-03-31",
+   "ttm_revenue": 665.5,
+   "orders_12m": 4500.0,
+   "book": 1005.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-04-30",
+   "ttm_revenue": 665.5,
+   "orders_12m": 4500.0,
+   "book": 1005.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-05-31",
+   "ttm_revenue": 607.8,
+   "orders_12m": 4500.0,
+   "book": 930.5,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-06-30",
+   "ttm_revenue": 607.8,
+   "orders_12m": 14500.0,
+   "book": 930.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-07-31",
+   "ttm_revenue": 654.2,
+   "orders_12m": 14500.0,
+   "book": 977.9,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-08-31",
+   "ttm_revenue": 654.2,
+   "orders_12m": 14666.4,
+   "book": 978.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-09-30",
+   "ttm_revenue": 654.2,
+   "orders_12m": 14666.4,
+   "book": 978.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-10-31",
+   "ttm_revenue": 666.9,
+   "orders_12m": 14666.4,
+   "book": 882.0,
+   "book_year_ago": 1005.3
+  },
+  {
+   "date": "2021-11-30",
+   "ttm_revenue": 666.9,
+   "orders_12m": 14666.4,
+   "book": 882.0,
+   "book_year_ago": 1005.0
+  },
+  {
+   "date": "2021-12-31",
+   "ttm_revenue": 666.9,
+   "orders_12m": 14666.4,
+   "book": 1000.0,
+   "book_year_ago": 1005.0
+  },
+  {
+   "date": "2022-01-31",
+   "ttm_revenue": 694.7,
+   "orders_12m": 10491.4,
+   "book": 1163.0,
+   "book_year_ago": 1005.0
+  },
+  {
+   "date": "2022-02-28",
+   "ttm_revenue": 694.7,
+   "orders_12m": 11121.4,
+   "book": 1163.0,
+   "book_year_ago": 930.5
+  },
+  {
+   "date": "2022-03-31",
+   "ttm_revenue": 694.7,
+   "orders_12m": 11121.4,
+   "book": 1163.0,
+   "book_year_ago": 930.0
+  },
+  {
+   "date": "2022-04-30",
+   "ttm_revenue": 694.7,
+   "orders_12m": 11121.4,
+   "book": 1163.0,
+   "book_year_ago": 977.9
+  },
+  {
+   "date": "2022-05-31",
+   "ttm_revenue": 685.1,
+   "orders_12m": 38625.0,
+   "book": 1900.0,
+   "book_year_ago": 978.0
+  },
+  {
+   "date": "2022-06-30",
+   "ttm_revenue": 685.1,
+   "orders_12m": 28625.0,
+   "book": 1900.0,
+   "book_year_ago": 978.0
+  },
+  {
+   "date": "2022-07-31",
+   "ttm_revenue": 685.1,
+   "orders_12m": 28625.0,
+   "book": 1900.0,
+   "book_year_ago": 882.0
+  },
+  {
+   "date": "2022-08-31",
+   "ttm_revenue": 741.8,
+   "orders_12m": 30112.2,
+   "book": 1080.0,
+   "book_year_ago": 882.0
+  },
+  {
+   "date": "2022-09-30",
+   "ttm_revenue": 741.8,
+   "orders_12m": 30112.2,
+   "book": 1080.0,
+   "book_year_ago": 1000.0
+  },
+  {
+   "date": "2022-10-31",
+   "ttm_revenue": 741.8,
+   "orders_12m": 30112.2,
+   "book": 1080.0,
+   "book_year_ago": 1163.0
+  },
+  {
+   "date": "2022-11-30",
+   "ttm_revenue": 782.6,
+   "orders_12m": 126940.8,
+   "book": 1761.0,
+   "book_year_ago": 1163.0
+  },
+  {
+   "date": "2022-12-31",
+   "ttm_revenue": 782.6,
+   "orders_12m": 126940.8,
+   "book": 1761.0,
+   "book_year_ago": 1163.0
+  },
+  {
+   "date": "2023-01-31",
+   "ttm_revenue": 782.6,
+   "orders_12m": 126615.8,
+   "book": 1761.0,
+   "book_year_ago": 1163.0
+  },
+  {
+   "date": "2023-02-28",
+   "ttm_revenue": 787.1,
+   "orders_12m": 132090.7,
+   "book": 4000.0,
+   "book_year_ago": 1900.0
+  },
+  {
+   "date": "2023-03-31",
+   "ttm_revenue": 787.1,
+   "orders_12m": 132090.7,
+   "book": 4000.0,
+   "book_year_ago": 1900.0
+  },
+  {
+   "date": "2023-04-30",
+   "ttm_revenue": 787.1,
+   "orders_12m": 132090.7,
+   "book": 4000.0,
+   "book_year_ago": 1900.0
+  },
+  {
+   "date": "2023-05-31",
+   "ttm_revenue": 808.4,
+   "orders_12m": 134006.1,
+   "book": 4000.0,
+   "book_year_ago": 1080.0
+  },
+  {
+   "date": "2023-06-30",
+   "ttm_revenue": 808.4,
+   "orders_12m": 134006.1,
+   "book": 4000.0,
+   "book_year_ago": 1080.0
+  },
+  {
+   "date": "2023-07-31",
+   "ttm_revenue": 808.4,
+   "orders_12m": 136213.1,
+   "book": 30000.0,
+   "book_year_ago": 1080.0
+  },
+  {
+   "date": "2023-08-31",
+   "ttm_revenue": 882.5,
+   "orders_12m": 134559.5,
+   "book": 11000.0,
+   "book_year_ago": 1761.0
+  },
+  {
+   "date": "2023-09-30",
+   "ttm_revenue": 882.5,
+   "orders_12m": 134559.5,
+   "book": 11000.0,
+   "book_year_ago": 1761.0
+  },
+  {
+   "date": "2023-10-31",
+   "ttm_revenue": 882.5,
+   "orders_12m": 134559.5,
+   "book": 17000.0,
+   "book_year_ago": 1678.5
+  },
+  {
+   "date": "2023-11-30",
+   "ttm_revenue": 922.8,
+   "orders_12m": 71890.9,
+   "book": 19000.0,
+   "book_year_ago": 4000.0
+  },
+  {
+   "date": "2023-12-31",
+   "ttm_revenue": 922.8,
+   "orders_12m": 71890.9,
+   "book": 20000.0,
+   "book_year_ago": 4000.0
+  },
+  {
+   "date": "2024-01-31",
+   "ttm_revenue": 922.8,
+   "orders_12m": 71890.9,
+   "book": 20000.0,
+   "book_year_ago": 4000.0
+  },
+  {
+   "date": "2024-02-29",
+   "ttm_revenue": 980.7,
+   "orders_12m": 110971.0,
+   "book": 20000.0,
+   "book_year_ago": 4000.0
+  },
+  {
+   "date": "2024-03-31",
+   "ttm_revenue": 980.7,
+   "orders_12m": 110971.0,
+   "book": 20000.0,
+   "book_year_ago": 4000.0
+  },
+  {
+   "date": "2024-04-30",
+   "ttm_revenue": 980.7,
+   "orders_12m": 110971.0,
+   "book": 20000.0,
+   "book_year_ago": 30000.0
+  },
+  {
+   "date": "2024-05-31",
+   "ttm_revenue": 1198.5,
+   "orders_12m": 81552.0,
+   "book": 21000.0,
+   "book_year_ago": 11000.0
+  },
+  {
+   "date": "2024-06-30",
+   "ttm_revenue": 1198.5,
+   "orders_12m": 81552.0,
+   "book": 20000.0,
+   "book_year_ago": 11000.0
+  },
+  {
+   "date": "2024-07-31",
+   "ttm_revenue": 1351.5,
+   "orders_12m": 79345.0,
+   "book": 20000.0,
+   "book_year_ago": 17000.0
+  },
+  {
+   "date": "2024-08-31",
+   "ttm_revenue": 1351.5,
+   "orders_12m": 101348.0,
+   "book": 32500.0,
+   "book_year_ago": 19000.0
+  },
+  {
+   "date": "2024-09-30",
+   "ttm_revenue": 1351.5,
+   "orders_12m": 101348.0,
+   "book": 32500.0,
+   "book_year_ago": 20000.0
+  },
+  {
+   "date": "2024-10-31",
+   "ttm_revenue": 1579.4,
+   "orders_12m": 101348.0,
+   "book": 31776.0,
+   "book_year_ago": 20000.0
+  },
+  {
+   "date": "2024-11-30",
+   "ttm_revenue": 1579.4,
+   "orders_12m": 67188.0,
+   "book": 31000.0,
+   "book_year_ago": 20000.0
+  },
+  {
+   "date": "2024-12-31",
+   "ttm_revenue": 1579.4,
+   "orders_12m": 67188.0,
+   "book": 31000.0,
+   "book_year_ago": 20000.0
+  },
+  {
+   "date": "2025-01-31",
+   "ttm_revenue": 1579.4,
+   "orders_12m": 67188.0,
+   "book": 31000.0,
+   "book_year_ago": 20000.0
+  },
+  {
+   "date": "2025-02-28",
+   "ttm_revenue": 1925.4,
+   "orders_12m": 22003.0,
+   "book": 31302.0,
+   "book_year_ago": 21000.0
+  },
+  {
+   "date": "2025-03-31",
+   "ttm_revenue": 1925.4,
+   "orders_12m": 22003.0,
+   "book": 31302.0,
+   "book_year_ago": 20000.0
+  },
+  {
+   "date": "2025-04-30",
+   "ttm_revenue": 1925.4,
+   "orders_12m": 22003.0,
+   "book": 31302.0,
+   "book_year_ago": 20000.0
+  },
+  {
+   "date": "2025-05-31",
+   "ttm_revenue": 2442.0,
+   "orders_12m": 22003.0,
+   "book": 31302.0,
+   "book_year_ago": 32500.0
+  },
+  {
+   "date": "2025-06-30",
+   "ttm_revenue": 2442.0,
+   "orders_12m": 22003.0,
+   "book": 31000.0,
+   "book_year_ago": 32500.0
+  },
+  {
+   "date": "2025-07-31",
+   "ttm_revenue": 2442.0,
+   "orders_12m": 22003.0,
+   "book": 31000.0,
+   "book_year_ago": 31776.0
+  },
+  {
+   "date": "2025-08-31",
+   "ttm_revenue": 2970.3,
+   "orders_12m": 0,
+   "book": 29000.0,
+   "book_year_ago": 31000.0
+  },
+  {
+   "date": "2025-09-30",
+   "ttm_revenue": 2970.3,
+   "orders_12m": 0,
+   "book": 29000.0,
+   "book_year_ago": 31000.0
+  },
+  {
+   "date": "2025-10-31",
+   "ttm_revenue": 2970.3,
+   "orders_12m": 0,
+   "book": 29000.0,
+   "book_year_ago": 31000.0
+  },
+  {
+   "date": "2025-11-30",
+   "ttm_revenue": 3632.4,
+   "orders_12m": 127.0,
+   "book": 28758.0,
+   "book_year_ago": 31302.0
+  },
+  {
+   "date": "2025-12-31",
+   "ttm_revenue": 3632.4,
+   "orders_12m": 127.0,
+   "book": 28758.0,
+   "book_year_ago": 31302.0
+  }
+ ]
+}

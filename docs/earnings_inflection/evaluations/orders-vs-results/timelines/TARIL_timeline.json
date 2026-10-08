@@ -1,0 +1,1300 @@
+{
+ "symbol": "TARIL",
+ "scope": "consolidated",
+ "quarters": 26,
+ "inflections": [
+  {
+   "quarter": "2022-03-31",
+   "published": "2022-05-14",
+   "ttm_profit_year_ago": 7.1,
+   "ttm_profit": 14.0,
+   "document_signal": null,
+   "lead_days": null
+  },
+  {
+   "quarter": "2024-06-30",
+   "published": "2024-07-19",
+   "ttm_profit_year_ago": 22.1,
+   "ttm_profit": 77.2,
+   "document_signal": {
+    "date": "2023-08-31",
+    "why": [
+     "order book 2,150 cr = 1.8x TTM revenue, up from 1,521"
+    ]
+   },
+   "lead_days": 323
+  }
+ ],
+ "document_signals": [
+  {
+   "date": "2023-08-31",
+   "why": [
+    "order book 2,150 cr = 1.8x TTM revenue, up from 1,521"
+   ]
+  }
+ ],
+ "ttm_path": [
+  [
+   "2019-09-30",
+   null,
+   null,
+   "2019-11-15"
+  ],
+  [
+   "2019-12-31",
+   null,
+   null,
+   "2020-02-14"
+  ],
+  [
+   "2020-03-31",
+   null,
+   null,
+   "2020-06-30"
+  ],
+  [
+   "2020-06-30",
+   642.7,
+   -3.3,
+   "2020-09-14"
+  ],
+  [
+   "2020-09-30",
+   663.8,
+   -0.8,
+   "2020-11-27"
+  ],
+  [
+   "2020-12-31",
+   621.4,
+   -1.6,
+   "2021-02-12"
+  ],
+  [
+   "2021-03-31",
+   742.1,
+   7.1,
+   "2021-05-25"
+  ],
+  [
+   "2021-06-30",
+   844.3,
+   13.3,
+   "2021-08-10"
+  ],
+  [
+   "2021-09-30",
+   936.3,
+   14.8,
+   "2021-11-13"
+  ],
+  [
+   "2021-12-31",
+   1102.8,
+   19.2,
+   "2022-02-07"
+  ],
+  [
+   "2022-03-31",
+   1158.3,
+   14.0,
+   "2022-05-14"
+  ],
+  [
+   "2022-06-30",
+   1223.3,
+   17.6,
+   "2022-08-08"
+  ],
+  [
+   "2022-09-30",
+   1263.6,
+   24.4,
+   "2022-11-11"
+  ],
+  [
+   "2022-12-31",
+   1257.0,
+   33.0,
+   "2023-02-06"
+  ],
+  [
+   "2023-03-31",
+   1351.4,
+   40.7,
+   "2023-05-04"
+  ],
+  [
+   "2023-06-30",
+   1225.1,
+   22.1,
+   "2023-08-11"
+  ],
+  [
+   "2023-09-30",
+   1174.7,
+   12.2,
+   "2023-11-03"
+  ],
+  [
+   "2023-12-31",
+   1215.7,
+   14.0,
+   "2024-01-22"
+  ],
+  [
+   "2024-03-31",
+   1294.7,
+   44.9,
+   "2024-04-08"
+  ],
+  [
+   "2024-06-30",
+   1461.1,
+   77.2,
+   "2024-07-19"
+  ],
+  [
+   "2024-09-30",
+   1665.6,
+   121.5,
+   "2024-10-08"
+  ],
+  [
+   "2024-12-31",
+   1855.6,
+   161.4,
+   "2025-01-08"
+  ],
+  [
+   "2025-03-31",
+   2019.4,
+   215.7,
+   "2025-04-08"
+  ],
+  [
+   "2025-06-30",
+   2226.7,
+   263.0,
+   "2025-08-01"
+  ],
+  [
+   "2025-09-30",
+   2225.2,
+   254.5,
+   "2025-11-08"
+  ],
+  [
+   "2025-12-31",
+   2402.6,
+   275.0,
+   "2026-01-08"
+  ]
+ ],
+ "orders": [
+  {
+   "date": "2022-08-08",
+   "role": "order_value",
+   "crore": 186.0,
+   "doc": "nse5072651",
+   "type": "Investor Presentation",
+   "quote": "Major Event during in Q1 2022-23. \uf0d8 We has been received order of Rs. 186 Cr. from one of the State Utility. \uf0d8 In addition to orders in hand, we have participated in bidding process of state and central utilities for mor"
+  },
+  {
+   "date": "2023-05-04",
+   "role": "order_value",
+   "crore": 400.0,
+   "doc": "nse105486179",
+   "type": "Investor Presentation",
+   "quote": "Ltd. \u2022 Manufactured transformers upto 100 MVA, 245 kV class 2015 MVA, 400/220/33 kV 3 Phase auto Received Order worth INR 400 Crore for transformers by KEMA Netherlands Third Party Export New JV with Jiangsu Jingke Smart"
+  },
+  {
+   "date": "2023-08-16",
+   "role": "order_value",
+   "crore": 150.0,
+   "doc": "nse105591178",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "We have got the order of Rs.150 Crores from the power grid."
+  },
+  {
+   "date": "2024-04-21",
+   "role": "order_value",
+   "crore": 2581.0,
+   "doc": "nseAR_1cb483a797",
+   "type": "Annual Report",
+   "quote": "In the past year, we have secured orders worth \u20b92050 Cr., and as of March 31st, we have an unexecuted order book of 44,594 MVA valued at \u20b92581 Cr., scheduled for delivery within the next 15 months."
+  },
+  {
+   "date": "2024-05-01",
+   "role": "order_value",
+   "crore": 456.0,
+   "doc": "nse105831049",
+   "type": "Updates",
+   "quote": "The major orders won during the year are: Received order from Power Grid Corporation of India Limited worth \u20b9456 crores in December 2023 Received order from Uttar Pradesh Power Transmission Corporation Limited worth \u20b9118"
+  },
+  {
+   "date": "2024-05-01",
+   "role": "order_value",
+   "crore": 118.0,
+   "doc": "nse105831049",
+   "type": "Updates",
+   "quote": "The major orders won during the year are: Received order from Power Grid Corporation of India Limited worth \u20b9456 crores in December 2023 Received order from Uttar Pradesh Power Transmission Corporation Limited worth \u20b9118"
+  },
+  {
+   "date": "2024-08-30",
+   "role": "order_value",
+   "crore": 91.0,
+   "doc": "nse105971118",
+   "type": "Updates",
+   "quote": "An order for Transformers with a total contract value of \u20b991 Crore has been awarded by SPIL."
+  },
+  {
+   "date": "2024-08-30",
+   "role": "order_value",
+   "crore": 70.0,
+   "doc": "nse105971118",
+   "type": "Updates",
+   "quote": "An order for Transformers with a total contract value of \u20b970 Crore has been awarded by KEPIPL."
+  },
+  {
+   "date": "2024-09-13",
+   "role": "order_value",
+   "crore": 114.0,
+   "doc": "nse105987504",
+   "type": "Updates",
+   "quote": "Broad consideration or size of the order(s) Total Order Value received of \u20b9114 Crore / contract(s); Whether the promoter/ promoter group / The Promoter /Promoter Group/ Group group companies have any interest in the comp"
+  },
+  {
+   "date": "2024-10-03",
+   "role": "order_value",
+   "crore": 565.0,
+   "doc": "nse106011302",
+   "type": "Bagging/Receiving of orders/contracts",
+   "quote": "Broad consideration or size of the order(s) Total Order Value received of \u20b9565 Crore / contract(s); Whether the promoter/ promoter group / The Promoter /Promoter Group/ Group group companies have any interest in the comp"
+  },
+  {
+   "date": "2024-10-10",
+   "role": "order_value",
+   "crore": 1031.0,
+   "doc": "nse106018808",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "During this quarter, we secured order totalling INR1,031 crores and total order worth INR1,729 crores for the H1, highlighting our strong momentum and strong inflows."
+  },
+  {
+   "date": "2024-10-10",
+   "role": "order_value",
+   "crore": 1000.0,
+   "doc": "nse106018808",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Chanchal Rajora: Surabhi, If I want, I can take the order of INR1,000 crores every month."
+  },
+  {
+   "date": "2024-10-29",
+   "role": "order_value",
+   "crore": 6.0,
+   "doc": "nse106038689",
+   "type": "Bagging/Receiving of orders/contracts",
+   "quote": "Broad consideration or size of the order(s) Total Order Value received of \u20b96.00 Crore / contract(s); Whether the promoter/ promoter group / The Promoter /Promoter Group/ Group group companies have any interest in the com"
+  },
+  {
+   "date": "2024-10-29",
+   "role": "order_value",
+   "crore": 44.4,
+   "doc": "nse106038689",
+   "type": "Bagging/Receiving of orders/contracts",
+   "quote": "Broad consideration or size of the order(s) Total Order Value received of \u20b944.40 Crore / contract(s); Whether the promoter/ promoter group / The Promoter /Promoter Group/ Group group companies have any interest in the co"
+  },
+  {
+   "date": "2025-04-15",
+   "role": "order_value",
+   "crore": 740.0,
+   "doc": "nse106202451",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "One of the most significant milestones was securing a landmark order of INR740 crores from GETCO in March 2025, the largest single order in our company's history and probably the largest by GETCO as well."
+  },
+  {
+   "date": "2025-04-15",
+   "role": "order_value",
+   "crore": 8000.0,
+   "doc": "nse106202451",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "And I'm referring the recent CNBC interview where the management set INR8,000 crores of order for next year."
+  },
+  {
+   "date": "2025-08-04",
+   "role": "order_value",
+   "crore": 700.0,
+   "doc": "nse106323735",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "We are seeing kind of a 5% decline in terms of order inflow on a year-on-year basis, considering we have secured around INR700 crores of orders."
+  },
+  {
+   "date": "2025-08-04",
+   "role": "order_value",
+   "crore": 525.0,
+   "doc": "nse106323735",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Page 8 of 12 Transformers and Rectifiers (India) Limited August 01, 2025 And also when we -- the second question is when we look at, let's say, when we are targeting INR5,000 crores of order book and largely, we have sec"
+  },
+  {
+   "date": "2025-11-17",
+   "role": "order_value",
+   "crore": 4500.0,
+   "doc": "nse106447471",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "I have executed around INR4,500 crores of the orders, and I got new order of around INR600 crores."
+  },
+  {
+   "date": "2025-11-17",
+   "role": "order_value",
+   "crore": 600.0,
+   "doc": "nse106447471",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "I have executed around INR4,500 crores of the orders, and I got new order of around INR600 crores."
+  },
+  {
+   "date": "2025-12-04",
+   "role": "order_value",
+   "crore": 53.3,
+   "doc": "nse106460830",
+   "type": "Bagging/Receiving of orders/contracts",
+   "quote": "Broad consideration or size of the order(s) Total Order Value received of Rs. 53.33 Cr/- / contract(s); Whether the promoter/ promoter group / The Promoter /Promoter Group/ Group group companies have any interest in the "
+  }
+ ],
+ "books": [
+  {
+   "date": "2021-03-15",
+   "role": "book_level",
+   "crore": 1123.0,
+   "doc": "nse104814740",
+   "type": "Updates",
+   "quote": "With this order, the Company's Order book as on date stands around Rs. 1123 Crores."
+  },
+  {
+   "date": "2021-05-25",
+   "role": "book_level",
+   "crore": 1037.0,
+   "doc": "nse104921376",
+   "type": "Investor Presentation",
+   "quote": "Third Party 64 23% 5 3% 98 13% 55 8% Exports - Utilities & Power) Total 276 100% 161 100% 727 100% 683 100% ISO 45001 : 2018 Future Business Orders on Hand - Rs. 1037 Cr as on 30th April, 2021."
+  },
+  {
+   "date": "2021-05-26",
+   "role": "book_level",
+   "crore": 1121.0,
+   "doc": "nse104923670",
+   "type": "Updates",
+   "quote": "With this order, the Company\u2019s Order book as on date stands around Rs. 1121 Crores."
+  },
+  {
+   "date": "2021-06-14",
+   "role": "book_level",
+   "crore": 966.0,
+   "doc": "nse104949095",
+   "type": "Updates",
+   "quote": "With this order, the Company\u2019s Order book as on date stands around Rs. 966 Crores."
+  },
+  {
+   "date": "2021-08-10",
+   "role": "book_level",
+   "crore": 1005.0,
+   "doc": "nse105029997",
+   "type": "Investor Presentation",
+   "quote": "Third Party 49 23% 3 3% 98 13% Exports - Utilities & Power) Total 213 100% 115 100% 727 100% ISO 45001 : 2018 Future Business Orders on Hand - Rs. 1005 Cr as on 31st July, 2021."
+  },
+  {
+   "date": "2021-12-23",
+   "role": "book_level",
+   "crore": 816.0,
+   "doc": "nse105182241",
+   "type": "Updates",
+   "quote": "With this order, the Company\u2019s Order book as on date stands around Rs. 816 Crores."
+  },
+  {
+   "date": "2022-01-03",
+   "role": "book_level",
+   "crore": 986.0,
+   "doc": "nse105192955",
+   "type": "Updates",
+   "quote": "With this order, the Company\u2019s Order book as on date stands around Rs. 986 Crores."
+  },
+  {
+   "date": "2022-01-20",
+   "role": "book_level",
+   "crore": 1068.0,
+   "doc": "nse105212680",
+   "type": "Updates",
+   "quote": "With this order, the Company\u2019s Order book as on date stands around Rs. 1068 Crores."
+  },
+  {
+   "date": "2022-05-16",
+   "role": "book_level",
+   "crore": 1148.0,
+   "doc": "nse5030221",
+   "type": "Investor Presentation",
+   "quote": "Third Party 11 3% 64 23% 209 19% 98 13% Exports - Utilities & Power, SEZ) Total 325 100% 276 100% 1,122 100% 727 100% ISO 45001 : 2018 Future Business Orders on Hand - Rs. 1148 Cr as on 31st March, 2022."
+  },
+  {
+   "date": "2022-06-10",
+   "role": "book_level",
+   "crore": 1482.0,
+   "doc": "nse5045035",
+   "type": "Awarding orders/contract",
+   "quote": "With this order, the Company\u2019s Order book as on date stands at Rs. 1482 Crores."
+  },
+  {
+   "date": "2022-08-08",
+   "role": "book_level",
+   "crore": 1377.0,
+   "doc": "nse5072651",
+   "type": "Investor Presentation",
+   "quote": "Third Party 3 1% 11 3% 49 23% 209 19% Exports - Utilities & Power) Total 278 100% 325 100% 213 100% 1,122 100% ISO 45001 : 2018 Future Business Orders on Hand - Rs. 1377 Cr as on 31st July, 2022."
+  },
+  {
+   "date": "2022-10-18",
+   "role": "book_level",
+   "crore": 1521.0,
+   "doc": "nse5105640",
+   "type": "Awarding orders/contract",
+   "quote": "With this order, the Company\u2019s Order book as on date stands at Rs. 1521 Crores."
+  },
+  {
+   "date": "2022-12-29",
+   "role": "book_level",
+   "crore": 1513.0,
+   "doc": "nse105388487",
+   "type": "Updates",
+   "quote": "With this order, the Company\u2019s Order book as on date stands at Rs. 1513 Crores."
+  },
+  {
+   "date": "2023-03-28",
+   "role": "book_level",
+   "crore": 1555.0,
+   "doc": "nse105454916",
+   "type": "Updates",
+   "quote": "With this order, the Company\u2019s Order book as on date stands at Rs. 1555 Crores."
+  },
+  {
+   "date": "2023-04-13",
+   "role": "book_level",
+   "crore": 1691.0,
+   "doc": "nse105468488",
+   "type": "Updates",
+   "quote": "With this order, the Company\u2019s Order book as on date stands at Rs. 1691 Crores."
+  },
+  {
+   "date": "2023-04-17",
+   "role": "book_level",
+   "crore": 1822.0,
+   "doc": "nse105470331",
+   "type": "Updates",
+   "quote": "With this order, the Company\u2019s Order book as on date stands at Rs. 1822 Crores."
+  },
+  {
+   "date": "2023-07-25",
+   "role": "book_level",
+   "crore": 91.0,
+   "doc": "nse105565049",
+   "type": "Updates",
+   "quote": "GETCO has given clearance for initiating inspection for the remaining Jobs against the pending Order of INR 91 Cr in the Current Order Book."
+  },
+  {
+   "date": "2023-07-26",
+   "role": "book_level",
+   "crore": 1955.0,
+   "doc": "nse105565926",
+   "type": "Updates",
+   "quote": "With this order, the Company\u2019s Order book as on date stands at Rs. 1955 Crores."
+  },
+  {
+   "date": "2023-08-16",
+   "role": "book_level",
+   "crore": 2150.0,
+   "doc": "nse105591178",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Chanchal Rajora: In present order book of Rs. 2150 Crores GETCO has only Rs.92 Crores order in it, so it is less than 5%."
+  },
+  {
+   "date": "2023-08-16",
+   "role": "book_level",
+   "crore": 92.0,
+   "doc": "nse105591178",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Chanchal Rajora: In present order book of Rs. 2150 Crores GETCO has only Rs.92 Crores order in it, so it is less than 5%."
+  },
+  {
+   "date": "2023-08-16",
+   "role": "book_level",
+   "crore": 2150.0,
+   "doc": "nse105591178",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "As you see that our order book today is Rs. 2150 Crores that is not small and out of this Rs. 2150 Crores from April 1, 2023 to today it is something like Rs. 600 Crores orders which we have received or we are participat"
+  },
+  {
+   "date": "2023-11-08",
+   "role": "book_level",
+   "crore": 2145.0,
+   "doc": "nse105668935",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Unexecuted order book is to the tune of Rs.2,145 crores with 34% of the orders from central utilities, 11% from state utilities, 40% from industrial customer, 9% from renewables and 6% from export."
+  },
+  {
+   "date": "2023-11-08",
+   "role": "book_level",
+   "crore": 2145.0,
+   "doc": "nse105668935",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Unexecuted order book as on 30 September 2023 is Rs.2,145 crore, a growth of 57% over H1FY23."
+  },
+  {
+   "date": "2023-11-08",
+   "role": "book_level",
+   "crore": 700.0,
+   "doc": "nse105668935",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Chanchal Rajora: If you see in last two quarters, we have received orders worth around Rs.700 crores which is added up into my unexecuted order book., We are around 20% to 25% of the domestic order size and export orders"
+  },
+  {
+   "date": "2023-11-08",
+   "role": "book_level",
+   "crore": 2500.0,
+   "doc": "nse105668935",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Chanchal Rajora: We are basically targeting around Rs. 2,500 crores order book by end of this financial year."
+  },
+  {
+   "date": "2024-01-29",
+   "role": "book_level",
+   "crore": 2572.0,
+   "doc": "nse105737578",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "The company has a customer base spanning over more than 25+ countries. \uf0b7 Unexecuted order book as on 31 December 2023 is Rs.2,572 crore."
+  },
+  {
+   "date": "2024-01-29",
+   "role": "book_level",
+   "crore": 2500.0,
+   "doc": "nse105737578",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So, if I am understanding correctly, we are saying that the current close to \u20b92,500 crores of order book would get split over the next 18 months or so."
+  },
+  {
+   "date": "2024-04-15",
+   "role": "book_level",
+   "crore": 2600.0,
+   "doc": "nse105815709",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "And lastly, with regard to your guidance, you mentioned that your current unexecuted order book of close to Rs.2,600 crores is probably what you would be looking at as your revenue for FY25 and an EBITDA margin of closer"
+  },
+  {
+   "date": "2024-04-15",
+   "role": "book_level",
+   "crore": 2600.0,
+   "doc": "nse105815709",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So, in terms of like, whatever is our order book, say about Rs2,600 crores approximately, out of which, like in terms of transformers, can you bifurcate between say conventional energy and green energy?"
+  },
+  {
+   "date": "2024-04-15",
+   "role": "book_level",
+   "crore": 2600.0,
+   "doc": "nse105815709",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Andyou said that there is Rs.2,600 crores of un-executed order book which will be executed in 15 months\u2019 time period."
+  },
+  {
+   "date": "2024-04-21",
+   "role": "book_level",
+   "crore": 2581.0,
+   "doc": "nseAR_1cb483a797",
+   "type": "Annual Report",
+   "quote": "The Company received the highest ever order inflow during the year of Rs.2,049 crores while the unexecuted order book amounts to Rs.2,581 crores as on 31 March 2023; to be executed over the execution cycle of approximate"
+  },
+  {
+   "date": "2024-05-01",
+   "role": "book_level",
+   "crore": 2581.0,
+   "doc": "nse105831049",
+   "type": "Updates",
+   "quote": "The Company received the highest ever order inflow during the year of \u20b92,049 crores while the unexecuted order book amounts to \u20b92,581 crores as st on 31 March 2023; to be executed over the execution cycle of approximatel"
+  },
+  {
+   "date": "2024-07-27",
+   "role": "book_level",
+   "crore": 2926.0,
+   "doc": "nse105928369",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our unexecuted order book as of 30th June 2024 stands at Rs. 2,926 crores."
+  },
+  {
+   "date": "2024-07-27",
+   "role": "book_level",
+   "crore": 2926.0,
+   "doc": "nse105928369",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "As of June 30th, 2024 our unexecuted order book states Rs. 2,926 crores."
+  },
+  {
+   "date": "2024-10-10",
+   "role": "book_level",
+   "crore": 3500.0,
+   "doc": "nse106018808",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "We are pleased to let you know that we have a total order book of INR3,500 crores as on September 30, 2024, out of which about INR1,700 crores of orders which has flown in in the last quarter."
+  },
+  {
+   "date": "2024-10-10",
+   "role": "book_level",
+   "crore": 3500.0,
+   "doc": "nse106018808",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "As of September 30th, 2024, our unexecuted order books stand to INR3,500 crores which will be executed in next 18 months' time."
+  },
+  {
+   "date": "2024-10-10",
+   "role": "book_level",
+   "crore": 3500.0,
+   "doc": "nse106018808",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "As far as my order book concern is there, the order book of INR3,500 crores which we have in right now, this entire order is going to be served in next 18 months' time."
+  },
+  {
+   "date": "2024-10-10",
+   "role": "book_level",
+   "crore": 3500.0,
+   "doc": "nse106018808",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "And secondly, my second question is when you say that we have am order book of INR3,500 crores in hand, and we have already got INR1,031 crores of new order enclosed."
+  },
+  {
+   "date": "2024-10-10",
+   "role": "book_level",
+   "crore": 1500.0,
+   "doc": "nse106018808",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Chanchal Rajora: That INR1,500 crores order book includes this INR1,000 crores order also."
+  },
+  {
+   "date": "2024-10-10",
+   "role": "book_level",
+   "crore": 1000.0,
+   "doc": "nse106018808",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Chanchal Rajora: That INR1,500 crores order book includes this INR1,000 crores order also."
+  },
+  {
+   "date": "2025-01-16",
+   "role": "book_level",
+   "crore": 3686.0,
+   "doc": "nse106115732",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our unexecuted order book as on December 31, 2024 stands at INR3,686 crores currently."
+  },
+  {
+   "date": "2025-01-16",
+   "role": "book_level",
+   "crore": 631.0,
+   "doc": "nse106115732",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Page 5 of 14 Transformers & Rectifiers India Limited January 08, 2025 Satyen Mamtora: Manish, if you look at our this quarter order book, that stands at INR631 crores."
+  },
+  {
+   "date": "2025-01-16",
+   "role": "book_level",
+   "crore": 3686.0,
+   "doc": "nse106115732",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "And our unexecuted order book for the next 18 to 24 months is INR3,686 crores."
+  },
+  {
+   "date": "2025-01-16",
+   "role": "book_level",
+   "crore": 3600.0,
+   "doc": "nse106115732",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "You can see that I already have a INR3,600 crores order book."
+  },
+  {
+   "date": "2025-01-16",
+   "role": "book_level",
+   "crore": 4000.0,
+   "doc": "nse106115732",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Or how INR4,000 crores of order book will translate into INR3,500 crores of revenue?"
+  },
+  {
+   "date": "2025-01-16",
+   "role": "book_level",
+   "crore": 4000.0,
+   "doc": "nse106115732",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "When we are talking about INR4,000 crores order book, we don't count much of the order from the distribution facility because these are the orders which are the short-time orders."
+  },
+  {
+   "date": "2025-01-16",
+   "role": "book_level",
+   "crore": 4000.0,
+   "doc": "nse106115732",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "When we talk about the INR4,000 crores order book, majority orders is for which is there for 200 plus KV plus transformers."
+  },
+  {
+   "date": "2025-04-15",
+   "role": "book_level",
+   "crore": 5132.0,
+   "doc": "nse106202451",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "This robust inflow has resulted in an unexecuted order book of INR5,132 crores as of March 31, 2025, ensuring clear revenue visibility for the next 15 months to 18 months."
+  },
+  {
+   "date": "2025-04-15",
+   "role": "book_level",
+   "crore": 5132.0,
+   "doc": "nse106202451",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Looking ahead of FY '26, we are entering the year with a robust unexecuted order book of INR5,132 crores and a well-diversified pipeline of inquiries from both domestic and international markets."
+  },
+  {
+   "date": "2025-08-04",
+   "role": "book_level",
+   "crore": 5246.0,
+   "doc": "nse106323735",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "This momentum has translated into unexecuted order book of INR5,246 crores as of June 30, 2025, providing strong revenue visibility for the next 15 to 18 months."
+  },
+  {
+   "date": "2025-08-04",
+   "role": "book_level",
+   "crore": 18000.0,
+   "doc": "nse106323735",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Ashish Soni: INR18,000 crore order book, when do you expect and what percentage are we expecting to convert for next..."
+  },
+  {
+   "date": "2025-08-04",
+   "role": "book_level",
+   "crore": 18000.0,
+   "doc": "nse106323735",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Ashish Soni: You have INR18,000 crore order book, right?"
+  },
+  {
+   "date": "2025-08-04",
+   "role": "book_level",
+   "crore": 5000.0,
+   "doc": "nse106323735",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Ashish Soni: So next year, you'll again start with INR5,000 crore order book, that's what you are saying because if I recollect..."
+  },
+  {
+   "date": "2025-08-04",
+   "role": "book_level",
+   "crore": 8500.0,
+   "doc": "nse106323735",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Ashish Soni: Last quarter, you told I think INR8,500 crores by next year order book wise, if I recollect."
+  },
+  {
+   "date": "2025-08-04",
+   "role": "book_level",
+   "crore": 5246.0,
+   "doc": "nse106323735",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Satyen Mamtora: Rajesh, see, currently, our unexecuted order book is INR5,246 crores -- live inquiries which are in finalization stage in the next 2 quarters."
+  },
+  {
+   "date": "2025-08-04",
+   "role": "book_level",
+   "crore": 5000.0,
+   "doc": "nse106323735",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Page 8 of 12 Transformers and Rectifiers (India) Limited August 01, 2025 And also when we -- the second question is when we look at, let's say, when we are targeting INR5,000 crores of order book and largely, we have sec"
+  },
+  {
+   "date": "2025-08-04",
+   "role": "book_level",
+   "crore": 5000.0,
+   "doc": "nse106323735",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "As far as the INR5,000 crores, INR5,500 crores order book is concerned, please understand I have right now INR18,000 crore plus inquiries and which is every day is building up."
+  },
+  {
+   "date": "2025-08-04",
+   "role": "book_level",
+   "crore": 5500.0,
+   "doc": "nse106323735",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "As far as the INR5,000 crores, INR5,500 crores order book is concerned, please understand I have right now INR18,000 crore plus inquiries and which is every day is building up."
+  },
+  {
+   "date": "2025-11-17",
+   "role": "book_level",
+   "crore": 5472.0,
+   "doc": "nse106447471",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So sir, currently, we have around INR5,472 crores of unexecuted order book."
+  },
+  {
+   "date": "2025-11-17",
+   "role": "book_level",
+   "crore": 5500.0,
+   "doc": "nse106447471",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Viren Deshpande: So on that only, you mentioned that currently, our order book as on 30th September is about INR5,500 crores, 30th September order book?"
+  },
+  {
+   "date": "2025-11-17",
+   "role": "book_level",
+   "crore": 5500.0,
+   "doc": "nse106447471",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So on September and also the order book remains the same, INR5,500 crores."
+  },
+  {
+   "date": "2025-11-17",
+   "role": "book_level",
+   "crore": 4400.0,
+   "doc": "nse106447471",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "I need to see on 30th of June, our order book -- look, the thing it is my order book on -- as on 30th of June, was something around INR4,400 crores."
+  },
+  {
+   "date": "2025-11-17",
+   "role": "book_level",
+   "crore": 8000.0,
+   "doc": "nse106447471",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "And we expect to end the year with an order book outstanding of about INR8,000 crores."
+  },
+  {
+   "date": "2025-11-17",
+   "role": "book_level",
+   "crore": 6000.0,
+   "doc": "nse106447471",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So you -- around INR6,000 crores of order book will be a good target to have order book because that will be about 2 years or 1.5 years."
+  }
+ ],
+ "timeline": [
+  {
+   "date": "2021-01-31",
+   "ttm_revenue": 663.8,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-02-28",
+   "ttm_revenue": 621.4,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-03-31",
+   "ttm_revenue": 621.4,
+   "orders_12m": 0,
+   "book": 1123.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-04-30",
+   "ttm_revenue": 621.4,
+   "orders_12m": 0,
+   "book": 1123.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-05-31",
+   "ttm_revenue": 742.1,
+   "orders_12m": 0,
+   "book": 1121.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-06-30",
+   "ttm_revenue": 742.1,
+   "orders_12m": 0,
+   "book": 966.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-07-31",
+   "ttm_revenue": 742.1,
+   "orders_12m": 0,
+   "book": 966.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-08-31",
+   "ttm_revenue": 844.3,
+   "orders_12m": 0,
+   "book": 1005.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-09-30",
+   "ttm_revenue": 844.3,
+   "orders_12m": 0,
+   "book": 1005.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-10-31",
+   "ttm_revenue": 844.3,
+   "orders_12m": 0,
+   "book": 1005.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-11-30",
+   "ttm_revenue": 936.3,
+   "orders_12m": 0,
+   "book": 1005.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-12-31",
+   "ttm_revenue": 936.3,
+   "orders_12m": 0,
+   "book": 816.0,
+   "book_year_ago": 1123.0
+  },
+  {
+   "date": "2022-01-31",
+   "ttm_revenue": 936.3,
+   "orders_12m": 0,
+   "book": 1068.0,
+   "book_year_ago": 1123.0
+  },
+  {
+   "date": "2022-02-28",
+   "ttm_revenue": 1102.8,
+   "orders_12m": 0,
+   "book": 1068.0,
+   "book_year_ago": 1121.0
+  },
+  {
+   "date": "2022-03-31",
+   "ttm_revenue": 1102.8,
+   "orders_12m": 0,
+   "book": 1068.0,
+   "book_year_ago": 966.0
+  },
+  {
+   "date": "2022-04-30",
+   "ttm_revenue": 1102.8,
+   "orders_12m": 0,
+   "book": 1068.0,
+   "book_year_ago": 966.0
+  },
+  {
+   "date": "2022-05-31",
+   "ttm_revenue": 1158.3,
+   "orders_12m": 0,
+   "book": 1148.0,
+   "book_year_ago": 1005.0
+  },
+  {
+   "date": "2022-06-30",
+   "ttm_revenue": 1158.3,
+   "orders_12m": 0,
+   "book": 1482.0,
+   "book_year_ago": 1005.0
+  },
+  {
+   "date": "2022-07-31",
+   "ttm_revenue": 1158.3,
+   "orders_12m": 0,
+   "book": 1482.0,
+   "book_year_ago": 1005.0
+  },
+  {
+   "date": "2022-08-31",
+   "ttm_revenue": 1223.3,
+   "orders_12m": 186.0,
+   "book": 1377.0,
+   "book_year_ago": 1005.0
+  },
+  {
+   "date": "2022-09-30",
+   "ttm_revenue": 1223.3,
+   "orders_12m": 186.0,
+   "book": 1377.0,
+   "book_year_ago": 986.0
+  },
+  {
+   "date": "2022-10-31",
+   "ttm_revenue": 1223.3,
+   "orders_12m": 186.0,
+   "book": 1521.0,
+   "book_year_ago": 1068.0
+  },
+  {
+   "date": "2022-11-30",
+   "ttm_revenue": 1263.6,
+   "orders_12m": 186.0,
+   "book": 1521.0,
+   "book_year_ago": 1068.0
+  },
+  {
+   "date": "2022-12-31",
+   "ttm_revenue": 1263.6,
+   "orders_12m": 186.0,
+   "book": 1513.0,
+   "book_year_ago": 1068.0
+  },
+  {
+   "date": "2023-01-31",
+   "ttm_revenue": 1263.6,
+   "orders_12m": 186.0,
+   "book": 1513.0,
+   "book_year_ago": 1068.0
+  },
+  {
+   "date": "2023-02-28",
+   "ttm_revenue": 1257.0,
+   "orders_12m": 186.0,
+   "book": 1513.0,
+   "book_year_ago": 1148.0
+  },
+  {
+   "date": "2023-03-31",
+   "ttm_revenue": 1257.0,
+   "orders_12m": 186.0,
+   "book": 1555.0,
+   "book_year_ago": 1482.0
+  },
+  {
+   "date": "2023-04-30",
+   "ttm_revenue": 1257.0,
+   "orders_12m": 186.0,
+   "book": 1822.0,
+   "book_year_ago": 1482.0
+  },
+  {
+   "date": "2023-05-31",
+   "ttm_revenue": 1351.4,
+   "orders_12m": 586.0,
+   "book": 1822.0,
+   "book_year_ago": 1377.0
+  },
+  {
+   "date": "2023-06-30",
+   "ttm_revenue": 1351.4,
+   "orders_12m": 586.0,
+   "book": 1822.0,
+   "book_year_ago": 1377.0
+  },
+  {
+   "date": "2023-07-31",
+   "ttm_revenue": 1351.4,
+   "orders_12m": 586.0,
+   "book": 1955.0,
+   "book_year_ago": 1521.0
+  },
+  {
+   "date": "2023-08-31",
+   "ttm_revenue": 1225.1,
+   "orders_12m": 550.0,
+   "book": 2150.0,
+   "book_year_ago": 1521.0
+  },
+  {
+   "date": "2023-09-30",
+   "ttm_revenue": 1225.1,
+   "orders_12m": 550.0,
+   "book": 2150.0,
+   "book_year_ago": 1513.0
+  },
+  {
+   "date": "2023-10-31",
+   "ttm_revenue": 1225.1,
+   "orders_12m": 550.0,
+   "book": 2150.0,
+   "book_year_ago": 1513.0
+  },
+  {
+   "date": "2023-11-30",
+   "ttm_revenue": 1174.7,
+   "orders_12m": 550.0,
+   "book": 2500.0,
+   "book_year_ago": 1513.0
+  },
+  {
+   "date": "2023-12-31",
+   "ttm_revenue": 1174.7,
+   "orders_12m": 550.0,
+   "book": 2500.0,
+   "book_year_ago": 1555.0
+  },
+  {
+   "date": "2024-01-31",
+   "ttm_revenue": 1215.7,
+   "orders_12m": 550.0,
+   "book": 2500.0,
+   "book_year_ago": 1822.0
+  },
+  {
+   "date": "2024-02-29",
+   "ttm_revenue": 1215.7,
+   "orders_12m": 550.0,
+   "book": 2500.0,
+   "book_year_ago": 1822.0
+  },
+  {
+   "date": "2024-03-31",
+   "ttm_revenue": 1215.7,
+   "orders_12m": 550.0,
+   "book": 2500.0,
+   "book_year_ago": 1822.0
+  },
+  {
+   "date": "2024-04-30",
+   "ttm_revenue": 1294.7,
+   "orders_12m": 3131.0,
+   "book": 2581.0,
+   "book_year_ago": 1955.0
+  },
+  {
+   "date": "2024-05-31",
+   "ttm_revenue": 1294.7,
+   "orders_12m": 3305.0,
+   "book": 2581.0,
+   "book_year_ago": 2150.0
+  },
+  {
+   "date": "2024-06-30",
+   "ttm_revenue": 1294.7,
+   "orders_12m": 3305.0,
+   "book": 2581.0,
+   "book_year_ago": 2150.0
+  },
+  {
+   "date": "2024-07-31",
+   "ttm_revenue": 1461.1,
+   "orders_12m": 3305.0,
+   "book": 2926.0,
+   "book_year_ago": 2150.0
+  },
+  {
+   "date": "2024-08-31",
+   "ttm_revenue": 1461.1,
+   "orders_12m": 3316.0,
+   "book": 2926.0,
+   "book_year_ago": 2500.0
+  },
+  {
+   "date": "2024-09-30",
+   "ttm_revenue": 1461.1,
+   "orders_12m": 3430.0,
+   "book": 2926.0,
+   "book_year_ago": 2500.0
+  },
+  {
+   "date": "2024-10-31",
+   "ttm_revenue": 1665.6,
+   "orders_12m": 6076.4,
+   "book": 1000.0,
+   "book_year_ago": 2500.0
+  },
+  {
+   "date": "2024-11-30",
+   "ttm_revenue": 1665.6,
+   "orders_12m": 6076.4,
+   "book": 1000.0,
+   "book_year_ago": 2500.0
+  },
+  {
+   "date": "2024-12-31",
+   "ttm_revenue": 1665.6,
+   "orders_12m": 6076.4,
+   "book": 1000.0,
+   "book_year_ago": 2500.0
+  },
+  {
+   "date": "2025-01-31",
+   "ttm_revenue": 1855.6,
+   "orders_12m": 6076.4,
+   "book": 4000.0,
+   "book_year_ago": 2581.0
+  },
+  {
+   "date": "2025-02-28",
+   "ttm_revenue": 1855.6,
+   "orders_12m": 6076.4,
+   "book": 4000.0,
+   "book_year_ago": 2581.0
+  },
+  {
+   "date": "2025-03-31",
+   "ttm_revenue": 1855.6,
+   "orders_12m": 6076.4,
+   "book": 4000.0,
+   "book_year_ago": 2581.0
+  },
+  {
+   "date": "2025-04-30",
+   "ttm_revenue": 2019.4,
+   "orders_12m": 12235.4,
+   "book": 5132.0,
+   "book_year_ago": 2926.0
+  },
+  {
+   "date": "2025-05-31",
+   "ttm_revenue": 2019.4,
+   "orders_12m": 11661.4,
+   "book": 5132.0,
+   "book_year_ago": 2926.0
+  },
+  {
+   "date": "2025-06-30",
+   "ttm_revenue": 2019.4,
+   "orders_12m": 11661.4,
+   "book": 5132.0,
+   "book_year_ago": 2926.0
+  },
+  {
+   "date": "2025-07-31",
+   "ttm_revenue": 2019.4,
+   "orders_12m": 11661.4,
+   "book": 5132.0,
+   "book_year_ago": 1000.0
+  },
+  {
+   "date": "2025-08-31",
+   "ttm_revenue": 2226.7,
+   "orders_12m": 12725.4,
+   "book": 5500.0,
+   "book_year_ago": 1000.0
+  },
+  {
+   "date": "2025-09-30",
+   "ttm_revenue": 2226.7,
+   "orders_12m": 12611.4,
+   "book": 5500.0,
+   "book_year_ago": 1000.0
+  },
+  {
+   "date": "2025-10-31",
+   "ttm_revenue": 2226.7,
+   "orders_12m": 9965.0,
+   "book": 5500.0,
+   "book_year_ago": 4000.0
+  },
+  {
+   "date": "2025-11-30",
+   "ttm_revenue": 2225.2,
+   "orders_12m": 15065.0,
+   "book": 6000.0,
+   "book_year_ago": 4000.0
+  },
+  {
+   "date": "2025-12-31",
+   "ttm_revenue": 2225.2,
+   "orders_12m": 15118.3,
+   "book": 6000.0,
+   "book_year_ago": 4000.0
+  }
+ ]
+}

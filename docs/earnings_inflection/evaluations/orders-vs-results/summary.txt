@@ -1,0 +1,26 @@
+313 company-quarters from 21 companies
+Orders announced in the previous 12 months / TTM revenue:
+  0.00-0.00                    n=238  revenue growth next 4Q: median   +16%   profit growth: median   +15%   profit +25%: 79/205 (39%)
+  0.00-0.25                    n= 24  revenue growth next 4Q: median   +27%   profit growth: median   +25%   profit +25%: 11/22 (50%)
+  0.25-0.50                    n=  9  revenue growth next 4Q: median   +26%   profit growth: median   +40%   profit +25%: 6/9 (67%)
+  0.50-1.00                    n= 19  revenue growth next 4Q: median   +29%   profit growth: median   +39%   profit +25%: 8/14 (57%)
+  >= 1.00                      n= 23  revenue growth next 4Q: median   +71%   profit growth: median  +172%   profit +25%: 14/14 (100%)
+Stated order book / TTM revenue:
+  no book stated               n=221  revenue growth next 4Q: median   +16%   profit growth: median   +19%   profit +25%: 78/186 (42%)
+  0.0-1.0                      n= 25  revenue growth next 4Q: median   +24%   profit growth: median   +20%   profit +25%: 9/22 (41%)
+  1.0-2.0                      n= 40  revenue growth next 4Q: median   +15%   profit growth: median   +34%   profit +25%: 20/34 (59%)
+  2.0-3.0                      n= 17  revenue growth next 4Q: median   +21%   profit growth: median    +7%   profit +25%: 3/14 (21%)
+  >= 3.0                       n= 10  revenue growth next 4Q: median  +110%   profit growth: median  +201%   profit +25%: 8/8 (100%)
+  all company-quarters         n=313  revenue growth next 4Q: median   +18%   profit growth: median   +21%   profit +25%: 118/264 (45%)
+
+Per company: strongest order quarter and what followed
+  AFFLE       2021-11-10  orders 12m = 0.17x TTM revenue  -> revenue next 4Q +34%, profit +6%
+  AURIONPRO   2023-01-25  orders 12m = 0.34x TTM revenue  -> revenue next 4Q +37%, profit +40%
+  GENUSPOWER  2024-05-30  orders 12m = 27.99x TTM revenue  -> revenue next 4Q +104%, profit +297%
+  GMMPFAUDLR  2024-05-23  orders 12m = 0.10x TTM revenue  -> revenue next 4Q -11%, profit -17%
+  HGINFRA     2024-02-03  orders 12m = 0.91x TTM revenue  -> revenue next 4Q +4%, profit +6%
+  LUMAXIND    2022-02-11  orders 12m = 0.15x TTM revenue  -> revenue next 4Q +32%, profit +170%
+  OLECTRA     2022-01-29  orders 12m = 1.10x TTM revenue  -> revenue next 4Q +110%, profit +111%
+  SHAKTIPUMP  2024-01-25  orders 12m = 1.12x TTM revenue  -> revenue next 4Q +161%, profit +614%
+  SWSOLAR     2023-07-14  orders 12m = 1.67x TTM revenue  -> revenue next 4Q +160%, profit n/a
+  TARIL       2024-10-08  orders 12m = 0.85x TTM revenue  -> revenue next 4Q +34%, profit +109%
