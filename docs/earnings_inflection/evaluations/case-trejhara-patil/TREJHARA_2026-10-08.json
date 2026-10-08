@@ -1,0 +1,289 @@
+{
+ "ticker": "TREJHARA",
+ "as_of": "2026-10-08",
+ "evidence_status": "EXECUTION_CONFIRMED",
+ "status_rationale": [
+  "note: revenue_guidance unspecified guidance was revised down (not treated as contradiction; see guidance flags)",
+  "EBITDA margin contracted -1058 bps YoY",
+  "6 consecutive quarters of material revenue growth",
+  "revenue_yoy_growth: 682.3 pct"
+ ],
+ "thesis_stage": "none",
+ "thesis_confidence": "low",
+ "thesis_earliest_defensible_at": null,
+ "stale": false,
+ "last_known_status": "",
+ "last_known_as_of": null,
+ "mechanisms": [],
+ "research_detected": "potential catalyst(s); economics or execution support incomplete",
+ "rules_version": "catalyst-rules-6",
+ "investment_review": "not_started",
+ "numeric_signals": [
+  {
+   "signal_id": "profit_step_up:2020-06-30",
+   "kind": "profit_step_up",
+   "period_end": "2020-06-30",
+   "known_at": "2020-09-15T13:54:13+05:30",
+   "scope": "standalone",
+   "values": {
+    "profit_metric": "pat",
+    "profit": 0.61,
+    "profit_year_ago": 0.404,
+    "profit_growth_pct": 51.052,
+    "ebitda_growth_pct": 53.427
+   },
+   "basis": "pat 0.4 -> 0.6 cr (+51%), EBITDA +53%"
+  },
+  {
+   "signal_id": "operating_leverage:2020-09-30",
+   "kind": "operating_leverage",
+   "period_end": "2020-09-30",
+   "known_at": "2020-11-11T15:40:13+05:30",
+   "scope": "standalone",
+   "values": {
+    "ebitda_margin_pct": 22.377,
+    "ebitda_margin_year_ago_pct": 3.0,
+    "revenue_growth_pct": 48.94
+   },
+   "basis": "EBITDA margin 3.0% -> 22.4% with revenue +49%"
+  },
+  {
+   "signal_id": "revenue_acceleration:2020-12-31",
+   "kind": "revenue_acceleration",
+   "period_end": "2020-12-31",
+   "known_at": "2021-02-10T13:20:10+05:30",
+   "scope": "consolidated",
+   "values": {
+    "revenue_growth_pct": 20.669,
+    "prior_median_growth_pct": -23.393
+   },
+   "basis": "revenue +21% YoY vs a median of -23% over the previous four quarters"
+  },
+  {
+   "signal_id": "finance_cost_relief:2020-12-31",
+   "kind": "finance_cost_relief",
+   "period_end": "2020-12-31",
+   "known_at": "2021-02-10T13:20:10+05:30",
+   "scope": "consolidated",
+   "values": {
+    "finance_cost": 0.564,
+    "finance_cost_year_ago": 1.483,
+    "share_of_ebitda_year_ago": 0.442
+   },
+   "basis": "finance cost 1.5 -> 0.6 cr (44% of EBITDA a year earlier)"
+  },
+  {
+   "signal_id": "profit_step_up:2021-03-31",
+   "kind": "profit_step_up",
+   "period_end": "2021-03-31",
+   "known_at": "2021-06-18T14:22:29+05:30",
+   "scope": "standalone",
+   "values": {
+    "profit_metric": "pat",
+    "profit": 1.129,
+    "profit_year_ago": -0.155,
+    "turnaround": true,
+    "ebitda": 1.683,
+    "ebitda_year_ago": -0.549
+   },
+   "basis": "pat turned from -0.2 to 1.1 cr with EBITDA -0.5 -> 1.7 cr"
+  },
+  {
+   "signal_id": "revenue_acceleration:2021-06-30",
+   "kind": "revenue_acceleration",
+   "period_end": "2021-06-30",
+   "known_at": "2021-07-30T13:17:56+05:30",
+   "scope": "standalone",
+   "values": {
+    "revenue_growth_pct": 30.789,
+    "prior_median_growth_pct": 3.278
+   },
+   "basis": "revenue +31% YoY vs a median of +3% over the previous four quarters"
+  },
+  {
+   "signal_id": "operating_leverage:2021-06-30",
+   "kind": "operating_leverage",
+   "period_end": "2021-06-30",
+   "known_at": "2021-07-30T13:17:56+05:30",
+   "scope": "standalone",
+   "values": {
+    "ebitda_margin_pct": 20.329,
+    "ebitda_margin_year_ago_pct": 15.039,
+    "revenue_growth_pct": 30.789
+   },
+   "basis": "EBITDA margin 15.0% -> 20.3% with revenue +31%"
+  },
+  {
+   "signal_id": "profit_step_up:2021-06-30",
+   "kind": "profit_step_up",
+   "period_end": "2021-06-30",
+   "known_at": "2021-07-30T13:17:56+05:30",
+   "scope": "standalone",
+   "values": {
+    "profit_metric": "pat",
+    "profit": 1.452,
+    "profit_year_ago": 0.61,
+    "profit_growth_pct": 137.959,
+    "ebitda_growth_pct": 76.799
+   },
+   "basis": "pat 0.6 -> 1.5 cr (+138%), EBITDA +77%"
+  },
+  {
+   "signal_id": "finance_cost_relief:2021-12-31",
+   "kind": "finance_cost_relief",
+   "period_end": "2021-12-31",
+   "known_at": "2022-02-08T14:13:57+05:30",
+   "scope": "consolidated",
+   "values": {
+    "finance_cost": 0.257,
+    "finance_cost_year_ago": 0.564,
+    "share_of_ebitda_year_ago": 0.116
+   },
+   "basis": "finance cost 0.6 -> 0.3 cr (12% of EBITDA a year earlier)"
+  },
+  {
+   "signal_id": "revenue_acceleration:2022-06-30",
+   "kind": "revenue_acceleration",
+   "period_end": "2022-06-30",
+   "known_at": "2022-08-09T13:53:00+05:30",
+   "scope": "consolidated",
+   "values": {
+    "revenue_growth_pct": 26.2,
+    "prior_median_growth_pct": 6.189
+   },
+   "basis": "revenue +26% YoY vs a median of +6% over the previous four quarters"
+  },
+  {
+   "signal_id": "finance_cost_relief:2022-06-30",
+   "kind": "finance_cost_relief",
+   "period_end": "2022-06-30",
+   "known_at": "2022-08-09T13:53:00+05:30",
+   "scope": "consolidated",
+   "values": {
+    "finance_cost": 0.275,
+    "finance_cost_year_ago": 0.378,
+    "share_of_ebitda_year_ago": 0.103
+   },
+   "basis": "finance cost 0.4 -> 0.3 cr (10% of EBITDA a year earlier)"
+  },
+  {
+   "signal_id": "revenue_acceleration:2022-09-30",
+   "kind": "revenue_acceleration",
+   "period_end": "2022-09-30",
+   "known_at": "2022-11-12T16:17:10+05:30",
+   "scope": "consolidated",
+   "values": {
+    "revenue_growth_pct": 26.247,
+    "prior_median_growth_pct": 6.189
+   },
+   "basis": "revenue +26% YoY vs a median of +6% over the previous four quarters"
+  },
+  {
+   "signal_id": "finance_cost_relief:2024-03-31",
+   "kind": "finance_cost_relief",
+   "period_end": "2024-03-31",
+   "known_at": "2024-05-23T19:27:31+05:30",
+   "scope": "consolidated",
+   "values": {
+    "finance_cost": 0.024,
+    "finance_cost_year_ago": 1.54,
+    "share_of_ebitda_year_ago": 2.429
+   },
+   "basis": "finance cost 1.5 -> 0.0 cr (243% of EBITDA a year earlier)"
+  },
+  {
+   "signal_id": "revenue_acceleration:2025-09-30",
+   "kind": "revenue_acceleration",
+   "period_end": "2025-09-30",
+   "known_at": "2025-11-15T00:08:50+05:30",
+   "scope": "consolidated",
+   "values": {
+    "revenue_growth_pct": 434.882,
+    "prior_median_growth_pct": 24.099
+   },
+   "basis": "revenue +435% YoY vs a median of +24% over the previous four quarters"
+  },
+  {
+   "signal_id": "revenue_acceleration:2025-12-31",
+   "kind": "revenue_acceleration",
+   "period_end": "2025-12-31",
+   "known_at": "2026-02-13T18:00:54+05:30",
+   "scope": "consolidated",
+   "values": {
+    "revenue_growth_pct": 426.384,
+    "prior_median_growth_pct": 45.77
+   },
+   "basis": "revenue +426% YoY vs a median of +46% over the previous four quarters"
+  },
+  {
+   "signal_id": "revenue_acceleration:2026-03-31",
+   "kind": "revenue_acceleration",
+   "period_end": "2026-03-31",
+   "known_at": "2026-05-21T16:34:07+05:30",
+   "scope": "consolidated",
+   "values": {
+    "revenue_growth_pct": 338.114,
+    "prior_median_growth_pct": 237.474
+   },
+   "basis": "revenue +338% YoY vs a median of +237% over the previous four quarters"
+  },
+  {
+   "signal_id": "revenue_acceleration:2026-06-30",
+   "kind": "revenue_acceleration",
+   "period_end": "2026-06-30",
+   "known_at": "2026-08-04T18:50:15+05:30",
+   "scope": "consolidated",
+   "values": {
+    "revenue_growth_pct": 682.255,
+    "prior_median_growth_pct": 382.249
+   },
+   "basis": "revenue +682% YoY vs a median of +382% over the previous four quarters"
+  }
+ ],
+ "catalysts": [
+  {
+   "catalyst_id": "5a171a7c0075",
+   "kind": "customer_approval",
+   "stage": "potential_catalyst",
+   "first_public_at": "2026-06-16T14:11:05+05:30",
+   "operating_change": "customer approval / qualification (2026-06-16)",
+   "demand_basis": "",
+   "confidence": "low",
+   "confirmation_blocked": "",
+   "contribution": "potentially_material_unresolved",
+   "base_crore": null,
+   "share_of_ttm_ebitda": null,
+   "window": [
+    "2026-06-16",
+    "2027-03-16"
+   ],
+   "milestones": [
+    {
+     "question": "Do first orders from the approving customer follow?",
+     "status": "pending",
+     "observed": "",
+     "observed_at": null,
+     "timetable": "",
+     "original_status": null
+    }
+   ],
+   "stage_reasons": [
+    "announced change; support incomplete (demand: unknown; revenue_conversion: unknown; cash_requirements: unknown; magnitude: potentially material unresolved)",
+    "waiting: Do first orders from the approving customer follow?"
+   ],
+   "initial_stage": "potential_catalyst",
+   "materiality_supported_at": null,
+   "execution_supported_at": null,
+   "supported_at": null,
+   "validating_at": null,
+   "confirmed_at": null,
+   "upgrades": [],
+   "stage_history": [
+    [
+     "2026-06-16T14:11:05+05:30",
+     "potential_catalyst"
+    ]
+   ]
+  }
+ ]
+}
