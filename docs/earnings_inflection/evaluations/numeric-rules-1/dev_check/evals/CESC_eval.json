@@ -1,0 +1,148 @@
+{
+ "symbol": "CESC",
+ "rules_version": "catalyst-rules-6",
+ "fingerprint": "76b4dd78c36b9506",
+ "coverage": {
+  "symbol": "CESC",
+  "announcements": 503,
+  "kept": 232,
+  "downloaded": 230,
+  "with_text": 232,
+  "download_failed": 2,
+  "skipped_no_text": 1,
+  "annual_reports": 3,
+  "annual_report_date_from_filename": 2,
+  "by_year": {
+   "2021": 30,
+   "2022": 36,
+   "2023": 31,
+   "2024": 70,
+   "2025": 65
+  },
+  "cadence": "Q",
+  "scope": "consolidated",
+  "periods_parsed": 26,
+  "first_period": "2019-06-30",
+  "last_period": "2025-09-30",
+  "credit_rating_filings": 0,
+  "snapshot_errors": []
+ },
+ "catalysts_total": 1,
+ "catalysts_by_kind": {
+  "financing_cost": 1
+ },
+ "alerts": [],
+ "false_alerts": [],
+ "unresolved_alerts": [],
+ "prefix_defects": [],
+ "vanished_catalysts": [],
+ "inflections": [],
+ "numeric": {
+  "rules_version": "numeric-rules-1",
+  "thresholds": {
+   "min_year_ago_revenue_cr": 5.0,
+   "rev_growth_min_pct": 20.0,
+   "rev_accel_pp": 10.0,
+   "lev_margin_gain_pp": 3.0,
+   "lev_rev_growth_min_pct": 10.0,
+   "profit_growth_min_pct": 50.0,
+   "profit_ebitda_growth_min_pct": 25.0,
+   "fin_cost_drop_pct": 25.0,
+   "fin_cost_min_share_of_ebitda": 0.1,
+   "exceptional_max_share_of_pbt": 0.25,
+   "other_income_max_share_of_pbt": 0.5,
+   "max_quarter_age_days": 200,
+   "depressed_base_drop": 0.2
+  },
+  "signals": [
+   {
+    "signal_id": "revenue_acceleration:2022-06-30",
+    "kind": "revenue_acceleration",
+    "period_end": "2022-06-30",
+    "known_at": "2022-08-10T17:06:42+05:30",
+    "scope": "unknown",
+    "values": {
+     "revenue_growth_pct": 27.55,
+     "prior_median_growth_pct": 16.856
+    },
+    "basis": "revenue +28% YoY vs a median of +17% over the previous four quarters"
+   },
+   {
+    "signal_id": "operating_leverage:2025-03-31",
+    "kind": "operating_leverage",
+    "period_end": "2025-03-31",
+    "known_at": "2025-05-15T13:30:37+05:30",
+    "scope": "unknown",
+    "values": {
+     "ebitda_margin_pct": 20.944,
+     "ebitda_margin_year_ago_pct": -70.728,
+     "revenue_growth_pct": 113.727
+    },
+    "basis": "EBITDA margin -70.7% -> 20.9% with revenue +114%"
+   }
+  ],
+  "episodes": [
+   {
+    "quarters": [
+     "2022-06-30"
+    ],
+    "first_known_at": "2022-08-10",
+    "kinds": [
+     "revenue_acceleration"
+    ],
+    "outcome": "not_delivered",
+    "ttm_profit": [
+     1374.0,
+     1344.0,
+     1334.0,
+     1343.0,
+     1404.0
+    ]
+   },
+   {
+    "quarters": [
+     "2025-03-31"
+    ],
+    "first_known_at": "2025-05-15",
+    "kinds": [
+     "operating_leverage"
+    ],
+    "outcome": "open",
+    "ttm_profit": [
+     1369.0,
+     1378.0,
+     1516.0
+    ]
+   }
+  ],
+  "prefix_defects": [],
+  "vanished": [],
+  "base_rate": {
+   "quarters": 19,
+   "followed_by_25pct": 0
+  },
+  "signals_per_year": 0.42,
+  "episodes_per_year": 0.42
+ },
+ "series_scope": "consolidated",
+ "xbrl": {},
+ "workload": {
+  "alerts_per_year": 0.0,
+  "snapshots_in_flag_lane": 0,
+  "snapshots": 20,
+  "documents": 232
+ },
+ "timeline": {
+  "first_defensible_catalyst": null,
+  "first_any_catalyst": "2024-07-27",
+  "supported": 0,
+  "confirmed": 0,
+  "false_positives": 0,
+  "delayed": 0,
+  "executed_unconfirmable": 0,
+  "data_unavailable": 0,
+  "potential_only": 1,
+  "days_to_confirmed": [],
+  "rules_version": "catalyst-rules-6"
+ }
+}

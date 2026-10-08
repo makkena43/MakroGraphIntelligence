@@ -1,0 +1,82 @@
+{
+ "symbol": "WAAREEENER",
+ "rules_version": "catalyst-rules-6",
+ "fingerprint": "76b4dd78c36b9506",
+ "coverage": {
+  "symbol": "WAAREEENER",
+  "announcements": 255,
+  "kept": 201,
+  "downloaded": 196,
+  "with_text": 197,
+  "download_failed": 5,
+  "annual_reports": 1,
+  "by_year": {
+   "2024": 23,
+   "2025": 174
+  },
+  "cadence": "Q",
+  "scope": "consolidated",
+  "periods_parsed": 7,
+  "first_period": "2024-03-31",
+  "last_period": "2025-09-30",
+  "credit_rating_filings": 2,
+  "snapshot_errors": []
+ },
+ "catalysts_total": 0,
+ "catalysts_by_kind": {},
+ "alerts": [],
+ "false_alerts": [],
+ "unresolved_alerts": [],
+ "prefix_defects": [],
+ "vanished_catalysts": [],
+ "inflections": [],
+ "numeric": {
+  "rules_version": "numeric-rules-1",
+  "thresholds": {
+   "min_year_ago_revenue_cr": 5.0,
+   "rev_growth_min_pct": 20.0,
+   "rev_accel_pp": 10.0,
+   "lev_margin_gain_pp": 3.0,
+   "lev_rev_growth_min_pct": 10.0,
+   "profit_growth_min_pct": 50.0,
+   "profit_ebitda_growth_min_pct": 25.0,
+   "fin_cost_drop_pct": 25.0,
+   "fin_cost_min_share_of_ebitda": 0.1,
+   "exceptional_max_share_of_pbt": 0.25,
+   "other_income_max_share_of_pbt": 0.5,
+   "max_quarter_age_days": 200,
+   "depressed_base_drop": 0.2
+  },
+  "signals": [],
+  "episodes": [],
+  "prefix_defects": [],
+  "vanished": [],
+  "base_rate": {
+   "quarters": 0,
+   "followed_by_25pct": 0
+  },
+  "signals_per_year": 0.0,
+  "episodes_per_year": 0.0
+ },
+ "series_scope": "consolidated",
+ "xbrl": {},
+ "workload": {
+  "alerts_per_year": 0.0,
+  "snapshots_in_flag_lane": 0,
+  "snapshots": 20,
+  "documents": 197
+ },
+ "timeline": {
+  "first_defensible_catalyst": null,
+  "first_any_catalyst": null,
+  "supported": 0,
+  "confirmed": 0,
+  "false_positives": 0,
+  "delayed": 0,
+  "executed_unconfirmable": 0,
+  "data_unavailable": 0,
+  "potential_only": 0,
+  "days_to_confirmed": [],
+  "rules_version": "catalyst-rules-6"
+ }
+}
