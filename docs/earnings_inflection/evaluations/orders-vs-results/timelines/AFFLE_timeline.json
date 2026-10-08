@@ -1,0 +1,623 @@
+{
+ "symbol": "AFFLE",
+ "scope": "standalone",
+ "quarters": 26,
+ "inflections": [
+  {
+   "quarter": "2022-03-31",
+   "published": "2022-05-14",
+   "ttm_profit_year_ago": 28.2,
+   "ttm_profit": 56.5,
+   "document_signal": null,
+   "lead_days": null
+  },
+  {
+   "quarter": "2025-03-31",
+   "published": "2025-05-10",
+   "ttm_profit_year_ago": 76.0,
+   "ttm_profit": 115.5,
+   "document_signal": null,
+   "lead_days": null
+  }
+ ],
+ "document_signals": [],
+ "ttm_path": [
+  [
+   "2019-09-30",
+   null,
+   null,
+   "2019-11-09"
+  ],
+  [
+   "2019-12-31",
+   null,
+   null,
+   "2020-02-04"
+  ],
+  [
+   "2020-03-31",
+   null,
+   null,
+   "2020-05-30"
+  ],
+  [
+   "2020-06-30",
+   320.6,
+   56.3,
+   "2020-08-08"
+  ],
+  [
+   "2020-09-30",
+   344.0,
+   54.8,
+   "2020-11-07"
+  ],
+  [
+   "2020-12-31",
+   369.3,
+   50.4,
+   "2021-02-06"
+  ],
+  [
+   "2021-03-31",
+   265.5,
+   28.2,
+   "2021-05-31"
+  ],
+  [
+   "2021-06-30",
+   305.1,
+   39.6,
+   "2021-08-07"
+  ],
+  [
+   "2021-09-30",
+   328.4,
+   48.1,
+   "2021-11-10"
+  ],
+  [
+   "2021-12-31",
+   361.3,
+   53.9,
+   "2022-02-05"
+  ],
+  [
+   "2022-03-31",
+   397.5,
+   56.5,
+   "2022-05-14"
+  ],
+  [
+   "2022-06-30",
+   420.8,
+   51.9,
+   "2022-08-06"
+  ],
+  [
+   "2022-09-30",
+   440.7,
+   50.9,
+   "2022-11-07"
+  ],
+  [
+   "2022-12-31",
+   466.7,
+   59.9,
+   "2023-02-04"
+  ],
+  [
+   "2023-03-31",
+   494.8,
+   66.9,
+   "2023-05-13"
+  ],
+  [
+   "2023-06-30",
+   526.8,
+   72.2,
+   "2023-08-05"
+  ],
+  [
+   "2023-09-30",
+   544.7,
+   75.5,
+   "2023-11-05"
+  ],
+  [
+   "2023-12-31",
+   546.8,
+   72.6,
+   "2024-02-03"
+  ],
+  [
+   "2024-03-31",
+   566.0,
+   76.0,
+   "2024-05-24"
+  ],
+  [
+   "2024-06-30",
+   592.0,
+   88.5,
+   "2024-08-03"
+  ],
+  [
+   "2024-09-30",
+   634.3,
+   97.6,
+   "2024-11-09"
+  ],
+  [
+   "2024-12-31",
+   682.6,
+   108.4,
+   "2025-02-08"
+  ],
+  [
+   "2025-03-31",
+   714.4,
+   115.5,
+   "2025-05-10"
+  ],
+  [
+   "2025-06-30",
+   750.2,
+   117.0,
+   "2025-07-26"
+  ],
+  [
+   "2025-09-30",
+   793.9,
+   119.8,
+   "2025-11-01"
+  ],
+  [
+   "2025-12-31",
+   832.5,
+   127.2,
+   "2026-01-31"
+  ]
+ ],
+ "orders": [
+  {
+   "date": "2021-08-28",
+   "role": "order_value",
+   "crore": 54.6,
+   "doc": "nse105053207",
+   "type": "Updates",
+   "quote": "The total amount of revenue from contracts with these customers for the year ended March 31, 2021 was INR 546.10 million The fair value of unquoted instruments is estimated by discounting future cash flows using rates cu"
+  },
+  {
+   "date": "2021-12-17",
+   "role": "order_value",
+   "crore": 54.6,
+   "doc": "nseAR_27d93c4b05",
+   "type": "Annual Report",
+   "quote": "The total amount of revenue from contracts with these customers for the year ended March 31, 2021 was INR 546.10 million The fair value of unquoted instruments is estimated by discounting future cash flows using rates cu"
+  }
+ ],
+ "books": [],
+ "timeline": [
+  {
+   "date": "2021-01-31",
+   "ttm_revenue": 344.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-02-28",
+   "ttm_revenue": 369.3,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-03-31",
+   "ttm_revenue": 369.3,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-04-30",
+   "ttm_revenue": 369.3,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-05-31",
+   "ttm_revenue": 265.5,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-06-30",
+   "ttm_revenue": 265.5,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-07-31",
+   "ttm_revenue": 265.5,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-08-31",
+   "ttm_revenue": 305.1,
+   "orders_12m": 54.6,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-09-30",
+   "ttm_revenue": 305.1,
+   "orders_12m": 54.6,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-10-31",
+   "ttm_revenue": 305.1,
+   "orders_12m": 54.6,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-11-30",
+   "ttm_revenue": 328.4,
+   "orders_12m": 54.6,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-12-31",
+   "ttm_revenue": 328.4,
+   "orders_12m": 109.2,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-01-31",
+   "ttm_revenue": 328.4,
+   "orders_12m": 109.2,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-02-28",
+   "ttm_revenue": 361.3,
+   "orders_12m": 109.2,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-03-31",
+   "ttm_revenue": 361.3,
+   "orders_12m": 109.2,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-04-30",
+   "ttm_revenue": 361.3,
+   "orders_12m": 109.2,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-05-31",
+   "ttm_revenue": 397.5,
+   "orders_12m": 109.2,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-06-30",
+   "ttm_revenue": 397.5,
+   "orders_12m": 109.2,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-07-31",
+   "ttm_revenue": 397.5,
+   "orders_12m": 109.2,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-08-31",
+   "ttm_revenue": 420.8,
+   "orders_12m": 54.6,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-09-30",
+   "ttm_revenue": 420.8,
+   "orders_12m": 54.6,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-10-31",
+   "ttm_revenue": 420.8,
+   "orders_12m": 54.6,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-11-30",
+   "ttm_revenue": 440.7,
+   "orders_12m": 54.6,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2022-12-31",
+   "ttm_revenue": 440.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-01-31",
+   "ttm_revenue": 440.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-02-28",
+   "ttm_revenue": 466.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-03-31",
+   "ttm_revenue": 466.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-04-30",
+   "ttm_revenue": 466.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-05-31",
+   "ttm_revenue": 494.8,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-06-30",
+   "ttm_revenue": 494.8,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-07-31",
+   "ttm_revenue": 494.8,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-08-31",
+   "ttm_revenue": 526.8,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-09-30",
+   "ttm_revenue": 526.8,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-10-31",
+   "ttm_revenue": 526.8,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-11-30",
+   "ttm_revenue": 544.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2023-12-31",
+   "ttm_revenue": 544.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-01-31",
+   "ttm_revenue": 544.7,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-02-29",
+   "ttm_revenue": 546.8,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-03-31",
+   "ttm_revenue": 546.8,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-04-30",
+   "ttm_revenue": 546.8,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-05-31",
+   "ttm_revenue": 566.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-06-30",
+   "ttm_revenue": 566.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-07-31",
+   "ttm_revenue": 566.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-08-31",
+   "ttm_revenue": 592.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-09-30",
+   "ttm_revenue": 592.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-10-31",
+   "ttm_revenue": 592.0,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-11-30",
+   "ttm_revenue": 634.3,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2024-12-31",
+   "ttm_revenue": 634.3,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-01-31",
+   "ttm_revenue": 634.3,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-02-28",
+   "ttm_revenue": 682.6,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-03-31",
+   "ttm_revenue": 682.6,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-04-30",
+   "ttm_revenue": 682.6,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-05-31",
+   "ttm_revenue": 714.4,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-06-30",
+   "ttm_revenue": 714.4,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-07-31",
+   "ttm_revenue": 750.2,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-08-31",
+   "ttm_revenue": 750.2,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-09-30",
+   "ttm_revenue": 750.2,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-10-31",
+   "ttm_revenue": 750.2,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-11-30",
+   "ttm_revenue": 793.9,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  },
+  {
+   "date": "2025-12-31",
+   "ttm_revenue": 793.9,
+   "orders_12m": 0,
+   "book": null,
+   "book_year_ago": null
+  }
+ ]
+}

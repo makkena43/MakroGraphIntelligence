@@ -1,0 +1,1297 @@
+{
+ "symbol": "GMMPFAUDLR",
+ "scope": "standalone",
+ "quarters": 28,
+ "inflections": [
+  {
+   "quarter": "2021-03-31",
+   "published": "2021-05-31",
+   "ttm_profit_year_ago": 62.1,
+   "ttm_profit": 95.1,
+   "document_signal": null,
+   "lead_days": null
+  }
+ ],
+ "document_signals": [
+  {
+   "date": "2022-02-28",
+   "why": [
+    "order book 3,500 cr = 4.5x TTM revenue, up from 322"
+   ]
+  },
+  {
+   "date": "2023-11-30",
+   "why": [
+    "order book 2,000 cr = 1.8x TTM revenue, up from 30"
+   ]
+  }
+ ],
+ "ttm_path": [
+  [
+   "2019-03-31",
+   null,
+   null,
+   "2019-05-31"
+  ],
+  [
+   "2019-06-30",
+   null,
+   null,
+   "2019-08-13"
+  ],
+  [
+   "2019-09-30",
+   null,
+   null,
+   "2019-11-08"
+  ],
+  [
+   "2019-12-31",
+   523.7,
+   62.9,
+   "2020-01-24"
+  ],
+  [
+   "2020-03-31",
+   516.4,
+   62.1,
+   "2020-05-24"
+  ],
+  [
+   "2020-06-30",
+   517.0,
+   63.8,
+   "2020-07-30"
+  ],
+  [
+   "2020-09-30",
+   535.0,
+   70.9,
+   "2020-10-22"
+  ],
+  [
+   "2020-12-31",
+   564.2,
+   73.6,
+   "2021-01-21"
+  ],
+  [
+   "2021-03-31",
+   640.8,
+   95.1,
+   "2021-05-31"
+  ],
+  [
+   "2021-06-30",
+   681.3,
+   104.6,
+   "2021-08-13"
+  ],
+  [
+   "2021-09-30",
+   733.1,
+   108.8,
+   "2021-10-29"
+  ],
+  [
+   "2021-12-31",
+   776.3,
+   106.1,
+   "2022-02-04"
+  ],
+  [
+   "2022-03-31",
+   814.8,
+   95.0,
+   "2022-05-26"
+  ],
+  [
+   "2022-06-30",
+   892.5,
+   90.0,
+   "2022-07-29"
+  ],
+  [
+   "2022-09-30",
+   942.6,
+   82.1,
+   "2022-11-04"
+  ],
+  [
+   "2022-12-31",
+   1010.3,
+   85.0,
+   "2023-02-03"
+  ],
+  [
+   "2023-03-31",
+   1074.8,
+   98.9,
+   "2023-05-26"
+  ],
+  [
+   "2023-06-30",
+   1105.9,
+   94.9,
+   "2023-08-11"
+  ],
+  [
+   "2023-09-30",
+   1116.1,
+   89.4,
+   "2023-11-11"
+  ],
+  [
+   "2023-12-31",
+   1099.1,
+   77.7,
+   "2024-02-02"
+  ],
+  [
+   "2024-03-31",
+   1030.6,
+   51.0,
+   "2024-05-23"
+  ],
+  [
+   "2024-06-30",
+   973.5,
+   41.7,
+   "2024-08-14"
+  ],
+  [
+   "2024-09-30",
+   915.3,
+   33.8,
+   "2024-11-08"
+  ],
+  [
+   "2024-12-31",
+   893.4,
+   34.7,
+   "2025-02-07"
+  ],
+  [
+   "2025-03-31",
+   921.1,
+   42.2,
+   "2025-05-22"
+  ],
+  [
+   "2025-06-30",
+   929.2,
+   51.4,
+   "2025-08-07"
+  ],
+  [
+   "2025-09-30",
+   992.9,
+   63.9,
+   "2025-11-06"
+  ],
+  [
+   "2025-12-31",
+   997.6,
+   58.0,
+   "2026-02-06"
+  ]
+ ],
+ "orders": [
+  {
+   "date": "2021-06-01",
+   "role": "order_value",
+   "crore": 50.0,
+   "doc": "nse104931339",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "We recently received about Rs. 50 crores of business from one of the big EPC players here, so that puts us in a very strong position for heavy engineering, and we will be manufacturing this entire large order at the Vatv"
+  },
+  {
+   "date": "2021-08-17",
+   "role": "order_value",
+   "crore": 100.0,
+   "doc": "nse105039633",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Like I had mentioned to you we got a large order from L&T close to more than Rs. 100 crores worth of heavy engineering business from L&T for the oil and gas and the petrochemical segment, so that puts us in a very good p"
+  },
+  {
+   "date": "2023-06-02",
+   "role": "order_value",
+   "crore": 100.0,
+   "doc": "nse105522373",
+   "type": "Updates",
+   "quote": "We had some struggles there with higher input costs, materials rising and some of the large orders that we have, INR 100 crores worth of orders that we receive from one single vendor, were not lucrative in terms of margi"
+  },
+  {
+   "date": "2025-05-21",
+   "role": "order_value",
+   "crore": 19.6,
+   "doc": "nse106241731",
+   "type": "Investor Presentation",
+   "quote": "Standalone Results Standalone \u2013 FY25 Figures in \u20b9 crores REVENUE EBITDA -11% -6% 921 1031 130 139 14.1% 13.5% FY25 FY24 FY25* FY24 PROFIT AFTER TAX ORDER INTAKE 11% 7% 57 51 1,010 945 6.2% 5.0% FY25* FY24 FY25 FY24 i. *E"
+  },
+  {
+   "date": "2025-05-21",
+   "role": "order_value",
+   "crore": 14.7,
+   "doc": "nse106241731",
+   "type": "Investor Presentation",
+   "quote": "Standalone Results Standalone \u2013 FY25 Figures in \u20b9 crores REVENUE EBITDA -11% -6% 921 1031 130 139 14.1% 13.5% FY25 FY24 FY25* FY24 PROFIT AFTER TAX ORDER INTAKE 11% 7% 57 51 1,010 945 6.2% 5.0% FY25* FY24 FY25 FY24 i. *E"
+  },
+  {
+   "date": "2025-06-19",
+   "role": "order_value",
+   "crore": 330.0,
+   "doc": "nse106273258",
+   "type": "Bagging/Receiving of orders/contracts",
+   "quote": "The value of the contract is EUR 33.2 million (approximately INR 330 crores)."
+  }
+ ],
+ "books": [
+  {
+   "date": "2021-01-27",
+   "role": "book_level",
+   "crore": 512.0,
+   "doc": "nse104735794",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Page 12 of 20 GMM Pfaudler Limited January 20, 2021 Rahul Jain: Sir, Good Evening, thank you for the opportunity, can you give segment wise breakup of the current order book of INR 512 crores?"
+  },
+  {
+   "date": "2021-01-27",
+   "role": "book_level",
+   "crore": 500.0,
+   "doc": "nse104735794",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Kunjan Gupta: Good Evening Sir, first of all I would like to congratulate you for great numbers, my question is like you said the order book is currently at around INR 500 crores, right?"
+  },
+  {
+   "date": "2021-06-01",
+   "role": "book_level",
+   "crore": 322.0,
+   "doc": "nse104931339",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "As far as the opening backlog goes, on April 1, 2021, we had an opening backlog of about Rs. 415 crores versus the same time last year about Rs. 322 crores, which is about 30% higher, and give us greater visibility for t"
+  },
+  {
+   "date": "2021-08-17",
+   "role": "book_level",
+   "crore": 500.0,
+   "doc": "nse105039633",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So, we have about Rs. 500 crores of backlog currently on our books here in India."
+  },
+  {
+   "date": "2021-11-03",
+   "role": "book_level",
+   "crore": 1800.0,
+   "doc": "nse105131954",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "The c current order backlog stands at about Rs 1800 crores, like I mentioned gives us good visibility into the next few quarters."
+  },
+  {
+   "date": "2021-11-03",
+   "role": "book_level",
+   "crore": 1483.0,
+   "doc": "nse105131954",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Optically looks like that we have invested a lot and the inventory has risen but if we see in the light of the backlog increase, three lines later from Rs 1483 crores to Rs 1813 crores, we had to increase our inventory t"
+  },
+  {
+   "date": "2021-11-03",
+   "role": "book_level",
+   "crore": 1813.0,
+   "doc": "nse105131954",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Optically looks like that we have invested a lot and the inventory has risen but if we see in the light of the backlog increase, three lines later from Rs 1483 crores to Rs 1813 crores, we had to increase our inventory t"
+  },
+  {
+   "date": "2021-11-03",
+   "role": "book_level",
+   "crore": 200.0,
+   "doc": "nse105131954",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Like I've mentioned to you the HE backlog as it stands currently is about Rs 200 crores of HE backlog already on our books."
+  },
+  {
+   "date": "2022-02-10",
+   "role": "book_level",
+   "crore": 1589.0,
+   "doc": "nse105235901",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "The backlog of international business is currently at an all-time high at Rs.1,589 crores, which is around 53% higher than the previous year."
+  },
+  {
+   "date": "2022-02-10",
+   "role": "book_level",
+   "crore": 568.0,
+   "doc": "nse105235901",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "The backlog of India business currently also at an all-time high of Rs.568 crores, which is around 46% higher than the previous year."
+  },
+  {
+   "date": "2022-02-10",
+   "role": "book_level",
+   "crore": 2067.0,
+   "doc": "nse105235901",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Ravi Naredi: My point is this order backlog Rs. 2,067 crores, and international order book Rs. 1,589 crores, total order book is Rs. 3,500 crores, right?"
+  },
+  {
+   "date": "2022-02-10",
+   "role": "book_level",
+   "crore": 1589.0,
+   "doc": "nse105235901",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Ravi Naredi: My point is this order backlog Rs. 2,067 crores, and international order book Rs. 1,589 crores, total order book is Rs. 3,500 crores, right?"
+  },
+  {
+   "date": "2022-02-10",
+   "role": "book_level",
+   "crore": 3500.0,
+   "doc": "nse105235901",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Ravi Naredi: My point is this order backlog Rs. 2,067 crores, and international order book Rs. 1,589 crores, total order book is Rs. 3,500 crores, right?"
+  },
+  {
+   "date": "2022-05-31",
+   "role": "book_level",
+   "crore": 1932.0,
+   "doc": "nse5040816",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "However, on business outlook perspective, we have a strong backlog of Rs.1932 crores which is 30% higher than last year, So, which reflects a strong business outlook for the future."
+  },
+  {
+   "date": "2022-05-31",
+   "role": "book_level",
+   "crore": 1500.0,
+   "doc": "nse5040816",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "So, the inventory days also, net-net has reduced on a consol basis although the backlog has risen from Rs.1500 crores to Rs.1900 crores."
+  },
+  {
+   "date": "2022-05-31",
+   "role": "book_level",
+   "crore": 1900.0,
+   "doc": "nse5040816",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "So, the inventory days also, net-net has reduced on a consol basis although the backlog has risen from Rs.1500 crores to Rs.1900 crores."
+  },
+  {
+   "date": "2022-11-10",
+   "role": "book_level",
+   "crore": 2119.0,
+   "doc": "nse5117055",
+   "type": "Transcript of Analysts/Institutional Inv",
+   "quote": "As for the order backlog, we stand currently at INR 2,119 crores, which gives us visibility for the next 6 to 9 months as well."
+  },
+  {
+   "date": "2023-02-02",
+   "role": "book_level",
+   "crore": 792.0,
+   "doc": "nse105415576",
+   "type": "Press Release",
+   "quote": "Financial Performance Consolidated EBITDA PAT Order Order Revenue EBITDA PAT* EPS* Q3 Margin Margin* Intake Backlog FY23 \u20b9792 Crore \u20b9118 Crore 14.9% \u20b940 Crore 5.1% \u20b99.0 \u20b9773 Crore \u20b92,247 Crore * Excludes impact of except"
+  },
+  {
+   "date": "2023-02-02",
+   "role": "book_level",
+   "crore": 118.0,
+   "doc": "nse105415576",
+   "type": "Press Release",
+   "quote": "Financial Performance Consolidated EBITDA PAT Order Order Revenue EBITDA PAT* EPS* Q3 Margin Margin* Intake Backlog FY23 \u20b9792 Crore \u20b9118 Crore 14.9% \u20b940 Crore 5.1% \u20b99.0 \u20b9773 Crore \u20b92,247 Crore * Excludes impact of except"
+  },
+  {
+   "date": "2023-02-02",
+   "role": "book_level",
+   "crore": 2312.0,
+   "doc": "nse105415576",
+   "type": "Press Release",
+   "quote": "EBITDA PAT Order Order Revenue EBITDA PAT* EPS* 9M Margin Margin* Intake Backlog FY23 \u20b92,312 Crore \u20b9335 Crore 14.5% \u20b9199 Crore 8.6% \u20b933.9 \u20b92,601 Crore \u20b92,247 Crore * Excludes impact of exceptional items of \u20b922 crore rela"
+  },
+  {
+   "date": "2023-02-02",
+   "role": "book_level",
+   "crore": 335.0,
+   "doc": "nse105415576",
+   "type": "Press Release",
+   "quote": "EBITDA PAT Order Order Revenue EBITDA PAT* EPS* 9M Margin Margin* Intake Backlog FY23 \u20b92,312 Crore \u20b9335 Crore 14.5% \u20b9199 Crore 8.6% \u20b933.9 \u20b92,601 Crore \u20b92,247 Crore * Excludes impact of exceptional items of \u20b922 crore rela"
+  },
+  {
+   "date": "2023-02-02",
+   "role": "book_level",
+   "crore": 2247.0,
+   "doc": "nse105415576",
+   "type": "Press Release",
+   "quote": "Quarter Highlights \u2022 Revenue growth of 23% \u2022 EBITDA growth of 44%, EBITDA margin at 14.9% \u2022 PAT margin at 5.1%, impacted by net loss on restatement of foreign currency borrowings amounting to \u20b918 crore (non-cash) \u2022 Shipm"
+  },
+  {
+   "date": "2023-02-10",
+   "role": "book_level",
+   "crore": 2247.0,
+   "doc": "nse105423679",
+   "type": "Updates",
+   "quote": "The order backlog as it stands today is about Rs. 2,247 crores, which gives us about 6 to 9 months of revenue visibility."
+  },
+  {
+   "date": "2023-02-10",
+   "role": "book_level",
+   "crore": 20.0,
+   "doc": "nse105423679",
+   "type": "Updates",
+   "quote": "Page 12 of 18 GMM Pfaudler Limited February 03, 2023 Jonas Bhutta: And just given that we don\u2019t have too much of a history of how order book used to behave for PFI before it came in, given that we\u2019re sitting on a backlog"
+  },
+  {
+   "date": "2023-02-10",
+   "role": "book_level",
+   "crore": 50.0,
+   "doc": "nse105423679",
+   "type": "Updates",
+   "quote": "Page 12 of 18 GMM Pfaudler Limited February 03, 2023 Jonas Bhutta: And just given that we don\u2019t have too much of a history of how order book used to behave for PFI before it came in, given that we\u2019re sitting on a backlog"
+  },
+  {
+   "date": "2023-02-10",
+   "role": "book_level",
+   "crore": 20.0,
+   "doc": "nse105423679",
+   "type": "Updates",
+   "quote": "So, you mentioned that the heavy engineering piece still has a legacy order book of Rs. 20 crores to Rs. 30 crores, which probably will get executed in the fourth quarter."
+  },
+  {
+   "date": "2023-02-10",
+   "role": "book_level",
+   "crore": 30.0,
+   "doc": "nse105423679",
+   "type": "Updates",
+   "quote": "So, you mentioned that the heavy engineering piece still has a legacy order book of Rs. 20 crores to Rs. 30 crores, which probably will get executed in the fourth quarter."
+  },
+  {
+   "date": "2023-05-25",
+   "role": "book_level",
+   "crore": 3178.0,
+   "doc": "nse105510846",
+   "type": "Press Release",
+   "quote": "Financial Performance Consolidated EBITDA PAT Order Order Revenue EBITDA PAT* EPS* Margin Margin* Intake Backlog FY23 \u20b93,178 Crore \u20b9431 Crore 13.6% \u20b9235 Crore 7.4% \u20b942.3 \u20b93,392 Crore \u20b92,162 Crore * Excludes impact of exc"
+  },
+  {
+   "date": "2023-05-25",
+   "role": "book_level",
+   "crore": 431.0,
+   "doc": "nse105510846",
+   "type": "Press Release",
+   "quote": "Financial Performance Consolidated EBITDA PAT Order Order Revenue EBITDA PAT* EPS* Margin Margin* Intake Backlog FY23 \u20b93,178 Crore \u20b9431 Crore 13.6% \u20b9235 Crore 7.4% \u20b942.3 \u20b93,392 Crore \u20b92,162 Crore * Excludes impact of exc"
+  },
+  {
+   "date": "2023-05-25",
+   "role": "book_level",
+   "crore": 235.0,
+   "doc": "nse105510846",
+   "type": "Press Release",
+   "quote": "Financial Performance Consolidated EBITDA PAT Order Order Revenue EBITDA PAT* EPS* Margin Margin* Intake Backlog FY23 \u20b93,178 Crore \u20b9431 Crore 13.6% \u20b9235 Crore 7.4% \u20b942.3 \u20b93,392 Crore \u20b92,162 Crore * Excludes impact of exc"
+  },
+  {
+   "date": "2023-05-25",
+   "role": "book_level",
+   "crore": 866.0,
+   "doc": "nse105510846",
+   "type": "Press Release",
+   "quote": "EBITDA PAT Order Order Revenue EBITDA PAT EPS Q4 Margin Margin Intake Backlog FY23 \u20b9866 Crore \u20b996 Crore 11.1% \u20b936 Crore 4.2% \u20b98.6 \u20b9792 Crore \u20b92,162 Crore Highlights \u2022 FY23 revenue and EBITDA grew 25% and 52%, respectivel"
+  },
+  {
+   "date": "2023-05-25",
+   "role": "book_level",
+   "crore": 96.0,
+   "doc": "nse105510846",
+   "type": "Press Release",
+   "quote": "EBITDA PAT Order Order Revenue EBITDA PAT EPS Q4 Margin Margin Intake Backlog FY23 \u20b9866 Crore \u20b996 Crore 11.1% \u20b936 Crore 4.2% \u20b98.6 \u20b9792 Crore \u20b92,162 Crore Highlights \u2022 FY23 revenue and EBITDA grew 25% and 52%, respectivel"
+  },
+  {
+   "date": "2023-05-25",
+   "role": "book_level",
+   "crore": 36.0,
+   "doc": "nse105510846",
+   "type": "Press Release",
+   "quote": "EBITDA PAT Order Order Revenue EBITDA PAT EPS Q4 Margin Margin Intake Backlog FY23 \u20b9866 Crore \u20b996 Crore 11.1% \u20b936 Crore 4.2% \u20b98.6 \u20b9792 Crore \u20b92,162 Crore Highlights \u2022 FY23 revenue and EBITDA grew 25% and 52%, respectivel"
+  },
+  {
+   "date": "2023-05-25",
+   "role": "book_level",
+   "crore": 792.0,
+   "doc": "nse105510846",
+   "type": "Press Release",
+   "quote": "EBITDA PAT Order Order Revenue EBITDA PAT EPS Q4 Margin Margin Intake Backlog FY23 \u20b9866 Crore \u20b996 Crore 11.1% \u20b936 Crore 4.2% \u20b98.6 \u20b9792 Crore \u20b92,162 Crore Highlights \u2022 FY23 revenue and EBITDA grew 25% and 52%, respectivel"
+  },
+  {
+   "date": "2023-05-25",
+   "role": "book_level",
+   "crore": 2162.0,
+   "doc": "nse105510846",
+   "type": "Press Release",
+   "quote": "EBITDA PAT Order Order Revenue EBITDA PAT EPS Q4 Margin Margin Intake Backlog FY23 \u20b9866 Crore \u20b996 Crore 11.1% \u20b936 Crore 4.2% \u20b98.6 \u20b9792 Crore \u20b92,162 Crore Highlights \u2022 FY23 revenue and EBITDA grew 25% and 52%, respectivel"
+  },
+  {
+   "date": "2023-06-02",
+   "role": "book_level",
+   "crore": 2162.0,
+   "doc": "nse105522373",
+   "type": "Updates",
+   "quote": "The order intake for the year also was quite strong and we did about INR 3,392 crores of order intake, which translates to a current backlog on April 1, 2023, of INR 2,162 crores."
+  },
+  {
+   "date": "2023-08-10",
+   "role": "book_level",
+   "crore": 912.0,
+   "doc": "nse105584405",
+   "type": "Press Release",
+   "quote": "Financial Performance Consolidated EBITDA PAT Order Order Revenue EBITDA PAT EPS Q1 Margin Margin Intake Backlog FY24 \u20b9912 Crore \u20b9132 Crore 14.5% \u20b954 Crore 6.0% \u20b912.2 \u20b9770 Crore \u20b92,013 Crore Highlights \u2022 Revenue growth o"
+  },
+  {
+   "date": "2023-08-10",
+   "role": "book_level",
+   "crore": 132.0,
+   "doc": "nse105584405",
+   "type": "Press Release",
+   "quote": "Financial Performance Consolidated EBITDA PAT Order Order Revenue EBITDA PAT EPS Q1 Margin Margin Intake Backlog FY24 \u20b9912 Crore \u20b9132 Crore 14.5% \u20b954 Crore 6.0% \u20b912.2 \u20b9770 Crore \u20b92,013 Crore Highlights \u2022 Revenue growth o"
+  },
+  {
+   "date": "2023-08-10",
+   "role": "book_level",
+   "crore": 2013.0,
+   "doc": "nse105584405",
+   "type": "Press Release",
+   "quote": "Financial Performance Consolidated EBITDA PAT Order Order Revenue EBITDA PAT EPS Q1 Margin Margin Intake Backlog FY24 \u20b9912 Crore \u20b9132 Crore 14.5% \u20b954 Crore 6.0% \u20b912.2 \u20b9770 Crore \u20b92,013 Crore Highlights \u2022 Revenue growth o"
+  },
+  {
+   "date": "2023-08-10",
+   "role": "book_level",
+   "crore": 770.0,
+   "doc": "nse105584405",
+   "type": "Press Release",
+   "quote": "Financial Performance Consolidated EBITDA PAT Order Order Revenue EBITDA PAT EPS Q1 Margin Margin Intake Backlog FY24 \u20b9912 Crore \u20b9132 Crore 14.5% \u20b954 Crore 6.0% \u20b912.2 \u20b9770 Crore \u20b92,013 Crore Highlights \u2022 Revenue growth o"
+  },
+  {
+   "date": "2023-08-10",
+   "role": "book_level",
+   "crore": 2013.0,
+   "doc": "nse105584410",
+   "type": "Investor Presentation",
+   "quote": "By accessing this presentation, the reader accepts this. \u20b9912 crore \u20b9132 crore 14.5% Revenue EBITDA EBITDA Margin \u20b954 crore 6.0% \u20b912.2 PAT PAT Margin EPS \u20b9770 crore \u20b92,013 crore Order Intake Order Backlog 3 Revenue (\u20b9 cr"
+  },
+  {
+   "date": "2023-08-14",
+   "role": "book_level",
+   "crore": 2000.0,
+   "doc": "nse105590388",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our order backlog remains stable at INR 2000 crores which translates to about eight months of visibility in the international business and about six months of India business."
+  },
+  {
+   "date": "2023-11-09",
+   "role": "book_level",
+   "crore": 1705.0,
+   "doc": "nse105671221",
+   "type": "Investor Presentation",
+   "quote": "By accessing this presentation, the reader accepts this. \u20b9937 crore \u20b9142 crore 15.1% Revenue EBITDA EBITDA Margin \u20b970 crore 7.5% \u20b915.8 PAT PAT Margin EPS \u20b9626 crore \u20b91,705 crore Order Intake Order Backlog 3 Business \u25aa Re"
+  },
+  {
+   "date": "2023-11-17",
+   "role": "book_level",
+   "crore": 1705.0,
+   "doc": "nse105678375",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Having said that, our order backlog stands at about INR 1,705 crores, which translates to about 6 months of order visibility in India and about 7 to 8 months in the international business."
+  },
+  {
+   "date": "2023-11-17",
+   "role": "book_level",
+   "crore": 300.0,
+   "doc": "nse105678375",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "But the order backlog has fallen by approximately INR 300 crores on a quarter-on-quarter basis."
+  },
+  {
+   "date": "2023-11-17",
+   "role": "book_level",
+   "crore": 2000.0,
+   "doc": "nse105678375",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "We are now at the INR 2000 crore backlog mark."
+  },
+  {
+   "date": "2024-05-29",
+   "role": "book_level",
+   "crore": 1700.0,
+   "doc": "nse105866905",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "And starting the year today at with the Rs. 1,700 crores backlog is not a bad number, obviously, at the highest point in the last 2-3 years, if you check, it would have been around Rs. 2,200 crores, but that was a bit ab"
+  },
+  {
+   "date": "2024-05-29",
+   "role": "book_level",
+   "crore": 2000.0,
+   "doc": "nse105866905",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Sarang Sanil: My second question was what all went wrong in this quarter versus our expectation, because we were way off from the Rs. 2,000 crores order book and India business was not better than Q3 either as you had ex"
+  },
+  {
+   "date": "2024-08-14",
+   "role": "book_level",
+   "crore": 1777.0,
+   "doc": "nse105954647",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our order backlog is also up by 5% to about Rs.1,777 crores."
+  },
+  {
+   "date": "2024-08-14",
+   "role": "book_level",
+   "crore": 1777.0,
+   "doc": "nse105954647",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "We have a strong order backlog so we have about Rs. 1,777 crores of backlog currently, executable backlog."
+  },
+  {
+   "date": "2024-11-14",
+   "role": "book_level",
+   "crore": 762.0,
+   "doc": "nse106059938",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our order intake stands at \u20b9 762 crores for the quarter, and backlog stands at \u20b9 1,773 crores."
+  },
+  {
+   "date": "2024-11-14",
+   "role": "book_level",
+   "crore": 1773.0,
+   "doc": "nse106059938",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our order intake stands at \u20b9 762 crores for the quarter, and backlog stands at \u20b9 1,773 crores."
+  },
+  {
+   "date": "2024-11-14",
+   "role": "book_level",
+   "crore": 1773.0,
+   "doc": "nse106059938",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "As you know, our backlog is at \u20b9 1,773 crores as of 30 September, versus \u20b9 1,689 crores as on 31st March, marginally high."
+  },
+  {
+   "date": "2024-11-14",
+   "role": "book_level",
+   "crore": 1689.0,
+   "doc": "nse106059938",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "As you know, our backlog is at \u20b9 1,773 crores as of 30 September, versus \u20b9 1,689 crores as on 31st March, marginally high."
+  },
+  {
+   "date": "2024-11-14",
+   "role": "book_level",
+   "crore": 1773.0,
+   "doc": "nse106059938",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "So my first question was on the revenue front, that how are things shaping up at least on the global level right now, because we saw 3% sequential growth and going forward, H2 has always been the strongest for GMM Pfaudl"
+  },
+  {
+   "date": "2025-02-13",
+   "role": "book_level",
+   "crore": 1740.0,
+   "doc": "nse106150440",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Order backlog stands at INR 1740 crore, up 7% compared to December 31st, 2023."
+  },
+  {
+   "date": "2025-02-13",
+   "role": "book_level",
+   "crore": 1600.0,
+   "doc": "nse106150440",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Sagar Shah: Because what the real concern was, in spite of having a very robust order book, order inflow of almost INR 1600 crores in the first two quarters, still on the consolidated front, our revenues were very flatti"
+  },
+  {
+   "date": "2025-05-21",
+   "role": "book_level",
+   "crore": 807.0,
+   "doc": "nse106241736",
+   "type": "Press Release",
+   "quote": "Financial Performance Consolidated EBITDA PAT Order Order Q4 Revenue EBITDA* PAT* EPS* Margin* Margin* Intake Backlog FY25 \u20b9807 Crore \u20b993 Crore 11.5% \u20b915 Crore 1.9% \u20b93.58 \u20b9660 Crore \u20b91,636 Crore EBITDA PAT Order Order Re"
+  },
+  {
+   "date": "2025-05-21",
+   "role": "book_level",
+   "crore": 93.0,
+   "doc": "nse106241736",
+   "type": "Press Release",
+   "quote": "Financial Performance Consolidated EBITDA PAT Order Order Q4 Revenue EBITDA* PAT* EPS* Margin* Margin* Intake Backlog FY25 \u20b9807 Crore \u20b993 Crore 11.5% \u20b915 Crore 1.9% \u20b93.58 \u20b9660 Crore \u20b91,636 Crore EBITDA PAT Order Order Re"
+  },
+  {
+   "date": "2025-05-21",
+   "role": "book_level",
+   "crore": 15.0,
+   "doc": "nse106241736",
+   "type": "Press Release",
+   "quote": "Financial Performance Consolidated EBITDA PAT Order Order Q4 Revenue EBITDA* PAT* EPS* Margin* Margin* Intake Backlog FY25 \u20b9807 Crore \u20b993 Crore 11.5% \u20b915 Crore 1.9% \u20b93.58 \u20b9660 Crore \u20b91,636 Crore EBITDA PAT Order Order Re"
+  },
+  {
+   "date": "2025-05-21",
+   "role": "book_level",
+   "crore": 660.0,
+   "doc": "nse106241736",
+   "type": "Press Release",
+   "quote": "Financial Performance Consolidated EBITDA PAT Order Order Q4 Revenue EBITDA* PAT* EPS* Margin* Margin* Intake Backlog FY25 \u20b9807 Crore \u20b993 Crore 11.5% \u20b915 Crore 1.9% \u20b93.58 \u20b9660 Crore \u20b91,636 Crore EBITDA PAT Order Order Re"
+  },
+  {
+   "date": "2025-05-21",
+   "role": "book_level",
+   "crore": 3199.0,
+   "doc": "nse106241736",
+   "type": "Press Release",
+   "quote": "Financial Performance Consolidated EBITDA PAT Order Order Q4 Revenue EBITDA* PAT* EPS* Margin* Margin* Intake Backlog FY25 \u20b9807 Crore \u20b993 Crore 11.5% \u20b915 Crore 1.9% \u20b93.58 \u20b9660 Crore \u20b91,636 Crore EBITDA PAT Order Order Re"
+  },
+  {
+   "date": "2025-05-21",
+   "role": "book_level",
+   "crore": 381.0,
+   "doc": "nse106241736",
+   "type": "Press Release",
+   "quote": "Financial Performance Consolidated EBITDA PAT Order Order Q4 Revenue EBITDA* PAT* EPS* Margin* Margin* Intake Backlog FY25 \u20b9807 Crore \u20b993 Crore 11.5% \u20b915 Crore 1.9% \u20b93.58 \u20b9660 Crore \u20b91,636 Crore EBITDA PAT Order Order Re"
+  },
+  {
+   "date": "2025-05-21",
+   "role": "book_level",
+   "crore": 100.0,
+   "doc": "nse106241736",
+   "type": "Press Release",
+   "quote": "Financial Performance Consolidated EBITDA PAT Order Order Q4 Revenue EBITDA* PAT* EPS* Margin* Margin* Intake Backlog FY25 \u20b9807 Crore \u20b993 Crore 11.5% \u20b915 Crore 1.9% \u20b93.58 \u20b9660 Crore \u20b91,636 Crore EBITDA PAT Order Order Re"
+  },
+  {
+   "date": "2025-05-21",
+   "role": "book_level",
+   "crore": 3102.0,
+   "doc": "nse106241736",
+   "type": "Press Release",
+   "quote": "Financial Performance Consolidated EBITDA PAT Order Order Q4 Revenue EBITDA* PAT* EPS* Margin* Margin* Intake Backlog FY25 \u20b9807 Crore \u20b993 Crore 11.5% \u20b915 Crore 1.9% \u20b93.58 \u20b9660 Crore \u20b91,636 Crore EBITDA PAT Order Order Re"
+  },
+  {
+   "date": "2025-05-27",
+   "role": "book_level",
+   "crore": 1636.0,
+   "doc": "nse106250897",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our current backlog on April 1st, 2025, stands at INR 1636 crores."
+  },
+  {
+   "date": "2025-05-27",
+   "role": "book_level",
+   "crore": 549.0,
+   "doc": "nse106250897",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our India backlog stands at INR 549 crores, which is higher by 20% on a year-on-year basis."
+  },
+  {
+   "date": "2025-08-07",
+   "role": "book_level",
+   "crore": 795.0,
+   "doc": "nse106329850",
+   "type": "Press Release",
+   "quote": "Financial Performance Consolidated EBITDA PAT Order Order Q1 Revenue EBITDA PAT EPS Margin Margin Intake Backlog FY26 \u20b9795 Crore \u20b9101 Crore 12.7% \u20b910 Crore* 1.3%* \u20b92.5* \u20b91,004 Crore \u20b91,906 Crore * Includes net loss on re"
+  },
+  {
+   "date": "2025-08-07",
+   "role": "book_level",
+   "crore": 101.0,
+   "doc": "nse106329850",
+   "type": "Press Release",
+   "quote": "Financial Performance Consolidated EBITDA PAT Order Order Q1 Revenue EBITDA PAT EPS Margin Margin Intake Backlog FY26 \u20b9795 Crore \u20b9101 Crore 12.7% \u20b910 Crore* 1.3%* \u20b92.5* \u20b91,004 Crore \u20b91,906 Crore * Includes net loss on re"
+  },
+  {
+   "date": "2025-08-07",
+   "role": "book_level",
+   "crore": 10.0,
+   "doc": "nse106329850",
+   "type": "Press Release",
+   "quote": "Financial Performance Consolidated EBITDA PAT Order Order Q1 Revenue EBITDA PAT EPS Margin Margin Intake Backlog FY26 \u20b9795 Crore \u20b9101 Crore 12.7% \u20b910 Crore* 1.3%* \u20b92.5* \u20b91,004 Crore \u20b91,906 Crore * Includes net loss on re"
+  },
+  {
+   "date": "2025-08-07",
+   "role": "book_level",
+   "crore": 1906.0,
+   "doc": "nse106329850",
+   "type": "Press Release",
+   "quote": "Order Intake is up 14% YoY & 52% QoQ. \u2022 Order Backlog of \u20b9 1,906 crores up 7% YoY and 17% QoQ. \u2022 Entered into an agreement to acquire 100% share capital of SEMCO Tecnologia em Processos Ltda. through the Pfaudler Ltda., "
+  },
+  {
+   "date": "2025-08-07",
+   "role": "book_level",
+   "crore": 1906.0,
+   "doc": "nse106329863",
+   "type": "Investor Presentation",
+   "quote": "Order Intake is up 14% YoY and 52% QoQ. \u25aa Order Backlog of \u20b9 1,906 crores up 7% YoY and 17% QoQ."
+  },
+  {
+   "date": "2025-08-14",
+   "role": "book_level",
+   "crore": 1906.0,
+   "doc": "nse106341866",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Our current backlog stands at INR 1,906 crores, which is an increase of 7% year-on-year and 17% quarter-on-quarter."
+  },
+  {
+   "date": "2025-11-06",
+   "role": "book_level",
+   "crore": 2146.0,
+   "doc": "nse106429802",
+   "type": "Press Release",
+   "quote": "Our current order backlog stands at \u20b9 2,146 crores, reflecting a 21% increase from the same quarter previous year."
+  },
+  {
+   "date": "2025-11-13",
+   "role": "book_level",
+   "crore": 878.0,
+   "doc": "nse106441976",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Order intake was strong this quarter with INR 878 crores of order intake and the order backlog currently stands at INR 2,146 crores."
+  },
+  {
+   "date": "2025-11-13",
+   "role": "book_level",
+   "crore": 2146.0,
+   "doc": "nse106441976",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Order intake was strong this quarter with INR 878 crores of order intake and the order backlog currently stands at INR 2,146 crores."
+  },
+  {
+   "date": "2025-11-13",
+   "role": "book_level",
+   "crore": 90.0,
+   "doc": "nse106441976",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Tarak Patel: So, I think last quarter, India order book number, I think we were about INR 90 crores or INR 100 crores higher in order book this quarter versus previous quarter."
+  },
+  {
+   "date": "2025-11-13",
+   "role": "book_level",
+   "crore": 100.0,
+   "doc": "nse106441976",
+   "type": "Analysts/Institutional Investor Meet/Con",
+   "quote": "Tarak Patel: So, I think last quarter, India order book number, I think we were about INR 90 crores or INR 100 crores higher in order book this quarter versus previous quarter."
+  }
+ ],
+ "timeline": [
+  {
+   "date": "2021-01-31",
+   "ttm_revenue": 564.2,
+   "orders_12m": 0,
+   "book": 500.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-02-28",
+   "ttm_revenue": 564.2,
+   "orders_12m": 0,
+   "book": 500.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-03-31",
+   "ttm_revenue": 564.2,
+   "orders_12m": 0,
+   "book": 500.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-04-30",
+   "ttm_revenue": 564.2,
+   "orders_12m": 0,
+   "book": 500.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-05-31",
+   "ttm_revenue": 640.8,
+   "orders_12m": 0,
+   "book": 500.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-06-30",
+   "ttm_revenue": 640.8,
+   "orders_12m": 50.0,
+   "book": 322.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-07-31",
+   "ttm_revenue": 640.8,
+   "orders_12m": 50.0,
+   "book": 322.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-08-31",
+   "ttm_revenue": 681.3,
+   "orders_12m": 150.0,
+   "book": 500.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-09-30",
+   "ttm_revenue": 681.3,
+   "orders_12m": 150.0,
+   "book": 500.0,
+   "book_year_ago": null
+  },
+  {
+   "date": "2021-10-31",
+   "ttm_revenue": 733.1,
+   "orders_12m": 150.0,
+   "book": 500.0,
+   "book_year_ago": 500.0
+  },
+  {
+   "date": "2021-11-30",
+   "ttm_revenue": 733.1,
+   "orders_12m": 150.0,
+   "book": 200.0,
+   "book_year_ago": 500.0
+  },
+  {
+   "date": "2021-12-31",
+   "ttm_revenue": 733.1,
+   "orders_12m": 150.0,
+   "book": 200.0,
+   "book_year_ago": 500.0
+  },
+  {
+   "date": "2022-01-31",
+   "ttm_revenue": 733.1,
+   "orders_12m": 150.0,
+   "book": 200.0,
+   "book_year_ago": 500.0
+  },
+  {
+   "date": "2022-02-28",
+   "ttm_revenue": 776.3,
+   "orders_12m": 150.0,
+   "book": 3500.0,
+   "book_year_ago": 322.0
+  },
+  {
+   "date": "2022-03-31",
+   "ttm_revenue": 776.3,
+   "orders_12m": 150.0,
+   "book": 3500.0,
+   "book_year_ago": 322.0
+  },
+  {
+   "date": "2022-04-30",
+   "ttm_revenue": 776.3,
+   "orders_12m": 150.0,
+   "book": 3500.0,
+   "book_year_ago": 322.0
+  },
+  {
+   "date": "2022-05-31",
+   "ttm_revenue": 814.8,
+   "orders_12m": 150.0,
+   "book": 1900.0,
+   "book_year_ago": 500.0
+  },
+  {
+   "date": "2022-06-30",
+   "ttm_revenue": 814.8,
+   "orders_12m": 100.0,
+   "book": 1900.0,
+   "book_year_ago": 500.0
+  },
+  {
+   "date": "2022-07-31",
+   "ttm_revenue": 892.5,
+   "orders_12m": 100.0,
+   "book": 1900.0,
+   "book_year_ago": 200.0
+  },
+  {
+   "date": "2022-08-31",
+   "ttm_revenue": 892.5,
+   "orders_12m": 0,
+   "book": 1900.0,
+   "book_year_ago": 200.0
+  },
+  {
+   "date": "2022-09-30",
+   "ttm_revenue": 892.5,
+   "orders_12m": 0,
+   "book": 1900.0,
+   "book_year_ago": 200.0
+  },
+  {
+   "date": "2022-10-31",
+   "ttm_revenue": 892.5,
+   "orders_12m": 0,
+   "book": 1900.0,
+   "book_year_ago": 200.0
+  },
+  {
+   "date": "2022-11-30",
+   "ttm_revenue": 942.6,
+   "orders_12m": 0,
+   "book": 2119.0,
+   "book_year_ago": 3500.0
+  },
+  {
+   "date": "2022-12-31",
+   "ttm_revenue": 942.6,
+   "orders_12m": 0,
+   "book": 2119.0,
+   "book_year_ago": 3500.0
+  },
+  {
+   "date": "2023-01-31",
+   "ttm_revenue": 942.6,
+   "orders_12m": 0,
+   "book": 2119.0,
+   "book_year_ago": 3500.0
+  },
+  {
+   "date": "2023-02-28",
+   "ttm_revenue": 1010.3,
+   "orders_12m": 0,
+   "book": 30.0,
+   "book_year_ago": 1900.0
+  },
+  {
+   "date": "2023-03-31",
+   "ttm_revenue": 1010.3,
+   "orders_12m": 0,
+   "book": 30.0,
+   "book_year_ago": 1900.0
+  },
+  {
+   "date": "2023-04-30",
+   "ttm_revenue": 1010.3,
+   "orders_12m": 0,
+   "book": 30.0,
+   "book_year_ago": 1900.0
+  },
+  {
+   "date": "2023-05-31",
+   "ttm_revenue": 1074.8,
+   "orders_12m": 0,
+   "book": 2162.0,
+   "book_year_ago": 1900.0
+  },
+  {
+   "date": "2023-06-30",
+   "ttm_revenue": 1074.8,
+   "orders_12m": 100.0,
+   "book": 2162.0,
+   "book_year_ago": 1900.0
+  },
+  {
+   "date": "2023-07-31",
+   "ttm_revenue": 1074.8,
+   "orders_12m": 100.0,
+   "book": 2162.0,
+   "book_year_ago": 1900.0
+  },
+  {
+   "date": "2023-08-31",
+   "ttm_revenue": 1105.9,
+   "orders_12m": 100.0,
+   "book": 2000.0,
+   "book_year_ago": 2119.0
+  },
+  {
+   "date": "2023-09-30",
+   "ttm_revenue": 1105.9,
+   "orders_12m": 100.0,
+   "book": 2000.0,
+   "book_year_ago": 2119.0
+  },
+  {
+   "date": "2023-10-31",
+   "ttm_revenue": 1105.9,
+   "orders_12m": 100.0,
+   "book": 2000.0,
+   "book_year_ago": 2247.0
+  },
+  {
+   "date": "2023-11-30",
+   "ttm_revenue": 1116.1,
+   "orders_12m": 100.0,
+   "book": 2000.0,
+   "book_year_ago": 30.0
+  },
+  {
+   "date": "2023-12-31",
+   "ttm_revenue": 1116.1,
+   "orders_12m": 100.0,
+   "book": 2000.0,
+   "book_year_ago": 30.0
+  },
+  {
+   "date": "2024-01-31",
+   "ttm_revenue": 1116.1,
+   "orders_12m": 100.0,
+   "book": 2000.0,
+   "book_year_ago": 30.0
+  },
+  {
+   "date": "2024-02-29",
+   "ttm_revenue": 1099.1,
+   "orders_12m": 100.0,
+   "book": 2000.0,
+   "book_year_ago": 2162.0
+  },
+  {
+   "date": "2024-03-31",
+   "ttm_revenue": 1099.1,
+   "orders_12m": 100.0,
+   "book": 2000.0,
+   "book_year_ago": 2162.0
+  },
+  {
+   "date": "2024-04-30",
+   "ttm_revenue": 1099.1,
+   "orders_12m": 100.0,
+   "book": 2000.0,
+   "book_year_ago": 2162.0
+  },
+  {
+   "date": "2024-05-31",
+   "ttm_revenue": 1030.6,
+   "orders_12m": 100.0,
+   "book": 2000.0,
+   "book_year_ago": 2000.0
+  },
+  {
+   "date": "2024-06-30",
+   "ttm_revenue": 1030.6,
+   "orders_12m": 0,
+   "book": 2000.0,
+   "book_year_ago": 2000.0
+  },
+  {
+   "date": "2024-07-31",
+   "ttm_revenue": 1030.6,
+   "orders_12m": 0,
+   "book": 2000.0,
+   "book_year_ago": 2000.0
+  },
+  {
+   "date": "2024-08-31",
+   "ttm_revenue": 973.5,
+   "orders_12m": 0,
+   "book": 1777.0,
+   "book_year_ago": 2000.0
+  },
+  {
+   "date": "2024-09-30",
+   "ttm_revenue": 973.5,
+   "orders_12m": 0,
+   "book": 1777.0,
+   "book_year_ago": 2000.0
+  },
+  {
+   "date": "2024-10-31",
+   "ttm_revenue": 973.5,
+   "orders_12m": 0,
+   "book": 1777.0,
+   "book_year_ago": 2000.0
+  },
+  {
+   "date": "2024-11-30",
+   "ttm_revenue": 915.3,
+   "orders_12m": 0,
+   "book": 1773.0,
+   "book_year_ago": 2000.0
+  },
+  {
+   "date": "2024-12-31",
+   "ttm_revenue": 915.3,
+   "orders_12m": 0,
+   "book": 1773.0,
+   "book_year_ago": 2000.0
+  },
+  {
+   "date": "2025-01-31",
+   "ttm_revenue": 915.3,
+   "orders_12m": 0,
+   "book": 1773.0,
+   "book_year_ago": 2000.0
+  },
+  {
+   "date": "2025-02-28",
+   "ttm_revenue": 893.4,
+   "orders_12m": 0,
+   "book": 1600.0,
+   "book_year_ago": 2000.0
+  },
+  {
+   "date": "2025-03-31",
+   "ttm_revenue": 893.4,
+   "orders_12m": 0,
+   "book": 1600.0,
+   "book_year_ago": 2000.0
+  },
+  {
+   "date": "2025-04-30",
+   "ttm_revenue": 893.4,
+   "orders_12m": 0,
+   "book": 1600.0,
+   "book_year_ago": 2000.0
+  },
+  {
+   "date": "2025-05-31",
+   "ttm_revenue": 921.1,
+   "orders_12m": 34.3,
+   "book": 549.0,
+   "book_year_ago": 1777.0
+  },
+  {
+   "date": "2025-06-30",
+   "ttm_revenue": 921.1,
+   "orders_12m": 364.3,
+   "book": 549.0,
+   "book_year_ago": 1777.0
+  },
+  {
+   "date": "2025-07-31",
+   "ttm_revenue": 921.1,
+   "orders_12m": 364.3,
+   "book": 549.0,
+   "book_year_ago": 1777.0
+  },
+  {
+   "date": "2025-08-31",
+   "ttm_revenue": 929.2,
+   "orders_12m": 364.3,
+   "book": 1906.0,
+   "book_year_ago": 1773.0
+  },
+  {
+   "date": "2025-09-30",
+   "ttm_revenue": 929.2,
+   "orders_12m": 364.3,
+   "book": 1906.0,
+   "book_year_ago": 1773.0
+  },
+  {
+   "date": "2025-10-31",
+   "ttm_revenue": 929.2,
+   "orders_12m": 364.3,
+   "book": 1906.0,
+   "book_year_ago": 1773.0
+  },
+  {
+   "date": "2025-11-30",
+   "ttm_revenue": 992.9,
+   "orders_12m": 364.3,
+   "book": 100.0,
+   "book_year_ago": 1600.0
+  },
+  {
+   "date": "2025-12-31",
+   "ttm_revenue": 992.9,
+   "orders_12m": 364.3,
+   "book": 100.0,
+   "book_year_ago": 1600.0
+  }
+ ]
+}
